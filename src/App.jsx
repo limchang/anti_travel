@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Navigation, MessageSquare, RotateCcw,
   Hourglass, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
@@ -20,6 +20,17 @@ const App = () => {
   const [activeDay, setActiveDay] = useState(1);
   const [routeCache, setRouteCache] = useState({});
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+  const [dashboardHeight, setDashboardHeight] = useState(200);
+  const dashboardRef = useRef(null);
+
+  useEffect(() => {
+    if (!dashboardRef.current) return;
+    const observer = new ResizeObserver(entries => {
+      setDashboardHeight(entries[0].contentRect.height);
+    });
+    observer.observe(dashboardRef.current);
+    return () => observer.disconnect();
+  }, []);
 
 
   const MAX_BUDGET = 1500000;
@@ -728,7 +739,7 @@ const App = () => {
 
       <div className="flex-1 flex flex-col items-center lg:ml-[260px] w-full min-w-0">
         {/* 🔴 대시보드 */}
-        <div className="fixed top-0 left-0 lg:left-[260px] right-0 z-[120] bg-white/95 backdrop-blur-xl border-b border-[#E5E8EB] pt-6 pb-5 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+        <div ref={dashboardRef} className="fixed top-0 left-0 lg:left-[260px] right-0 z-[120] bg-white/95 backdrop-blur-xl border-b border-[#E5E8EB] pt-6 pb-5 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
           <div className="max-w-3xl w-full mx-auto px-6 flex flex-col gap-6">
             <div className="flex items-center justify-between border-b pb-2.5 border-slate-100 font-bold">
               <div className="w-10" />
@@ -766,7 +777,7 @@ const App = () => {
         <div className="w-full max-w-2xl px-3 sm:px-5 mt-[210px] lg:mt-44 pb-32 space-y-8">
           {itinerary.days?.map((d, dIdx) => (
             <div key={`day-${dIdx}`} id={`day-${d.day}`} data-day={d.day} className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden mb-8 animate-in font-bold scroll-mt-[250px] lg:scroll-mt-[200px]">
-              <div className="sticky top-[223px] lg:top-[175px] z-[50] bg-gradient-to-r from-slate-50 to-white px-6 py-5 border-b border-slate-100 flex items-center gap-3">
+              <div className="sticky z-[50] bg-gradient-to-r from-slate-50 to-white px-6 py-5 border-b border-slate-100 flex items-center gap-3" style={{ top: dashboardHeight - 1 }}>
                 <span className="bg-[#3182F6] text-white px-3 py-1 rounded-lg text-sm font-black shadow-md">Day {d.day}</span>
                 <h2 className="text-xl font-black text-slate-800 tracking-tight">제주 여행 {d.day}일차</h2>
               </div>
@@ -1013,7 +1024,7 @@ const App = () => {
 
                       {/* 이동 정보 칩 (좌우 여백과 라인 중앙 정렬 완전 최적화) */}
                       {pIdx < d.plan.length - 1 && p.type !== 'backup' && (
-                        <div className="flex items-center py-5 relative w-full">
+                        <div className="flex items-center pt-3 pb-0 -mb-4 lg:-mb-3 relative w-full">
                           {/* Timeline vertical connection line - matching exact center of the left block */}
                           {/* sm이상일 때는 왼쪽 패딩이 커져서 축 위치 반영 (w-[9rem]의 절반) */}
                           <div className="absolute top-0 bottom-0 w-[2px] bg-slate-100 -z-10 left-[3.4rem] sm:left-[4.5rem]"></div>

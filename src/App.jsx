@@ -815,7 +815,7 @@ const App = () => {
                           <div className="z-10 flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm text-xs font-bold text-slate-500">
                             <span className="flex items-center gap-1.5 text-[10px] bg-slate-100 pl-1 pr-1.5 py-0.5 rounded text-slate-500 font-black relative overflow-hidden">
                               <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, -TIME_UNIT); }} className="w-4 h-4 flex items-center justify-center bg-white rounded shadow-sm hover:text-blue-500 hover:bg-slate-50 transition-colors z-10"><Minus size={10} /></button>
-                              <span className="tabular-nums z-10">{minutesToTime(timeToMinutes(p.time) - parseInt(p.travelTimeOverride || '0', 10))} 출발</span>
+                              <span className="tabular-nums z-10">{minutesToTime(timeToMinutes(p.time) - parseInt(p.travelTimeOverride || '0', 10))}</span>
                               <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-4 h-4 flex items-center justify-center bg-white rounded shadow-sm hover:text-blue-500 hover:bg-slate-50 transition-colors z-10"><Plus size={10} /></button>
                             </span>
                             <span className="text-[#3182F6]">숙소에서 출발</span>

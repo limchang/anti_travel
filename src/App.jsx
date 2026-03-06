@@ -793,17 +793,7 @@ const App = () => {
         <div className="w-full max-w-2xl px-3 sm:px-5 mt-[210px] lg:mt-44 pb-32 space-y-8">
           {itinerary.days?.map((d, dIdx) => (
             <div key={`day-${dIdx}`} id={`day-${d.day}`} data-day={d.day} className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 mb-8 animate-in font-bold scroll-mt-[250px] lg:scroll-mt-[200px] overflow-hidden">
-              <div className="sticky z-[40] bg-white/95 backdrop-blur-md py-4 sm:py-5 border-b border-slate-100 flex items-center" style={{ top: dashboardHeight - 1 }}>
-                {/* Timeline Axis Line inside Header */}
-                <div className="absolute top-0 bottom-0 w-[2px] bg-slate-100 left-[71px] sm:left-[6rem]"></div>
 
-                <div className="w-[16px] sm:w-[24px] shrink-0"></div>
-                <div className="w-[110px] sm:w-[9rem] shrink-0 flex justify-center relative">
-                  <span className="bg-[#3182F6] text-white px-4 py-1.5 rounded-full text-sm font-black shadow-none ring-[8px] ring-white">Day {d.day}</span>
-                </div>
-
-                <h2 className="text-xl sm:text-[22px] font-black text-slate-800 tracking-tight ml-2 relative">제주 여행 {d.day}일차</h2>
-              </div>
               <div className="p-4 sm:p-6 flex flex-col gap-6 relative z-0">
                 {/* Master Timeline Axis for the Content Container */}
                 <div className="absolute top-0 bottom-0 w-[2px] bg-slate-100 -z-10 left-[71px] sm:left-[6rem]"></div>

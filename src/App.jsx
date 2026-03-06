@@ -498,8 +498,11 @@ const App = () => {
   const autoCalculateRouteFor = async (dayIdx, targetIdx) => {
     const prevItem = itinerary.days[dayIdx].plan[targetIdx - 1];
     const targetItem = itinerary.days[dayIdx].plan[targetIdx];
-    const addr1 = prevItem?.receipt?.address;
-    const addr2 = targetItem?.receipt?.address;
+    let addr1 = prevItem?.receipt?.address;
+    if (prevItem?.types?.includes('ship')) addr1 = prevItem.endPoint || addr1;
+
+    let addr2 = targetItem?.receipt?.address;
+    if (targetItem?.types?.includes('ship')) addr2 = targetItem.startPoint || addr2;
 
     if (!addr1 || !addr2 || addr1.includes('없음') || addr2.includes('없음')) {
       setLastAction("두 장소의 올바른 주소가 필요합니다.");

@@ -25,6 +25,7 @@ const App = () => {
 
   useEffect(() => {
     if (!dashboardRef.current) return;
+    setDashboardHeight(dashboardRef.current.offsetHeight);
     const observer = new ResizeObserver(entries => {
       setDashboardHeight(entries[0].contentRect.height);
     });
@@ -776,8 +777,8 @@ const App = () => {
         {/* 일정 목록 */}
         <div className="w-full max-w-2xl px-3 sm:px-5 mt-[210px] lg:mt-44 pb-32 space-y-8">
           {itinerary.days?.map((d, dIdx) => (
-            <div key={`day-${dIdx}`} id={`day-${d.day}`} data-day={d.day} className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden mb-8 animate-in font-bold scroll-mt-[250px] lg:scroll-mt-[200px]">
-              <div className="sticky z-[50] bg-gradient-to-r from-slate-50 to-white px-6 py-5 border-b border-slate-100 flex items-center gap-3" style={{ top: dashboardHeight - 1 }}>
+            <div key={`day-${dIdx}`} id={`day-${d.day}`} data-day={d.day} className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 mb-8 animate-in font-bold scroll-mt-[250px] lg:scroll-mt-[200px]">
+              <div className="sticky z-[50] bg-gradient-to-r from-slate-50 to-white px-6 py-5 border-b border-slate-100 flex items-center gap-3 rounded-t-3xl" style={{ top: dashboardHeight - 1 }}>
                 <span className="bg-[#3182F6] text-white px-3 py-1 rounded-lg text-sm font-black shadow-md">Day {d.day}</span>
                 <h2 className="text-xl font-black text-slate-800 tracking-tight">제주 여행 {d.day}일차</h2>
               </div>

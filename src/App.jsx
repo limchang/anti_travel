@@ -499,10 +499,16 @@ const App = () => {
     const prevItem = itinerary.days[dayIdx].plan[targetIdx - 1];
     const targetItem = itinerary.days[dayIdx].plan[targetIdx];
     let addr1 = prevItem?.receipt?.address;
-    if (prevItem?.types?.includes('ship')) addr1 = prevItem.endPoint || addr1;
+    if (prevItem?.types?.includes('ship')) {
+      const ep = prevItem.endPoint || '제주항';
+      addr1 = ep.includes('제주') ? '제주시 임항로 193' : (ep.includes('목포') ? '목포시 해안로 148' : ep);
+    }
 
     let addr2 = targetItem?.receipt?.address;
-    if (targetItem?.types?.includes('ship')) addr2 = targetItem.startPoint || addr2;
+    if (targetItem?.types?.includes('ship')) {
+      const sp = targetItem.startPoint || '목포항';
+      addr2 = sp.includes('제주') ? '제주시 임항로 193' : (sp.includes('목포') ? '목포시 해안로 148' : sp);
+    }
 
     if (!addr1 || !addr2 || addr1.includes('없음') || addr2.includes('없음')) {
       setLastAction("두 장소의 올바른 주소가 필요합니다.");

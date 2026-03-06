@@ -496,7 +496,13 @@ const App = () => {
   };
 
   const autoCalculateRouteFor = async (dayIdx, targetIdx) => {
-    const prevItem = itinerary.days[dayIdx].plan[targetIdx - 1];
+    let prevItem;
+    if (targetIdx === 0 && dayIdx > 0) {
+      const prevDayPlan = itinerary.days[dayIdx - 1].plan;
+      prevItem = prevDayPlan[prevDayPlan.length - 1];
+    } else {
+      prevItem = itinerary.days[dayIdx].plan[targetIdx - 1];
+    }
     const targetItem = itinerary.days[dayIdx].plan[targetIdx];
     let addr1 = prevItem?.receipt?.address;
     if (prevItem?.types?.includes('ship')) {
@@ -818,8 +824,22 @@ const App = () => {
                               <span className="min-w-[3rem] text-center tabular-nums tracking-tight text-xs font-black z-10">{minutesToTime(timeToMinutes(p.time) - parseInt(p.travelTimeOverride || '0', 10))}</span>
                               <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:text-blue-500 hover:bg-blue-50 transition-colors z-10"><Plus size={10} /></button>
                             </div>
-                            <span className="text-[#3182F6] text-xs font-bold px-1">숙소에서 출발</span>
-                            <span className="text-xs text-slate-400 font-bold pr-1">{p.travelTimeOverride || '이동'}</span>
+                            <span className="text-[#3182F6] text-xs font-bold px-1 border-r border-slate-100 pr-2">숙소에서 출발</span>
+
+                            {p.distance && (
+                              <div className="hidden sm:flex items-center gap-1 text-[11px] font-bold text-slate-400 px-1 border-r border-slate-100 pr-3">
+                                <MapPin size={12} className="opacity-70" /> {p.distance}km
+                              </div>
+                            )}
+
+                            <button
+                              onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }}
+                              disabled={isCalculatingRoute}
+                              className="flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                            >
+                              <Sparkles size={12} className={isCalculatingRoute ? "animate-spin" : ""} />
+                              {isCalculatingRoute ? '계산 중...' : '자동경로'}
+                            </button>
                           </div>
                         </div>
                       )}

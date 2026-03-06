@@ -812,14 +812,14 @@ const App = () => {
                       {d.day > 1 && pIdx === 0 && (
                         <div className="flex items-center justify-center pb-6 relative select-none">
                           <div className="absolute top-0 bottom-0 border-l-2 border-slate-100 border-dashed left-1/2 -translate-x-1/2 h-full z-0"></div>
-                          <div className="z-10 flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm text-xs font-bold text-slate-500">
-                            <span className="flex items-center gap-1.5 text-[10px] bg-slate-100 pl-1 pr-1.5 py-0.5 rounded text-slate-500 font-black relative overflow-hidden">
-                              <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, -TIME_UNIT); }} className="w-4 h-4 flex items-center justify-center bg-white rounded shadow-sm hover:text-blue-500 hover:bg-slate-50 transition-colors z-10"><Minus size={10} /></button>
-                              <span className="tabular-nums z-10">{minutesToTime(timeToMinutes(p.time) - parseInt(p.travelTimeOverride || '0', 10))}</span>
-                              <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-4 h-4 flex items-center justify-center bg-white rounded shadow-sm hover:text-blue-500 hover:bg-slate-50 transition-colors z-10"><Plus size={10} /></button>
-                            </span>
-                            <span className="text-[#3182F6]">숙소에서 출발</span>
-                            <span className="text-[10px] text-slate-400">{p.travelTimeOverride || '이동'}</span>
+                          <div className="z-10 flex items-center gap-1.5 sm:gap-2 bg-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-slate-200 shadow-sm w-fit">
+                            <div className="flex items-center gap-2 bg-slate-50 px-2 sm:px-3 py-1.5 rounded-xl border border-slate-100 text-slate-600">
+                              <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:text-blue-500 hover:bg-blue-50 transition-colors z-10"><Minus size={10} /></button>
+                              <span className="min-w-[3rem] text-center tabular-nums tracking-tight text-xs font-black z-10">{minutesToTime(timeToMinutes(p.time) - parseInt(p.travelTimeOverride || '0', 10))}</span>
+                              <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:text-blue-500 hover:bg-blue-50 transition-colors z-10"><Plus size={10} /></button>
+                            </div>
+                            <span className="text-[#3182F6] text-xs font-bold px-1">숙소에서 출발</span>
+                            <span className="text-xs text-slate-400 font-bold pr-1">{p.travelTimeOverride || '이동'}</span>
                           </div>
                         </div>
                       )}

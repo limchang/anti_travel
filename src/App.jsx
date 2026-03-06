@@ -819,26 +819,25 @@ const App = () => {
                         <div className="flex items-center justify-center pb-6 relative select-none">
                           <div className="absolute top-0 bottom-0 border-l-2 border-slate-100 border-dashed left-1/2 -translate-x-1/2 h-full z-0"></div>
                           <div className="z-10 flex items-center gap-1.5 sm:gap-2 bg-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-slate-200 shadow-sm w-fit">
-                            <div className="flex items-center gap-2 bg-slate-50 px-2 sm:px-3 py-1.5 rounded-xl border border-slate-100 text-slate-600">
-                              <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:text-blue-500 hover:bg-blue-50 transition-colors z-10"><Minus size={10} /></button>
-                              <span className="min-w-[3rem] text-center tabular-nums tracking-tight text-xs font-black z-10">{minutesToTime(timeToMinutes(p.time) - parseInt(p.travelTimeOverride || '0', 10))}</span>
-                              <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:text-blue-500 hover:bg-blue-50 transition-colors z-10"><Plus size={10} /></button>
+                            <div className="flex items-center gap-2 bg-slate-50 px-2 sm:px-3 py-1.5 rounded-xl border border-slate-100 text-[#3182F6]">
+                              <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50"><Minus size={10} /></button>
+                              <span className="min-w-[3rem] text-center tracking-tight text-xs font-black">{minutesToTime(timeToMinutes(p.time) - parseInt(p.travelTimeOverride || '0', 10))}</span>
+                              <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50"><Plus size={10} /></button>
                             </div>
-                            <span className="text-[#3182F6] text-xs font-bold px-1 border-r border-slate-100 pr-2">숙소에서 출발</span>
 
-                            {p.distance && (
-                              <div className="hidden sm:flex items-center gap-1 text-[11px] font-bold text-slate-400 px-1 border-r border-slate-100 pr-3">
-                                <MapPin size={12} className="opacity-70" /> {p.distance}km
-                              </div>
-                            )}
+                            <span className="text-[#3182F6] text-xs font-bold px-1.5">숙소에서 출발</span>
+
+                            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold px-1.5 border-l border-slate-100 pl-2">
+                              <MapIcon size={12} /><span>{p.distance || 0}km</span>
+                            </div>
 
                             <button
                               onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }}
                               disabled={isCalculatingRoute}
-                              className="flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                              className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1.5 text-[10px] font-black shadow-sm ${isCalculatingRoute ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}
+                              title="실시간 경로 자동 계산"
                             >
-                              <Sparkles size={12} className={isCalculatingRoute ? "animate-spin" : ""} />
-                              {isCalculatingRoute ? '계산 중...' : '자동경로'}
+                              <Sparkles size={10} /> {isCalculatingRoute ? '계산중' : '자동경로'}
                             </button>
                           </div>
                         </div>

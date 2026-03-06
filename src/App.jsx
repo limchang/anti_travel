@@ -792,12 +792,21 @@ const App = () => {
         {/* 일정 목록 */}
         <div className="w-full max-w-2xl px-3 sm:px-5 mt-[210px] lg:mt-44 pb-32 space-y-8">
           {itinerary.days?.map((d, dIdx) => (
-            <div key={`day-${dIdx}`} id={`day-${d.day}`} data-day={d.day} className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 mb-8 animate-in font-bold scroll-mt-[250px] lg:scroll-mt-[200px]">
-              <div className="sticky z-[50] bg-gradient-to-r from-slate-50 to-white px-6 py-5 border-b border-slate-100 flex items-center gap-3 rounded-t-3xl" style={{ top: dashboardHeight - 1 }}>
-                <span className="bg-[#3182F6] text-white px-3 py-1 rounded-lg text-sm font-black shadow-md">Day {d.day}</span>
-                <h2 className="text-xl font-black text-slate-800 tracking-tight">제주 여행 {d.day}일차</h2>
+            <div key={`day-${dIdx}`} id={`day-${d.day}`} data-day={d.day} className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 mb-8 animate-in font-bold scroll-mt-[250px] lg:scroll-mt-[200px] overflow-hidden">
+              <div className="sticky z-[40] bg-white/95 backdrop-blur-md py-4 sm:py-5 border-b border-slate-100 flex items-center" style={{ top: dashboardHeight - 1 }}>
+                {/* Timeline Axis Line inside Header */}
+                <div className="absolute top-0 bottom-0 w-[2px] bg-slate-100 left-[71px] sm:left-[6rem]"></div>
+
+                <div className="w-[16px] sm:w-[24px] shrink-0"></div>
+                <div className="w-[110px] sm:w-[9rem] shrink-0 flex justify-center relative">
+                  <span className="bg-[#3182F6] text-white px-4 py-1.5 rounded-full text-sm font-black shadow-none ring-[8px] ring-white">Day {d.day}</span>
+                </div>
+
+                <h2 className="text-xl sm:text-[22px] font-black text-slate-800 tracking-tight ml-2 relative">제주 여행 {d.day}일차</h2>
               </div>
-              <div className="p-4 sm:p-6 flex flex-col gap-6">
+              <div className="p-4 sm:p-6 flex flex-col gap-6 relative z-0">
+                {/* Master Timeline Axis for the Content Container */}
+                <div className="absolute top-0 bottom-0 w-[2px] bg-slate-100 -z-10 left-[71px] sm:left-[6rem]"></div>
                 {d.plan?.map((p, pIdx) => {
                   const isExpanded = expandedId === p.id;
                   let stateStyles = p.state === 'confirmed' ? 'border-[#00D082] shadow-sm' : p.state === 'assumed' ? 'border-[#F97316] shadow-sm' : 'border-slate-200';
@@ -858,7 +867,6 @@ const App = () => {
 
                             {/* 하단 이동정보 구조 (실제 이동 칩과 100% 동일) */}
                             <div className="flex items-center pt-3 pb-0 -mb-4 lg:-mb-3 relative w-full">
-                              <div className="absolute top-0 bottom-0 w-[2px] bg-slate-100 -z-10 left-[3.4rem] sm:left-[4.5rem]"></div>
                               <div className="z-10 flex flex-col sm:flex-row sm:items-center w-full gap-2 sm:gap-4 pl-0 sm:pl-0 sm:-ml-5">
                                 <div className="hidden sm:flex w-[8.5rem] shrink-0 justify-center py-1 bg-transparent"></div>
                                 <div className="flex items-center gap-1.5 sm:gap-2 bg-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-slate-200 shadow-sm ml-[3.4rem] flex-wrap shrink-0 sm:ml-0 overflow-hidden w-fit max-w-[calc(100%-4rem)] sm:max-w-none">
@@ -1091,10 +1099,6 @@ const App = () => {
                       {/* 이동 정보 칩 (좌우 여백과 라인 중앙 정렬 완전 최적화) */}
                       {pIdx < d.plan.length - 1 && p.type !== 'backup' && (
                         <div className="flex items-center pt-3 pb-0 -mb-4 lg:-mb-3 relative w-full">
-                          {/* Timeline vertical connection line - matching exact center of the left block */}
-                          {/* sm이상일 때는 왼쪽 패딩이 커져서 축 위치 반영 (w-[9rem]의 절반) */}
-                          <div className="absolute top-0 bottom-0 w-[2px] bg-slate-100 -z-10 left-[3.4rem] sm:left-[4.5rem]"></div>
-
                           {(() => {
                             const prevEndTime = timeToMinutes(p.time) + (p.duration || 0) + (p.waitingTime || 0);
                             let nextItem = d.plan[pIdx + 1];

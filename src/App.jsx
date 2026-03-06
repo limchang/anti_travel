@@ -607,21 +607,21 @@ const App = () => {
       try {
         const parsed = JSON.parse(savedData);
         if (parsed && Array.isArray(parsed.days)) {
-          // 마이그레이션: 기존 데이터에 선박 장거리 이동 정보가 없는 경우 추가
+          // 마이그레이션: 기존 데이터에 선박 장거리 이동 정보가 없는 경우 추가 및 가격 정합성 수정
           const patchedDays = parsed.days.map(d => ({
             ...d,
             plan: d.plan.map(p => {
-              if (p.types?.includes('ship')) {
-                // 임시: 1일차는 목포->제주, 3일차는 제주->목포로 가정하는 로직 보완
+              let updatedP = { ...p };
+              if (updatedP.types?.includes('ship')) {
                 const defaultStart = d.day === 1 ? '목포항' : '제주항';
                 const defaultEnd = d.day === 1 ? '제주항' : '목포항';
-                return {
-                  ...p,
-                  startPoint: p.startPoint || defaultStart,
-                  endPoint: p.endPoint || defaultEnd
-                };
+                updatedP.startPoint = updatedP.startPoint || defaultStart;
+                updatedP.endPoint = updatedP.endPoint || defaultEnd;
               }
-              return p;
+              if (updatedP.receipt?.items) {
+                updatedP.price = updatedP.receipt.items.reduce((sum, m) => sum + (m.selected ? (Number(m.price || 0) * (Number(m.qty || 0))) : 0), 0);
+              }
+              return updatedP;
             })
           }));
           setItinerary({ days: patchedDays });
@@ -766,14 +766,17 @@ const App = () => {
         <div className="w-full max-w-2xl px-3 sm:px-5 mt-[210px] lg:mt-44 pb-32 space-y-8">
           {itinerary.days?.map((d, dIdx) => (
             <div key={`day-${dIdx}`} id={`day-${d.day}`} data-day={d.day} className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden mb-8 animate-in font-bold scroll-mt-52">
-              <div className="bg-gradient-to-r from-slate-50 to-white px-6 py-5 border-b border-slate-100 flex items-center gap-3">
+              <div className="sticky top-[210px] lg:top-[176px] z-[100] bg-gradient-to-r from-slate-50 to-white px-6 py-5 border-b border-slate-100 flex items-center gap-3">
                 <span className="bg-[#3182F6] text-white px-3 py-1 rounded-lg text-sm font-black shadow-md">Day {d.day}</span>
                 <h2 className="text-xl font-black text-slate-800 tracking-tight">제주 여행 {d.day}일차</h2>
               </div>
               <div className="p-4 sm:p-6 flex flex-col gap-6">
                 {d.plan?.map((p, pIdx) => {
                   const isExpanded = expandedId === p.id;
-                  const stateStyles = p.state === 'confirmed' ? 'border-[#00D082] shadow-sm' : p.state === 'assumed' ? 'border-[#F97316] shadow-sm' : 'border-slate-200';
+                  let stateStyles = p.state === 'confirmed' ? 'border-[#00D082] shadow-sm' : p.state === 'assumed' ? 'border-[#F97316] shadow-sm' : 'border-slate-200';
+                  if (p.types?.includes('lodge')) stateStyles = 'bg-[#F4F6FB] border-[#C7D2FE] shadow-sm';
+                  else if (p.types?.includes('ship')) stateStyles = 'bg-blue-50/20 border-blue-200 shadow-sm';
+                  else stateStyles = 'bg-white ' + stateStyles;
 
                   const chips = p.types ? p.types.map(t => getCategoryBadge(t)) : (p.type ? [getCategoryBadge(p.type)] : []);
                   const isOpenRun = p.memo?.includes('오픈런');
@@ -784,22 +787,24 @@ const App = () => {
                   return (
                     <div key={p.id} className="relative group">
 
-                      {/* ✅ 3일차 첫 번째 일정: '바로 이동' 칩 렌더링 */}
-                      {d.day === 3 && pIdx === 0 && (
+                      {/* ✅ 일차별 첫 번째 일정 전 이동 칩 렌더링 (예: 숙소에서 출발) */}
+                      {d.day > 1 && pIdx === 0 && (
                         <div className="flex items-center justify-center pb-6 relative select-none">
                           <div className="absolute top-0 bottom-0 border-l-2 border-slate-100 border-dashed left-1/2 -translate-x-1/2 h-full z-0"></div>
                           <div className="z-10 flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm text-xs font-bold text-slate-500">
-                            <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-400">
-                              {minutesToTime(timeToMinutes(p.time) - parseInt(p.travelTimeOverride || '0', 10))} 출발
+                            <span className="flex items-center gap-1.5 text-[10px] bg-slate-100 pl-1 pr-1.5 py-0.5 rounded text-slate-500 font-black relative overflow-hidden">
+                              <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, -TIME_UNIT); }} className="w-4 h-4 flex items-center justify-center bg-white rounded shadow-sm hover:text-blue-500 hover:bg-slate-50 transition-colors z-10"><Minus size={10} /></button>
+                              <span className="tabular-nums z-10">{minutesToTime(timeToMinutes(p.time) - parseInt(p.travelTimeOverride || '0', 10))} 출발</span>
+                              <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-4 h-4 flex items-center justify-center bg-white rounded shadow-sm hover:text-blue-500 hover:bg-slate-50 transition-colors z-10"><Plus size={10} /></button>
                             </span>
-                            <span className="text-[#3182F6]">통나무파크에서 출발</span>
+                            <span className="text-[#3182F6]">숙소에서 출발</span>
                             <span className="text-[10px] text-slate-400">{p.travelTimeOverride || '이동'}</span>
                           </div>
                         </div>
                       )}
 
                       <div
-                        className={`relative flex flex-col border-2 rounded-3xl bg-white hover:shadow-lg transition-all overflow-hidden ${stateStyles}`}
+                        className={`relative flex flex-col border-2 rounded-3xl hover:shadow-lg transition-all overflow-hidden ${stateStyles}`}
                         onClick={() => toggleReceipt(p.id)}
                       >
                         <div className="flex items-stretch gap-4 sm:gap-6 p-4 sm:p-5 pb-3 border-b border-slate-100 border-dashed">
@@ -825,16 +830,22 @@ const App = () => {
                               <button onClick={(e) => { e.stopPropagation(); updateStartTime(dIdx, pIdx, TIME_UNIT); }} className={`p-1.5 rounded-xl transition-colors shrink-0 z-10 ${p.isTimeFixed ? 'text-blue-400 hover:text-blue-600 hover:bg-blue-100/50' : 'text-slate-400 hover:text-blue-500 hover:bg-slate-100'}`}><ChevronRight size={16} strokeWidth={2.5} /></button>
                             </div>
 
-                            {/* ✅ 소요 시간 조절 (스마트 락 스타일 적용) */}
-                            <div className={`flex items-center justify-between w-full bg-white px-1 sm:px-2 py-1.5 rounded-xl border shadow-sm my-3 transition-colors ${isNextFixed || isAutoLocked ? 'border-orange-200 ring-1 ring-orange-100' : 'border-slate-200'}`} onClick={(e) => e.stopPropagation()}>
-                              <button onClick={() => updateDuration(dIdx, pIdx, -TIME_UNIT)} className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isNextFixed || isAutoLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-500'}`}><Minus size={10} /></button>
-                              <span
-                                className={`text-[12px] whitespace-nowrap font-extrabold tabular-nums cursor-pointer hover:underline ${isNextFixed || isAutoLocked ? 'text-orange-500' : 'text-slate-600 hover:text-blue-600'}`}
-                                onClick={() => resetDuration(dIdx, pIdx)}
-                                title={isNextFixed || isAutoLocked ? "다음 일정에 맞춰 자동으로 계산된 시간입니다" : "60분으로 초기화"}
-                              >{p.duration}분</span>
-                              <button onClick={() => updateDuration(dIdx, pIdx, TIME_UNIT)} className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isNextFixed || isAutoLocked ? 'text-orange-300 hover:text-orange-500' : 'text-slate-400 hover:text-blue-500'}`}><Plus size={10} /></button>
-                            </div>
+                            {/* ✅ 소요 시간 조절 (스마트 락 스타일 적용/숙박은 체크인으로만) */}
+                            {p.types?.includes('lodge') ? (
+                              <div className="flex flex-col items-center justify-center my-3 py-1.5 w-full bg-indigo-50/50 rounded-xl border border-indigo-100/50">
+                                <span className="text-[11px] font-bold text-indigo-400 tracking-widest">체크인</span>
+                              </div>
+                            ) : (
+                              <div className={`flex items-center justify-between w-full bg-white px-1 sm:px-2 py-1.5 rounded-xl border shadow-sm my-3 transition-colors ${isNextFixed || isAutoLocked ? 'border-orange-200 ring-1 ring-orange-100' : 'border-slate-200'}`} onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => updateDuration(dIdx, pIdx, -TIME_UNIT)} className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isNextFixed || isAutoLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-500'}`}><Minus size={10} /></button>
+                                <span
+                                  className={`text-[12px] whitespace-nowrap font-extrabold tabular-nums cursor-pointer hover:underline ${isNextFixed || isAutoLocked ? 'text-orange-500' : 'text-slate-600 hover:text-blue-600'}`}
+                                  onClick={() => resetDuration(dIdx, pIdx)}
+                                  title={isNextFixed || isAutoLocked ? "다음 일정에 맞춰 자동으로 계산된 시간입니다" : "60분으로 초기화"}
+                                >{p.duration}분</span>
+                                <button onClick={() => updateDuration(dIdx, pIdx, TIME_UNIT)} className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isNextFixed || isAutoLocked ? 'text-orange-300 hover:text-orange-500' : 'text-slate-400 hover:text-blue-500'}`}><Plus size={10} /></button>
+                              </div>
+                            )}
 
                             {/* 확정 버튼 & 플랜 B 추가 */}
                             {p.type !== 'backup' && (

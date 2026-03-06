@@ -814,34 +814,71 @@ const App = () => {
                   return (
                     <div key={p.id} className="relative group">
 
-                      {/* ✅ 일차별 첫 번째 일정 전 이동 칩 렌더링 (예: 숙소에서 출발) */}
-                      {d.day > 1 && pIdx === 0 && (
-                        <div className="flex items-center justify-center pb-6 relative select-none">
-                          <div className="absolute top-0 bottom-0 border-l-2 border-slate-100 border-dashed left-1/2 -translate-x-1/2 h-full z-0"></div>
-                          <div className="z-10 flex items-center gap-1.5 sm:gap-2 bg-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-slate-200 shadow-sm w-fit">
-                            <div className="flex items-center gap-2 bg-slate-50 px-2 sm:px-3 py-1.5 rounded-xl border border-slate-100 text-[#3182F6]">
-                              <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50"><Minus size={10} /></button>
-                              <span className="min-w-[3rem] text-center tracking-tight text-xs font-black">{minutesToTime(timeToMinutes(p.time) - parseInt(p.travelTimeOverride || '0', 10))}</span>
-                              <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50"><Plus size={10} /></button>
+                      {/* ✅ 일차별 첫 번째 일정 전 가상 출발 셀 및 이동 칩 렌더링 */}
+                      {d.day > 1 && pIdx === 0 && (() => {
+                        const prevDay = itinerary.days[dIdx - 1];
+                        const prevLodge = prevDay?.plan ? prevDay.plan.findLast(item => item.types?.includes('lodge') || item.type === 'lodge') : null;
+                        const prevLodgeName = prevLodge ? prevLodge.activity : '전야 숙소';
+                        const departureTime = minutesToTime(timeToMinutes(p.time) - parseInt(p.travelTimeOverride || '0', 10));
+
+                        return (
+                          <div className="flex flex-col pb-6 group-first">
+                            {/* 가상 출발 셀 (숙소 테마 차용) */}
+                            <div className="relative flex flex-col border-2 rounded-3xl overflow-hidden bg-[#F4F6FB] border-[#C7D2FE] shadow-sm select-none">
+                              <div className="flex items-stretch border-b border-slate-100 border-dashed">
+                                {/* 🟢 좌측 컨트롤 타워 */}
+                                <div className="relative flex flex-col items-center justify-center gap-2 w-[110px] sm:w-[9rem] shrink-0 bg-transparent border-r border-[#C7D2FE]/50 py-5 sm:py-6 px-2 sm:px-3">
+                                  <div className="relative w-full flex items-center justify-center gap-1 sm:gap-2 px-1 py-1.5 sm:py-2">
+                                    <span className="text-[20px] sm:text-[22px] font-black tracking-tighter text-slate-800">{departureTime}</span>
+                                  </div>
+                                  <div className="flex flex-col items-center justify-center my-3 py-1.5 w-full bg-indigo-50/50 rounded-xl border border-indigo-100/50">
+                                    <span className="text-[11px] font-bold text-indigo-400 tracking-widest">출발시간</span>
+                                  </div>
+                                </div>
+                                {/* 🟢 우측 정보 영역 */}
+                                <div className="flex-1 min-w-0 flex flex-col justify-center p-4 sm:p-5 gap-3">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 text-indigo-600 bg-indigo-50 border-indigo-100">
+                                      <Bed size={10} /> 이전 숙소
+                                    </div>
+                                    <span className="text-[#3182F6] text-[11px] font-bold px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded-md">
+                                      출발
+                                    </span>
+                                  </div>
+                                  <h3 className="text-xl sm:text-[22px] font-black text-slate-800 tracking-tight leading-snug truncate">
+                                    {prevLodgeName}
+                                  </h3>
+                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white border border-slate-100 w-fit shadow-sm max-w-full">
+                                    <MapPin size={12} className="text-indigo-400 shrink-0" />
+                                    <span className="text-[11px] font-bold text-slate-500 truncate">{prevLodge?.receipt?.address || '상세 주소 없음'}</span>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
 
-                            <span className="text-[#3182F6] text-xs font-bold px-1.5">숙소에서 출발</span>
-
-                            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold px-1.5 border-l border-slate-100 pl-2">
-                              <MapIcon size={12} /><span>{p.distance || 0}km</span>
+                            {/* 하단 이동정보 구조 (실제 이동 칩과 100% 동일) */}
+                            <div className="flex items-center pt-3 pb-0 -mb-4 lg:-mb-3 relative w-full">
+                              <div className="absolute top-0 bottom-0 w-[2px] bg-slate-100 -z-10 left-[3.4rem] sm:left-[4.5rem]"></div>
+                              <div className="z-10 flex flex-col sm:flex-row sm:items-center w-full gap-2 sm:gap-4 pl-0 sm:pl-0 sm:-ml-5">
+                                <div className="hidden sm:flex w-[8.5rem] shrink-0 justify-center py-1 bg-transparent"></div>
+                                <div className="flex items-center gap-1.5 sm:gap-2 bg-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-slate-200 shadow-sm ml-[3.4rem] flex-wrap shrink-0 sm:ml-0 overflow-hidden w-fit max-w-[calc(100%-4rem)] sm:max-w-none">
+                                  <div className="flex items-center gap-2 bg-slate-50 px-2 sm:px-3 py-1.5 rounded-xl border border-slate-100 text-[#3182F6]">
+                                    <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50"><Minus size={10} /></button>
+                                    <span className="min-w-[3rem] text-center tracking-tight text-xs font-black">{p.travelTimeOverride || '15분'}</span>
+                                    <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50"><Plus size={10} /></button>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold px-1.5">
+                                    <MapIcon size={12} /><span>{p.distance || 0}km</span>
+                                  </div>
+                                  <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }} disabled={isCalculatingRoute} className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1.5 text-[10px] font-black shadow-sm ${isCalculatingRoute ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`} title="실시간 경로 자동 계산">
+                                    <Sparkles size={10} /> {isCalculatingRoute ? '계산중' : '자동경로'}
+                                  </button>
+                                </div>
+                              </div>
                             </div>
-
-                            <button
-                              onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }}
-                              disabled={isCalculatingRoute}
-                              className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1.5 text-[10px] font-black shadow-sm ${isCalculatingRoute ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}
-                              title="실시간 경로 자동 계산"
-                            >
-                              <Sparkles size={10} /> {isCalculatingRoute ? '계산중' : '자동경로'}
-                            </button>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       <div
                         className={`relative flex flex-col border-2 rounded-3xl hover:shadow-lg transition-all overflow-hidden ${stateStyles}`}

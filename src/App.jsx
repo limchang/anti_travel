@@ -805,17 +805,17 @@ const App = () => {
                         <div className="flex items-stretch gap-4 sm:gap-6 p-4 sm:p-5 pb-3 border-b border-slate-100 border-dashed">
 
                           {/* 🟢 좌측 컨트롤 타워 */}
-                          <div className="flex flex-col items-center justify-center gap-2 w-[110px] sm:w-[8.5rem] shrink-0 bg-slate-50 border-r border-slate-100 py-6 px-3 lg:px-4 -my-5 -ml-4 sm:-ml-5 h-auto">
+                          <div className={`relative flex flex-col items-center justify-center gap-2 w-[120px] sm:w-[9rem] shrink-0 ${p.isTimeFixed ? 'bg-blue-50/80 border-blue-200' : 'bg-slate-50 border-slate-100'} border-r py-6 px-3 lg:px-4 -my-5 -ml-4 sm:-ml-5 h-auto overflow-hidden transition-all duration-300`}>
+                            {/* 락 상태일 때 컨트롤 타워 전체에 은은하게 깔리는 거대 자물쇠 */}
+                            {p.isTimeFixed && (
+                              <Lock size={90} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-500 opacity-[0.035] pointer-events-none" />
+                            )}
+
                             {/* 시간 조절 */}
                             <div
-                              className={`relative w-full flex items-center justify-between px-1.5 py-2 sm:py-2.5 rounded-2xl cursor-pointer select-none mb-1 overflow-hidden transition-all ${p.isTimeFixed ? 'bg-blue-50/80 border border-blue-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]' : 'border border-transparent hover:bg-slate-200/50'}`}
+                              className={`relative w-full flex items-center justify-between px-1 py-1 sm:py-2 rounded-2xl cursor-pointer select-none mb-1 z-10 transition-colors ${p.isTimeFixed ? 'hover:bg-blue-100/50' : 'hover:bg-slate-200/50'}`}
                               onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }}
                             >
-                              {/* 락 상태일 때 은은하게 깔리는 배경 자물쇠 아이콘 */}
-                              {p.isTimeFixed && (
-                                <Lock size={40} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[#3182F6] opacity-[0.06] pointer-events-none" />
-                              )}
-
                               <button onClick={(e) => { e.stopPropagation(); updateStartTime(dIdx, pIdx, -TIME_UNIT); }} className={`p-1.5 rounded-xl transition-colors shrink-0 z-10 ${p.isTimeFixed ? 'text-blue-400 hover:text-blue-600 hover:bg-blue-100/50' : 'text-slate-400 hover:text-blue-500 hover:bg-slate-100'}`}><ChevronLeft size={16} strokeWidth={2.5} /></button>
 
                               <div className="relative flex items-center z-10">
@@ -1004,8 +1004,8 @@ const App = () => {
                       {pIdx < d.plan.length - 1 && p.type !== 'backup' && (
                         <div className="flex items-center py-5 relative w-full">
                           {/* Timeline vertical connection line - matching exact center of the left block */}
-                          {/* sm이상일 때는 왼쪽 패딩이 커져서 축 위치 반영 (w-[8.5rem]의 절반) */}
-                          <div className="absolute top-0 bottom-0 w-[2px] bg-slate-100 -z-10 left-[2.8rem] sm:left-[4.25rem]"></div>
+                          {/* sm이상일 때는 왼쪽 패딩이 커져서 축 위치 반영 (w-[9rem]의 절반) */}
+                          <div className="absolute top-0 bottom-0 w-[2px] bg-slate-100 -z-10 left-[3.75rem] sm:left-[4.5rem]"></div>
 
                           {(() => {
                             const prevEndTime = timeToMinutes(p.time) + (p.duration || 0) + (p.waitingTime || 0);
@@ -1019,7 +1019,7 @@ const App = () => {
                                   </div>
 
                                   {/* Actual Travel Detail Chip Block */}
-                                  <div className="flex items-center gap-1.5 sm:gap-2 bg-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-slate-200 shadow-sm ml-[2.8rem] flex-wrap shrink-0 sm:ml-0 overflow-hidden w-[calc(100%-3rem)] sm:w-auto">
+                                  <div className="flex items-center gap-1.5 sm:gap-2 bg-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-slate-200 shadow-sm ml-[3.75rem] flex-wrap shrink-0 sm:ml-0 overflow-hidden w-fit max-w-[calc(100%-4rem)] sm:max-w-none">
 
                                     <div className="flex items-center gap-2 bg-slate-50 px-2 sm:px-3 py-1.5 rounded-xl border border-slate-100 text-[#3182F6]">
                                       <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50"><Minus size={10} /></button>

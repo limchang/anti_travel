@@ -171,6 +171,23 @@ const VisitStateChips = ({ isRevisit = false, onSelectNew, onSelectRevisit }) =>
     </button>
   </div>
 );
+const WEEKDAY_OPTIONS = [
+  { label: '월', value: 'mon' },
+  { label: '화', value: 'tue' },
+  { label: '수', value: 'wed' },
+  { label: '목', value: 'thu' },
+  { label: '금', value: 'fri' },
+  { label: '토', value: 'sat' },
+  { label: '일', value: 'sun' },
+];
+const EMPTY_BUSINESS = { open: '', close: '', breakStart: '', breakEnd: '', closedDays: [] };
+const normalizeBusiness = (business = {}) => ({
+  open: String(business.open || ''),
+  close: String(business.close || ''),
+  breakStart: String(business.breakStart || ''),
+  breakEnd: String(business.breakEnd || ''),
+  closedDays: Array.isArray(business.closedDays) ? [...new Set(business.closedDays)] : [],
+});
 
 // API 키는 각 사용자의 로컬스토리지에만 저장됩니다 (서버 미전송)
 const analyzeImageWithGemini = async (base64Data, mimeType = 'image/jpeg', apiKey = '') => {
@@ -292,6 +309,7 @@ const searchAddressFromPlaceName = async (keyword, regionHint = '', kakaoKey = K
 
 const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlaceTypes, regionHint, onAdd, onCancel, geminiApiKey = '' }) => {
   const [isRevisit, setIsRevisit] = React.useState(false);
+  const [business, setBusiness] = React.useState(EMPTY_BUSINESS);
   const [menus, setMenus] = React.useState([]);
   const [menuInput, setMenuInput] = React.useState({ name: '', price: '' });
   const [address, setAddress] = React.useState('');
@@ -353,7 +371,7 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
   };
 
   const handleAdd = () => {
-    onAdd({ types: normalizeTagOrder(newPlaceTypes), menus, address, memo, revisit: isRevisit });
+    onAdd({ types: normalizeTagOrder(newPlaceTypes), menus, address, memo, revisit: isRevisit, business: normalizeBusiness(business) });
   };
 
   const tryAutoFillAddress = async (force = false) => {
@@ -466,6 +484,54 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
             onSelectRevisit={() => setIsRevisit(true)}
           />
         </div>
+        <div className="bg-slate-50/50 border border-slate-200 rounded-xl p-2">
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">영업 정보 (선택)</p>
+          <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+            <input
+              type="time"
+              value={business.open}
+              onChange={(e) => setBusiness(prev => ({ ...prev, open: e.target.value }))}
+              className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]"
+              title="운영 시작"
+            />
+            <input
+              type="time"
+              value={business.close}
+              onChange={(e) => setBusiness(prev => ({ ...prev, close: e.target.value }))}
+              className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]"
+              title="운영 종료"
+            />
+            <input
+              type="time"
+              value={business.breakStart}
+              onChange={(e) => setBusiness(prev => ({ ...prev, breakStart: e.target.value }))}
+              className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]"
+              title="브레이크 시작"
+            />
+            <input
+              type="time"
+              value={business.breakEnd}
+              onChange={(e) => setBusiness(prev => ({ ...prev, breakEnd: e.target.value }))}
+              className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]"
+              title="브레이크 종료"
+            />
+          </div>
+          <div className="flex items-center gap-1 flex-wrap">
+            {WEEKDAY_OPTIONS.map(d => {
+              const active = business.closedDays.includes(d.value);
+              return (
+                <button
+                  key={d.value}
+                  type="button"
+                  onClick={() => setBusiness(prev => ({ ...prev, closedDays: active ? prev.closedDays.filter(v => v !== d.value) : [...prev.closedDays, d.value] }))}
+                  className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${active ? 'text-red-500 bg-red-50 border-red-200' : 'text-slate-400 bg-white border-slate-200'}`}
+                >
+                  {d.label} 휴무
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <div className="bg-slate-50/50 border border-dashed border-slate-200 rounded-xl p-2">
           <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1.5">대표 메뉴</p>
@@ -527,6 +593,7 @@ const App = () => {
   const [editingPlaceId, setEditingPlaceId] = useState(null);
   const [editPlaceDraft, setEditPlaceDraft] = useState(null);
   const [tripRegion, setTripRegion] = useState(() => safeLocalStorageGet('trip_region_hint', '제주시'));
+  const [tripStartDate, setTripStartDate] = useState(() => safeLocalStorageGet('trip_start_date', ''));
   const [geminiApiKey, setGeminiApiKey] = useState(() => safeLocalStorageGet('gemini_api_key', ''));
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   // 초기 상태 안전하게 설정
@@ -566,6 +633,9 @@ const App = () => {
   useEffect(() => {
     safeLocalStorageSet('trip_region_hint', tripRegion);
   }, [tripRegion]);
+  useEffect(() => {
+    safeLocalStorageSet('trip_start_date', tripStartDate);
+  }, [tripStartDate]);
 
   // 스크롤 감지 → activeDay + activeItemId 자동 업데이트
   useEffect(() => {
@@ -660,6 +730,7 @@ const App = () => {
       price: Number(alt.price || 0),
       memo: alt.memo || '',
       revisit: typeof alt.revisit === 'boolean' ? alt.revisit : false,
+      business: normalizeBusiness(alt.business || {}),
       types: Array.isArray(alt.types) && alt.types.length ? deepClone(alt.types) : ['place'],
       duration: Number(alt.duration || 60),
       receipt,
@@ -670,6 +741,7 @@ const App = () => {
     price: item.price,
     memo: item.memo,
     revisit: typeof item.revisit === 'boolean' ? item.revisit : isRevisitCourse(item),
+    business: normalizeBusiness(item.business || {}),
     types: item.types,
     duration: item.duration,
     receipt: item.receipt || { address: item.address || '', items: [] }
@@ -679,6 +751,7 @@ const App = () => {
     price: place.price,
     memo: place.memo,
     revisit: typeof place.revisit === 'boolean' ? place.revisit : false,
+    business: normalizeBusiness(place.business || {}),
     types: place.types,
     duration: place.duration || 60,
     receipt: place.receipt || { address: place.address || '', items: [] }
@@ -702,6 +775,34 @@ const App = () => {
     if (h >= 24) h = h % 24;
     if (h < 0) h = 24 + (h % 24);
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  };
+  const getWeekdayForDayIndex = (dayIdx) => {
+    if (!tripStartDate) return null;
+    const date = new Date(tripStartDate);
+    if (Number.isNaN(date.getTime())) return null;
+    date.setDate(date.getDate() + dayIdx);
+    const map = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    return map[date.getDay()];
+  };
+  const getBusinessWarning = (item, dayIdx) => {
+    const business = normalizeBusiness(item?.business || {});
+    const hasBiz = business.open || business.close || business.breakStart || business.breakEnd || business.closedDays.length;
+    if (!hasBiz) return '';
+    const start = timeToMinutes(item?.time || '00:00');
+    const end = start + (item?.duration || 60);
+    if (business.open && start < timeToMinutes(business.open)) return `운영 시작 전 방문 (${business.open} 이후 권장)`;
+    if (business.close && start >= timeToMinutes(business.close)) return `운영 종료 후 방문 (${business.close} 이전 권장)`;
+    if (business.breakStart && business.breakEnd) {
+      const bs = timeToMinutes(business.breakStart);
+      const be = timeToMinutes(business.breakEnd);
+      if (start < be && end > bs) return `브레이크 타임 겹침 (${business.breakStart}-${business.breakEnd})`;
+    }
+    const weekday = getWeekdayForDayIndex(dayIdx);
+    if (weekday && business.closedDays.includes(weekday)) {
+      const dayLabel = WEEKDAY_OPTIONS.find(d => d.value === weekday)?.label || weekday;
+      return `${dayLabel}요일 휴무일 방문`;
+    }
+    return '';
   };
 
   const getPlanLabel = (index) => `Plan ${String.fromCharCode(66 + index)}`;
@@ -1144,6 +1245,7 @@ const App = () => {
         name: alt.activity,
         types: alt.types || ['place'],
         revisit: typeof alt.revisit === 'boolean' ? alt.revisit : false,
+        business: normalizeBusiness(alt.business || {}),
         address: alt.receipt?.address || '',
         price: alt.price || 0,
         memo: alt.memo || '',
@@ -1179,6 +1281,7 @@ const App = () => {
         activity: alt.activity,
         types: deepClone(alt.types || ['place']),
         revisit: typeof alt.revisit === 'boolean' ? alt.revisit : false,
+        business: normalizeBusiness(alt.business || {}),
         price: Number(alt.price || 0),
         duration: Number(alt.duration || 60),
         state: 'unconfirmed',
@@ -1222,6 +1325,7 @@ const App = () => {
       item.price = alt.price;
       item.memo = alt.memo;
       item.revisit = typeof alt.revisit === 'boolean' ? alt.revisit : false;
+      item.business = normalizeBusiness(alt.business || {});
       item.types = deepClone(alt.types || ['place']);
       item.duration = alt.duration || item.duration || 60;
       item.receipt = deepClone(alt.receipt || { address: '', items: [] });
@@ -1279,7 +1383,7 @@ const App = () => {
 
   const addPlace = (formData) => {
     if (!newPlaceName.trim()) return;
-    const { types = ['place'], menus = [], address = '', memo = '', revisit = false } = formData || {};
+    const { types = ['place'], menus = [], address = '', memo = '', revisit = false, business = EMPTY_BUSINESS } = formData || {};
     setItinerary(prev => ({
       ...prev,
       places: [...(prev.places || []), {
@@ -1287,6 +1391,7 @@ const App = () => {
         name: newPlaceName.trim(),
         types: normalizeTagOrder(types),
         revisit: !!revisit,
+        business: normalizeBusiness(business),
         address: address.trim(),
         price: menus.reduce((sum, m) => sum + (Number(m.price) || 0), 0),
         memo: memo.trim(),
@@ -1326,14 +1431,29 @@ const App = () => {
         name: item.activity,
         types: item.types || ['place'],
         revisit: typeof item.revisit === 'boolean' ? item.revisit : isRevisitCourse(item),
+        business: normalizeBusiness(item.business || {}),
         address: item.receipt?.address || '',
         price: item.price || 0,
         memo: item.memo || '',
         receipt: item.receipt || { items: [] }
       });
+      (item.alternatives || []).forEach((altRaw, idx) => {
+        const alt = normalizeAlternative(altRaw);
+        nextData.places.push({
+          id: `place_${Date.now()}_${idx}`,
+          name: alt.activity,
+          types: alt.types || ['place'],
+          revisit: typeof alt.revisit === 'boolean' ? alt.revisit : false,
+          business: normalizeBusiness(alt.business || {}),
+          address: alt.receipt?.address || '',
+          price: alt.price || 0,
+          memo: alt.memo || '',
+          receipt: deepClone(alt.receipt || { address: '', items: [] })
+        });
+      });
       return nextData;
     });
-    setLastAction(`'${item.activity}'이(가) 일정에서 제거되어 장소 목록에 저장되었습니다.`);
+    setLastAction(`'${item.activity}' 일정과 플랜 B가 내 장소로 이동되었습니다.`);
   };
 
   const addNewItem = (dayIdx, insertIndex, types = ['place'], placeData = null) => {
@@ -1362,6 +1482,7 @@ const App = () => {
         activity: placeData?.name || `새 ${label}`,
         types: placeData?.types || types,
         revisit: typeof placeData?.revisit === 'boolean' ? placeData.revisit : false,
+        business: normalizeBusiness(placeData?.business || {}),
         price: placeData ? (priceFromReceipt || placeData.price || 0) : 0,
         duration: 60,
         state: 'unconfirmed',
@@ -1751,6 +1872,15 @@ const App = () => {
               className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-black text-slate-700 placeholder:text-slate-400 whitespace-nowrap"
             />
           </div>
+          <div className="mt-2 flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 whitespace-nowrap">
+            <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider whitespace-nowrap">시작일</span>
+            <input
+              type="date"
+              value={tripStartDate}
+              onChange={(e) => setTripStartDate(e.target.value)}
+              className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-black text-slate-700"
+            />
+          </div>
         </div>
         {/* Gemini API 키 설정 */}
         <div className="mb-6 pb-4 border-b border-slate-100">
@@ -1974,6 +2104,30 @@ const App = () => {
                         placeholder="예상 금액"
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-slate-600 outline-none focus:border-[#3182F6] [appearance:textfield]"
                       />
+                      <div className="bg-slate-50/60 border border-slate-200 rounded-lg p-2">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">영업 정보</p>
+                        <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                          <input type="time" value={editPlaceDraft.business?.open || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), open: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
+                          <input type="time" value={editPlaceDraft.business?.close || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), close: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
+                          <input type="time" value={editPlaceDraft.business?.breakStart || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), breakStart: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
+                          <input type="time" value={editPlaceDraft.business?.breakEnd || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), breakEnd: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
+                        </div>
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {WEEKDAY_OPTIONS.map(w => {
+                            const active = (editPlaceDraft.business?.closedDays || []).includes(w.value);
+                            return (
+                              <button
+                                key={w.value}
+                                type="button"
+                                onClick={() => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), closedDays: active ? normalizeBusiness(d.business).closedDays.filter(v => v !== w.value) : [...normalizeBusiness(d.business).closedDays, w.value] } }))}
+                                className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${active ? 'text-red-500 bg-red-50 border-red-200' : 'text-slate-400 bg-white border-slate-200'}`}
+                              >
+                                {w.label} 휴무
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                       <VisitStateChips
                         isRevisit={!!editPlaceDraft.revisit}
                         onSelectNew={() => setEditPlaceDraft(d => ({ ...d, revisit: false }))}
@@ -2069,6 +2223,7 @@ const App = () => {
                 const isNextFixed = (pIdx < d.plan.length - 1) && d.plan[pIdx + 1]?.isTimeFixed;
                 const isLodge = p.types?.includes('lodge');
                 const isShip = p.types?.includes('ship');
+                const businessWarning = !isShip ? getBusinessWarning(p, dIdx) : '';
                 const planBCount = p.alternatives?.length || 0;
                 const hasPlanB = planBCount > 0;
                 // 스마트 락(숙소 자동 계산) 여부 확인
@@ -2526,6 +2681,11 @@ const App = () => {
                                   </div>
                                 );
                               })()}
+                              {businessWarning && (
+                                <div className="w-full px-2.5 py-1 rounded-lg border border-red-200 bg-red-50 text-red-600 text-[10px] font-black">
+                                  {businessWarning}
+                                </div>
+                              )}
 
                               {/* 4행: 메모 입력란 */}
                               <div onClick={(e) => e.stopPropagation()}>
@@ -2601,6 +2761,17 @@ const App = () => {
                                       <div className="flex items-center gap-1.5">
                                         <span className="text-[9px] font-black text-white bg-slate-400 px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">{getPlanLabel(altIdx)}</span>
                                         <span className="text-[13px] font-black text-slate-800 truncate">{alt.activity}</span>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const q = encodeURIComponent(alt.receipt?.address || alt.activity || '');
+                                            window.open(`https://map.naver.com/v5/search/${q}`, '_blank');
+                                          }}
+                                          className="ml-auto p-1 text-slate-300 hover:text-[#3182F6] hover:bg-blue-50 rounded-md transition-colors"
+                                          title="네이버 지도에서 보기"
+                                        >
+                                          <MapPin size={11} />
+                                        </button>
                                       </div>
                                       {alt.memo && (
                                         <div className="text-[10px] font-medium text-slate-500 bg-white px-2 py-1 rounded-lg border border-slate-100 truncate">{alt.memo}</div>

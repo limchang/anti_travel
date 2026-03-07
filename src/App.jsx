@@ -2086,7 +2086,7 @@ const App = () => {
           )}
 
           {/* 장소 목록 */}
-          <div className="flex flex-col gap-1.5 overflow-y-auto no-scrollbar flex-1">
+          <div className="flex flex-col gap-1.5 overflow-y-auto no-scrollbar flex-1 items-center">
             {(itinerary.places || []).length === 0 && !isAddingPlace && (
               <p className="text-[10px] text-slate-400 text-center py-6 font-semibold leading-relaxed">
                 + 버튼으로 장소를 추가하고<br />타임라인으로 드래그하세요
@@ -2264,7 +2264,7 @@ const App = () => {
                     e.dataTransfer.effectAllowed = copy ? 'copy' : 'move';
                   }}
                   onDragEnd={() => { setDraggingFromLibrary(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false); }}
-                  className="relative rounded-3xl border-2 border-slate-200 bg-white cursor-grab active:cursor-grabbing select-none transition-all hover:shadow-lg group overflow-hidden w-full"
+                  className="relative w-[372px] rounded-3xl border-2 border-slate-200 bg-white cursor-grab active:cursor-grabbing select-none transition-all hover:shadow-lg group overflow-hidden"
                 >
                   <div className="p-4 flex flex-col gap-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap pr-12">
@@ -2349,7 +2349,7 @@ const App = () => {
 
       <div className="flex-1 flex flex-col items-start ml-[402px] w-full">
         {/* 일정 목록 */}
-        <div className="w-full max-w-[760px] px-3 pt-10 pb-32">
+        <div className="w-[760px] px-3 pt-10 pb-32">
           <div
             className="rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 animate-in font-bold overflow-hidden bg-white"
           >

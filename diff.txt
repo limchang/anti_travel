@@ -1,0 +1,200 @@
+diff --git a/src/App.jsx b/src/App.jsx
+index e4870d4..9162fb8 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -813,70 +813,27 @@ const App = () => {
+                   return (
+                     <div key={p.id} className="relative group">
+ 
+-                      {/* ✅ 일차별 첫 번째 일정 전 가상 출발 셀 및 이동 칩 렌더링 */}
+-                      {d.day > 1 && pIdx === 0 && (() => {
+-                        const prevDay = itinerary.days[dIdx - 1];
+-                        const prevLodge = prevDay?.plan ? prevDay.plan.findLast(item => item.types?.includes('lodge') || item.type === 'lodge') : null;
+-                        const prevLodgeName = prevLodge ? prevLodge.activity : '전야 숙소';
+-                        const departureTime = minutesToTime(timeToMinutes(p.time) - parseInt(p.travelTimeOverride || '0', 10));
+-
+-                        return (
+-                          <div className="flex flex-col pb-6 group-first">
+-                            {/* 가상 출발 셀 (숙소 테마 차용) */}
+-                            <div className="relative flex flex-col border-2 rounded-3xl overflow-hidden bg-[#F4F6FB] border-[#C7D2FE] shadow-sm select-none">
+-                              <div className="flex items-stretch border-b border-slate-100 border-dashed">
+-                                {/* 🟢 좌측 컨트롤 타워 */}
+-                                <div className="relative flex flex-col items-center justify-center gap-2 w-[110px] sm:w-[9rem] shrink-0 bg-transparent border-r border-[#C7D2FE]/50 py-5 sm:py-6 px-2 sm:px-3">
+-                                  <div className="relative w-full flex items-center justify-center gap-1 sm:gap-2 px-1 py-1.5 sm:py-2">
+-                                    <span className="text-[20px] sm:text-[22px] font-black tracking-tighter text-slate-800">{departureTime}</span>
+-                                  </div>
+-                                  <div className="flex flex-col items-center justify-center my-3 py-1.5 w-full bg-indigo-50/50 rounded-xl border border-indigo-100/50">
+-                                    <span className="text-[11px] font-bold text-indigo-400 tracking-widest">출발시간</span>
+-                                  </div>
+-                                </div>
+-                                {/* 🟢 우측 정보 영역 */}
+-                                <div className="flex-1 min-w-0 flex flex-col justify-center p-4 sm:p-5 gap-3">
+-                                  <div className="flex items-center gap-2 flex-wrap">
+-                                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 text-indigo-600 bg-indigo-50 border-indigo-100">
+-                                      <Bed size={10} /> 이전 숙소
+-                                    </div>
+-                                    <span className="text-[#3182F6] text-[11px] font-bold px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded-md">
+-                                      출발
+-                                    </span>
+-                                  </div>
+-                                  <h3 className="text-xl sm:text-[22px] font-black text-slate-800 tracking-tight leading-snug truncate">
+-                                    {prevLodgeName}
+-                                  </h3>
+-                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white border border-slate-100 w-fit shadow-sm max-w-full">
+-                                    <MapPin size={12} className="text-indigo-400 shrink-0" />
+-                                    <span className="text-[11px] font-bold text-slate-500 truncate">{prevLodge?.receipt?.address || '상세 주소 없음'}</span>
+-                                  </div>
+-                                </div>
++                      {/* ✅ 일차 간 이동 정보 칩 (숙소에서 다음 날 첫 일정으로 이동) */}
++                      {d.day > 1 && pIdx === 0 && (
++                        <div className="flex items-center pt-0 pb-6 relative w-full group-first">
++                          <div className="z-10 flex flex-col sm:flex-row sm:items-center w-full gap-2 sm:gap-4 pl-0 sm:pl-0 sm:-ml-5">
++                            <div className="hidden sm:flex w-[8.5rem] shrink-0 justify-center py-1 bg-transparent"></div>
++                            <div className="flex items-center gap-1.5 sm:gap-2 bg-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-slate-200 shadow-sm ml-[3.4rem] flex-wrap shrink-0 sm:ml-0 overflow-hidden w-fit max-w-[calc(100%-4rem)] sm:max-w-none">
++                              <div className="flex items-center gap-2 bg-slate-50 px-2 sm:px-3 py-1.5 rounded-xl border border-slate-100 text-[#3182F6]">
++                                <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50"><Minus size={10} /></button>
++                                <span className="min-w-[3rem] text-center tracking-tight text-xs font-black">{p.travelTimeOverride || '15분'}</span>
++                                <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50"><Plus size={10} /></button>
+                               </div>
+-                            </div>
+-
+-                            {/* 하단 이동정보 구조 (실제 이동 칩과 100% 동일) */}
+-                            <div className="flex items-center pt-3 pb-0 -mb-4 lg:-mb-3 relative w-full">
+-                              <div className="z-10 flex flex-col sm:flex-row sm:items-center w-full gap-2 sm:gap-4 pl-0 sm:pl-0 sm:-ml-5">
+-                                <div className="hidden sm:flex w-[8.5rem] shrink-0 justify-center py-1 bg-transparent"></div>
+-                                <div className="flex items-center gap-1.5 sm:gap-2 bg-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-slate-200 shadow-sm ml-[3.4rem] flex-wrap shrink-0 sm:ml-0 overflow-hidden w-fit max-w-[calc(100%-4rem)] sm:max-w-none">
+-                                  <div className="flex items-center gap-2 bg-slate-50 px-2 sm:px-3 py-1.5 rounded-xl border border-slate-100 text-[#3182F6]">
+-                                    <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50"><Minus size={10} /></button>
+-                                    <span className="min-w-[3rem] text-center tracking-tight text-xs font-black">{p.travelTimeOverride || '15분'}</span>
+-                                    <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50"><Plus size={10} /></button>
+-                                  </div>
+-                                  <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold px-1.5">
+-                                    <MapIcon size={12} /><span>{p.distance || 0}km</span>
+-                                  </div>
+-                                  <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }} disabled={isCalculatingRoute} className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1.5 text-[10px] font-black shadow-sm ${isCalculatingRoute ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`} title="실시간 경로 자동 계산">
+-                                    <Sparkles size={10} /> {isCalculatingRoute ? '계산중' : '자동경로'}
+-                                  </button>
+-                                </div>
++                              <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold px-1.5 border-l border-slate-100 pl-2">
++                                <MapIcon size={12} /><span>{p.distance || 0}km</span>
+                               </div>
++                              <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }} disabled={isCalculatingRoute} className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1.5 text-[10px] font-black shadow-sm ${isCalculatingRoute ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`} title="실시간 경로 자동 계산">
++                                <Sparkles size={10} /> {isCalculatingRoute ? '계산중' : '자동경로'}
++                              </button>
+                             </div>
+                           </div>
+-                        );
+-                      })()}
++                        </div>
++                      )}
+ 
+                       <div
+                         className={`relative flex flex-col border-2 rounded-3xl hover:shadow-lg transition-all overflow-hidden ${stateStyles}`}
+@@ -884,42 +841,65 @@ const App = () => {
+                       >
+                         <div className="flex items-stretch border-b border-slate-100 border-dashed">
+ 
+-                          {/* 🟢 좌측 컨트롤 타워 */}
+-                          <div className={`relative flex flex-col items-center justify-center gap-2 w-[110px] sm:w-[9rem] shrink-0 ${p.isTimeFixed ? 'bg-blue-50/80 border-blue-200' : 'bg-black/[0.02] border-slate-100/50'} border-r py-5 sm:py-6 px-2 sm:px-3 overflow-hidden transition-all duration-300`}>
+-                            {/* 락 상태일 때 컨트롤 타워 전체에 은은하게 깔리는 거대 자물쇠 */}
+-                            {p.isTimeFixed && (
+-                              <Lock size={90} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-500 opacity-[0.035] pointer-events-none" />
+-                            )}
+-
+-                            {/* 시간 조절 */}
+-                            <div
+-                              className={`relative w-full flex items-center justify-center gap-1 sm:gap-2 px-1 py-1.5 sm:py-2 rounded-2xl cursor-pointer select-none mb-1 z-10 transition-colors ${p.isTimeFixed ? 'hover:bg-blue-100/50' : 'hover:bg-slate-200/50'}`}
+-                              onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }}
+-                            >
+-                              <button onClick={(e) => { e.stopPropagation(); updateStartTime(dIdx, pIdx, -TIME_UNIT); }} className={`p-1.5 rounded-xl transition-colors shrink-0 z-10 ${p.isTimeFixed ? 'text-blue-400 hover:text-blue-600 hover:bg-blue-100/50' : 'text-slate-400 hover:text-blue-500 hover:bg-slate-100'}`}><ChevronLeft size={16} strokeWidth={2.5} /></button>
++                          {/* 🟢 좌측 컨트롤 타워 (단일 래퍼) */}
++                          <div className={`relative flex flex-col items-center justify-center gap-1 sm:gap-2 w-[110px] sm:w-[9rem] shrink-0 ${p.types?.includes('lodge') ? 'bg-[#F4F6FB] border-[#C7D2FE]/50' : (p.isTimeFixed ? 'bg-blue-50/80 border-blue-200' : 'bg-black/[0.02] border-slate-100/50')} border-r py-4 sm:py-5 px-2 sm:px-3 overflow-hidden transition-all duration-300`}>
++                            {p.isTimeFixed && <Lock size={90} className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${p.types?.includes('lodge') ? 'text-indigo-500' : 'text-blue-500'} opacity-[0.035] pointer-events-none`} />}
+ 
+-                              <div className="relative flex items-center justify-center z-10">
+-                                <span className={`text-[20px] sm:text-[22px] font-black tracking-tighter transition-colors ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{p.time}</span>
+-                              </div>
+-
+-                              <button onClick={(e) => { e.stopPropagation(); updateStartTime(dIdx, pIdx, TIME_UNIT); }} className={`p-1.5 rounded-xl transition-colors shrink-0 z-10 ${p.isTimeFixed ? 'text-blue-400 hover:text-blue-600 hover:bg-blue-100/50' : 'text-slate-400 hover:text-blue-500 hover:bg-slate-100'}`}><ChevronRight size={16} strokeWidth={2.5} /></button>
+-                            </div>
+-
+-                            {/* ✅ 소요 시간 조절 (스마트 락 스타일 적용/숙박은 체크인으로만) */}
+                             {p.types?.includes('lodge') ? (
+-                              <div className="flex flex-col items-center justify-center my-3 py-1.5 w-full bg-indigo-50/50 rounded-xl border border-indigo-100/50">
+-                                <span className="text-[11px] font-bold text-indigo-400 tracking-widest">체크인</span>
+-                              </div>
++                              <>
++                                <div className={`relative w-full flex items-center justify-center gap-1 sm:gap-2 px-1 py-1 rounded-2xl cursor-pointer select-none z-10 transition-colors ${p.isTimeFixed ? 'hover:bg-indigo-100/50' : 'hover:bg-slate-200/50'}`} onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }}>
++                                  <button onClick={(e) => { e.stopPropagation(); updateStartTime(dIdx, pIdx, -TIME_UNIT); }} className={`p-1 rounded-xl transition-colors shrink-0 z-10 ${p.isTimeFixed ? 'text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100/50' : 'text-slate-400 hover:text-indigo-500 hover:bg-slate-100'}`}><ChevronLeft size={16} strokeWidth={2.5} /></button>
++                                  <div className="relative flex items-center justify-center z-10">
++                                    <span className={`text-[18px] sm:text-[20px] font-black tracking-tighter transition-colors ${p.isTimeFixed ? 'text-indigo-600' : 'text-slate-800'}`}>{p.time}</span>
++                                  </div>
++                                  <button onClick={(e) => { e.stopPropagation(); updateStartTime(dIdx, pIdx, TIME_UNIT); }} className={`p-1 rounded-xl transition-colors shrink-0 z-10 ${p.isTimeFixed ? 'text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100/50' : 'text-slate-400 hover:text-indigo-500 hover:bg-slate-100'}`}><ChevronRight size={16} strokeWidth={2.5} /></button>
++                                </div>
++                                <div className="text-[10px] font-bold text-indigo-400 tracking-widest bg-indigo-50/50 px-2 py-0.5 rounded-md border border-indigo-100/50 mb-1">체크인</div>
++
++                                {(() => {
++                                  const nextDay = itinerary.days[dIdx + 1];
++                                  const nextItem = nextDay?.plan?.[0];
++                                  if (nextItem && nextItem.type !== 'backup') {
++                                    const checkoutTime = minutesToTime(timeToMinutes(nextItem.time) - parseInt(nextItem.travelTimeOverride || '0', 10));
++                                    return (
++                                      <>
++                                        <div className="w-8 h-[1px] bg-indigo-200/50 my-1"></div>
++                                        <div className={`relative w-full flex items-center justify-center gap-1 sm:gap-2 px-1 py-1 rounded-2xl cursor-pointer select-none transition-colors hover:bg-indigo-100/50 mt-1`} onClick={(e) => { e.stopPropagation(); }}>
++                                          <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx + 1, 0, -TIME_UNIT); }} className={`p-1 rounded-xl transition-colors shrink-0 z-10 text-indigo-300 hover:text-indigo-500 hover:bg-indigo-100/50`}><ChevronLeft size={16} strokeWidth={2.5} /></button>
++                                          <div className="relative flex items-center justify-center z-10">
++                                            <span className={`text-[18px] sm:text-[20px] font-black tracking-tighter transition-colors text-indigo-900`}>{checkoutTime}</span>
++                                          </div>
++                                          <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx + 1, 0, TIME_UNIT); }} className={`p-1 rounded-xl transition-colors shrink-0 z-10 text-indigo-300 hover:text-indigo-500 hover:bg-indigo-100/50`}><ChevronRight size={16} strokeWidth={2.5} /></button>
++                                        </div>
++                                        <div className="text-[10px] font-bold text-indigo-400 tracking-widest bg-indigo-50/50 px-2 py-0.5 rounded-md border border-indigo-100/50">체크아웃</div>
++                                      </>
++                                    );
++                                  }
++                                  return null;
++                                })()}
++                              </>
+                             ) : (
+-                              <div className={`flex items-center justify-between w-full bg-white px-1 sm:px-2 py-1.5 rounded-xl border shadow-sm my-3 transition-colors ${isNextFixed || isAutoLocked ? 'border-orange-200 ring-1 ring-orange-100' : 'border-slate-200'}`} onClick={(e) => e.stopPropagation()}>
+-                                <button onClick={() => updateDuration(dIdx, pIdx, -TIME_UNIT)} className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isNextFixed || isAutoLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-500'}`}><Minus size={10} /></button>
+-                                <span
+-                                  className={`text-[12px] whitespace-nowrap font-extrabold tabular-nums cursor-pointer hover:underline ${isNextFixed || isAutoLocked ? 'text-orange-500' : 'text-slate-600 hover:text-blue-600'}`}
+-                                  onClick={() => resetDuration(dIdx, pIdx)}
+-                                  title={isNextFixed || isAutoLocked ? "다음 일정에 맞춰 자동으로 계산된 시간입니다" : "60분으로 초기화"}
+-                                >{p.duration}분</span>
+-                                <button onClick={() => updateDuration(dIdx, pIdx, TIME_UNIT)} className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isNextFixed || isAutoLocked ? 'text-orange-300 hover:text-orange-500' : 'text-slate-400 hover:text-blue-500'}`}><Plus size={10} /></button>
+-                              </div>
++                              <>
++                                <div
++                                  className={`relative w-full flex items-center justify-center gap-1 sm:gap-2 px-1 py-1.5 sm:py-2 rounded-2xl cursor-pointer select-none mb-1 z-10 transition-colors ${p.isTimeFixed ? 'hover:bg-blue-100/50' : 'hover:bg-slate-200/50'}`}
++                                  onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }}
++                                >
++                                  <button onClick={(e) => { e.stopPropagation(); updateStartTime(dIdx, pIdx, -TIME_UNIT); }} className={`p-1.5 rounded-xl transition-colors shrink-0 z-10 ${p.isTimeFixed ? 'text-blue-400 hover:text-blue-600 hover:bg-blue-100/50' : 'text-slate-400 hover:text-blue-500 hover:bg-slate-100'}`}><ChevronLeft size={16} strokeWidth={2.5} /></button>
++                                  <div className="relative flex items-center justify-center z-10">
++                                    <span className={`text-[20px] sm:text-[22px] font-black tracking-tighter transition-colors ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{p.time}</span>
++                                  </div>
++                                  <button onClick={(e) => { e.stopPropagation(); updateStartTime(dIdx, pIdx, TIME_UNIT); }} className={`p-1.5 rounded-xl transition-colors shrink-0 z-10 ${p.isTimeFixed ? 'text-blue-400 hover:text-blue-600 hover:bg-blue-100/50' : 'text-slate-400 hover:text-blue-500 hover:bg-slate-100'}`}><ChevronRight size={16} strokeWidth={2.5} /></button>
++                                </div>
++                                <div className={`flex items-center justify-between w-full bg-white px-1 sm:px-2 py-1.5 rounded-xl border shadow-sm my-3 transition-colors ${isNextFixed || isAutoLocked ? 'border-orange-200 ring-1 ring-orange-100' : 'border-slate-200'}`} onClick={(e) => e.stopPropagation()}>
++                                  <button onClick={() => updateDuration(dIdx, pIdx, -TIME_UNIT)} className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isNextFixed || isAutoLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-500'}`}><Minus size={10} /></button>
++                                  <span
++                                    className={`text-[12px] whitespace-nowrap font-extrabold tabular-nums cursor-pointer hover:underline ${isNextFixed || isAutoLocked ? 'text-orange-500' : 'text-slate-600 hover:text-blue-600'}`}
++                                    onClick={() => resetDuration(dIdx, pIdx)}
++                                    title={isNextFixed || isAutoLocked ? "다음 일정에 맞춰 자동으로 계산된 시간입니다" : "60분으로 초기화"}
++                                  >{p.duration}분</span>
++                                  <button onClick={() => updateDuration(dIdx, pIdx, TIME_UNIT)} className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isNextFixed || isAutoLocked ? 'text-orange-300 hover:text-orange-500' : 'text-slate-400 hover:text-blue-500'}`}><Plus size={10} /></button>
++                                </div>
++                              </>
+                             )}
+ 
+                             {/* 확정 버튼 & 플랜 B 추가 */}
+@@ -1158,7 +1138,7 @@ const App = () => {
+           margin: 0; 
+         }
+       `}</style>
+-    </div>
++    </div >
+   );
+ };
+ 

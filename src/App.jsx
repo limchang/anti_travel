@@ -605,6 +605,7 @@ const App = () => {
   const [activeDay, setActiveDay] = useState(1);
   const [activeItemId, setActiveItemId] = useState(null);
   const [tagEditorTarget, setTagEditorTarget] = useState(null); // {dayIdx, pIdx}
+  const [businessEditorTarget, setBusinessEditorTarget] = useState(null); // {dayIdx, pIdx}
   const [ferryEditField, setFerryEditField] = useState(null); // { pId, field: 'load'|'depart' }
   const [routeCache, setRouteCache] = useState({});
   const [calculatingRouteId, setCalculatingRouteId] = useState(null);
@@ -803,6 +804,17 @@ const App = () => {
       return `${dayLabel}요일 휴무일 방문`;
     }
     return '';
+  };
+  const formatBusinessSummary = (businessRaw) => {
+    const business = normalizeBusiness(businessRaw || {});
+    const segs = [];
+    if (business.open || business.close) segs.push(`영업 ${business.open || '--:--'}~${business.close || '--:--'}`);
+    if (business.breakStart || business.breakEnd) segs.push(`브레이크 ${business.breakStart || '--:--'}~${business.breakEnd || '--:--'}`);
+    if (business.closedDays.length) {
+      const labels = business.closedDays.map(v => WEEKDAY_OPTIONS.find(d => d.value === v)?.label || v).join(',');
+      segs.push(`휴무 ${labels}`);
+    }
+    return segs.length ? segs.join(' · ') : '영업 정보 미설정';
   };
 
   const getPlanLabel = (index) => `Plan ${String.fromCharCode(66 + index)}`;
@@ -1840,7 +1852,7 @@ const App = () => {
   return (
     <div className="min-h-screen bg-[#F2F4F6] text-[#191F28] font-sans flex overflow-x-hidden font-bold flex-row relative">
       {/* 🟢 좌측 네비게이션바 (사이드바) */}
-      <div className="flex flex-col w-[260px] fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] z-[140] py-10 px-6 shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-y-auto no-scrollbar">
+      <div className="flex flex-col w-[420px] fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] z-[140] py-10 px-6 shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-y-auto no-scrollbar">
         <h2 className="text-[22px] font-black text-slate-800 tracking-tight mb-10 flex items-center gap-2">
           <MapIcon className="text-[#3182F6]" size={24} /> 전체 일정 안내
         </h2>
@@ -2183,28 +2195,40 @@ const App = () => {
                         className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-slate-600 outline-none [appearance:textfield]"
                       />
                       <div className="bg-slate-50/60 border border-slate-200 rounded-lg p-2">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">영업 정보</p>
-                        <div className="grid grid-cols-2 gap-1.5 mb-1.5">
-                          <input type="time" value={editPlaceDraft.business?.open || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), open: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
-                          <input type="time" value={editPlaceDraft.business?.close || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), close: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
-                          <input type="time" value={editPlaceDraft.business?.breakStart || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), breakStart: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
-                          <input type="time" value={editPlaceDraft.business?.breakEnd || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), breakEnd: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
-                        </div>
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {WEEKDAY_OPTIONS.map(w => {
-                            const active = (editPlaceDraft.business?.closedDays || []).includes(w.value);
-                            return (
-                              <button
-                                key={w.value}
-                                type="button"
-                                onClick={() => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), closedDays: active ? normalizeBusiness(d.business).closedDays.filter(v => v !== w.value) : [...normalizeBusiness(d.business).closedDays, w.value] } }))}
-                                className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${active ? 'text-red-500 bg-red-50 border-red-200' : 'text-slate-400 bg-white border-slate-200'}`}
-                              >
-                                {w.label} 휴무
-                              </button>
-                            );
-                          })}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setEditPlaceDraft(d => ({ ...d, showBusinessEditor: !d.showBusinessEditor }))}
+                          className="w-full flex items-center justify-between text-left"
+                        >
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">영업 정보</span>
+                          <span className="text-[10px] font-bold text-slate-500 truncate ml-2">{formatBusinessSummary(editPlaceDraft.business)}</span>
+                        </button>
+                        {editPlaceDraft.showBusinessEditor && (
+                          <>
+                            <p className="text-[9px] text-slate-400 font-semibold mt-1 mb-1.5">기본은 접힘 상태이며, 필요할 때만 펼쳐 수정하세요.</p>
+                            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                              <input type="time" value={editPlaceDraft.business?.open || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), open: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
+                              <input type="time" value={editPlaceDraft.business?.close || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), close: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
+                              <input type="time" value={editPlaceDraft.business?.breakStart || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), breakStart: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
+                              <input type="time" value={editPlaceDraft.business?.breakEnd || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), breakEnd: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
+                            </div>
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {WEEKDAY_OPTIONS.map(w => {
+                                const active = (editPlaceDraft.business?.closedDays || []).includes(w.value);
+                                return (
+                                  <button
+                                    key={w.value}
+                                    type="button"
+                                    onClick={() => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), closedDays: active ? normalizeBusiness(d.business).closedDays.filter(v => v !== w.value) : [...normalizeBusiness(d.business).closedDays, w.value] } }))}
+                                    className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${active ? 'text-red-500 bg-red-50 border-red-200' : 'text-slate-400 bg-white border-slate-200'}`}
+                                  >
+                                    {w.label} 휴무
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
                       </div>
                       <VisitStateChips
                         isRevisit={!!editPlaceDraft.revisit}
@@ -2244,22 +2268,25 @@ const App = () => {
                     e.dataTransfer.effectAllowed = copy ? 'copy' : 'move';
                   }}
                   onDragEnd={() => { setDraggingFromLibrary(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false); }}
-                  className="relative rounded-2xl border border-slate-200 bg-white cursor-grab active:cursor-grabbing select-none transition-all hover:shadow-md group overflow-hidden"
+                  className="relative rounded-3xl border-2 border-slate-200 bg-white cursor-grab active:cursor-grabbing select-none transition-all hover:shadow-lg group overflow-hidden"
                 >
-                  <div className="p-3 flex flex-col gap-2.5">
+                  <div className="p-4 flex flex-col gap-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap pr-12">
                       {chips}
                       {!isPlaceRevisit && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 text-emerald-600 bg-emerald-50 border-emerald-200">NEW</span>
                       )}
                     </div>
-                    <span className="text-[15px] font-black text-slate-800 leading-tight truncate">{place.name}</span>
+                    <span className="text-[22px] font-black text-slate-800 leading-tight truncate">{place.name}</span>
                     {place.address && (
-                      <div className="flex items-center gap-2 text-slate-500 bg-slate-50 w-fit max-w-full px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:border-[#3182F6]/50 hover:bg-blue-50/30 transition-all" onClick={(e) => { e.stopPropagation(); window.open(`https://map.naver.com/v5/search/${encodeURIComponent(place.address)}`, '_blank'); }}>
+                      <div className="flex items-center gap-2 text-slate-500 bg-slate-50 w-full px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:border-[#3182F6]/50 hover:bg-blue-50/30 transition-all" onClick={(e) => { e.stopPropagation(); window.open(`https://map.naver.com/v5/search/${encodeURIComponent(place.address)}`, '_blank'); }}>
                         <MapPin size={11} className="text-[#3182F6] shrink-0" />
                         <span className="text-[10px] font-bold truncate">{place.address}</span>
                       </div>
                     )}
+                    <div className="w-full px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-500 truncate">
+                      {formatBusinessSummary(place.business)}
+                    </div>
                     {place.memo && (
                       <div className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[10px] font-medium text-slate-600 truncate">
                         {place.memo}
@@ -2280,7 +2307,8 @@ const App = () => {
                           ...place,
                           address: place.address || place.receipt?.address || '',
                           business: normalizeBusiness(place.business || {}),
-                          receipt: deepClone(place.receipt || { address: place.address || '', items: [] })
+                          receipt: deepClone(place.receipt || { address: place.address || '', items: [] }),
+                          showBusinessEditor: false
                         });
                       }}
                       className="p-1.5 hover:text-[#3182F6] hover:bg-blue-50 text-slate-300 rounded-md transition-all"
@@ -2302,7 +2330,7 @@ const App = () => {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center ml-[260px] w-full">
+      <div className="flex-1 flex flex-col items-center ml-[420px] w-full">
         {/* 일정 목록 */}
         <div className="w-full max-w-2xl px-5 pt-10 pb-32">
           <div
@@ -2787,29 +2815,40 @@ const App = () => {
                                 </div>
                               )}
                               <div className="w-full bg-slate-50/60 border border-slate-200 rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">영업 정보 (선택)</p>
-                                <p className="text-[9px] text-slate-400 font-semibold mb-1.5">현재 일정 시간과 충돌하면 위에 빨간 경고가 표시됩니다.</p>
-                                <div className="grid grid-cols-2 gap-1.5 mb-1.5">
-                                  <input type="time" value={p.business?.open || ''} onChange={(e) => updatePlanBusinessField(dIdx, pIdx, 'open', e.target.value)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" />
-                                  <input type="time" value={p.business?.close || ''} onChange={(e) => updatePlanBusinessField(dIdx, pIdx, 'close', e.target.value)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" />
-                                  <input type="time" value={p.business?.breakStart || ''} onChange={(e) => updatePlanBusinessField(dIdx, pIdx, 'breakStart', e.target.value)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" />
-                                  <input type="time" value={p.business?.breakEnd || ''} onChange={(e) => updatePlanBusinessField(dIdx, pIdx, 'breakEnd', e.target.value)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" />
-                                </div>
-                                <div className="flex items-center gap-1 flex-wrap">
-                                  {WEEKDAY_OPTIONS.map(w => {
-                                    const active = (p.business?.closedDays || []).includes(w.value);
-                                    return (
-                                      <button
-                                        key={w.value}
-                                        type="button"
-                                        onClick={() => togglePlanClosedDay(dIdx, pIdx, w.value)}
-                                        className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${active ? 'text-red-500 bg-red-50 border-red-200' : 'text-slate-400 bg-white border-slate-200'}`}
-                                      >
-                                        {w.label} 휴무
-                                      </button>
-                                    );
-                                  })}
-                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setBusinessEditorTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx }))}
+                                  className="w-full flex items-center justify-between text-left"
+                                >
+                                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">영업 정보 (선택)</span>
+                                  <span className="text-[10px] font-bold text-slate-500 truncate ml-2">{formatBusinessSummary(p.business)}</span>
+                                </button>
+                                {businessEditorTarget?.dayIdx === dIdx && businessEditorTarget?.pIdx === pIdx && (
+                                  <>
+                                    <p className="text-[9px] text-slate-400 font-semibold mt-1 mb-1.5">현재 일정 시간과 충돌하면 위에 빨간 경고가 표시됩니다.</p>
+                                    <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                                      <input type="time" value={p.business?.open || ''} onChange={(e) => updatePlanBusinessField(dIdx, pIdx, 'open', e.target.value)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" />
+                                      <input type="time" value={p.business?.close || ''} onChange={(e) => updatePlanBusinessField(dIdx, pIdx, 'close', e.target.value)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" />
+                                      <input type="time" value={p.business?.breakStart || ''} onChange={(e) => updatePlanBusinessField(dIdx, pIdx, 'breakStart', e.target.value)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" />
+                                      <input type="time" value={p.business?.breakEnd || ''} onChange={(e) => updatePlanBusinessField(dIdx, pIdx, 'breakEnd', e.target.value)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" />
+                                    </div>
+                                    <div className="flex items-center gap-1 flex-wrap">
+                                      {WEEKDAY_OPTIONS.map(w => {
+                                        const active = (p.business?.closedDays || []).includes(w.value);
+                                        return (
+                                          <button
+                                            key={w.value}
+                                            type="button"
+                                            onClick={() => togglePlanClosedDay(dIdx, pIdx, w.value)}
+                                            className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${active ? 'text-red-500 bg-red-50 border-red-200' : 'text-slate-400 bg-white border-slate-200'}`}
+                                          >
+                                            {w.label} 휴무
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </>
+                                )}
                               </div>
 
                               {/* 4행: 메모 입력란 */}
@@ -3052,7 +3091,7 @@ const App = () => {
           </div>
         </div>
 
-        <footer className="fixed bottom-0 left-0 left-[260px] right-0 bg-white/95 backdrop-blur-xl border-t px-8 py-5 flex items-center gap-5 z-[130] shadow-[0_-5px_20px_rgba(0,0,0,0.02)]">
+        <footer className="fixed bottom-0 left-0 left-[420px] right-0 bg-white/95 backdrop-blur-xl border-t px-8 py-5 flex items-center gap-5 z-[130] shadow-[0_-5px_20px_rgba(0,0,0,0.02)]">
           <MessageSquare size={20} className="text-[#3182F6]" />
           <p className="text-[13px] font-bold text-slate-600 truncate flex-1 animate-pulse">"{lastAction}"</p>
           {history.length > 0 && (

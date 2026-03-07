@@ -8,7 +8,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon, ExternalLink,
-  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil
+  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Calendar
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -1858,73 +1858,6 @@ const App = () => {
           </div>
           <h2 className="text-[14px] font-black text-slate-800 tracking-tight">일정 안내</h2>
         </div>
-        {/* 예산 요약 */}
-        <div className="mb-6 pb-5 border-b border-slate-100">
-          <div className="flex flex-col gap-1 mb-3">
-            <span className="text-[10px] text-[#3182F6] font-black uppercase tracking-wider">남은 예산</span>
-            <span className="text-[28px] font-black tracking-tighter text-[#3182F6] leading-none">₩{budgetSummary.remaining.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between items-end">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider">지출 합계</span>
-              <span className="text-[15px] font-black tracking-tighter text-slate-800">₩{budgetSummary.total.toLocaleString()}</span>
-            </div>
-            <div className="flex flex-col gap-0.5 items-end">
-              <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider">총 예산</span>
-              {editingBudget ? (
-                <input
-                  type="number"
-                  defaultValue={MAX_BUDGET}
-                  autoFocus
-                  className="text-[15px] font-black tracking-tighter text-slate-600 w-28 text-right bg-transparent border-b border-[#3182F6] outline-none"
-                  onBlur={(e) => {
-                    const val = Number(e.target.value);
-                    if (val > 0) setItinerary(prev => ({ ...prev, maxBudget: val }));
-                    setEditingBudget(false);
-                  }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setEditingBudget(false); }}
-                />
-              ) : (
-                <span
-                  className="text-[15px] font-black tracking-tighter text-slate-400 cursor-pointer hover:text-[#3182F6] transition-colors"
-                  onClick={() => setEditingBudget(true)}
-                  title="클릭하여 수정"
-                >₩{MAX_BUDGET.toLocaleString()}</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-6 pb-4 border-b border-slate-100">
-          <div className="mt-0 flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 whitespace-nowrap">
-            <MapPin size={11} className="text-[#3182F6]" />
-            <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider whitespace-nowrap">여행지</span>
-            <input
-              value={tripRegion}
-              onChange={(e) => setTripRegion(e.target.value)}
-              placeholder="예: 제주시"
-              className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-black text-slate-700 placeholder:text-slate-400 whitespace-nowrap"
-            />
-          </div>
-          <div className="mt-2 flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
-            <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider shrink-0">시작</span>
-            <input
-              type="date"
-              value={tripStartDate}
-              onChange={(e) => setTripStartDate(e.target.value)}
-              className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-black text-slate-700"
-            />
-          </div>
-          <div className="mt-1.5 flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
-            <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider shrink-0">종료</span>
-            <input
-              type="date"
-              value={tripEndDate}
-              onChange={(e) => setTripEndDate(e.target.value)}
-              className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-black text-slate-700"
-            />
-          </div>
-        </div>
         <nav className="flex flex-col gap-6 relative -ml-2">
           <div className="absolute left-[15px] top-4 bottom-8 w-px bg-slate-100 -z-10" />
           {itinerary.days?.map((d) => (
@@ -2187,7 +2120,112 @@ const App = () => {
 
       <div className="flex-1 flex flex-col items-center w-full bg-white min-h-screen" style={{ marginLeft: col1Collapsed ? 44 : 260, marginRight: col2Collapsed ? 44 : 300 }}>
         {/* 일정 목록 */}
-        <div className="w-full max-w-[560px] px-4 pt-10 pb-32">
+        <div className="w-full max-w-[560px] px-4 pt-8 pb-32">
+
+            {/* ── 여행 헤더 카드 ── */}
+            {(() => {
+              const tripDays = (tripStartDate && tripEndDate)
+                ? Math.max(1, Math.round((new Date(tripEndDate) - new Date(tripStartDate)) / 86400000) + 1)
+                : (itinerary.days?.length || 0);
+              const tripNights = Math.max(0, tripDays - 1);
+              const usedPct = MAX_BUDGET > 0 ? Math.min(100, Math.round((budgetSummary.total / MAX_BUDGET) * 100)) : 0;
+              return (
+                <div className="mb-8 rounded-2xl overflow-hidden relative" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1e293b 100%)' }}>
+                  {/* 배경 블러 장식 */}
+                  <div className="absolute top-0 right-0 w-56 h-56 rounded-full opacity-20 pointer-events-none" style={{ background: 'radial-gradient(circle, #3182F6 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
+                  <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full opacity-10 pointer-events-none" style={{ background: 'radial-gradient(circle, #818cf8 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
+
+                  <div className="relative p-5">
+                    {/* 상단: 지역 + 기간 뱃지 */}
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <MapPin size={12} className="text-[#3182F6] shrink-0" />
+                        <input
+                          value={tripRegion}
+                          onChange={(e) => setTripRegion(e.target.value)}
+                          placeholder="여행지 입력"
+                          className="bg-transparent border-none outline-none text-[20px] font-black text-white placeholder:text-white/30 w-40"
+                        />
+                      </div>
+                      {tripNights > 0 && (
+                        <span className="text-[11px] font-black text-white/50 bg-white/10 px-2.5 py-1 rounded-full">
+                          {tripNights}박 {tripDays}일
+                        </span>
+                      )}
+                    </div>
+
+                    {/* 날짜 행 */}
+                    <div className="flex items-center gap-2 mb-5">
+                      <Calendar size={10} className="text-white/30 shrink-0" />
+                      <input
+                        type="date"
+                        value={tripStartDate}
+                        onChange={(e) => setTripStartDate(e.target.value)}
+                        className="bg-transparent border-none outline-none text-[11px] font-bold text-white/50 hover:text-white/80 transition-colors cursor-pointer"
+                      />
+                      <span className="text-white/20 text-[10px]">→</span>
+                      <input
+                        type="date"
+                        value={tripEndDate}
+                        onChange={(e) => setTripEndDate(e.target.value)}
+                        className="bg-transparent border-none outline-none text-[11px] font-bold text-white/50 hover:text-white/80 transition-colors cursor-pointer"
+                      />
+                    </div>
+
+                    {/* 남은 예산 히어로 */}
+                    <div className="mb-4">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-0.5">남은 예산</p>
+                      <p className="text-[34px] font-black tracking-tighter text-white leading-none">
+                        <span className="text-[#3182F6]">₩</span>{budgetSummary.remaining.toLocaleString()}
+                      </p>
+                    </div>
+
+                    {/* 지출 / 총예산 행 */}
+                    <div className="flex items-end justify-between mb-3">
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-wider text-white/30 mb-0.5">지출 합계</p>
+                        <p className="text-[15px] font-black text-white/70 tracking-tighter">₩{budgetSummary.total.toLocaleString()}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[9px] font-black uppercase tracking-wider text-white/30 mb-0.5">총 예산</p>
+                        {editingBudget ? (
+                          <input
+                            type="number"
+                            defaultValue={MAX_BUDGET}
+                            autoFocus
+                            className="text-[15px] font-black tracking-tighter text-white/70 w-32 text-right bg-transparent border-b border-white/30 outline-none"
+                            onBlur={(e) => { const val = Number(e.target.value); if (val > 0) setItinerary(prev => ({ ...prev, maxBudget: val })); setEditingBudget(false); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setEditingBudget(false); }}
+                          />
+                        ) : (
+                          <p className="text-[15px] font-black text-white/40 tracking-tighter cursor-pointer hover:text-white/70 transition-colors" onClick={() => setEditingBudget(true)}>
+                            ₩{MAX_BUDGET.toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 진행 바 */}
+                    <div>
+                      <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${usedPct}%`,
+                            background: usedPct >= 90 ? 'linear-gradient(90deg, #f87171, #ef4444)' : usedPct >= 70 ? 'linear-gradient(90deg, #fb923c, #f97316)' : 'linear-gradient(90deg, #3182F6, #60a5fa)'
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-between mt-1.5">
+                        <span className="text-[9px] text-white/30 font-bold">{usedPct}% 사용</span>
+                        <span className="text-[9px] text-white/30 font-bold">{itinerary.days?.length || 0}일 일정</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="flex flex-col gap-6 relative z-0">
 
               {itinerary.days?.map((d, dIdx) => d.plan?.map((p, pIdx) => {

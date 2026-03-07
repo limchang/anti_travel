@@ -8,7 +8,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon, ExternalLink,
-  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Calendar
+  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -2130,75 +2130,61 @@ const App = () => {
               const tripNights = Math.max(0, tripDays - 1);
               const usedPct = MAX_BUDGET > 0 ? Math.min(100, Math.round((budgetSummary.total / MAX_BUDGET) * 100)) : 0;
               return (
-                <div className="mb-8 rounded-2xl overflow-hidden relative" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1e293b 100%)' }}>
-                  {/* 배경 블러 장식 */}
-                  <div className="absolute top-0 right-0 w-56 h-56 rounded-full opacity-20 pointer-events-none" style={{ background: 'radial-gradient(circle, #3182F6 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
-                  <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full opacity-10 pointer-events-none" style={{ background: 'radial-gradient(circle, #818cf8 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
+                <div className="mb-8 rounded-2xl bg-[#191F28] overflow-hidden">
+                  <div className="px-5 pt-5 pb-4">
 
-                  <div className="relative p-5">
-                    {/* 상단: 지역 + 기간 뱃지 */}
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin size={12} className="text-[#3182F6] shrink-0" />
-                        <input
-                          value={tripRegion}
-                          onChange={(e) => setTripRegion(e.target.value)}
-                          placeholder="여행지 입력"
-                          className="bg-transparent border-none outline-none text-[20px] font-black text-white placeholder:text-white/30 w-40"
-                        />
+                    {/* 상단: 여행지 + 날짜 */}
+                    <div className="flex items-start justify-between mb-5">
+                      <div>
+                        <div className="flex items-center gap-1 mb-1">
+                          <MapPin size={10} className="text-[#3182F6] shrink-0" />
+                          <input
+                            value={tripRegion}
+                            onChange={(e) => setTripRegion(e.target.value)}
+                            placeholder="여행지"
+                            className="bg-transparent border-none outline-none text-[22px] font-black text-white placeholder:text-white/20 w-36 leading-none"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1.5 pl-[18px]">
+                          <input type="date" value={tripStartDate} onChange={(e) => setTripStartDate(e.target.value)}
+                            className="bg-transparent border-none outline-none text-[11px] font-bold text-white/30 hover:text-white/60 transition-colors cursor-pointer" />
+                          <span className="text-white/15 text-[10px] font-bold">—</span>
+                          <input type="date" value={tripEndDate} onChange={(e) => setTripEndDate(e.target.value)}
+                            className="bg-transparent border-none outline-none text-[11px] font-bold text-white/30 hover:text-white/60 transition-colors cursor-pointer" />
+                        </div>
                       </div>
                       {tripNights > 0 && (
-                        <span className="text-[11px] font-black text-white/50 bg-white/10 px-2.5 py-1 rounded-full">
+                        <span className="text-[11px] font-black text-white/25 bg-white/[0.06] px-2.5 py-1 rounded-lg mt-1 shrink-0">
                           {tripNights}박 {tripDays}일
                         </span>
                       )}
                     </div>
 
-                    {/* 날짜 행 */}
-                    <div className="flex items-center gap-2 mb-5">
-                      <Calendar size={10} className="text-white/30 shrink-0" />
-                      <input
-                        type="date"
-                        value={tripStartDate}
-                        onChange={(e) => setTripStartDate(e.target.value)}
-                        className="bg-transparent border-none outline-none text-[11px] font-bold text-white/50 hover:text-white/80 transition-colors cursor-pointer"
-                      />
-                      <span className="text-white/20 text-[10px]">→</span>
-                      <input
-                        type="date"
-                        value={tripEndDate}
-                        onChange={(e) => setTripEndDate(e.target.value)}
-                        className="bg-transparent border-none outline-none text-[11px] font-bold text-white/50 hover:text-white/80 transition-colors cursor-pointer"
-                      />
-                    </div>
-
                     {/* 남은 예산 히어로 */}
-                    <div className="mb-4">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-0.5">남은 예산</p>
-                      <p className="text-[34px] font-black tracking-tighter text-white leading-none">
-                        <span className="text-[#3182F6]">₩</span>{budgetSummary.remaining.toLocaleString()}
-                      </p>
-                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-white/25 mb-1">남은 예산</p>
+                    <p className="text-[38px] font-black text-white leading-none tabular-nums mb-5" style={{ letterSpacing: '-0.02em' }}>
+                      ₩{budgetSummary.remaining.toLocaleString()}
+                    </p>
 
-                    {/* 지출 / 총예산 행 */}
-                    <div className="flex items-end justify-between mb-3">
+                    {/* 구분선 */}
+                    <div className="w-full h-px bg-white/[0.07] mb-4" />
+
+                    {/* 지출 / 총예산 */}
+                    <div className="flex items-end justify-between mb-4">
                       <div>
-                        <p className="text-[9px] font-black uppercase tracking-wider text-white/30 mb-0.5">지출 합계</p>
-                        <p className="text-[15px] font-black text-white/70 tracking-tighter">₩{budgetSummary.total.toLocaleString()}</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.08em] text-white/25 mb-1">지출 합계</p>
+                        <p className="text-[17px] font-black text-white/55 tabular-nums" style={{ letterSpacing: '-0.01em' }}>₩{budgetSummary.total.toLocaleString()}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[9px] font-black uppercase tracking-wider text-white/30 mb-0.5">총 예산</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.08em] text-white/25 mb-1">총 예산</p>
                         {editingBudget ? (
-                          <input
-                            type="number"
-                            defaultValue={MAX_BUDGET}
-                            autoFocus
-                            className="text-[15px] font-black tracking-tighter text-white/70 w-32 text-right bg-transparent border-b border-white/30 outline-none"
+                          <input type="number" defaultValue={MAX_BUDGET} autoFocus
+                            className="text-[17px] font-black text-white/55 w-32 text-right bg-transparent border-b border-white/20 outline-none tabular-nums"
                             onBlur={(e) => { const val = Number(e.target.value); if (val > 0) setItinerary(prev => ({ ...prev, maxBudget: val })); setEditingBudget(false); }}
                             onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setEditingBudget(false); }}
                           />
                         ) : (
-                          <p className="text-[15px] font-black text-white/40 tracking-tighter cursor-pointer hover:text-white/70 transition-colors" onClick={() => setEditingBudget(true)}>
+                          <p className="text-[17px] font-black text-white/30 tabular-nums cursor-pointer hover:text-white/55 transition-colors" style={{ letterSpacing: '-0.01em' }} onClick={() => setEditingBudget(true)}>
                             ₩{MAX_BUDGET.toLocaleString()}
                           </p>
                         )}
@@ -2206,21 +2192,14 @@ const App = () => {
                     </div>
 
                     {/* 진행 바 */}
-                    <div>
-                      <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{
-                            width: `${usedPct}%`,
-                            background: usedPct >= 90 ? 'linear-gradient(90deg, #f87171, #ef4444)' : usedPct >= 70 ? 'linear-gradient(90deg, #fb923c, #f97316)' : 'linear-gradient(90deg, #3182F6, #60a5fa)'
-                          }}
-                        />
-                      </div>
-                      <div className="flex justify-between mt-1.5">
-                        <span className="text-[9px] text-white/30 font-bold">{usedPct}% 사용</span>
-                        <span className="text-[9px] text-white/30 font-bold">{itinerary.days?.length || 0}일 일정</span>
-                      </div>
+                    <div className="w-full h-[2px] bg-white/[0.07] rounded-full overflow-hidden mb-2">
+                      <div className="h-full bg-[#3182F6] rounded-full transition-all duration-700" style={{ width: `${usedPct}%` }} />
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-[10px] text-white/20 font-bold tabular-nums">{usedPct}% 사용</span>
+                      <span className="text-[10px] text-white/20 font-bold">{itinerary.days?.length || 0}일 일정</span>
+                    </div>
+
                   </div>
                 </div>
               );

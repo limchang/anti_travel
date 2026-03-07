@@ -39,21 +39,91 @@ const PLACE_TYPES = [
   { label: '장소', types: ['place'], Icon: MapPin, className: 'text-slate-500 bg-slate-50 border-slate-200 hover:bg-slate-100' },
 ];
 
-const EXTRA_TAGS = [
-  { label: '뷰맛집', value: 'view', color: 'text-sky-600 bg-sky-50 border-sky-200' },
-  { label: '오픈런', value: 'openrun', color: 'text-red-500 bg-red-50 border-red-100' },
-  { label: '체험', value: 'experience', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
-  { label: '픽업', value: 'pickup', color: 'text-orange-500 bg-orange-50 border-orange-200' },
-];
-
-const MAIN_TYPES = [
+const TAG_OPTIONS = [
   { label: '식당', value: 'food' },
   { label: '카페', value: 'cafe' },
   { label: '관광', value: 'tour' },
   { label: '숙소', value: 'lodge' },
-  { label: '선박', value: 'ship' },
+  { label: '픽업', value: 'pickup' },
+  { label: '오픈런', value: 'openrun' },
+  { label: '뷰맛집', value: 'view' },
+  { label: '체험', value: 'experience' },
   { label: '장소', value: 'place' },
 ];
+const TAG_VALUES = new Set(TAG_OPTIONS.map(t => t.value));
+const normalizeTagOrder = (input) => {
+  const list = Array.isArray(input) ? input.filter(t => TAG_VALUES.has(t)) : [];
+  const unique = [...new Set(list)];
+  if (unique.length === 0) return ['place'];
+  return unique.slice(0, 2);
+};
+const toggleTagSelection = (current, tagValue, max = 2) => {
+  const base = normalizeTagOrder(current);
+  if (base.includes(tagValue)) {
+    const removed = base.filter(t => t !== tagValue);
+    return removed.length ? removed : ['place'];
+  }
+  const nextBase = base.length === 1 && base[0] === 'place' && tagValue !== 'place' ? [] : base;
+  if (nextBase.length >= max) return [nextBase[0], tagValue];
+  return [...nextBase, tagValue];
+};
+const getTagButtonClass = (value, active) => {
+  if (!active) return 'bg-white text-slate-400 border-slate-200 hover:border-slate-300';
+  if (value === 'food') return 'text-rose-500 bg-red-50 border-red-200';
+  if (value === 'cafe') return 'text-amber-600 bg-amber-50 border-amber-200';
+  if (value === 'tour') return 'text-purple-600 bg-purple-50 border-purple-200';
+  if (value === 'lodge') return 'text-indigo-600 bg-indigo-50 border-indigo-200';
+  if (value === 'pickup') return 'text-orange-500 bg-orange-50 border-orange-200';
+  if (value === 'openrun') return 'text-red-500 bg-red-50 border-red-100';
+  if (value === 'view') return 'text-sky-600 bg-sky-50 border-sky-200';
+  if (value === 'experience') return 'text-emerald-600 bg-emerald-50 border-emerald-200';
+  return 'text-slate-500 bg-slate-100 border-slate-200';
+};
+const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', className = '' }) => {
+  const selected = normalizeTagOrder(value);
+  return (
+    <div className={className}>
+      <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">{title}</p>
+      <div className="flex items-center gap-1 mb-1.5">
+        <span className="px-1.5 py-0.5 rounded border border-slate-200 bg-white text-[9px] font-black text-slate-500">1태그: {(TAG_OPTIONS.find(t => t.value === selected[0])?.label) || '-'}</span>
+        <span className="px-1.5 py-0.5 rounded border border-slate-200 bg-white text-[9px] font-black text-slate-500">2태그: {(TAG_OPTIONS.find(t => t.value === selected[1])?.label) || '-'}</span>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {TAG_OPTIONS.map(t => {
+          const active = selected.includes(t.value);
+          return (
+            <button
+              key={t.value}
+              type="button"
+              onClick={() => onChange(toggleTagSelection(selected, t.value))}
+              className={`px-2 py-0.5 rounded-lg text-[10px] font-black border transition-colors ${getTagButtonClass(t.value, active)}`}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+const VisitStateChips = ({ isRevisit = false, onSelectNew, onSelectRevisit }) => (
+  <div className="flex items-center gap-1.5">
+    <button
+      type="button"
+      onClick={onSelectNew}
+      className={`px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 transition-colors ${!isRevisit ? 'text-emerald-600 bg-emerald-50 border-emerald-200' : 'text-slate-400 bg-white border-slate-200 hover:border-slate-300'}`}
+    >
+      NEW
+    </button>
+    <button
+      type="button"
+      onClick={onSelectRevisit}
+      className={`px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 transition-colors ${isRevisit ? 'text-blue-600 bg-blue-50 border-blue-200' : 'text-slate-400 bg-white border-slate-200 hover:border-slate-300'}`}
+    >
+      재방문
+    </button>
+  </div>
+);
 
 // API 키는 각 사용자의 로컬스토리지에만 저장됩니다 (서버 미전송)
 const analyzeImageWithGemini = async (base64Data, mimeType = 'image/jpeg', apiKey = '') => {
@@ -64,8 +134,8 @@ const analyzeImageWithGemini = async (base64Data, mimeType = 'image/jpeg', apiKe
 {
   "name": "장소명",
   "address": "주소 (전체 주소)",
-  "category": "food 또는 cafe 또는 tour 또는 lodge 또는 ship 또는 place 중 하나",
-  "extraTags": ["view", "openrun", "experience", "pickup" 중 해당하는 것만 배열로],
+  "category": "food 또는 cafe 또는 tour 또는 lodge 또는 pickup 또는 openrun 또는 view 또는 experience 또는 place 중 하나",
+  "extraTags": ["food","cafe","tour","lodge","pickup","openrun","view","experience","place" 중 최대 1개],
   "memo": "메모 (영업시간, 예약 필요 여부 등 핵심 사항만 한 줄로)",
   "menus": [
     {"name": "메뉴명", "price": 숫자(원)}
@@ -173,8 +243,8 @@ const searchAddressFromPlaceName = async (keyword, regionHint = '', kakaoKey = K
   return { address: '', source: 'Nominatim', error: '검색 결과 없음 (카카오 API 키 등록 시 정확도 향상)' };
 };
 
-const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceType, setNewPlaceType, regionHint, onAdd, onCancel, geminiApiKey = '' }) => {
-  const [extraTags, setExtraTags] = React.useState([]);
+const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlaceTypes, regionHint, onAdd, onCancel, geminiApiKey = '' }) => {
+  const [isRevisit, setIsRevisit] = React.useState(false);
   const [menus, setMenus] = React.useState([]);
   const [menuInput, setMenuInput] = React.useState({ name: '', price: '' });
   const [address, setAddress] = React.useState('');
@@ -202,8 +272,10 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceType, setNewPlace
       const result = await analyzeImageWithGemini(base64, file.type, geminiApiKey);
       if (result.name) setNewPlaceName(result.name);
       if (result.address) setAddress(result.address);
-      if (result.category) setNewPlaceType(result.category);
-      if (Array.isArray(result.extraTags)) setExtraTags(result.extraTags);
+      if (result.category || Array.isArray(result.extraTags)) {
+        const analyzedTags = normalizeTagOrder([result.category, ...(Array.isArray(result.extraTags) ? result.extraTags : [])]);
+        setNewPlaceTypes(analyzedTags);
+      }
       if (result.memo) setMemo(result.memo);
       if (Array.isArray(result.menus) && result.menus.length > 0) {
         setMenus(result.menus.map(m => ({ name: m.name || '', price: Number(m.price) || 0 })));
@@ -227,10 +299,6 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceType, setNewPlace
     return () => window.removeEventListener('paste', onPaste);
   }, []);
 
-  const toggleTag = (val) => setExtraTags(prev =>
-    prev.includes(val) ? prev.filter(t => t !== val) : [...prev, val]
-  );
-
   const addMenu = () => {
     if (!menuInput.name.trim()) return;
     setMenus(prev => [...prev, { name: menuInput.name.trim(), price: Number(menuInput.price) || 0 }]);
@@ -238,7 +306,7 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceType, setNewPlace
   };
 
   const handleAdd = () => {
-    onAdd({ extraTags, menus, address, memo });
+    onAdd({ types: normalizeTagOrder(newPlaceTypes), menus, address, memo, revisit: isRevisit });
   };
 
   const tryAutoFillAddress = async (force = false) => {
@@ -294,22 +362,7 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceType, setNewPlace
       )}
 
       <div className="p-3 flex flex-col gap-2.5">
-        <div className="flex flex-wrap gap-1.5">
-          {MAIN_TYPES.map(t => {
-            const typeInfo = PLACE_TYPES.find(pt => pt.types[0] === t.value);
-            const TypeIcon = typeInfo?.Icon || MapPin;
-            return (
-              <button
-                key={t.value}
-                onClick={() => setNewPlaceType(t.value)}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black border transition-all ${newPlaceType === t.value ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'}`}
-              >
-                <TypeIcon size={10} />
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
+        <OrderedTagPicker value={newPlaceTypes} onChange={setNewPlaceTypes} title="태그" />
 
         <input
           autoFocus
@@ -359,18 +412,12 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceType, setNewPlace
         />
 
         <div>
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">추가 태그</p>
-          <div className="flex flex-wrap gap-1">
-            {EXTRA_TAGS.map(t => (
-              <button
-                key={t.value}
-                onClick={() => toggleTag(t.value)}
-                className={`px-2 py-0.5 rounded-lg text-[10px] font-black border transition-all ${extraTags.includes(t.value) ? t.color : 'bg-white text-slate-400 border-slate-200 hover:border-slate-400'}`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">방문 상태</p>
+          <VisitStateChips
+            isRevisit={isRevisit}
+            onSelectNew={() => setIsRevisit(false)}
+            onSelectRevisit={() => setIsRevisit(true)}
+          />
         </div>
 
         <div className="bg-slate-50/50 border border-dashed border-slate-200 rounded-xl p-2">
@@ -429,7 +476,7 @@ const App = () => {
   const ctrlHeldRef = useRef(false);
   const [isAddingPlace, setIsAddingPlace] = useState(false);
   const [newPlaceName, setNewPlaceName] = useState('');
-  const [newPlaceType, setNewPlaceType] = useState('food');
+  const [newPlaceTypes, setNewPlaceTypes] = useState(['food']);
   const [editingPlaceId, setEditingPlaceId] = useState(null);
   const [editPlaceDraft, setEditPlaceDraft] = useState(null);
   const [tripRegion, setTripRegion] = useState(() => localStorage.getItem('trip_region_hint') || '제주시');
@@ -520,6 +567,12 @@ const App = () => {
     return parsed;
   };
   const getMenuLineTotal = (menu) => Number(menu?.price || 0) * getMenuQty(menu);
+  const isRevisitCourse = (item) => {
+    if (typeof item?.revisit === 'boolean') return item.revisit;
+    const receiptNames = Array.isArray(item?.receipt?.items) ? item.receipt.items.map(m => m?.name || '').join(' ') : '';
+    const hints = `${item?.memo || ''} ${receiptNames}`;
+    return /재방문/i.test(hints);
+  };
   const parseMinsLabel = (value, fallback) => {
     const hit = String(value || '').match(/(\d+)/);
     if (!hit) return fallback;
@@ -559,6 +612,7 @@ const App = () => {
       activity: alt.activity || alt.name || '새로운 플랜',
       price: Number(alt.price || 0),
       memo: alt.memo || '',
+      revisit: typeof alt.revisit === 'boolean' ? alt.revisit : false,
       types: Array.isArray(alt.types) && alt.types.length ? deepClone(alt.types) : ['place'],
       duration: Number(alt.duration || 60),
       receipt,
@@ -568,6 +622,7 @@ const App = () => {
     activity: item.activity,
     price: item.price,
     memo: item.memo,
+    revisit: typeof item.revisit === 'boolean' ? item.revisit : isRevisitCourse(item),
     types: item.types,
     duration: item.duration,
     receipt: item.receipt || { address: item.address || '', items: [] }
@@ -576,6 +631,7 @@ const App = () => {
     activity: place.name,
     price: place.price,
     memo: place.memo,
+    revisit: typeof place.revisit === 'boolean' ? place.revisit : false,
     types: place.types,
     duration: place.duration || 60,
     receipt: place.receipt || { address: place.address || '', items: [] }
@@ -857,21 +913,23 @@ const App = () => {
     });
   };
 
-  const togglePlanExtraTag = (dayIdx, pIdx, tagValue) => {
-    saveHistory();
+  const updatePlanTags = (dayIdx, pIdx, tags) => {
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const item = nextData.days[dayIdx].plan[pIdx];
-      if (!item.types) item.types = ['place'];
-      if (item.types.includes(tagValue)) {
-        item.types = item.types.filter(t => t !== tagValue);
-      } else {
-        item.types.push(tagValue);
-      }
-      if (!item.types.length) item.types = ['place'];
+      item.types = normalizeTagOrder(tags);
       return nextData;
     });
-    setLastAction("추가 태그를 업데이트했습니다.");
+    setLastAction("태그를 업데이트했습니다.");
+  };
+  const toggleRevisit = (dayIdx, pIdx) => {
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const item = nextData.days[dayIdx].plan[pIdx];
+      item.revisit = !isRevisitCourse(item);
+      return nextData;
+    });
+    setLastAction("재방문 상태를 업데이트했습니다.");
   };
 
   const updateMenuData = (dayIdx, pIdx, menuIdx, field, value) => {
@@ -1038,6 +1096,7 @@ const App = () => {
         id: `place_${Date.now()}`,
         name: alt.activity,
         types: alt.types || ['place'],
+        revisit: typeof alt.revisit === 'boolean' ? alt.revisit : false,
         address: alt.receipt?.address || '',
         price: alt.price || 0,
         memo: alt.memo || '',
@@ -1072,6 +1131,7 @@ const App = () => {
         time: minutesToTime(prevEnd + travelMins + bufferMins),
         activity: alt.activity,
         types: deepClone(alt.types || ['place']),
+        revisit: typeof alt.revisit === 'boolean' ? alt.revisit : false,
         price: Number(alt.price || 0),
         duration: Number(alt.duration || 60),
         state: 'unconfirmed',
@@ -1114,6 +1174,7 @@ const App = () => {
       item.activity = alt.activity;
       item.price = alt.price;
       item.memo = alt.memo;
+      item.revisit = typeof alt.revisit === 'boolean' ? alt.revisit : false;
       item.types = deepClone(alt.types || ['place']);
       item.duration = alt.duration || item.duration || 60;
       item.receipt = deepClone(alt.receipt || { address: '', items: [] });
@@ -1171,13 +1232,14 @@ const App = () => {
 
   const addPlace = (formData) => {
     if (!newPlaceName.trim()) return;
-    const { extraTags = [], menus = [], address = '', memo = '' } = formData || {};
+    const { types = ['place'], menus = [], address = '', memo = '', revisit = false } = formData || {};
     setItinerary(prev => ({
       ...prev,
       places: [...(prev.places || []), {
         id: `place_${Date.now()}`,
         name: newPlaceName.trim(),
-        types: [newPlaceType, ...extraTags],
+        types: normalizeTagOrder(types),
+        revisit: !!revisit,
         address: address.trim(),
         price: menus.reduce((sum, m) => sum + (Number(m.price) || 0), 0),
         memo: memo.trim(),
@@ -1185,6 +1247,7 @@ const App = () => {
       }]
     }));
     setNewPlaceName('');
+    setNewPlaceTypes(['food']);
     setIsAddingPlace(false);
     setLastAction(`'${newPlaceName.trim()}'이(가) 장소 목록에 추가되었습니다.`);
   };
@@ -1215,6 +1278,7 @@ const App = () => {
         id: `place_${Date.now()}`,
         name: item.activity,
         types: item.types || ['place'],
+        revisit: typeof item.revisit === 'boolean' ? item.revisit : isRevisitCourse(item),
         address: item.receipt?.address || '',
         price: item.price || 0,
         memo: item.memo || '',
@@ -1250,6 +1314,7 @@ const App = () => {
         time: newTime,
         activity: placeData?.name || `새 ${label}`,
         types: placeData?.types || types,
+        revisit: typeof placeData?.revisit === 'boolean' ? placeData.revisit : false,
         price: placeData ? (priceFromReceipt || placeData.price || 0) : 0,
         duration: 60,
         state: 'unconfirmed',
@@ -1678,10 +1743,10 @@ const App = () => {
             </div>
           )}
         </div>
-        <nav className="flex flex-col gap-6 relative -ml-1">
+        <nav className="flex flex-col gap-6 relative -ml-2">
           <div className="absolute left-[15px] top-4 bottom-8 w-px bg-slate-100 -z-10" />
           {itinerary.days?.map((d) => (
-            <div key={d.day} className="flex items-start gap-2.5 group">
+            <div key={d.day} className="flex items-start gap-1.5 group">
               <div
                 className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-[15px] font-black shadow-sm transition-all duration-300 cursor-pointer ${activeDay === d.day ? 'bg-[#3182F6] text-white ring-4 ring-blue-50' : 'bg-white text-slate-400 border border-slate-200 group-hover:border-[#3182F6] group-hover:text-[#3182F6]'}`}
                 onClick={() => { document.getElementById(`day-marker-${d.day}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); setActiveDay(d.day); }}
@@ -1727,7 +1792,7 @@ const App = () => {
                 </div>
                 <span className="text-[11px] text-slate-400 font-semibold whitespace-nowrap truncate max-w-[170px]">{d.plan?.filter(p => p.type !== 'backup').length || 0}개 일정 · {tripRegion || '지역 미설정'}</span>
                 {/* 일정 제목 목록 */}
-                <div className="flex flex-col gap-0.5 mt-1.5 -ml-0.5">
+                <div className="flex flex-col gap-0.5 mt-1 -ml-3">
                   {(d.plan || []).filter(p => p.type !== 'backup').map((p, pIdx, arr) => {
                     const isActive = activeItemId === p.id;
                     const nextP = arr[pIdx + 1];
@@ -1737,9 +1802,9 @@ const App = () => {
                       <div key={p.id}>
                         <button
                           onClick={() => { document.getElementById(pIdx === 0 ? `day-marker-${d.day}` : p.id)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}
-                          className={`w-full text-left flex items-center gap-1.5 px-1 py-0.5 rounded-lg transition-all ${isActive ? 'bg-blue-50' : 'hover:bg-slate-50'}`}
+                          className={`w-full text-left flex items-center gap-1.5 px-0.5 py-0.5 rounded-lg transition-all ${isActive ? 'bg-blue-50' : 'hover:bg-slate-50'}`}
                         >
-                          {isActive && <div className="w-1 h-1 rounded-full bg-[#3182F6] shrink-0 animate-pulse" />}
+                          <span className={`shrink-0 text-[9px] tabular-nums leading-none ${isActive ? 'font-black text-[#3182F6]' : 'font-bold text-slate-400'}`}>{p.time || '--:--'}</span>
                           <div className={`shrink-0 scale-90 origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-60'}`}>{getCategoryBadge((p.types?.[0]) || p.type || 'place')}</div>
                           <span className={`text-[10px] truncate max-w-[85px] leading-none transition-all ${isActive ? 'font-black text-[#3182F6]' : 'font-bold text-slate-500'}`}>{p.activity}</span>
                           {isLongItem && (
@@ -1749,13 +1814,13 @@ const App = () => {
                           )}
                         </button>
                         {isLongItem && (
-                          <div className="flex items-center gap-1 pl-2 py-0.5">
+                          <div className="flex items-center gap-1 pl-0.5 py-0.5">
                             <div className="w-[1.5px] h-3 bg-orange-300 rounded-full" />
                             <span className="text-[9px] font-black text-orange-400">일정 추가 가능</span>
                           </div>
                         )}
                         {freeMin >= 60 && (
-                          <div className="flex items-center gap-1 pl-2 py-0.5">
+                          <div className="flex items-center gap-1 pl-0.5 py-0.5">
                             <div className="w-[1.5px] h-3 bg-amber-300 rounded-full" />
                             <span className="text-[9px] font-black text-amber-500">여유 {Math.floor(freeMin / 60)}h{freeMin % 60 > 0 ? ` ${freeMin % 60}m` : ''}</span>
                           </div>
@@ -1807,8 +1872,8 @@ const App = () => {
             <PlaceAddForm
               newPlaceName={newPlaceName}
               setNewPlaceName={setNewPlaceName}
-              newPlaceType={newPlaceType}
-              setNewPlaceType={setNewPlaceType}
+              newPlaceTypes={newPlaceTypes}
+              setNewPlaceTypes={setNewPlaceTypes}
               regionHint={tripRegion}
               geminiApiKey={geminiApiKey}
               onAdd={addPlace}
@@ -1826,24 +1891,17 @@ const App = () => {
             {(itinerary.places || []).map(place => {
               const chips = place.types ? place.types.map(t => getCategoryBadge(t)) : [getCategoryBadge('place')];
               const isEditing = editingPlaceId === place.id;
+              const isPlaceRevisit = typeof place.revisit === 'boolean' ? place.revisit : false;
 
               if (isEditing && editPlaceDraft) {
                 return (
                   <div key={place.id} className="rounded-2xl border-2 border-[#3182F6] bg-white overflow-hidden">
                     <div className="p-3 flex flex-col gap-2">
-                      {/* 타입 선택 */}
-                      <div className="flex flex-wrap gap-1">
-                        {PLACE_TYPES.map(t => {
-                          const active = editPlaceDraft.types?.includes(t.types[0]);
-                          return (
-                            <button
-                              key={t.label}
-                              onClick={() => setEditPlaceDraft(d => ({ ...d, types: active ? (d.types.filter(x => x !== t.types[0]) || ['place']) : [...(d.types || []), t.types[0]] }))}
-                              className={`px-2 py-0.5 rounded-lg text-[10px] font-black border transition-all ${active ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-400'}`}
-                            >{t.label}</button>
-                          );
-                        })}
-                      </div>
+                      <OrderedTagPicker
+                        title="태그"
+                        value={editPlaceDraft.types || ['place']}
+                        onChange={(tags) => setEditPlaceDraft(d => ({ ...d, types: tags }))}
+                      />
                       <input
                         value={editPlaceDraft.name}
                         onChange={(e) => setEditPlaceDraft(d => ({ ...d, name: e.target.value }))}
@@ -1868,6 +1926,11 @@ const App = () => {
                         onChange={(e) => setEditPlaceDraft(d => ({ ...d, price: Number(e.target.value) || 0 }))}
                         placeholder="예상 금액"
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-slate-600 outline-none focus:border-[#3182F6] [appearance:textfield]"
+                      />
+                      <VisitStateChips
+                        isRevisit={!!editPlaceDraft.revisit}
+                        onSelectNew={() => setEditPlaceDraft(d => ({ ...d, revisit: false }))}
+                        onSelectRevisit={() => setEditPlaceDraft(d => ({ ...d, revisit: true }))}
                       />
                     </div>
                     <div className="px-3 pb-3 flex gap-1.5">
@@ -1894,6 +1957,9 @@ const App = () => {
                   <div className="p-3 flex flex-col gap-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap pr-12">
                       {chips}
+                      {!isPlaceRevisit && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 text-emerald-600 bg-emerald-50 border-emerald-200">NEW</span>
+                      )}
                     </div>
                     <span className="text-[15px] font-black text-slate-800 leading-tight truncate">{place.name}</span>
                     {place.address && (
@@ -1952,7 +2018,7 @@ const App = () => {
                 else stateStyles = 'bg-white border-slate-200';
 
                 const chips = p.types ? p.types.map(t => getCategoryBadge(t)) : (p.type ? [getCategoryBadge(p.type)] : []);
-                const isOpenRun = p.memo?.includes('오픈런');
+                const isRevisit = isRevisitCourse(p);
                 const isNextFixed = (pIdx < d.plan.length - 1) && d.plan[pIdx + 1]?.isTimeFixed;
                 const isLodge = p.types?.includes('lodge');
                 const isShip = p.types?.includes('ship');
@@ -2320,6 +2386,16 @@ const App = () => {
                               {/* 1행: 카테고리 칩 + 오픈런 */}
                               <div className="flex items-center gap-2 flex-wrap">
                                 {chips}
+                                {!isRevisit && (
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 text-emerald-600 bg-emerald-50 border-emerald-200">NEW</span>
+                                )}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); toggleRevisit(dIdx, pIdx); }}
+                                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 transition-colors ${isRevisit ? 'text-blue-600 bg-blue-50 border-blue-200' : 'text-slate-400 bg-white border-slate-200 hover:border-blue-200 hover:text-blue-600'}`}
+                                  title="재방문 여부"
+                                >
+                                  재방문
+                                </button>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -2335,19 +2411,12 @@ const App = () => {
                               </div>
 
                               {tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx && (
-                                <div className="flex items-center gap-1.5 flex-wrap -mt-1 mb-0.5" onClick={(e) => e.stopPropagation()}>
-                                  {EXTRA_TAGS.map(t => {
-                                    const active = p.types?.includes(t.value);
-                                    return (
-                                      <button
-                                        key={t.value}
-                                        onClick={() => togglePlanExtraTag(dIdx, pIdx, t.value)}
-                                        className={`px-2 py-0.5 rounded-lg text-[10px] font-black border transition-colors ${active ? t.color : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
-                                      >
-                                        {t.label}
-                                      </button>
-                                    );
-                                  })}
+                                <div className="-mt-1 mb-0.5" onClick={(e) => e.stopPropagation()}>
+                                  <OrderedTagPicker
+                                    title="태그"
+                                    value={p.types || ['place']}
+                                    onChange={(tags) => updatePlanTags(dIdx, pIdx, tags)}
+                                  />
                                 </div>
                               )}
 

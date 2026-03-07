@@ -2023,12 +2023,6 @@ const App = () => {
                             </span>
                           )}
                         </button>
-                        {isLongItem && (
-                          <div className="flex items-center gap-1 pl-0.5 py-0.5">
-                            <div className="w-[2px] h-3 rounded-full bg-gradient-to-b from-orange-300 to-amber-300 animate-pulse" />
-                            <div className="w-2 h-2 rounded-full bg-orange-200/80" />
-                          </div>
-                        )}
                         {freeMin >= 60 && (
                           <div className="flex items-center gap-1 pl-0.5 py-0.5">
                             <div className="w-[1.5px] h-3 bg-amber-300 rounded-full" />
@@ -2270,7 +2264,7 @@ const App = () => {
                     e.dataTransfer.effectAllowed = copy ? 'copy' : 'move';
                   }}
                   onDragEnd={() => { setDraggingFromLibrary(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false); }}
-                  className="relative rounded-3xl border-2 border-slate-200 bg-white cursor-grab active:cursor-grabbing select-none transition-all hover:shadow-lg group overflow-hidden"
+                  className="relative rounded-3xl border-2 border-slate-200 bg-white cursor-grab active:cursor-grabbing select-none transition-all hover:shadow-lg group overflow-hidden w-full"
                 >
                   <div className="p-4 flex flex-col gap-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap pr-12">

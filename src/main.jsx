@@ -36,6 +36,7 @@ const boot = async () => {
         <App />
       </StrictMode>,
     )
+    window.__APP_MOUNTED__ = true
   } catch (error) {
     showBootError('앱 로딩 실패', error)
   }

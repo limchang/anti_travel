@@ -5,9 +5,72 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>anti_planer</title>
+    <style>
+      #root {
+        min-height: 100vh;
+      }
+      .boot-fallback {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+        color: #0f172a;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+      .boot-fallback__card {
+        max-width: 680px;
+        width: 100%;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+        background: #ffffff;
+      }
+      .boot-fallback__title {
+        margin: 0 0 6px;
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .boot-fallback__desc {
+        margin: 0;
+        color: #475569;
+        font-size: 13px;
+      }
+      .boot-fallback__meta {
+        margin-top: 10px;
+        font-size: 12px;
+        white-space: pre-wrap;
+        color: #334155;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot-fallback">
+        <div class="boot-fallback__card">
+          <h1 class="boot-fallback__title">앱 초기화 중...</h1>
+          <p class="boot-fallback__desc">5초 이상 유지되면 자바스크립트 로딩 이슈일 수 있습니다.</p>
+        </div>
+      </div>
+    </div>
+    <script>
+      window.__APP_MOUNTED__ = false;
+      setTimeout(function () {
+        if (window.__APP_MOUNTED__) return;
+        var root = document.getElementById('root');
+        if (!root) return;
+        root.innerHTML =
+          '<div class="boot-fallback"><div class="boot-fallback__card">' +
+          '<h1 class="boot-fallback__title">앱 스크립트가 실행되지 않았습니다.</h1>' +
+          '<p class="boot-fallback__desc">강력 새로고침(Ctrl+Shift+R) 후 다시 확인하세요.</p>' +
+          '<div class="boot-fallback__meta">URL: ' + location.href +
+          '\nUA: ' + navigator.userAgent +
+          '\nTime: ' + new Date().toISOString() + '</div>' +
+          '</div></div>';
+      }, 5000);
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

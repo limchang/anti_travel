@@ -600,6 +600,7 @@ const App = () => {
   const [itinerary, setItinerary] = useState({ days: [], places: [] });
   const [history, setHistory] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
+  const [expandedPlaceId, setExpandedPlaceId] = useState(null);
   const [lastAction, setLastAction] = useState("3일차 시작 일정이 수정되었습니다.");
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [activeDay, setActiveDay] = useState(1);
@@ -2024,8 +2025,8 @@ const App = () => {
                         </button>
                         {isLongItem && (
                           <div className="flex items-center gap-1 pl-0.5 py-0.5">
-                            <div className="w-[1.5px] h-3 bg-orange-300 rounded-full" />
-                            <span className="text-[9px] font-black text-orange-400">일정 추가 가능</span>
+                            <div className="w-[2px] h-3 rounded-full bg-gradient-to-b from-orange-300 to-amber-300 animate-pulse" />
+                            <div className="w-2 h-2 rounded-full bg-orange-200/80" />
                           </div>
                         )}
                         {freeMin >= 60 && (
@@ -2101,6 +2102,7 @@ const App = () => {
               const chips = place.types ? place.types.map(t => getCategoryBadge(t)) : [getCategoryBadge('place')];
               const isEditing = editingPlaceId === place.id;
               const isPlaceRevisit = typeof place.revisit === 'boolean' ? place.revisit : false;
+              const isPlaceExpanded = expandedPlaceId === place.id;
 
               if (isEditing && editPlaceDraft) {
                 return (
@@ -2293,8 +2295,29 @@ const App = () => {
                       </div>
                     )}
                   </div>
-                  <div className="px-3 py-2 border-t border-slate-100 flex items-center justify-between bg-white">
-                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Total</span>
+                  {isPlaceExpanded && (
+                    <div className="px-3 py-2 border-t border-slate-100 bg-white">
+                      <div className="space-y-1.5">
+                        {(place.receipt?.items || []).map((m, idx) => (
+                          <div key={idx} className="flex items-center justify-between text-[10px]">
+                            <span className="text-slate-600 font-bold truncate">{m.name || '-'}</span>
+                            <span className="text-slate-400 font-bold">x{getMenuQty(m)}</span>
+                            <span className="text-[#3182F6] font-black">₩{getMenuLineTotal(m).toLocaleString()}</span>
+                          </div>
+                        ))}
+                        {(place.receipt?.items || []).length === 0 && (
+                          <p className="text-[10px] text-slate-400 font-semibold">등록된 메뉴가 없습니다.</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div
+                    className="px-3 py-2 border-t border-slate-100 flex items-center justify-between bg-white cursor-pointer hover:bg-slate-50/70"
+                    onClick={(e) => { e.stopPropagation(); setExpandedPlaceId(prev => (prev === place.id ? null : place.id)); }}
+                  >
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                      Total <ChevronDown size={12} className={`transition-transform ${isPlaceExpanded ? 'rotate-180' : ''}`} />
+                    </span>
                     <span className="text-[14px] font-black text-[#3182F6]">₩{Number(place.price || 0).toLocaleString()}</span>
                   </div>
                   {/* 호버 버튼: 수정 + 삭제 */}
@@ -2330,9 +2353,9 @@ const App = () => {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center ml-[420px] w-full">
+      <div className="flex-1 flex flex-col items-start ml-[402px] w-full">
         {/* 일정 목록 */}
-        <div className="w-full max-w-2xl px-5 pt-10 pb-32">
+        <div className="w-full max-w-[760px] px-3 pt-10 pb-32">
           <div
             className="rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 animate-in font-bold overflow-hidden bg-white"
           >
@@ -3091,7 +3114,7 @@ const App = () => {
           </div>
         </div>
 
-        <footer className="fixed bottom-0 left-0 left-[420px] right-0 bg-white/95 backdrop-blur-xl border-t px-8 py-5 flex items-center gap-5 z-[130] shadow-[0_-5px_20px_rgba(0,0,0,0.02)]">
+        <footer className="fixed bottom-0 left-0 left-[402px] right-0 bg-white/95 backdrop-blur-xl border-t px-8 py-5 flex items-center gap-5 z-[130] shadow-[0_-5px_20px_rgba(0,0,0,0.02)]">
           <MessageSquare size={20} className="text-[#3182F6]" />
           <p className="text-[13px] font-bold text-slate-600 truncate flex-1 animate-pulse">"{lastAction}"</p>
           {history.length > 0 && (

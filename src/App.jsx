@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+/* eslint-disable no-unused-vars, react-hooks/exhaustive-deps, no-useless-escape */
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { db } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import {
@@ -968,7 +969,7 @@ const App = () => {
     else { h = parseInt(digits.slice(0, digits.length - 2)); m = parseInt(digits.slice(-2)); }
     h = Math.min(23, Math.max(0, h));
     m = Math.min(59, Math.max(0, m));
-    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   };
 
   const commitFerryTime = (dayIdx, pIdx, field, raw) => {
@@ -1756,7 +1757,7 @@ const App = () => {
                         {freeMin >= 60 && (
                           <div className="flex items-center gap-1 pl-2 py-0.5">
                             <div className="w-[1.5px] h-3 bg-amber-300 rounded-full" />
-                            <span className="text-[9px] font-black text-amber-500">여유 {Math.floor(freeMin/60)}h{freeMin%60>0?` ${freeMin%60}m`:''}</span>
+                            <span className="text-[9px] font-black text-amber-500">여유 {Math.floor(freeMin / 60)}h{freeMin % 60 > 0 ? ` ${freeMin % 60}m` : ''}</span>
                           </div>
                         )}
                       </div>
@@ -1982,10 +1983,12 @@ const App = () => {
                             <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold px-1.5">
                               <MapIcon size={12} /><span>{formatDistanceText(p.distance)}</span>
                             </div>
-                            {(() => { const rid = `${dIdx}_${pIdx}`; const busy = calculatingRouteId === rid; return (
-                            <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }} disabled={!!calculatingRouteId} className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1.5 text-[10px] font-black shadow-sm ${busy ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
-                              <Sparkles size={10} /> {busy ? '계산중' : '자동경로'}
-                            </button>); })()}
+                            {(() => {
+                              const rid = `${dIdx}_${pIdx}`; const busy = calculatingRouteId === rid; return (
+                                <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }} disabled={!!calculatingRouteId} className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1.5 text-[10px] font-black shadow-sm ${busy ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
+                                  <Sparkles size={10} /> {busy ? '계산중' : '자동경로'}
+                                </button>);
+                            })()}
                           </div>
                           <div className="flex items-center bg-white px-2 py-1.5 rounded-full border border-slate-200 shadow-sm w-fit">
                             <div className="flex items-center gap-2 bg-slate-50 px-2 py-1.5 rounded-xl border border-slate-100">
@@ -2127,7 +2130,7 @@ const App = () => {
                                 <div className="flex-1 flex flex-col items-center gap-0.5">
                                   <div className="w-full border-t border-dashed border-white/30" />
                                   <span className="text-[9px] text-white/60 font-bold">
-                                    {(() => { const s = p.sailDuration ?? 240; return `${Math.floor(s/60)}h${s%60>0?` ${s%60}m`:''}`; })()}
+                                    {(() => { const s = p.sailDuration ?? 240; return `${Math.floor(s / 60)}h${s % 60 > 0 ? ` ${s % 60}m` : ''}`; })()}
                                   </span>
                                 </div>
                                 <div className="flex flex-col items-end min-w-0">
@@ -2173,37 +2176,37 @@ const App = () => {
                                 };
                                 const timeInput = (field, displayVal, onDelta, step) => editKey(field)
                                   ? <input
-                                      autoFocus
-                                      defaultValue={displayVal.replace(':', '')}
-                                      onFocus={(e) => e.target.select()}
-                                      className="w-14 text-center text-[13px] font-black text-blue-800 bg-white border-b-2 border-[#3182F6] outline-none tabular-nums rounded"
-                                      onBlur={(e) => commitFerryTime(dIdx, pIdx, field, e.target.value)}
-                                      onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setFerryEditField(null); }}
-                                      onClick={(e) => e.stopPropagation()}
-                                    />
+                                    autoFocus
+                                    defaultValue={displayVal.replace(':', '')}
+                                    onFocus={(e) => e.target.select()}
+                                    className="w-14 text-center text-[13px] font-black text-blue-800 bg-white border-b-2 border-[#3182F6] outline-none tabular-nums rounded"
+                                    onBlur={(e) => commitFerryTime(dIdx, pIdx, field, e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setFerryEditField(null); }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
                                   : <span
-                                      className="text-[13px] font-black text-blue-800 tabular-nums cursor-pointer"
-                                      title="탭: 직접 입력 / 드래그: 조절"
-                                      onPointerDown={makeDrag(onDelta, step)}
-                                      onClick={(e) => { e.stopPropagation(); setFerryEditField({ pId: p.id, field }); }}
-                                    >{displayVal}</span>;
+                                    className="text-[13px] font-black text-blue-800 tabular-nums cursor-pointer"
+                                    title="탭: 직접 입력 / 드래그: 조절"
+                                    onPointerDown={makeDrag(onDelta, step)}
+                                    onClick={(e) => { e.stopPropagation(); setFerryEditField({ pId: p.id, field }); }}
+                                  >{displayVal}</span>;
                                 const sailInput = editKey('sail')
                                   ? <input
-                                      autoFocus
-                                      defaultValue={sailDur}
-                                      onFocus={(e) => e.target.select()}
-                                      className="w-10 text-center text-[13px] font-black text-blue-800 bg-white border-b-2 border-[#3182F6] outline-none tabular-nums rounded"
-                                      onBlur={(e) => commitFerryTime(dIdx, pIdx, 'sail', e.target.value)}
-                                      onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setFerryEditField(null); }}
-                                      onClick={(e) => e.stopPropagation()}
-                                      placeholder="분"
-                                    />
+                                    autoFocus
+                                    defaultValue={sailDur}
+                                    onFocus={(e) => e.target.select()}
+                                    className="w-10 text-center text-[13px] font-black text-blue-800 bg-white border-b-2 border-[#3182F6] outline-none tabular-nums rounded"
+                                    onBlur={(e) => commitFerryTime(dIdx, pIdx, 'sail', e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setFerryEditField(null); }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    placeholder="분"
+                                  />
                                   : <span
-                                      className="text-[13px] font-black text-blue-800 tabular-nums cursor-pointer"
-                                      title="탭: 분 단위 입력 / 드래그: 조절"
-                                      onPointerDown={makeDrag(d => updateFerrySailDuration(dIdx, pIdx, d), 30)}
-                                      onClick={(e) => { e.stopPropagation(); setFerryEditField({ pId: p.id, field: 'sail' }); }}
-                                    >{minutesToTime(sailDur)}</span>;
+                                    className="text-[13px] font-black text-blue-800 tabular-nums cursor-pointer"
+                                    title="탭: 분 단위 입력 / 드래그: 조절"
+                                    onPointerDown={makeDrag(d => updateFerrySailDuration(dIdx, pIdx, d), 30)}
+                                    onClick={(e) => { e.stopPropagation(); setFerryEditField({ pId: p.id, field: 'sail' }); }}
+                                  >{minutesToTime(sailDur)}</span>;
                                 return (
                                   <div className="flex items-center justify-between bg-blue-50 rounded-xl px-4 py-2 select-none">
                                     <div className="flex flex-col items-center gap-0.5">
@@ -2606,14 +2609,16 @@ const App = () => {
                                 >
                                   <MapIcon size={12} /><span>{formatDistanceText(nextItem.distance)}</span>
                                 </button>
-                                {(() => { const rid = `${dIdx}_${pIdx+1}`; const busy = calculatingRouteId === rid; return (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1); }}
-                                  disabled={!!calculatingRouteId}
-                                  className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1.5 text-[10px] font-black shadow-sm ${busy ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}
-                                >
-                                  <Sparkles size={10} /> {busy ? '계산중' : '자동경로'}
-                                </button>); })()}
+                                {(() => {
+                                  const rid = `${dIdx}_${pIdx + 1}`; const busy = calculatingRouteId === rid; return (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1); }}
+                                      disabled={!!calculatingRouteId}
+                                      className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1.5 text-[10px] font-black shadow-sm ${busy ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}
+                                    >
+                                      <Sparkles size={10} /> {busy ? '계산중' : '자동경로'}
+                                    </button>);
+                                })()}
                               </div>
                               <div className="flex items-center bg-white px-2 py-1.5 rounded-full border border-slate-200 shadow-sm w-fit">
                                 <div className="flex items-center gap-2 bg-slate-50 px-2 py-1.5 rounded-xl border border-slate-100">

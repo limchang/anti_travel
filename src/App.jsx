@@ -8,7 +8,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon, ExternalLink,
-  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, ChevronLeft, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil
+  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -189,45 +189,6 @@ const normalizeBusiness = (business = {}) => ({
   closedDays: Array.isArray(business.closedDays) ? [...new Set(business.closedDays)] : [],
 });
 
-// API 키는 각 사용자의 로컬스토리지에만 저장됩니다 (서버 미전송)
-const analyzeImageWithGemini = async (base64Data, mimeType = 'image/jpeg', apiKey = '') => {
-  if (!apiKey) throw new Error('Gemini API 키가 설정되지 않았습니다.');
-  const prompt = `이 이미지는 한국 지도/리뷰 앱(네이버 지도, 카카오맵 등)의 장소 정보 화면 또는 블로그/영수증입니다.
-아래 JSON 형식으로만 응답해주세요. 확인할 수 없는 항목은 빈 값으로 두세요.
-
-{
-  "name": "장소명",
-  "address": "주소 (전체 주소)",
-  "category": "food 또는 cafe 또는 tour 또는 lodge 또는 pickup 또는 openrun 또는 view 또는 experience 또는 place 중 하나",
-  "extraTags": ["food","cafe","tour","lodge","pickup","openrun","view","experience","place" 중 최대 1개],
-  "memo": "메모 (영업시간, 예약 필요 여부 등 핵심 사항만 한 줄로)",
-  "menus": [
-    {"name": "메뉴명", "price": 숫자(원)}
-  ]
-}`;
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: prompt },
-            { inline_data: { mime_type: mimeType, data: base64Data } }
-          ]
-        }]
-      })
-    }
-  );
-  if (!res.ok) throw new Error(`Gemini API 오류: ${res.status}`);
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('응답 파싱 실패');
-  return JSON.parse(jsonMatch[0]);
-};
 
 const KAKAO_API_KEY = 'b312628369f47e04894f338b7fc0b318';
 
@@ -307,7 +268,7 @@ const searchAddressFromPlaceName = async (keyword, regionHint = '', kakaoKey = K
   return { address: '', source: 'Nominatim', error: '검색 결과 없음 (카카오 API 키 등록 시 정확도 향상)' };
 };
 
-const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlaceTypes, regionHint, onAdd, onCancel, geminiApiKey = '' }) => {
+const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlaceTypes, regionHint, onAdd, onCancel }) => {
   const [isRevisit, setIsRevisit] = React.useState(false);
   const [business, setBusiness] = React.useState(EMPTY_BUSINESS);
   const [menus, setMenus] = React.useState([]);
@@ -316,53 +277,6 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
   const [memo, setMemo] = React.useState('');
   const [isSearchingAddress, setIsSearchingAddress] = React.useState(false);
   const [addressSearchNote, setAddressSearchNote] = React.useState('');
-  const [isAnalyzing, setIsAnalyzing] = React.useState(false);
-  const [analyzeNote, setAnalyzeNote] = React.useState('');
-  const [previewImg, setPreviewImg] = React.useState(null);
-  const imageInputRef = React.useRef(null);
-
-  // 이미지 파일 → Gemini 분석 → 폼 자동 입력
-  const handleImageAnalyze = async (file) => {
-    if (!file || !file.type.startsWith('image/')) return;
-    setIsAnalyzing(true);
-    setAnalyzeNote('🔍 AI가 이미지를 분석 중...');
-    setPreviewImg(URL.createObjectURL(file));
-    try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const result = await analyzeImageWithGemini(base64, file.type, geminiApiKey);
-      if (result.name) setNewPlaceName(result.name);
-      if (result.address) setAddress(result.address);
-      if (result.category || Array.isArray(result.extraTags)) {
-        const analyzedTags = normalizeTagOrder([result.category, ...(Array.isArray(result.extraTags) ? result.extraTags : [])]);
-        setNewPlaceTypes(analyzedTags);
-      }
-      if (result.memo) setMemo(result.memo);
-      if (Array.isArray(result.menus) && result.menus.length > 0) {
-        setMenus(result.menus.map(m => ({ name: m.name || '', price: Number(m.price) || 0 })));
-      }
-      setAnalyzeNote('✅ 분석 완료! 내용을 확인하고 수정하세요.');
-    } catch (e) {
-      console.error(e);
-      setAnalyzeNote(`❌ 분석 실패: ${e.message}`);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  // 붙여넣기(Ctrl+V)로 이미지 입력
-  React.useEffect(() => {
-    const onPaste = (e) => {
-      const item = Array.from(e.clipboardData?.items || []).find(i => i.type.startsWith('image/'));
-      if (item) handleImageAnalyze(item.getAsFile());
-    };
-    window.addEventListener('paste', onPaste);
-    return () => window.removeEventListener('paste', onPaste);
-  }, []);
 
   const addMenu = () => {
     if (!menuInput.name.trim()) return;
@@ -401,30 +315,7 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
     <div className="mb-3 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="px-3 py-2 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">새 장소 등록</p>
-        <div className="flex items-center gap-1.5">
-          {isAnalyzing && <span className="text-[9px] text-[#3182F6] font-black animate-pulse">AI 분석 중...</span>}
-          <button
-            type="button"
-            onClick={() => imageInputRef.current?.click()}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 text-[9px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] bg-white transition-all"
-            title="이미지로 자동 입력 (Ctrl+V 붙여넣기도 가능)"
-          >
-            <Camera size={10} /> 이미지로 입력
-          </button>
-          <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleImageAnalyze(e.target.files[0]); }} />
-        </div>
       </div>
-
-      {/* 미리보기 + 분석 결과 노트 */}
-      {previewImg && (
-        <div className="flex items-start gap-2 px-3 pt-2.5">
-          <img src={previewImg} alt="분석 이미지" className="w-16 h-16 rounded-lg object-cover border border-slate-200 shrink-0" />
-          <div className="flex-1 flex flex-col gap-1">
-            <p className={`text-[10px] font-bold ${analyzeNote.startsWith('❌') ? 'text-red-500' : analyzeNote.startsWith('✅') ? 'text-emerald-500' : 'text-[#3182F6]'}`}>{analyzeNote}</p>
-            <button onClick={() => { setPreviewImg(null); setAnalyzeNote(''); }} className="text-[9px] text-slate-400 hover:text-red-400 font-bold w-fit">미리보기 닫기</button>
-          </div>
-        </div>
-      )}
 
       <div className="p-3 flex flex-col gap-2.5">
         <OrderedTagPicker value={newPlaceTypes} onChange={setNewPlaceTypes} title="태그" />
@@ -594,8 +485,7 @@ const App = () => {
   const [editPlaceDraft, setEditPlaceDraft] = useState(null);
   const [tripRegion, setTripRegion] = useState(() => safeLocalStorageGet('trip_region_hint', '제주시'));
   const [tripStartDate, setTripStartDate] = useState(() => safeLocalStorageGet('trip_start_date', ''));
-  const [geminiApiKey, setGeminiApiKey] = useState(() => safeLocalStorageGet('gemini_api_key', ''));
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [tripEndDate, setTripEndDate] = useState(() => safeLocalStorageGet('trip_end_date', ''));
   // 초기 상태 안전하게 설정
   const [itinerary, setItinerary] = useState({ days: [], places: [] });
   const [history, setHistory] = useState([]);
@@ -605,6 +495,8 @@ const App = () => {
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [activeDay, setActiveDay] = useState(1);
   const [activeItemId, setActiveItemId] = useState(null);
+  const [col1Collapsed, setCol1Collapsed] = useState(false);
+  const [col2Collapsed, setCol2Collapsed] = useState(false);
   const [tagEditorTarget, setTagEditorTarget] = useState(null); // {dayIdx, pIdx}
   const [businessEditorTarget, setBusinessEditorTarget] = useState(null); // {dayIdx, pIdx}
   const [ferryEditField, setFerryEditField] = useState(null); // { pId, field: 'load'|'depart' }
@@ -638,6 +530,22 @@ const App = () => {
   useEffect(() => {
     safeLocalStorageSet('trip_start_date', tripStartDate);
   }, [tripStartDate]);
+  useEffect(() => {
+    safeLocalStorageSet('trip_end_date', tripEndDate);
+  }, [tripEndDate]);
+
+  // 모바일 감지 → 양쪽 패널 자동 접기
+  useEffect(() => {
+    const check = () => {
+      if (window.innerWidth < 768) {
+        setCol1Collapsed(true);
+        setCol2Collapsed(true);
+      }
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   // 스크롤 감지 → activeDay + activeItemId 자동 업데이트
   useEffect(() => {
@@ -1852,11 +1760,104 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-[#F2F4F6] text-[#191F28] font-sans flex overflow-x-hidden font-bold flex-row relative">
-      {/* 🟢 좌측 네비게이션바 (사이드바) */}
-      <div className="flex flex-col w-[420px] fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] z-[140] py-10 px-6 shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-y-auto no-scrollbar">
-        <h2 className="text-[22px] font-black text-slate-800 tracking-tight mb-10 flex items-center gap-2">
-          <MapIcon className="text-[#3182F6]" size={24} /> 전체 일정 안내
-        </h2>
+      {/* ── 장소 수정 모달 ── */}
+      {editingPlaceId && editPlaceDraft && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-[440px] max-h-[85vh] overflow-y-auto no-scrollbar" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+              <p className="text-[12px] font-black text-slate-600">장소 수정</p>
+              <button onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }} className="text-slate-300 hover:text-slate-500 p-1">✕</button>
+            </div>
+            <div className="p-4 flex flex-col gap-3">
+              <OrderedTagPicker title="태그" value={editPlaceDraft.types || ['place']} onChange={(tags) => setEditPlaceDraft(d => ({ ...d, types: tags }))} />
+              <input value={editPlaceDraft.name} onChange={(e) => setEditPlaceDraft(d => ({ ...d, name: e.target.value }))} placeholder="장소 이름" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[14px] font-black text-slate-800 outline-none focus:border-[#3182F6]" />
+              <input value={editPlaceDraft.address || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, address: e.target.value }))} placeholder="주소" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-600 outline-none focus:border-[#3182F6]" />
+              <input value={editPlaceDraft.memo || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, memo: e.target.value }))} placeholder="메모" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none focus:border-[#3182F6]" />
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">메뉴 / 금액</p>
+                {(editPlaceDraft.receipt?.items || []).map((m, idx) => (
+                  <div key={idx} className="flex items-center gap-1.5 mb-1.5">
+                    <input value={m.name || ''} onChange={(e) => setEditPlaceDraft(d => { const items = [...(d.receipt?.items || [])]; items[idx] = { ...items[idx], name: e.target.value }; return { ...d, receipt: { ...(d.receipt || {}), items } }; })} placeholder="메뉴명" className="flex-1 min-w-0 text-[11px] font-bold bg-white border border-slate-200 rounded px-2 py-1.5 outline-none focus:border-[#3182F6]" />
+                    <input type="number" value={m.price || 0} onChange={(e) => setEditPlaceDraft(d => { const items = [...(d.receipt?.items || [])]; items[idx] = { ...items[idx], price: Number(e.target.value) || 0 }; return { ...d, receipt: { ...(d.receipt || {}), items } }; })} placeholder="가격" className="w-20 text-[11px] font-bold bg-white border border-slate-200 rounded px-2 py-1.5 outline-none focus:border-[#3182F6] [appearance:textfield]" />
+                    <input type="number" value={getMenuQty(m)} onChange={(e) => setEditPlaceDraft(d => { const items = [...(d.receipt?.items || [])]; items[idx] = { ...items[idx], qty: Math.max(1, Number(e.target.value) || 1) }; return { ...d, receipt: { ...(d.receipt || {}), items } }; })} placeholder="수량" className="w-12 text-[11px] font-bold bg-white border border-slate-200 rounded px-2 py-1.5 outline-none focus:border-[#3182F6] [appearance:textfield]" />
+                    <button type="button" onClick={() => setEditPlaceDraft(d => { const items = [...(d.receipt?.items || [])]; items.splice(idx, 1); return { ...d, receipt: { ...(d.receipt || {}), items } }; })} className="text-slate-300 hover:text-red-500 px-1">✕</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => setEditPlaceDraft(d => ({ ...d, receipt: { ...(d.receipt || {}), items: [...(d.receipt?.items || []), { name: '', price: 0, qty: 1, selected: true }] } }))} className="w-full py-1.5 border border-dashed border-slate-300 rounded text-[11px] font-bold text-slate-400 hover:text-[#3182F6] hover:bg-white mt-1">+ 메뉴 추가</button>
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                <button type="button" onClick={() => setEditPlaceDraft(d => ({ ...d, showBusinessEditor: !d.showBusinessEditor }))} className="w-full flex items-center justify-between text-left mb-0.5">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">영업 정보</span>
+                  {!editPlaceDraft.showBusinessEditor && <span className="text-[10px] font-bold text-slate-500 truncate ml-2">{formatBusinessSummary(editPlaceDraft.business)}</span>}
+                </button>
+                {editPlaceDraft.showBusinessEditor && (
+                  <div className="mt-2">
+                    <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                      <input type="time" value={editPlaceDraft.business?.open || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), open: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
+                      <input type="time" value={editPlaceDraft.business?.close || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), close: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
+                      <input type="time" value={editPlaceDraft.business?.breakStart || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), breakStart: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
+                      <input type="time" value={editPlaceDraft.business?.breakEnd || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), breakEnd: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
+                    </div>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {WEEKDAY_OPTIONS.map(w => { const active = (editPlaceDraft.business?.closedDays || []).includes(w.value); return (<button key={w.value} type="button" onClick={() => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), closedDays: active ? normalizeBusiness(d.business).closedDays.filter(v => v !== w.value) : [...normalizeBusiness(d.business).closedDays, w.value] } }))} className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${active ? 'text-red-500 bg-red-50 border-red-200' : 'text-slate-400 bg-white border-slate-200'}`}>{w.label} 휴무</button>); })}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <VisitStateChips isRevisit={!!editPlaceDraft.revisit} onSelectNew={() => setEditPlaceDraft(d => ({ ...d, revisit: false }))} onSelectRevisit={() => setEditPlaceDraft(d => ({ ...d, revisit: true }))} />
+            </div>
+            <div className="px-4 pb-4 flex gap-2 sticky bottom-0 bg-white pt-2 border-t border-slate-100">
+              <button onClick={() => { const receipt = deepClone(editPlaceDraft.receipt || { address: editPlaceDraft.address || '', items: [] }); if (!Array.isArray(receipt.items)) receipt.items = []; receipt.address = editPlaceDraft.address || receipt.address || ''; const price = receipt.items.reduce((sum, m) => sum + (m.selected === false ? 0 : getMenuLineTotal(m)), 0); updatePlace(editPlaceDraft.id, { ...editPlaceDraft, business: normalizeBusiness(editPlaceDraft.business || {}), receipt, price }); setEditingPlaceId(null); setEditPlaceDraft(null); }} className="flex-1 py-2 bg-[#3182F6] text-white text-[12px] font-black rounded-xl">저장</button>
+              <button onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }} className="flex-1 py-2 bg-slate-100 text-slate-500 text-[12px] font-black rounded-xl">취소</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Col1 테두리 탭 (오른쪽 경계) ── */}
+      <div
+        className="fixed z-[141] top-1/2 transition-all duration-300"
+        style={{ left: col1Collapsed ? 44 : 260, transform: 'translateX(-50%) translateY(-50%)' }}
+      >
+        <button
+          onClick={() => setCol1Collapsed(v => !v)}
+          className="w-5 h-10 bg-white border border-[#E5E8EB] rounded-full flex items-center justify-center shadow-sm hover:border-[#3182F6] hover:text-[#3182F6] text-slate-400 transition-colors"
+        >
+          {col1Collapsed ? <ChevronRight size={11} /> : <ChevronLeft size={11} />}
+        </button>
+      </div>
+
+      {/* ── Col2 테두리 탭 (왼쪽 경계) ── */}
+      <div
+        className="fixed z-[141] top-1/2 transition-all duration-300"
+        style={{ right: col2Collapsed ? 44 : 300, transform: 'translateX(50%) translateY(-50%)' }}
+      >
+        <button
+          onClick={() => setCol2Collapsed(v => !v)}
+          className="w-5 h-10 bg-white border border-[#E5E8EB] rounded-full flex items-center justify-center shadow-sm hover:border-[#3182F6] hover:text-[#3182F6] text-slate-400 transition-colors"
+        >
+          {col2Collapsed ? <ChevronLeft size={11} /> : <ChevronRight size={11} />}
+        </button>
+      </div>
+
+      {/* ── Col1: 예산 + 일정 네비게이션 ── */}
+      <div
+        className="flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] z-[140] shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-hidden"
+        style={{ width: col1Collapsed ? 44 : 260 }}
+      >
+        {col1Collapsed ? (
+          <div className="flex-1 flex items-center justify-center">
+            <MapIcon size={14} className="text-slate-300" />
+          </div>
+        ) : (
+        <div className="flex-1 overflow-y-auto no-scrollbar py-8 px-5 flex flex-col">
+        <div className="flex items-center gap-2.5 mb-7">
+          <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+            <MapIcon size={14} className="text-[#3182F6]" />
+          </div>
+          <h2 className="text-[14px] font-black text-slate-800 tracking-tight">일정 안내</h2>
+        </div>
         {/* 예산 요약 */}
         <div className="mb-6 pb-5 border-b border-slate-100">
           <div className="flex flex-col gap-1 mb-3">
@@ -1905,8 +1906,8 @@ const App = () => {
               className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-black text-slate-700 placeholder:text-slate-400 whitespace-nowrap"
             />
           </div>
-          <div className="mt-2 flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 whitespace-nowrap">
-            <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider whitespace-nowrap">시작일</span>
+          <div className="mt-2 flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
+            <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider shrink-0">시작</span>
             <input
               type="date"
               value={tripStartDate}
@@ -1914,44 +1915,15 @@ const App = () => {
               className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-black text-slate-700"
             />
           </div>
-        </div>
-        {/* Gemini API 키 설정 */}
-        <div className="mb-6 pb-4 border-b border-slate-100">
-          <button
-            onClick={() => setShowApiKeyInput(v => !v)}
-            className="flex items-center gap-1.5 w-full text-[10px] font-black text-slate-400 uppercase tracking-wider hover:text-[#3182F6] transition-colors mb-1.5"
-          >
-            <Sparkles size={10} /> AI 이미지 분석
-            <span className={`ml-auto text-[8px] px-1.5 py-0.5 rounded-full font-black ${geminiApiKey ? 'bg-emerald-50 text-emerald-500 border border-emerald-200' : 'bg-slate-100 text-slate-400'}`}>
-              {geminiApiKey ? '설정됨' : '키 필요'}
-            </span>
-          </button>
-          {showApiKeyInput && (
-            <div className="flex flex-col gap-1.5">
-              <input
-                type="password"
-                value={geminiApiKey}
-                onChange={(e) => {
-                  setGeminiApiKey(e.target.value);
-                  safeLocalStorageSet('gemini_api_key', e.target.value);
-                }}
-                placeholder="AIza... (Google AI Studio)"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-slate-700 outline-none focus:border-[#3182F6] placeholder:text-slate-300"
-              />
-              <p className="text-[9px] text-slate-400 font-semibold leading-relaxed">
-                로카4스토리지에만 저장되며 서버로 전송되지 않습니다.<br />
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-[#3182F6] hover:underline">Google AI Studio</a>에서 무료 발급
-              </p>
-              {geminiApiKey && (
-                <button
-                  onClick={() => { setGeminiApiKey(''); safeLocalStorageSet('gemini_api_key', ''); }}
-                  className="text-[9px] text-red-400 hover:text-red-600 font-bold text-left"
-                >
-                  키 삭제
-                </button>
-              )}
-            </div>
-          )}
+          <div className="mt-1.5 flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
+            <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider shrink-0">종료</span>
+            <input
+              type="date"
+              value={tripEndDate}
+              onChange={(e) => setTripEndDate(e.target.value)}
+              className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-black text-slate-700"
+            />
+          </div>
         </div>
         <nav className="flex flex-col gap-6 relative -ml-2">
           <div className="absolute left-[15px] top-4 bottom-8 w-px bg-slate-100 -z-10" />
@@ -2031,10 +2003,22 @@ const App = () => {
             </div>
           ))}
         </nav>
+        </div>
+        )}
+      </div>
 
-        {/* 장소 라이브러리 */}
+      {/* ── Col2: 내 장소 (우측 고정) ── */}
+      <div
+        className="flex flex-col fixed top-0 bottom-0 bg-white border-l border-[#E5E8EB] z-[140] shadow-[-4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-hidden"
+        style={{ right: 0, width: col2Collapsed ? 44 : 300 }}
+      >
+        {col2Collapsed ? (
+          <div className="flex-1 flex items-center justify-center">
+            <Package size={14} className="text-slate-300" />
+          </div>
+        ) : (
         <div
-          className="mt-8 pt-6 border-t border-slate-100 flex flex-col flex-1"
+          className="flex-1 overflow-y-auto no-scrollbar py-8 px-5 flex flex-col"
           onDragOver={(e) => { if (draggingFromTimeline) e.preventDefault(); }}
           onDrop={(e) => {
             e.preventDefault();
@@ -2048,13 +2032,16 @@ const App = () => {
             }
           }}
         >
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">내 장소</p>
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+              <Package size={14} className="text-[#3182F6]" />
+            </div>
+            <p className="text-[14px] font-black text-slate-800 tracking-tight flex-1">내 장소</p>
             <button
               onClick={() => setIsAddingPlace(v => !v)}
-              className="w-5 h-5 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] transition-colors"
+              className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] transition-colors"
             >
-              <Plus size={10} />
+              <Plus size={11} />
             </button>
           </div>
 
@@ -2073,7 +2060,6 @@ const App = () => {
               newPlaceTypes={newPlaceTypes}
               setNewPlaceTypes={setNewPlaceTypes}
               regionHint={tripRegion}
-              geminiApiKey={geminiApiKey}
               onAdd={addPlace}
               onCancel={() => setIsAddingPlace(false)}
             />
@@ -2093,159 +2079,9 @@ const App = () => {
               const isPlaceExpanded = expandedPlaceId === place.id;
 
               if (isEditing && editPlaceDraft) {
-                return (
-                  <div key={place.id} className="rounded-2xl border-2 border-[#3182F6] bg-white overflow-hidden">
-                    <div className="p-3 flex flex-col gap-2">
-                      <OrderedTagPicker
-                        title="태그"
-                        value={editPlaceDraft.types || ['place']}
-                        onChange={(tags) => setEditPlaceDraft(d => ({ ...d, types: tags }))}
-                      />
-                      <input
-                        value={editPlaceDraft.name}
-                        onChange={(e) => setEditPlaceDraft(d => ({ ...d, name: e.target.value }))}
-                        placeholder="장소 이름"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[13px] font-black text-slate-800 outline-none focus:border-[#3182F6]"
-                      />
-                      <input
-                        value={editPlaceDraft.address || ''}
-                        onChange={(e) => setEditPlaceDraft(d => ({ ...d, address: e.target.value }))}
-                        placeholder="주소"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-slate-600 outline-none focus:border-[#3182F6]"
-                      />
-                      <input
-                        value={editPlaceDraft.memo || ''}
-                        onChange={(e) => setEditPlaceDraft(d => ({ ...d, memo: e.target.value }))}
-                        placeholder="메모"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-slate-600 outline-none focus:border-[#3182F6]"
-                      />
-                      <div className="bg-slate-50/60 border border-slate-200 rounded-lg p-2">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">메뉴 / 금액</p>
-                        <p className="text-[9px] text-slate-400 font-semibold mb-1.5">메뉴를 수정하면 총액이 자동 반영됩니다.</p>
-                        {(editPlaceDraft.receipt?.items || []).map((m, idx) => (
-                          <div key={idx} className="flex items-center gap-1 mb-1">
-                            <input
-                              value={m.name || ''}
-                              onChange={(e) => setEditPlaceDraft(d => {
-                                const items = [...(d.receipt?.items || [])];
-                                items[idx] = { ...items[idx], name: e.target.value };
-                                return { ...d, receipt: { ...(d.receipt || {}), items } };
-                              })}
-                              placeholder="메뉴명"
-                              className="flex-1 min-w-0 text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]"
-                            />
-                            <input
-                              type="number"
-                              value={m.price || 0}
-                              onChange={(e) => setEditPlaceDraft(d => {
-                                const items = [...(d.receipt?.items || [])];
-                                items[idx] = { ...items[idx], price: Number(e.target.value) || 0 };
-                                return { ...d, receipt: { ...(d.receipt || {}), items } };
-                              })}
-                              placeholder="가격"
-                              className="w-16 text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]"
-                            />
-                            <input
-                              type="number"
-                              value={getMenuQty(m)}
-                              onChange={(e) => setEditPlaceDraft(d => {
-                                const items = [...(d.receipt?.items || [])];
-                                items[idx] = { ...items[idx], qty: Math.max(1, Number(e.target.value) || 1), selected: items[idx]?.selected !== false };
-                                return { ...d, receipt: { ...(d.receipt || {}), items } };
-                              })}
-                              placeholder="수량"
-                              className="w-12 text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setEditPlaceDraft(d => {
-                                const items = [...(d.receipt?.items || [])];
-                                items.splice(idx, 1);
-                                return { ...d, receipt: { ...(d.receipt || {}), items } };
-                              })}
-                              className="px-1.5 py-1 text-[10px] text-slate-300 hover:text-red-500"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => setEditPlaceDraft(d => ({ ...d, receipt: { ...(d.receipt || {}), items: [...(d.receipt?.items || []), { name: '', price: 0, qty: 1, selected: true }] } }))}
-                          className="w-full py-1 border border-dashed border-slate-300 rounded text-[10px] font-bold text-slate-400 hover:text-[#3182F6] hover:bg-white"
-                        >
-                          + 메뉴 추가
-                        </button>
-                      </div>
-                      <input
-                        type="number"
-                        value={(editPlaceDraft.receipt?.items || []).reduce((sum, m) => sum + (m.selected === false ? 0 : getMenuLineTotal(m)), 0)}
-                        readOnly
-                        placeholder="예상 금액(자동)"
-                        className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-slate-600 outline-none [appearance:textfield]"
-                      />
-                      <div className="bg-slate-50/60 border border-slate-200 rounded-lg p-2">
-                        <button
-                          type="button"
-                          onClick={() => setEditPlaceDraft(d => ({ ...d, showBusinessEditor: !d.showBusinessEditor }))}
-                          className="w-full flex items-center justify-between text-left"
-                        >
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">영업 정보</span>
-                          <span className="text-[10px] font-bold text-slate-500 truncate ml-2">{formatBusinessSummary(editPlaceDraft.business)}</span>
-                        </button>
-                        {editPlaceDraft.showBusinessEditor && (
-                          <>
-                            <p className="text-[9px] text-slate-400 font-semibold mt-1 mb-1.5">기본은 접힘 상태이며, 필요할 때만 펼쳐 수정하세요.</p>
-                            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
-                              <input type="time" value={editPlaceDraft.business?.open || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), open: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
-                              <input type="time" value={editPlaceDraft.business?.close || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), close: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
-                              <input type="time" value={editPlaceDraft.business?.breakStart || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), breakStart: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
-                              <input type="time" value={editPlaceDraft.business?.breakEnd || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), breakEnd: e.target.value } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" />
-                            </div>
-                            <div className="flex items-center gap-1 flex-wrap">
-                              {WEEKDAY_OPTIONS.map(w => {
-                                const active = (editPlaceDraft.business?.closedDays || []).includes(w.value);
-                                return (
-                                  <button
-                                    key={w.value}
-                                    type="button"
-                                    onClick={() => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), closedDays: active ? normalizeBusiness(d.business).closedDays.filter(v => v !== w.value) : [...normalizeBusiness(d.business).closedDays, w.value] } }))}
-                                    className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${active ? 'text-red-500 bg-red-50 border-red-200' : 'text-slate-400 bg-white border-slate-200'}`}
-                                  >
-                                    {w.label} 휴무
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      <VisitStateChips
-                        isRevisit={!!editPlaceDraft.revisit}
-                        onSelectNew={() => setEditPlaceDraft(d => ({ ...d, revisit: false }))}
-                        onSelectRevisit={() => setEditPlaceDraft(d => ({ ...d, revisit: true }))}
-                      />
-                    </div>
-                    <div className="px-3 pb-3 flex gap-1.5">
-                      <button
-                        onClick={() => {
-                          const receipt = deepClone(editPlaceDraft.receipt || { address: editPlaceDraft.address || '', items: [] });
-                          if (!Array.isArray(receipt.items)) receipt.items = [];
-                          receipt.address = editPlaceDraft.address || receipt.address || '';
-                          const price = receipt.items.reduce((sum, m) => sum + (m.selected === false ? 0 : getMenuLineTotal(m)), 0);
-                          updatePlace(place.id, { ...editPlaceDraft, business: normalizeBusiness(editPlaceDraft.business || {}), receipt, price });
-                          setEditingPlaceId(null);
-                          setEditPlaceDraft(null);
-                        }}
-                        className="flex-1 py-1.5 bg-[#3182F6] text-white text-[11px] font-black rounded-lg"
-                      >
-                        저장
-                      </button>
-                      <button onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }} className="flex-1 py-1.5 bg-slate-100 text-slate-500 text-[11px] font-black rounded-lg">취소</button>
-                    </div>
-                  </div>
-                );
+                return null;
               }
+
 
               return (
                 <div
@@ -2258,10 +2094,10 @@ const App = () => {
                     e.dataTransfer.effectAllowed = copy ? 'copy' : 'move';
                   }}
                   onDragEnd={() => { setDraggingFromLibrary(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false); }}
-                  className="relative w-[372px] rounded-3xl border-2 border-slate-200 bg-white cursor-grab active:cursor-grabbing select-none transition-all hover:shadow-lg group overflow-hidden"
+                  className="relative w-full rounded-3xl border-2 border-slate-200 bg-white cursor-grab active:cursor-grabbing select-none transition-all hover:shadow-lg group overflow-hidden"
                 >
                   <div className="p-4 flex flex-col gap-2.5">
-                    <div className="flex items-center gap-1.5 flex-wrap pr-12">
+                    <div className="flex items-center gap-1.5 flex-wrap pr-12 cursor-pointer" onClick={(e) => { e.stopPropagation(); setEditingPlaceId(place.id); setEditPlaceDraft({ ...place, address: place.address || place.receipt?.address || '', business: normalizeBusiness(place.business || {}), receipt: deepClone(place.receipt || { address: place.address || '', items: [] }), showBusinessEditor: !!(place.business?.open || place.business?.close || place.business?.closedDays?.length) }); }}>
                       {chips}
                       {!isPlaceRevisit && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 text-emerald-600 bg-emerald-50 border-emerald-200">NEW</span>
@@ -2308,8 +2144,15 @@ const App = () => {
                     </span>
                     <span className="text-[14px] font-black text-[#3182F6]">₩{Number(place.price || 0).toLocaleString()}</span>
                   </div>
-                  {/* 호버 버튼: 수정 + 삭제 */}
+                  {/* 호버 버튼: 지도 + 수정 + 삭제 */}
                   <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                    {(place.address || place.name) && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); const q = place.address || place.name; window.open(`https://map.naver.com/v5/search/${encodeURIComponent(q)}`, '_blank'); }}
+                        className="p-1.5 hover:text-[#3182F6] hover:bg-blue-50 text-slate-300 rounded-md transition-all"
+                        title="네이버 지도로 보기"
+                      ><MapPin size={11} /></button>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -2319,7 +2162,7 @@ const App = () => {
                           address: place.address || place.receipt?.address || '',
                           business: normalizeBusiness(place.business || {}),
                           receipt: deepClone(place.receipt || { address: place.address || '', items: [] }),
-                          showBusinessEditor: false
+                          showBusinessEditor: !!(place.business?.open || place.business?.close || place.business?.closedDays?.length)
                         });
                       }}
                       className="p-1.5 hover:text-[#3182F6] hover:bg-blue-50 text-slate-300 rounded-md transition-all"
@@ -2339,15 +2182,13 @@ const App = () => {
             </p>
           )}
         </div>
+        )}
       </div>
 
-      <div className="flex-1 flex flex-col items-start ml-[402px] w-full">
+      <div className="flex-1 flex flex-col items-center w-full bg-white min-h-screen" style={{ marginLeft: col1Collapsed ? 44 : 260, marginRight: col2Collapsed ? 44 : 300 }}>
         {/* 일정 목록 */}
-        <div className="w-[760px] px-3 pt-10 pb-32">
-          <div
-            className="rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 animate-in font-bold overflow-hidden bg-white"
-          >
-            <div className="px-6 pt-16 pb-6 flex flex-col gap-6 relative z-0">
+        <div className="w-full max-w-[560px] px-4 pt-10 pb-32">
+            <div className="flex flex-col gap-6 relative z-0">
 
               {itinerary.days?.map((d, dIdx) => d.plan?.map((p, pIdx) => {
                 const isExpanded = expandedId === p.id;
@@ -2376,33 +2217,33 @@ const App = () => {
                   >
                     {d.day > 1 && pIdx === 0 && (
                       <div className="flex items-center justify-center pb-6 w-full">
-                        <div className="flex items-center gap-2 w-fit max-w-full mx-auto">
-                          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm w-fit">
-                            <div className="flex items-center gap-2 bg-slate-50 px-2 py-1.5 rounded-xl border border-slate-100">
-                              <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
-                              <span
-                                className={`min-w-[3rem] text-center tracking-tight text-xs font-black ${p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800'}`}
-                                onClick={(e) => { e.stopPropagation(); if (p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto) resetTravelTime(dIdx, pIdx); }}
-                                title={p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? '클릭하여 경로 계산 시간으로 초기화' : undefined}
-                              >{p.travelTimeOverride || '15분'}</span>
-                              <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold px-1.5">
-                              <MapIcon size={12} /><span>{formatDistanceText(p.distance)}</span>
-                            </div>
-                            {(() => {
-                              const rid = `${dIdx}_${pIdx}`; const busy = calculatingRouteId === rid; return (
-                                <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }} disabled={!!calculatingRouteId} className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1.5 text-[10px] font-black shadow-sm ${busy ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
-                                  <Sparkles size={10} /> {busy ? '계산중' : '자동경로'}
-                                </button>);
-                            })()}
+                        <div className="flex items-center bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm gap-2">
+                          {/* 이동 시간 */}
+                          <div className="flex items-center gap-1.5">
+                            <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
+                            <span
+                              className={`min-w-[3rem] text-center tracking-tight text-xs font-black ${p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800'}`}
+                              onClick={(e) => { e.stopPropagation(); if (p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto) resetTravelTime(dIdx, pIdx); }}
+                              title={p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? '클릭하여 경로 계산 시간으로 초기화' : undefined}
+                            >{p.travelTimeOverride || '15분'}</span>
+                            <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                           </div>
-                          <div className="flex items-center bg-white px-2 py-1.5 rounded-full border border-slate-200 shadow-sm w-fit">
-                            <div className="flex items-center gap-2 bg-slate-50 px-2 py-1.5 rounded-xl border border-slate-100">
-                              <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
-                              <span className="min-w-[3rem] text-center tracking-tight text-xs font-black text-slate-800">{p.bufferTimeOverride || '10분'}</span>
-                              <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
-                            </div>
+                          {/* 거리 */}
+                          <div className="flex items-center gap-1 text-slate-400 text-xs font-bold">
+                            <MapIcon size={11} /><span>{formatDistanceText(p.distance)}</span>
+                          </div>
+                          {/* 자동경로 */}
+                          {(() => { const rid = `${dIdx}_${pIdx}`; const busy = calculatingRouteId === rid; return (
+                            <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }} disabled={!!calculatingRouteId} className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1 text-[10px] font-black ${busy ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
+                              <Sparkles size={10} /> {busy ? '계산중' : '자동경로'}
+                            </button>); })()}
+                          {/* 구분선 */}
+                          <div className="w-px h-4 bg-slate-200 mx-0.5" />
+                          {/* 여유 시간 */}
+                          <div className="flex items-center gap-1.5">
+                            <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
+                            <span className="min-w-[3rem] text-center tracking-tight text-xs font-black text-slate-500">{p.bufferTimeOverride || '10분'}</span>
+                            <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                           </div>
                         </div>
                       </div>
@@ -3045,19 +2886,21 @@ const App = () => {
                           }
 
                           return (
-                            <div className="z-10 flex items-center justify-center gap-2 w-full">
-                              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm w-fit">
-                                <div className="flex items-center gap-2 bg-slate-50 px-2 py-1.5 rounded-xl border border-slate-100">
-                                  <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
+                            <div className="z-10 flex items-center justify-center w-full">
+                              <div className="flex items-center bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm gap-2">
+                                {/* 이동 시간 */}
+                                <div className="flex items-center gap-1.5">
+                                  <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
                                   <span
-                                    className={`min-w-[3rem] text-center tracking-tight text-xs font-black ${nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto ? 'text-[#3182F6] cursor-pointer hover:line-through' : 'text-slate-800'}`}
+                                    className={`min-w-[3rem] text-center tracking-tight text-xs font-black ${nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800'}`}
                                     onClick={(e) => { e.stopPropagation(); if (nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto) resetTravelTime(dIdx, pIdx + 1); }}
                                     title={nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto ? '클릭하여 경로 계산 시간으로 초기화' : undefined}
                                   >{nextItem.travelTimeOverride || '15분'}</span>
-                                  <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
+                                  <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                                 </div>
+                                {/* 거리 */}
                                 <button
-                                  className="flex items-center gap-1.5 text-slate-400 text-xs font-bold px-1.5 hover:text-[#3182F6] transition-colors cursor-pointer"
+                                  className="flex items-center gap-1 text-slate-400 text-xs font-bold hover:text-[#3182F6] transition-colors cursor-pointer"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     const INVALID = ['주소 정보 없음', '주소 미정', '장소 미정', ''];
@@ -3070,24 +2913,20 @@ const App = () => {
                                   }}
                                   title="네이버 지도로 이 구간 길찾기"
                                 >
-                                  <MapIcon size={12} /><span>{formatDistanceText(nextItem.distance)}</span>
+                                  <MapIcon size={11} /><span>{formatDistanceText(nextItem.distance)}</span>
                                 </button>
-                                {(() => {
-                                  const rid = `${dIdx}_${pIdx + 1}`; const busy = calculatingRouteId === rid; return (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1); }}
-                                      disabled={!!calculatingRouteId}
-                                      className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1.5 text-[10px] font-black shadow-sm ${busy ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}
-                                    >
-                                      <Sparkles size={10} /> {busy ? '계산중' : '자동경로'}
-                                    </button>);
-                                })()}
-                              </div>
-                              <div className="flex items-center bg-white px-2 py-1.5 rounded-full border border-slate-200 shadow-sm w-fit">
-                                <div className="flex items-center gap-2 bg-slate-50 px-2 py-1.5 rounded-xl border border-slate-100">
-                                  <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
-                                  <span className="min-w-[3rem] text-center tracking-tight text-xs font-black text-slate-800">{nextItem.bufferTimeOverride || '10분'}</span>
-                                  <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-white rounded-lg shadow-sm hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
+                                {/* 자동경로 */}
+                                {(() => { const rid = `${dIdx}_${pIdx + 1}`; const busy = calculatingRouteId === rid; return (
+                                  <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1); }} disabled={!!calculatingRouteId} className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1 text-[10px] font-black ${busy ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
+                                    <Sparkles size={10} /> {busy ? '계산중' : '자동경로'}
+                                  </button>); })()}
+                                {/* 구분선 */}
+                                <div className="w-px h-4 bg-slate-200 mx-0.5" />
+                                {/* 여유 시간 */}
+                                <div className="flex items-center gap-1.5">
+                                  <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
+                                  <span className="min-w-[3rem] text-center tracking-tight text-xs font-black text-slate-500">{nextItem.bufferTimeOverride || '10분'}</span>
+                                  <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                                 </div>
                               </div>
                             </div>
@@ -3099,10 +2938,9 @@ const App = () => {
                 );
               }))}
             </div>
-          </div>
         </div>
 
-        <footer className="fixed bottom-0 left-0 left-[402px] right-0 bg-white/95 backdrop-blur-xl border-t px-8 py-5 flex items-center gap-5 z-[130] shadow-[0_-5px_20px_rgba(0,0,0,0.02)]">
+        <footer className="fixed bottom-0 bg-white/95 backdrop-blur-xl border-t px-8 py-5 flex items-center gap-5 z-[130] shadow-[0_-5px_20px_rgba(0,0,0,0.02)]" style={{ left: col1Collapsed ? 44 : 260, right: col2Collapsed ? 44 : 300 }}>
           <MessageSquare size={20} className="text-[#3182F6]" />
           <p className="text-[13px] font-bold text-slate-600 truncate flex-1 animate-pulse">"{lastAction}"</p>
           {history.length > 0 && (

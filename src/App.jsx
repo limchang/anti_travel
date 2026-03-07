@@ -11,6 +11,53 @@ import {
   ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, ChevronLeft, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil
 } from 'lucide-react';
 
+class AppErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Runtime render error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ minHeight: '100vh', padding: 24, fontFamily: 'sans-serif', background: '#F8FAFC', color: '#0F172A' }}>
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>앱 렌더링 오류가 발생했습니다.</h1>
+          <p style={{ marginTop: 8, fontSize: 13, color: '#475569' }}>새로고침 후에도 동일하면 콘솔 오류를 확인해주세요.</p>
+          <pre style={{ marginTop: 12, whiteSpace: 'pre-wrap', fontSize: 12, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 12 }}>
+            {String(this.state.error?.message || this.state.error || 'unknown error')}
+          </pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const safeLocalStorageGet = (key, fallback = '') => {
+  try {
+    return localStorage.getItem(key) || fallback;
+  } catch (e) {
+    console.warn(`localStorage read failed (${key})`, e);
+    return fallback;
+  }
+};
+
+const safeLocalStorageSet = (key, value) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {
+    console.warn(`localStorage write failed (${key})`, e);
+  }
+};
+
 const getTimeOfDayOverlay = (timeStr) => {
   const [h = '12', m = '0'] = (timeStr || '12:00').split(':');
   const mins = parseInt(h, 10) * 60 + parseInt(m, 10);
@@ -479,8 +526,8 @@ const App = () => {
   const [newPlaceTypes, setNewPlaceTypes] = useState(['food']);
   const [editingPlaceId, setEditingPlaceId] = useState(null);
   const [editPlaceDraft, setEditPlaceDraft] = useState(null);
-  const [tripRegion, setTripRegion] = useState(() => localStorage.getItem('trip_region_hint') || '제주시');
-  const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+  const [tripRegion, setTripRegion] = useState(() => safeLocalStorageGet('trip_region_hint', '제주시'));
+  const [geminiApiKey, setGeminiApiKey] = useState(() => safeLocalStorageGet('gemini_api_key', ''));
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   // 초기 상태 안전하게 설정
   const [itinerary, setItinerary] = useState({ days: [], places: [] });
@@ -517,7 +564,7 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('trip_region_hint', tripRegion);
+    safeLocalStorageSet('trip_region_hint', tripRegion);
   }, [tripRegion]);
 
   // 스크롤 감지 → activeDay + activeItemId 자동 업데이트
@@ -1723,7 +1770,7 @@ const App = () => {
                 value={geminiApiKey}
                 onChange={(e) => {
                   setGeminiApiKey(e.target.value);
-                  localStorage.setItem('gemini_api_key', e.target.value);
+                  safeLocalStorageSet('gemini_api_key', e.target.value);
                 }}
                 placeholder="AIza... (Google AI Studio)"
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-slate-700 outline-none focus:border-[#3182F6] placeholder:text-slate-300"
@@ -1734,7 +1781,7 @@ const App = () => {
               </p>
               {geminiApiKey && (
                 <button
-                  onClick={() => { setGeminiApiKey(''); localStorage.removeItem('gemini_api_key'); }}
+                  onClick={() => { setGeminiApiKey(''); safeLocalStorageSet('gemini_api_key', ''); }}
                   className="text-[9px] text-red-400 hover:text-red-600 font-bold text-left"
                 >
                   키 삭제
@@ -2745,4 +2792,10 @@ const App = () => {
   );
 };
 
-export default App;
+const AppWithBoundary = () => (
+  <AppErrorBoundary>
+    <App />
+  </AppErrorBoundary>
+);
+
+export default AppWithBoundary;

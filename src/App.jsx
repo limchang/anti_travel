@@ -2343,7 +2343,7 @@ const App = () => {
 
       <div className="flex-1 flex flex-col items-start ml-[402px] w-full">
         {/* 일정 목록 */}
-        <div className="w-[500px] px-3 pt-10 pb-32">
+        <div className="w-[760px] px-3 pt-10 pb-32">
           <div
             className="rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 animate-in font-bold overflow-hidden bg-white"
           >
@@ -2432,7 +2432,7 @@ const App = () => {
                           setDraggingFromLibrary(null); setDropOnItem(null); setIsDragCopy(false);
                         }
                       }}
-                      className={`relative w-[482px] flex flex-col border-2 rounded-3xl hover:shadow-lg transition-all overflow-hidden cursor-grab active:cursor-grabbing ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${hasPlanB ? 'ring-1 ring-amber-100' : ''} ${stateStyles}`}
+                      className={`relative w-full flex flex-col border-2 rounded-3xl hover:shadow-lg transition-all overflow-hidden cursor-grab active:cursor-grabbing ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${hasPlanB ? 'ring-1 ring-amber-100' : ''} ${stateStyles}`}
                       onClick={() => toggleReceipt(p.id)}
                     >
                       {hasPlanB && (

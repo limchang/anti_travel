@@ -1042,6 +1042,26 @@ const App = () => {
       return nextData;
     });
   };
+  const updatePlanBusinessField = (dayIdx, pIdx, field, value) => {
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const item = nextData.days[dayIdx].plan[pIdx];
+      item.business = normalizeBusiness(item.business || {});
+      item.business[field] = value;
+      return nextData;
+    });
+  };
+  const togglePlanClosedDay = (dayIdx, pIdx, weekday) => {
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const item = nextData.days[dayIdx].plan[pIdx];
+      item.business = normalizeBusiness(item.business || {});
+      item.business.closedDays = item.business.closedDays.includes(weekday)
+        ? item.business.closedDays.filter(v => v !== weekday)
+        : [...item.business.closedDays, weekday];
+      return nextData;
+    });
+  };
 
   const updateAddress = (dayIdx, pIdx, value) => {
     setItinerary(prev => {
@@ -2097,12 +2117,70 @@ const App = () => {
                         placeholder="메모"
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-slate-600 outline-none focus:border-[#3182F6]"
                       />
+                      <div className="bg-slate-50/60 border border-slate-200 rounded-lg p-2">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">메뉴 / 금액</p>
+                        <p className="text-[9px] text-slate-400 font-semibold mb-1.5">메뉴를 수정하면 총액이 자동 반영됩니다.</p>
+                        {(editPlaceDraft.receipt?.items || []).map((m, idx) => (
+                          <div key={idx} className="flex items-center gap-1 mb-1">
+                            <input
+                              value={m.name || ''}
+                              onChange={(e) => setEditPlaceDraft(d => {
+                                const items = [...(d.receipt?.items || [])];
+                                items[idx] = { ...items[idx], name: e.target.value };
+                                return { ...d, receipt: { ...(d.receipt || {}), items } };
+                              })}
+                              placeholder="메뉴명"
+                              className="flex-1 min-w-0 text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]"
+                            />
+                            <input
+                              type="number"
+                              value={m.price || 0}
+                              onChange={(e) => setEditPlaceDraft(d => {
+                                const items = [...(d.receipt?.items || [])];
+                                items[idx] = { ...items[idx], price: Number(e.target.value) || 0 };
+                                return { ...d, receipt: { ...(d.receipt || {}), items } };
+                              })}
+                              placeholder="가격"
+                              className="w-16 text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]"
+                            />
+                            <input
+                              type="number"
+                              value={getMenuQty(m)}
+                              onChange={(e) => setEditPlaceDraft(d => {
+                                const items = [...(d.receipt?.items || [])];
+                                items[idx] = { ...items[idx], qty: Math.max(1, Number(e.target.value) || 1), selected: items[idx]?.selected !== false };
+                                return { ...d, receipt: { ...(d.receipt || {}), items } };
+                              })}
+                              placeholder="수량"
+                              className="w-12 text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setEditPlaceDraft(d => {
+                                const items = [...(d.receipt?.items || [])];
+                                items.splice(idx, 1);
+                                return { ...d, receipt: { ...(d.receipt || {}), items } };
+                              })}
+                              className="px-1.5 py-1 text-[10px] text-slate-300 hover:text-red-500"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setEditPlaceDraft(d => ({ ...d, receipt: { ...(d.receipt || {}), items: [...(d.receipt?.items || []), { name: '', price: 0, qty: 1, selected: true }] } }))}
+                          className="w-full py-1 border border-dashed border-slate-300 rounded text-[10px] font-bold text-slate-400 hover:text-[#3182F6] hover:bg-white"
+                        >
+                          + 메뉴 추가
+                        </button>
+                      </div>
                       <input
                         type="number"
-                        value={editPlaceDraft.price || ''}
-                        onChange={(e) => setEditPlaceDraft(d => ({ ...d, price: Number(e.target.value) || 0 }))}
-                        placeholder="예상 금액"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-slate-600 outline-none focus:border-[#3182F6] [appearance:textfield]"
+                        value={(editPlaceDraft.receipt?.items || []).reduce((sum, m) => sum + (m.selected === false ? 0 : getMenuLineTotal(m)), 0)}
+                        readOnly
+                        placeholder="예상 금액(자동)"
+                        className="w-full bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-slate-600 outline-none [appearance:textfield]"
                       />
                       <div className="bg-slate-50/60 border border-slate-200 rounded-lg p-2">
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">영업 정보</p>
@@ -2135,7 +2213,20 @@ const App = () => {
                       />
                     </div>
                     <div className="px-3 pb-3 flex gap-1.5">
-                      <button onClick={() => { updatePlace(place.id, editPlaceDraft); setEditingPlaceId(null); setEditPlaceDraft(null); }} className="flex-1 py-1.5 bg-[#3182F6] text-white text-[11px] font-black rounded-lg">저장</button>
+                      <button
+                        onClick={() => {
+                          const receipt = deepClone(editPlaceDraft.receipt || { address: editPlaceDraft.address || '', items: [] });
+                          if (!Array.isArray(receipt.items)) receipt.items = [];
+                          receipt.address = editPlaceDraft.address || receipt.address || '';
+                          const price = receipt.items.reduce((sum, m) => sum + (m.selected === false ? 0 : getMenuLineTotal(m)), 0);
+                          updatePlace(place.id, { ...editPlaceDraft, business: normalizeBusiness(editPlaceDraft.business || {}), receipt, price });
+                          setEditingPlaceId(null);
+                          setEditPlaceDraft(null);
+                        }}
+                        className="flex-1 py-1.5 bg-[#3182F6] text-white text-[11px] font-black rounded-lg"
+                      >
+                        저장
+                      </button>
                       <button onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }} className="flex-1 py-1.5 bg-slate-100 text-slate-500 text-[11px] font-black rounded-lg">취소</button>
                     </div>
                   </div>
@@ -2182,7 +2273,16 @@ const App = () => {
                   {/* 호버 버튼: 수정 + 삭제 */}
                   <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                     <button
-                      onClick={(e) => { e.stopPropagation(); setEditingPlaceId(place.id); setEditPlaceDraft({ ...place }); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingPlaceId(place.id);
+                        setEditPlaceDraft({
+                          ...place,
+                          address: place.address || place.receipt?.address || '',
+                          business: normalizeBusiness(place.business || {}),
+                          receipt: deepClone(place.receipt || { address: place.address || '', items: [] })
+                        });
+                      }}
                       className="p-1.5 hover:text-[#3182F6] hover:bg-blue-50 text-slate-300 rounded-md transition-all"
                     ><Pencil size={11} /></button>
                     <button
@@ -2686,6 +2786,31 @@ const App = () => {
                                   {businessWarning}
                                 </div>
                               )}
+                              <div className="w-full bg-slate-50/60 border border-slate-200 rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">영업 정보 (선택)</p>
+                                <p className="text-[9px] text-slate-400 font-semibold mb-1.5">현재 일정 시간과 충돌하면 위에 빨간 경고가 표시됩니다.</p>
+                                <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                                  <input type="time" value={p.business?.open || ''} onChange={(e) => updatePlanBusinessField(dIdx, pIdx, 'open', e.target.value)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" />
+                                  <input type="time" value={p.business?.close || ''} onChange={(e) => updatePlanBusinessField(dIdx, pIdx, 'close', e.target.value)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" />
+                                  <input type="time" value={p.business?.breakStart || ''} onChange={(e) => updatePlanBusinessField(dIdx, pIdx, 'breakStart', e.target.value)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" />
+                                  <input type="time" value={p.business?.breakEnd || ''} onChange={(e) => updatePlanBusinessField(dIdx, pIdx, 'breakEnd', e.target.value)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" />
+                                </div>
+                                <div className="flex items-center gap-1 flex-wrap">
+                                  {WEEKDAY_OPTIONS.map(w => {
+                                    const active = (p.business?.closedDays || []).includes(w.value);
+                                    return (
+                                      <button
+                                        key={w.value}
+                                        type="button"
+                                        onClick={() => togglePlanClosedDay(dIdx, pIdx, w.value)}
+                                        className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${active ? 'text-red-500 bg-red-50 border-red-200' : 'text-slate-400 bg-white border-slate-200'}`}
+                                      >
+                                        {w.label} 휴무
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
 
                               {/* 4행: 메모 입력란 */}
                               <div onClick={(e) => e.stopPropagation()}>
@@ -2724,6 +2849,7 @@ const App = () => {
                                 </div>
                               )}
                               <div className="space-y-3 mb-3">
+                                <p className="text-[10px] text-slate-400 font-semibold -mb-1">메뉴명/수량/가격을 직접 수정하면 총액이 자동 계산됩니다.</p>
                                 {p.receipt?.items?.map((m, mIdx) => (
                                   <div key={mIdx} className="flex justify-between items-center text-xs group/item">
                                     <div className="flex items-center gap-2 flex-1">

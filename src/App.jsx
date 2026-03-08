@@ -81,6 +81,7 @@ const PLACE_TYPES = [
   { label: '카페', types: ['cafe'], Icon: Coffee, className: 'text-amber-600 bg-amber-50 border-amber-200 hover:bg-amber-100' },
   { label: '관광', types: ['tour'], Icon: Camera, className: 'text-purple-600 bg-purple-50 border-purple-200 hover:bg-purple-100' },
   { label: '숙소', types: ['lodge'], Icon: Bed, className: 'text-indigo-600 bg-indigo-50 border-indigo-200 hover:bg-indigo-100' },
+  { label: '휴식', types: ['rest'], Icon: Hourglass, className: 'text-cyan-600 bg-cyan-50 border-cyan-200 hover:bg-cyan-100' },
   { label: '뷰맛집', types: ['view'], Icon: Eye, className: 'text-sky-600 bg-sky-50 border-sky-200 hover:bg-sky-100' },
   { label: '체험', types: ['experience'], Icon: Star, className: 'text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100' },
   { label: '기념품샵', types: ['souvenir'], Icon: Gift, className: 'text-teal-600 bg-teal-50 border-teal-200 hover:bg-teal-100' },
@@ -93,6 +94,7 @@ const TAG_OPTIONS = [
   { label: '카페', value: 'cafe' },
   { label: '관광', value: 'tour' },
   { label: '숙소', value: 'lodge' },
+  { label: '휴식', value: 'rest' },
   { label: '픽업', value: 'pickup' },
   { label: '오픈런', value: 'openrun' },
   { label: '뷰맛집', value: 'view' },
@@ -136,6 +138,7 @@ const getTagButtonClass = (value, active) => {
   if (value === 'cafe') return 'text-amber-600 bg-amber-50 border-amber-200';
   if (value === 'tour') return 'text-purple-600 bg-purple-50 border-purple-200';
   if (value === 'lodge') return 'text-indigo-600 bg-indigo-50 border-indigo-200';
+  if (value === 'rest') return 'text-cyan-600 bg-cyan-50 border-cyan-200';
   if (value === 'pickup') return 'text-orange-500 bg-orange-50 border-orange-200';
   if (value === 'openrun') return 'text-red-500 bg-red-50 border-red-100';
   if (value === 'view') return 'text-sky-600 bg-sky-50 border-sky-200';
@@ -202,7 +205,7 @@ const WEEKDAY_OPTIONS = [
   { label: '일', value: 'sun' },
 ];
 const EMPTY_BUSINESS = { open: '', close: '', breakStart: '', breakEnd: '', lastOrder: '', entryClose: '', closedDays: [] };
-const DEFAULT_BUSINESS = { open: '10:00', close: '20:00', breakStart: '15:00', breakEnd: '17:00', lastOrder: '', entryClose: '', closedDays: [] };
+const DEFAULT_BUSINESS = { open: '', close: '', breakStart: '', breakEnd: '', lastOrder: '', entryClose: '', closedDays: [] };
 const normalizeTimeToken = (raw = '') => {
   const m = String(raw).trim().match(/(\d{1,2})(?::(\d{2}))?/);
   if (!m) return '';
@@ -268,7 +271,7 @@ const parseBusinessHoursText = (text = '') => {
 };
 
 // 24시간 형식 시간 입력 컴포넌트 (오전/오후 없음)
-const TimeInput = ({ value, onChange, className = '', title = '' }) => {
+const TimeInput = ({ value, onChange, className = '', title = '', placeholder = '00:00' }) => {
   const handleChange = (e) => {
     let v = e.target.value.replace(/[^0-9:]/g, '');
     if (v.length === 2 && !v.includes(':')) v = v + ':';
@@ -290,7 +293,7 @@ const TimeInput = ({ value, onChange, className = '', title = '' }) => {
       value={value}
       onChange={handleChange}
       onBlur={handleBlur}
-      placeholder="00:00"
+      placeholder={placeholder}
       maxLength={5}
       title={title}
       className={className}
@@ -468,7 +471,7 @@ const DateRangePicker = ({ startDate, endDate, onStartChange, onEndChange, onClo
 };
 
 const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlaceTypes, regionHint, onAdd, onCancel }) => {
-  const [business, setBusiness] = React.useState(DEFAULT_BUSINESS);
+  const [business, setBusiness] = React.useState(EMPTY_BUSINESS);
   const [menus, setMenus] = React.useState([]);
   const [menuInput, setMenuInput] = React.useState({ name: '', price: '' });
   const [address, setAddress] = React.useState('');
@@ -544,14 +547,12 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
         if (normalizedMenus.length) setMenus(normalizedMenus.slice(0, 5));
       }
 
-      setMemo(prev => prev || cleanUrl);
       setAddressSearchNote('지도 링크에서 장소 정보를 불러왔습니다.');
       if (!data?.address && data?.title) {
         const foundAddress = await searchAddressFromPlaceName(String(data.title), regionHint);
         if (foundAddress?.address) setAddress(foundAddress.address);
       }
     } catch (e) {
-      setMemo(cleanUrl);
       setAddressSearchNote('지도 자동 추출 실패: 서버 연동 후 사용 가능합니다.');
     } finally {
       setIsSearchingAddress(false);
@@ -638,27 +639,27 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
           <div className="grid grid-cols-2 gap-1.5 mb-1.5">
             <div className="flex flex-col gap-0.5">
               <span className="text-[9px] font-black text-slate-400">오픈</span>
-              <TimeInput value={business.open} onChange={(v) => setBusiness(prev => ({ ...prev, open: v }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="운영 시작" />
+              <TimeInput value={business.open} onChange={(v) => setBusiness(prev => ({ ...prev, open: v }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="운영 시작" placeholder="10:00" />
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="text-[9px] font-black text-slate-400">마감</span>
-              <TimeInput value={business.close} onChange={(v) => setBusiness(prev => ({ ...prev, close: v }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="운영 종료" />
+              <TimeInput value={business.close} onChange={(v) => setBusiness(prev => ({ ...prev, close: v }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="운영 종료" placeholder="20:00" />
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="text-[9px] font-black text-slate-400">브레이크 시작</span>
-              <TimeInput value={business.breakStart} onChange={(v) => setBusiness(prev => ({ ...prev, breakStart: v }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="브레이크 시작" />
+              <TimeInput value={business.breakStart} onChange={(v) => setBusiness(prev => ({ ...prev, breakStart: v }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="브레이크 시작" placeholder="15:00" />
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="text-[9px] font-black text-slate-400">브레이크 종료</span>
-              <TimeInput value={business.breakEnd} onChange={(v) => setBusiness(prev => ({ ...prev, breakEnd: v }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="브레이크 종료" />
+              <TimeInput value={business.breakEnd} onChange={(v) => setBusiness(prev => ({ ...prev, breakEnd: v }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="브레이크 종료" placeholder="17:00" />
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="text-[9px] font-black text-slate-400">라스트오더</span>
-              <TimeInput value={business.lastOrder || ''} onChange={(v) => setBusiness(prev => ({ ...prev, lastOrder: v }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="라스트오더" />
+              <TimeInput value={business.lastOrder || ''} onChange={(v) => setBusiness(prev => ({ ...prev, lastOrder: v }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="라스트오더" placeholder="21:00" />
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="text-[9px] font-black text-slate-400">입장 마감</span>
-              <TimeInput value={business.entryClose || ''} onChange={(v) => setBusiness(prev => ({ ...prev, entryClose: v }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="입장 마감" />
+              <TimeInput value={business.entryClose || ''} onChange={(v) => setBusiness(prev => ({ ...prev, entryClose: v }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="입장 마감" placeholder="20:30" />
             </div>
           </div>
           <div className="flex items-center gap-1 flex-wrap">
@@ -854,6 +855,7 @@ const App = () => {
   const undoToastTimerRef = React.useRef(null);
   const [expandedId, setExpandedId] = useState(null);
   const [expandedPlaceId, setExpandedPlaceId] = useState(null);
+  const [durationControllerTarget, setDurationControllerTarget] = useState(null); // { dayIdx, pIdx, left, top }
   const [lastAction, setLastAction] = useState("3일차 시작 일정이 수정되었습니다.");
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [activeDay, setActiveDay] = useState(1);
@@ -927,7 +929,7 @@ const App = () => {
   const [isCalculatingAllRoutes, setIsCalculatingAllRoutes] = useState(false);
   const [dashboardHeight, setDashboardHeight] = useState(200);
   const dashboardRef = useRef(null);
-  const heroSentinelRef = useRef(null);
+  const heroTriggerRef = useRef(null);
   const [heroCollapsed, setHeroCollapsed] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
 
@@ -1008,13 +1010,38 @@ const App = () => {
     return () => { aborted = true; };
   }, [basePlanRef?.address, itinerary.places]);
 
-  // 히어로 카드 스크롤 감지 → 컴팩트 스티키 바 전환
+  // 히어로 카드 스크롤 감지 → 컴팩트 플로팅 바 전환 (히스테리시스)
   useEffect(() => {
-    const el = heroSentinelRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([entry]) => setHeroCollapsed(!entry.isIntersecting), { threshold: 0 });
-    obs.observe(el);
-    return () => obs.disconnect();
+    const COLLAPSE_AT = -90;
+    const EXPAND_AT = -24;
+    let ticking = false;
+
+    const evaluate = () => {
+      const anchor = heroTriggerRef.current;
+      if (!anchor) return;
+      const top = anchor.getBoundingClientRect().top;
+      setHeroCollapsed((prev) => {
+        if (!prev && top <= COLLAPSE_AT) return true;
+        if (prev && top >= EXPAND_AT) return false;
+        return prev;
+      });
+    };
+
+    const onScrollOrResize = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        evaluate();
+        ticking = false;
+      });
+    };
+    onScrollOrResize();
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize);
+    return () => {
+      window.removeEventListener('scroll', onScrollOrResize);
+      window.removeEventListener('resize', onScrollOrResize);
+    };
   }, []);
 
   // 모바일 감지 → 양쪽 패널 자동 접기
@@ -1060,6 +1087,17 @@ const App = () => {
     return () => observers.forEach(o => o.disconnect());
   }, [itinerary.days]);
 
+  useEffect(() => {
+    if (!durationControllerTarget) return;
+    const close = () => setDurationControllerTarget(null);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [durationControllerTarget]);
+
 
   const MAX_BUDGET = itinerary.maxBudget || 1500000;
   const [editingBudget, setEditingBudget] = useState(false);
@@ -1099,6 +1137,20 @@ const App = () => {
       Math.sin(dLat / 2) ** 2 +
       Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  };
+  const verifyRouteDurationMins = ({ distanceKm, straightKm, rawDurationMins, isSameAddress }) => {
+    const d = Math.max(0, Number(distanceKm) || 0);
+    const s = Math.max(0, Number(straightKm) || 0);
+    const raw = Math.max(1, Number(rawDurationMins) || 1);
+    if (isSameAddress) return raw;
+
+    // 2차 검수: 도심 체감 주행 하한(신호/진출입 포함)
+    const byRoadSpeed = Math.ceil((d / 18) * 60); // 18km/h 기준
+    const byStraight = Math.ceil((s / 22) * 60); // 직선거리 22km/h 기준
+    const signalPenalty = d >= 0.25 ? 3 : 2;
+    const shortTripFloor = d >= 0.25 && d < 1.2 ? 6 : (d < 0.25 ? 4 : 0);
+
+    return Math.max(raw, byRoadSpeed + signalPenalty, byStraight + signalPenalty, shortTripFloor);
   };
   const geoCacheRef = useRef({});
 
@@ -1149,6 +1201,24 @@ const App = () => {
     const num = Number(distance);
     if (!Number.isFinite(num) || num <= 0) return '미계산';
     return `${num}km`;
+  };
+  const hasRestTag = (types = []) => {
+    const normalized = (Array.isArray(types) ? types : []).map(v => String(v || '').trim().toLowerCase());
+    return normalized.includes('rest') || normalized.includes('휴식');
+  };
+  const isLodgeStay = (types = []) => {
+    const normalized = (Array.isArray(types) ? types : []).map(v => String(v || '').trim().toLowerCase());
+    return normalized.includes('lodge') && !hasRestTag(normalized);
+  };
+  const openNaverPlaceSearch = (name = '', address = '') => {
+    const query = `${String(name || '').trim()} ${String(address || '').trim()}`.trim();
+    if (!query) return;
+    window.open(`https://map.naver.com/v5/search/${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
+  };
+  const openNaverRouteSearch = (fromName = '', fromAddress = '', toName = '', toAddress = '') => {
+    const query = `${String(fromName || '').trim()} ${String(fromAddress || '').trim()} ${String(toName || '').trim()} ${String(toAddress || '').trim()} 길찾기`.trim();
+    if (!query) return;
+    window.open(`https://map.naver.com/v5/search/${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
   };
   const getRouteAddress = (item, role = 'from') => {
     if (!item) return '';
@@ -1270,6 +1340,29 @@ const App = () => {
       return `${dayLabel}요일 휴무일 방문`;
     }
     return '';
+  };
+  const applyBusinessWarningFix = (dayIdx, pIdx) => {
+    saveHistory();
+    let applied = false;
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
+      if (!item) return prev;
+      const business = normalizeBusiness(item.business || {});
+      if (!business.open) return prev;
+
+      const start = timeToMinutes(item.time || '00:00');
+      const openMins = timeToMinutes(business.open);
+      if (start >= openMins) return prev;
+
+      item.time = business.open;
+      item.isTimeFixed = true;
+      nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
+      recalculateLodgeDurations(nextData.days);
+      applied = true;
+      return nextData;
+    });
+    setLastAction(applied ? "운영 시작 시간으로 일정을 보정했습니다." : "보정할 운영 시작 전 경고가 없습니다.");
   };
   const getDropWarning = (place, dIdx, insertAfterPIdx) => {
     if (!place?.business) return '';
@@ -1397,7 +1490,7 @@ const App = () => {
       const mainItems = day.plan.filter(p => p.type !== 'backup');
       if (!mainItems.length) continue;
       const lastMain = mainItems[mainItems.length - 1];
-      if (!lastMain.types?.includes('lodge')) continue;
+      if (!isLodgeStay(lastMain.types)) continue;
       const nextDay = days[dIdx + 1];
       const nextMain = (nextDay?.plan || []).filter(p => p.type !== 'backup');
       if (!nextMain.length) continue;
@@ -1413,6 +1506,56 @@ const App = () => {
       if (lodgeItem) lodgeItem.duration = duration;
     }
     return days;
+  };
+
+  // 숙소(실숙박) 이후에 같은 Day에 붙어버린 일정을 다음 Day로 자동 분리
+  const normalizeDaySplitByLodge = (days) => {
+    if (!Array.isArray(days) || days.length === 0) return false;
+    let changed = false;
+
+    for (let dIdx = 0; dIdx < days.length; dIdx++) {
+      const day = days[dIdx];
+      if (!day?.plan || day.plan.length === 0) continue;
+
+      let lastLodgeIdx = -1;
+      day.plan.forEach((item, idx) => {
+        if (item?.type !== 'backup' && isLodgeStay(item?.types)) lastLodgeIdx = idx;
+      });
+      if (lastLodgeIdx === -1) continue;
+      if (lastLodgeIdx >= day.plan.length - 1) continue;
+
+      const moving = day.plan.splice(lastLodgeIdx + 1);
+      if (!moving.length) continue;
+
+      if (!days[dIdx + 1]) {
+        days.splice(dIdx + 1, 0, { day: dIdx + 2, plan: [] });
+      }
+      days[dIdx + 1].plan = [...moving, ...(days[dIdx + 1].plan || [])];
+      changed = true;
+    }
+
+    if (changed) {
+      days.forEach((d, i) => {
+        d.day = i + 1;
+        if (!Array.isArray(d.plan)) d.plan = [];
+      });
+    }
+
+    return changed;
+  };
+
+  // 실숙박 일정 뒤에 같은 Day 일반 일정이 남아있는지 검사
+  const hasInvalidLodgeSplit = (days) => {
+    if (!Array.isArray(days) || days.length === 0) return false;
+    for (const day of days) {
+      if (!Array.isArray(day?.plan) || day.plan.length === 0) continue;
+      let lastLodgeIdx = -1;
+      day.plan.forEach((item, idx) => {
+        if (item?.type !== 'backup' && isLodgeStay(item?.types)) lastLodgeIdx = idx;
+      });
+      if (lastLodgeIdx !== -1 && lastLodgeIdx < day.plan.length - 1) return true;
+    }
+    return false;
   };
 
   const recalculateSchedule = (dayPlan) => {
@@ -1477,6 +1620,28 @@ const App = () => {
     return dayPlan;
   };
 
+  // 실숙박 일정은 Day 경계를 강제한다.
+  useEffect(() => {
+    if (!hasInvalidLodgeSplit(itinerary?.days)) return;
+
+    setItinerary(prev => {
+      if (!hasInvalidLodgeSplit(prev?.days)) return prev;
+      const nextData = JSON.parse(JSON.stringify(prev));
+      if (!Array.isArray(nextData.days)) return prev;
+
+      // 연쇄적으로 뒤 Day로 이동할 수 있어 고정점까지 반복
+      while (normalizeDaySplitByLodge(nextData.days)) {
+        // no-op
+      }
+
+      nextData.days.forEach(day => {
+        day.plan = recalculateSchedule(day.plan || []);
+      });
+      recalculateLodgeDurations(nextData.days);
+      return nextData;
+    });
+  }, [itinerary?.days]);
+
   const updateStartTime = (dayIdx, pIdx, delta) => {
     saveHistory();
     setItinerary(prev => {
@@ -1517,6 +1682,20 @@ const App = () => {
     setLastAction("소요 시간을 변경했습니다.");
   };
 
+  const setDurationValue = (dayIdx, pIdx, minutes) => {
+    const nextMinutes = Math.max(0, Number(minutes) || 0);
+    saveHistory();
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const dayPlan = nextData.days[dayIdx].plan;
+      const item = dayPlan[pIdx];
+      item.duration = nextMinutes;
+      nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      return nextData;
+    });
+    setLastAction(`소요 시간을 ${nextMinutes}분으로 설정했습니다.`);
+  };
+
   const resetDuration = (dayIdx, pIdx) => {
     let nextAction = "소요 시간을 60분으로 초기화했습니다.";
     saveHistory();
@@ -1526,9 +1705,6 @@ const App = () => {
       const item = dayPlan[pIdx];
 
       item.duration = 60;
-      item.travelTimeOverride = item.travelTimeOverride || '0분';
-      item.bufferTimeOverride = item.bufferTimeOverride || '0분';
-      if (item.waitingTime == null) item.waitingTime = 0;
 
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
@@ -1852,15 +2028,18 @@ const App = () => {
 
 
   const addPlaceAsPlanB = (dayIdx, pIdx, place) => {
+    const alt = place?.activity
+      ? normalizeAlternative(place)
+      : toAlternativeFromPlace(place || {});
     saveHistory();
     setItinerary(prev => {
       const next = JSON.parse(JSON.stringify(prev));
       const item = next.days[dayIdx].plan[pIdx];
       if (!item.alternatives) item.alternatives = [];
-      item.alternatives.push(toAlternativeFromPlace(place));
+      item.alternatives.push(alt);
       return next;
     });
-    setLastAction(`'${place.name}'이(가) 플랜 B로 추가되었습니다.`);
+    setLastAction(`'${alt.activity}'이(가) 플랜 B로 추가되었습니다.`);
   };
 
   const dropAltOnLibrary = (dayIdx, pIdx, altIdx) => {
@@ -2094,6 +2273,7 @@ const App = () => {
       case 'cafe': return <div key={type} className={`${style} text-amber-600 bg-amber-50 border-amber-100`}><Coffee size={10} /> 카페</div>;
       case 'tour': return <div key={type} className={`${style} text-purple-600 bg-purple-50 border-purple-100`}><Camera size={10} /> 관광</div>;
       case 'lodge': return <div key={type} className={`${style} text-indigo-600 bg-indigo-50 border-indigo-100`}><Bed size={10} /> 숙소</div>;
+      case 'rest': return <div key={type} className={`${style} text-cyan-600 bg-cyan-50 border-cyan-100`}><Hourglass size={10} /> 휴식</div>;
       case 'ship': return <div key={type} className={`${style} text-blue-600 bg-blue-50 border-blue-100`}><Anchor size={10} /> 선박</div>;
       case 'openrun': return <div key={type} className={`${style} text-red-500 bg-red-50 border-red-100`}><Timer size={10} /> 오픈런</div>;
       case 'view': return <div key={type} className={`${style} text-sky-600 bg-sky-50 border-sky-100`}><Eye size={10} /> 뷰맛집</div>;
@@ -2295,6 +2475,34 @@ const App = () => {
     setLastAction(`'${suggestion.name}'이(가) 대안 일정으로 등록되었습니다.`);
   };
 
+  const fetchKakaoVerifiedRoute = async ({ fromAddress, toAddress, fromName, toName }) => {
+    const r = await fetch('/api/route-verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fromAddress,
+        toAddress,
+        fromName,
+        toName,
+        region: tripRegion,
+      }),
+    });
+    if (!r.ok) {
+      const txt = await r.text().catch(() => '');
+      throw new Error(`kakao verify failed: ${r.status} ${txt.slice(0, 140)}`);
+    }
+    const data = await r.json();
+    if (!Number.isFinite(Number(data?.distanceKm)) || !Number.isFinite(Number(data?.durationMins))) {
+      throw new Error('kakao verify invalid payload');
+    }
+    return {
+      distance: +Number(data.distanceKm).toFixed(1),
+      durationMins: Math.max(1, Math.round(Number(data.durationMins))),
+      provider: data.provider || 'kakao',
+      review: data.review || null,
+    };
+  };
+
   const autoCalculateRouteFor = async (dayIdx, targetIdx, options = {}) => {
     const silent = !!options.silent;
     let prevItem;
@@ -2315,7 +2523,19 @@ const App = () => {
 
     const key = `${addr1}|${addr2}`;
     if (routeCache[key] && !routeCache[key].failed) {
-      applyRoute(dayIdx, targetIdx, routeCache[key]);
+      const cached = routeCache[key];
+      const cachedDistance = Math.max(0.1, Number(cached.distance) || 0.1);
+      const verifiedCachedDuration = verifyRouteDurationMins({
+        distanceKm: cachedDistance,
+        straightKm: cachedDistance,
+        rawDurationMins: Number(cached.durationMins) || 1,
+        isSameAddress: addr1.trim() === addr2.trim()
+      });
+      const verifiedCached = { distance: cachedDistance, durationMins: verifiedCachedDuration };
+      if (verifiedCached.durationMins !== cached.durationMins) {
+        setRouteCache(prev => ({ ...prev, [key]: verifiedCached }));
+      }
+      applyRoute(dayIdx, targetIdx, verifiedCached);
       return;
     }
 
@@ -2323,6 +2543,25 @@ const App = () => {
     if (!silent) setLastAction("경로와 거리를 자동 계산 중입니다...");
 
     try {
+      // 1) 카카오 경로 + 검수 우선
+      try {
+        const kakaoRoute = await fetchKakaoVerifiedRoute({
+          fromAddress: addr1,
+          toAddress: addr2,
+          fromName: prevItem?.activity || '',
+          toName: targetItem?.activity || '',
+        });
+        setRouteCache(prev => ({ ...prev, [key]: kakaoRoute }));
+        applyRoute(dayIdx, targetIdx, kakaoRoute);
+        if (!silent) setLastAction(`카카오 검수 경로: ${kakaoRoute.distance}km, ${kakaoRoute.durationMins}분`);
+        return;
+      } catch (kakaoErr) {
+        if (!silent) {
+          setLastAction("카카오 검수 경로 실패, 대체 경로로 재시도합니다.");
+        }
+      }
+
+      // 2) 대체(OSRM + 하한 검수)
       const getCoords = async (addr, name = '') => {
         const candidates = [
           String(addr || '').trim(),
@@ -2359,43 +2598,30 @@ const App = () => {
         );
         const isSameAddress = addr1.trim() === addr2.trim();
         const isSuspiciousZero = !isSameAddress && osrmDistanceKm < 0.05 && straightKm > 0.3;
-
+        if (isSuspiciousZero) throw new Error('osrm suspicious near-zero route');
+        const baseDistanceKm = osrmDistanceKm;
+        const verifiedDurationMins = verifyRouteDurationMins({
+          distanceKm: baseDistanceKm,
+          straightKm,
+          rawDurationMins: osrmDurationMins,
+          isSameAddress
+        });
         const routeData = {
-          distance: +(isSuspiciousZero ? straightKm : osrmDistanceKm).toFixed(1),
-          durationMins: Math.max(1, isSuspiciousZero ? Math.ceil((straightKm / 35) * 60) : osrmDurationMins)
+          distance: +baseDistanceKm.toFixed(1),
+          durationMins: verifiedDurationMins
         };
         setRouteCache(prev => ({ ...prev, [key]: routeData }));
         applyRoute(dayIdx, targetIdx, routeData);
         if (!silent) {
-          setLastAction(isSuspiciousZero
-            ? `경로 보정: ${routeData.distance}km, ${routeData.durationMins}분`
-            : `경로 확인: ${routeData.distance}km, ${routeData.durationMins}분`);
+          setLastAction(`대체경로 확인: ${routeData.distance}km, ${routeData.durationMins}분`);
         }
       } else {
-        const straightKm = haversineKm(
-          parseFloat(c1.lat), parseFloat(c1.lon),
-          parseFloat(c2.lat), parseFloat(c2.lon)
-        );
-        const routeData = {
-          distance: +Math.max(0.1, straightKm).toFixed(1),
-          durationMins: Math.max(1, Math.ceil((Math.max(0.1, straightKm) / 35) * 60))
-        };
-        setRouteCache(prev => ({ ...prev, [key]: routeData }));
-        applyRoute(dayIdx, targetIdx, routeData);
-        if (!silent) setLastAction(`경로 보정: ${routeData.distance}km, ${routeData.durationMins}분`);
-        return;
+        throw new Error('osrm route unavailable');
       }
     } catch (e) {
       console.error(e);
-      // 좌표/경로 API 실패 시 마지막 안전망: 주소 문자열 기반 대략치
-      const roughDistance = Math.max(0.3, Math.min(25, Math.abs(addr1.length - addr2.length) * 0.4));
-      const fallbackData = {
-        distance: +roughDistance.toFixed(1),
-        durationMins: Math.max(1, Math.ceil((roughDistance / 30) * 60))
-      };
-      setRouteCache(prev => ({ ...prev, [key]: fallbackData }));
-      applyRoute(dayIdx, targetIdx, fallbackData);
-      if (!silent) setLastAction(`경로 보정(대체): ${fallbackData.distance}km, ${fallbackData.durationMins}분`);
+      setRouteCache(prev => ({ ...prev, [key]: { failed: true } }));
+      if (!silent) setLastAction("자동차 경로 계산 실패: 주소 확인 후 다시 시도해주세요.");
     } finally {
       setCalculatingRouteId(null);
     }
@@ -2722,27 +2948,27 @@ const App = () => {
                     <div className="grid grid-cols-2 gap-1.5 mb-1.5">
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[9px] font-black text-slate-400">오픈</span>
-                        <TimeInput value={editPlaceDraft.business?.open || ''} onChange={(v) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), open: v } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="운영 시작" />
+                        <TimeInput value={editPlaceDraft.business?.open || ''} onChange={(v) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), open: v } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="운영 시작" placeholder="10:00" />
                       </div>
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[9px] font-black text-slate-400">마감</span>
-                        <TimeInput value={editPlaceDraft.business?.close || ''} onChange={(v) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), close: v } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="운영 종료" />
+                        <TimeInput value={editPlaceDraft.business?.close || ''} onChange={(v) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), close: v } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="운영 종료" placeholder="20:00" />
                       </div>
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[9px] font-black text-slate-400">브레이크 시작</span>
-                        <TimeInput value={editPlaceDraft.business?.breakStart || ''} onChange={(v) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), breakStart: v } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="브레이크 시작" />
+                        <TimeInput value={editPlaceDraft.business?.breakStart || ''} onChange={(v) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), breakStart: v } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="브레이크 시작" placeholder="15:00" />
                       </div>
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[9px] font-black text-slate-400">브레이크 종료</span>
-                        <TimeInput value={editPlaceDraft.business?.breakEnd || ''} onChange={(v) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), breakEnd: v } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="브레이크 종료" />
+                        <TimeInput value={editPlaceDraft.business?.breakEnd || ''} onChange={(v) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), breakEnd: v } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="브레이크 종료" placeholder="17:00" />
                       </div>
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[9px] font-black text-slate-400">라스트오더</span>
-                        <TimeInput value={editPlaceDraft.business?.lastOrder || ''} onChange={(v) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), lastOrder: v } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="라스트오더" />
+                        <TimeInput value={editPlaceDraft.business?.lastOrder || ''} onChange={(v) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), lastOrder: v } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="라스트오더" placeholder="21:00" />
                       </div>
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[9px] font-black text-slate-400">입장 마감</span>
-                        <TimeInput value={editPlaceDraft.business?.entryClose || ''} onChange={(v) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), entryClose: v } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="입장 마감" />
+                        <TimeInput value={editPlaceDraft.business?.entryClose || ''} onChange={(v) => setEditPlaceDraft(d => ({ ...d, business: { ...normalizeBusiness(d.business), entryClose: v } }))} className="text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]" title="입장 마감" placeholder="20:30" />
                       </div>
                     </div>
                     <div className="flex items-center gap-1 flex-wrap">
@@ -2851,7 +3077,7 @@ const App = () => {
                               <span className={`text-[10px] truncate leading-none ${isActive ? 'font-black text-[#3182F6]' : 'font-bold text-slate-500'}`}>{p.activity}</span>
                             </div>
                             {!p.types?.includes('ship') && (() => {
-                              const isLastLodge = p.types?.includes('lodge') && pIdx === arr.length - 1;
+                              const isLastLodge = isLodgeStay(p.types) && pIdx === arr.length - 1;
                               let dispDur = p.duration;
                               if (isLastLodge) {
                                 const nextDay = itinerary.days[dNavIdx + 1];
@@ -2869,9 +3095,17 @@ const App = () => {
                               return (
                                 <div className="shrink-0 flex items-center gap-1">
                                   {navBizWarn && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={navBizWarn} />}
-                                  <span className={`text-[8px] font-black rounded px-1 py-px leading-none whitespace-nowrap ${dispDur >= 120 ? 'text-orange-400 bg-orange-50 border border-orange-200' : 'text-slate-300'}`}>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openNaverPlaceSearch(p.activity, p.receipt?.address || p.address || '');
+                                    }}
+                                    className={`text-[8px] font-black rounded px-1 py-px leading-none whitespace-nowrap ${dispDur >= 120 ? 'text-orange-400 bg-orange-50 border border-orange-200 hover:bg-orange-100' : 'text-slate-300 hover:text-[#3182F6]'}`}
+                                    title="네이버 지도에서 장소 검색"
+                                  >
                                     {fmtDur(dispDur)}
-                                  </span>
+                                  </button>
                                 </div>
                               );
                             })()}
@@ -2997,22 +3231,22 @@ const App = () => {
                   if (closeMins <= openMins) return activeTimeMins >= openMins || activeTimeMins < closeMins;
                   return activeTimeMins >= openMins && activeTimeMins < closeMins;
                 };
-                // 필터링 적용
-                let visiblePlaces = activeTimeMins !== null
-                  ? [...distanceSortedPlaces].sort((a, b) => {
-                    const aO = isOpenAt(a.business), bO = isOpenAt(b.business);
-                    if (aO && !bO) return -1;
-                    if (!aO && bO) return 1;
-                    return 0;
-                  })
-                  : distanceSortedPlaces;
+                // 필터링 적용: 기준 일정이 있으면 영업 상태와 무관하게 거리순 유지
+                let visiblePlaces = [...distanceSortedPlaces];
 
                 if (placeFilterTags.length > 0) {
                   visiblePlaces = visiblePlaces.filter(p => {
                     const pTags = p.types || [];
-                    return placeFilterTags.every(ft => pTags.includes(ft));
+                    return placeFilterTags.some(ft => pTags.includes(ft));
                   });
                 }
+                const categoryCounts = (distanceSortedPlaces || []).reduce((acc, place) => {
+                  const tags = Array.isArray(place?.types) ? place.types : [];
+                  tags.forEach((tag) => {
+                    acc[tag] = (acc[tag] || 0) + 1;
+                  });
+                  return acc;
+                }, {});
                 return (
                   <div className="flex flex-col gap-1.5 overflow-y-auto no-scrollbar flex-1 items-center min-h-0">
                     {/* 필터 및 정렬 상태 표시기 */}
@@ -3026,7 +3260,10 @@ const App = () => {
                               onClick={() => setPlaceFilterTags(prev => active ? prev.filter(v => v !== t.value) : [...prev, t.value])}
                               className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${active ? 'bg-[#3182F6] text-white border-[#3182F6] shadow-sm' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
                             >
-                              {t.label}
+                              <span>{t.label}</span>
+                              <span className={`ml-1 px-1 rounded text-[8px] font-black ${active ? 'bg-white/30 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                {categoryCounts[t.value] || 0}
+                              </span>
                             </button>
                           );
                         })}
@@ -3049,7 +3286,7 @@ const App = () => {
                           className="w-full px-3 py-2 rounded-[14px] border border-blue-100 bg-blue-50/50 text-[11px] font-black text-[#3182F6] flex items-center gap-1.5 shadow-[0_2px_8px_-2px_rgba(49,130,246,0.08)] cursor-pointer hover:bg-blue-100 transition-colors mt-1"
                         >
                           <MapPin size={12} className="text-blue-400" />
-                          <span className="truncate flex-1">기준 <span className="text-blue-700">{basePlanRef.name}</span> 거리순 정렬</span>
+                          <span className="truncate flex-1"><span className="text-blue-700">{basePlanRef.name}</span> 기준 거리순 정렬</span>
                           <span className="text-[9px] text-blue-300">✕</span>
                         </div>
                       )}
@@ -3064,6 +3301,8 @@ const App = () => {
                       const isEditing = editingPlaceId === place.id;
                       const isPlaceExpanded = expandedPlaceId === place.id;
                       const bizWarningNow = getBusinessWarningNow(place.business);
+                      const bizSummary = formatBusinessSummary(place.business);
+                      const hasBizSummary = bizSummary !== '미설정';
                       const openStatus = isOpenAt(place.business); // true=영업중, false=마감, null=정보없음
                       const baseDistance = placeDistanceMap[place.id];
 
@@ -3118,13 +3357,18 @@ const App = () => {
                             </div>
                             <span className="text-[22px] font-black text-slate-800 leading-tight break-words whitespace-normal">{place.name}</span>
                             {place.address && (
-                              <div className="flex items-center gap-2 text-slate-500 bg-slate-50 w-full px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); openNaverPlaceSearch(place.name, place.address); }}
+                                className="flex items-center gap-2 text-slate-500 bg-slate-50 w-full px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm hover:border-[#3182F6]/50 hover:bg-blue-50/40 transition-colors text-left"
+                                title="네이버 지도에서 장소 검색"
+                              >
                                 <MapPin size={11} className="text-[#3182F6] shrink-0" />
                                 <span className="text-[10px] font-bold break-words whitespace-normal">{place.address}</span>
-                              </div>
+                              </button>
                             )}
                             <div
-                              className={`w-full px-2.5 py-1 rounded-lg border text-[10px] font-bold break-words whitespace-normal cursor-pointer transition-all hover:shadow-sm ${bizWarningNow ? 'border-orange-200 bg-orange-50 text-orange-500 hover:bg-orange-100' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-[#3182F6]/40 hover:bg-blue-50/40 hover:text-[#3182F6]'}`}
+                              className={`w-full px-2.5 py-1 rounded-lg border text-[10px] font-bold break-words whitespace-normal cursor-pointer transition-all hover:shadow-sm ${bizWarningNow ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-[#3182F6]/40 hover:bg-blue-50/40 hover:text-[#3182F6]'}`}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const hasBiz = place.business?.open || place.business?.close || place.business?.breakStart || place.business?.breakEnd || place.business?.lastOrder || place.business?.entryClose || place.business?.closedDays?.length;
@@ -3133,7 +3377,9 @@ const App = () => {
                                 setEditPlaceDraft({ ...place, address: place.address || place.receipt?.address || '', business: bizDefaults, receipt: deepClone(place.receipt || { address: place.address || '', items: [] }), showBusinessEditor: true });
                               }}
                             >
-                              {bizWarningNow || formatBusinessSummary(place.business)}
+                              {bizWarningNow
+                                ? `주의 · ${hasBizSummary ? bizSummary : '영업 정보 미설정'}`
+                                : (hasBizSummary ? bizSummary : '영업 정보 미설정')}
                             </div>
                             {place.memo && (
                               <div className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[10px] font-medium text-slate-600 break-words whitespace-normal">
@@ -3224,6 +3470,7 @@ const App = () => {
       <div className="flex-1 flex flex-col items-center w-full bg-white min-h-screen" style={{ marginLeft: col1Collapsed ? 44 : 260, marginRight: col2Collapsed ? 44 : 300 }}>
         {/* 일정 목록 */}
         <div className="w-full px-4 pt-8 pb-32">
+          <div ref={heroTriggerRef} className="h-px w-full" />
 
           {/* ── 여행 헤더 카드 ── */}
           {(() => {
@@ -3233,28 +3480,28 @@ const App = () => {
             const tripNights = Math.max(0, tripDays - 1);
             const usedPct = MAX_BUDGET > 0 ? Math.min(100, Math.round((budgetSummary.total / MAX_BUDGET) * 100)) : 0;
             return (
-              <div className="mb-8 sticky top-0 z-[120]">
-                {/* 컴팩트 스티키 바 (스크롤 시) */}
+              <div className="mb-8 relative">
+                {/* 컴팩트 플로팅 바 (스크롤 시) */}
                 {heroCollapsed && (
-                  <div className="bg-white/90 backdrop-blur-2xl border border-slate-200/80 rounded-[20px] px-5 py-3.5 flex items-center justify-between gap-4 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.08)] mx-4 mt-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
-                        <MapPin size={12} className="text-[#3182F6]" />
+                  <div
+                    className="fixed top-2 z-[190] px-4 pointer-events-none"
+                    style={{ left: col1Collapsed ? 44 : 260, right: col2Collapsed ? 44 : 300 }}
+                  >
+                    <div className="max-w-[560px] mx-auto bg-white/96 backdrop-blur-2xl border border-slate-200/90 rounded-2xl px-3 py-2 flex items-center gap-2 shadow-[0_12px_28px_-14px_rgba(0,0,0,0.35)] pointer-events-auto">
+                      <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
+                        <MapPin size={11} className="text-[#3182F6]" />
                       </div>
-                      <span className="text-[14px] font-black text-slate-800 truncate">{tripRegion || '여행지'}</span>
-                    </div>
-                    <div className="flex items-center gap-4 shrink-0">
-                      <div className="text-right">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">남은 예산</p>
-                        <p className="text-[15px] font-black text-[#3182F6] tabular-nums leading-none tracking-tight">₩{budgetSummary.remaining.toLocaleString()}</p>
+                      <span className="text-[12px] font-black text-slate-800 truncate max-w-[8.5rem]">{tripRegion || '여행지'}</span>
+                      <span className="text-[10px] font-black text-slate-400 shrink-0 tabular-nums">
+                        {(tripStartDate && tripEndDate)
+                          ? `${tripStartDate.slice(5).replace('-', '.')}~${tripEndDate.slice(5).replace('-', '.')}`
+                          : `${tripNights}박 ${tripDays}일`}
+                      </span>
+                      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden mx-1">
+                        <div className="h-full bg-gradient-to-r from-[#3182F6] to-indigo-500 rounded-full" style={{ width: `${usedPct}%` }} />
                       </div>
-                      <div className="w-px h-8 bg-slate-100" />
-                      <div className="flex flex-col gap-1.5 items-end">
-                        <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-[#3182F6] to-indigo-500 rounded-full" style={{ width: `${usedPct}%` }} />
-                        </div>
-                        <span className="text-[9px] text-slate-400 font-bold tabular-nums tracking-wider">{usedPct}%</span>
-                      </div>
+                      <span className="text-[10px] font-black text-slate-500 tabular-nums shrink-0">{usedPct}%</span>
+                      <span className="text-[13px] font-black text-[#3182F6] tabular-nums tracking-tight shrink-0">₩{budgetSummary.remaining.toLocaleString()}</span>
                     </div>
                   </div>
                 )}
@@ -3369,28 +3616,26 @@ const App = () => {
               </div>
             );
           })()}
-          {/* sentinel: 이 지점이 뷰포트 밖으로 나가면 heroCollapsed = true */}
-          <div ref={heroSentinelRef} className="h-px -mt-1" />
-
           <div className="w-full max-w-[560px] mx-auto flex flex-col gap-6 relative z-0">
 
             {itinerary.days?.map((d, dIdx) => d.plan?.map((p, pIdx) => {
               const isExpanded = expandedId === p.id;
               let stateStyles;
-              if (p.types?.includes('lodge')) stateStyles = 'bg-slate-50 border-slate-200 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]';
+              if (isLodgeStay(p.types)) stateStyles = 'bg-slate-50 border-slate-200 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]';
               else if (p.types?.includes('ship')) stateStyles = 'bg-[#f4fafe] border-blue-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]';
               else if (p.isTimeFixed) stateStyles = 'bg-white border-[#3182F6]/30 shadow-[0_8px_30px_-4px_rgba(49,130,246,0.08)] ring-1 ring-[#3182F6]/10';
               else stateStyles = 'bg-white border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.06)] hover:border-slate-200';
 
               const chips = p.types ? p.types.map(t => getCategoryBadge(t)) : (p.type ? [getCategoryBadge(p.type)] : []);
               const isNextFixed = (pIdx < d.plan.length - 1) && d.plan[pIdx + 1]?.isTimeFixed;
-              const isLodge = p.types?.includes('lodge');
+              const isLodge = isLodgeStay(p.types);
               const isShip = p.types?.includes('ship');
               const businessWarning = !isShip ? getBusinessWarning(p, dIdx) : '';
               const planBCount = p.alternatives?.length || 0;
               const hasPlanB = planBCount > 0;
               // 스마트 락(숙소 자동 계산) 여부 확인
               const isAutoLocked = p.isAutoDuration;
+              const isDurationLocked = isNextFixed || isAutoLocked;
               // Plan B 캐러셀 — 즉시 교체
               const planPos = viewingPlanIdx[p.id] ?? 0; // 0-based 위치 표시용
               const totalPlans = planBCount + 1;
@@ -3423,9 +3668,31 @@ const App = () => {
                           <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                         </div>
                         {/* 거리 */}
-                        <div className="flex items-center gap-1 text-slate-400 text-xs font-bold">
-                          <MapIcon size={11} /><span>{formatDistanceText(p.distance)}</span>
-                        </div>
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 text-slate-400 text-xs font-bold hover:text-[#3182F6] transition-colors"
+                          title="클릭하여 네이버 길찾기 열기"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            let prevItem;
+                            if (pIdx === 0 && dIdx > 0) {
+                              const prevDayPlan = itinerary.days[dIdx - 1]?.plan || [];
+                              prevItem = prevDayPlan[prevDayPlan.length - 1];
+                            } else {
+                              prevItem = d.plan?.[pIdx - 1];
+                            }
+                            const fromAddr = getRouteAddress(prevItem, 'from');
+                            const toAddr = getRouteAddress(p, 'to');
+                            if (!fromAddr || !toAddr) {
+                              setLastAction("길찾기용 출발/도착 주소가 필요합니다.");
+                              return;
+                            }
+                            openNaverRouteSearch(prevItem?.activity || '출발지', fromAddr, p.activity || '도착지', toAddr);
+                          }}
+                        >
+                          <MapIcon size={11} />
+                          <span>{formatDistanceText(p.distance)}</span>
+                        </button>
                         {/* 자동경로 */}
                         {(() => {
                           const rid = `${dIdx}_${pIdx}`; const busy = calculatingRouteId === rid; return (
@@ -3519,7 +3786,7 @@ const App = () => {
                       <div className="flex items-stretch border-b border-slate-100 border-dashed">
 
                         {/* 🟢 좌측 컨트롤 타워 */}
-                        {!isShip && !isLodge && <div className={`relative flex flex-col items-center justify-center gap-2 w-[110px] sm:w-[9rem] shrink-0 ${p.isTimeFixed ? 'bg-blue-50/20' : 'bg-transparent'} border-r border-slate-100 flex-none py-4 px-2 sm:px-3 overflow-hidden transition-all duration-300`}>
+                        {!isShip && !isLodge && <div className={`relative flex flex-col items-center justify-center gap-2 w-[110px] sm:w-[9rem] shrink-0 ${p.isTimeFixed ? 'bg-blue-50/20' : 'bg-transparent'} border-r border-slate-100 flex-none py-4 px-2 sm:px-3 overflow-visible transition-all duration-300`}>
                           {/* 락 상태일 때 컨트롤 타워 전체에 은은하게 깔리는 거대 자물쇠 */}
                           {p.isTimeFixed && (
                             <Lock size={90} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-500 opacity-[0.035] pointer-events-none" />
@@ -3561,14 +3828,71 @@ const App = () => {
 
                           {/* ✅ 소요 시간 조절 */}
                           {(
-                            <div className={`flex items-center justify-between w-[90%] bg-white px-2 py-1.5 rounded-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] border my-1 transition-colors ${isNextFixed || isAutoLocked ? 'border-orange-200/60' : 'border-slate-100/60'}`} onClick={(e) => e.stopPropagation()}>
-                              <button onClick={() => updateDuration(dIdx, pIdx, -TIME_UNIT)} className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isNextFixed || isAutoLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-500'}`}><Minus size={10} /></button>
+                            <div className={`flex items-center justify-between w-[90%] bg-white px-2 py-1.5 rounded-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] border my-1 transition-colors ${isDurationLocked ? 'border-orange-200/80' : 'border-slate-100/60'}`} onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => {
+                                  if (isDurationLocked) { setLastAction('고정 연동 일정은 소요시간을 변경할 수 없습니다.'); return; }
+                                  updateDuration(dIdx, pIdx, -TIME_UNIT);
+                                }}
+                                className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-500'}`}
+                              ><Minus size={10} /></button>
                               <span
-                                className={`text-[12px] whitespace-nowrap font-extrabold tabular-nums cursor-pointer hover:underline ${isNextFixed || isAutoLocked ? 'text-orange-500' : 'text-slate-600 hover:text-blue-600'}`}
-                                onClick={() => resetDuration(dIdx, pIdx)}
-                                title={isNextFixed || isAutoLocked ? "다음 일정에 맞춰 자동으로 계산된 시간입니다" : "60분으로 초기화"}
+                                className={`text-[12px] whitespace-nowrap font-extrabold tabular-nums ${isDurationLocked ? 'cursor-not-allowed text-orange-500' : 'cursor-pointer hover:underline text-slate-600 hover:text-blue-600'}`}
+                                onClick={(e) => {
+                                  if (isDurationLocked) {
+                                    setLastAction('고정 연동 일정은 소요시간 컨트롤러를 열 수 없습니다.');
+                                    return;
+                                  }
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  const popW = 184;
+                                  const safeLeft = Math.min(
+                                    window.innerWidth - popW - 12,
+                                    Math.max(12, rect.left + rect.width / 2 - popW / 2)
+                                  );
+                                  const safeTop = Math.max(12, rect.top - 152);
+                                  setDurationControllerTarget(prev =>
+                                    (prev?.dayIdx === dIdx && prev?.pIdx === pIdx)
+                                      ? null
+                                      : { dayIdx: dIdx, pIdx, left: safeLeft, top: safeTop }
+                                  );
+                                }}
+                                title="소요시간 컨트롤러 열기"
                               >{fmtDur(p.duration)}</span>
-                              <button onClick={() => updateDuration(dIdx, pIdx, TIME_UNIT)} className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isNextFixed || isAutoLocked ? 'text-orange-300 hover:text-orange-500' : 'text-slate-400 hover:text-blue-500'}`}><Plus size={10} /></button>
+                              <button
+                                onClick={() => {
+                                  if (isDurationLocked) { setLastAction('고정 연동 일정은 소요시간을 변경할 수 없습니다.'); return; }
+                                  updateDuration(dIdx, pIdx, TIME_UNIT);
+                                }}
+                                className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-500'}`}
+                              ><Plus size={10} /></button>
+                            </div>
+                          )}
+                          {!isDurationLocked && durationControllerTarget?.dayIdx === dIdx && durationControllerTarget?.pIdx === pIdx && (
+                            <div
+                              className="fixed z-[140] w-[184px] rounded-2xl border border-slate-200 bg-white shadow-[0_14px_32px_-12px_rgba(15,23,42,0.25)] p-2"
+                              style={{ left: durationControllerTarget.left, top: durationControllerTarget.top }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => resetDuration(dIdx, pIdx)}
+                                className="w-full mb-2 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-black text-slate-700 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                title="기본 60분으로 설정"
+                              >
+                                {fmtDur(p.duration)} (기본 60분)
+                              </button>
+                              <div className="grid grid-cols-3 gap-1.5">
+                                <button type="button" onClick={() => setDurationValue(dIdx, pIdx, 10)} className="py-1 rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-black text-[#3182F6] hover:bg-blue-100">10분</button>
+                                <button type="button" onClick={() => setDurationValue(dIdx, pIdx, 30)} className="py-1 rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-black text-[#3182F6] hover:bg-blue-100">30분</button>
+                                <button type="button" onClick={() => setDurationValue(dIdx, pIdx, 60)} className="py-1 rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-black text-[#3182F6] hover:bg-blue-100">60분</button>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setDurationControllerTarget(null)}
+                                className="w-full mt-2 py-1.5 rounded-lg bg-[#3182F6] text-white text-[10px] font-black hover:brightness-105 transition-all"
+                              >
+                                확인
+                              </button>
                             </div>
                           )}
 
@@ -3729,14 +4053,19 @@ const App = () => {
                                   placeholder="숙소 이름"
                                 />
                               </div>
-                              <div className="flex items-center gap-2 text-slate-500 bg-white w-fit max-w-full px-2 py-1 rounded-lg border border-slate-200 shadow-sm">
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); openNaverPlaceSearch(p.activity, p.receipt?.address || p.address || ''); }}
+                                className="flex items-center gap-2 text-slate-500 bg-white w-fit max-w-full px-2 py-1 rounded-lg border border-slate-200 shadow-sm hover:border-[#3182F6]/50 hover:bg-blue-50/40 transition-colors text-left"
+                                title="네이버 지도에서 장소 검색"
+                              >
                                 <MapPin size={12} className="text-[#3182F6] shrink-0" />
                                 <span className="text-[11px] font-bold truncate">{p.receipt?.address || '주소 정보 없음'}</span>
-                              </div>
+                              </button>
                               <div className="flex gap-2">
                                 {/* 체크인 셀 */}
-                                <div className="flex-1 bg-indigo-50/70 rounded-xl border border-indigo-100 p-3 flex flex-col items-center gap-1">
-                                  <span className="text-[9px] font-black tracking-widest text-indigo-400">체크인</span>
+                                <div className="relative overflow-hidden flex-1 bg-indigo-50/70 rounded-xl border border-indigo-100 p-3 flex flex-col items-center justify-center gap-1 min-h-[96px]">
+                                  <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[56px] font-black tracking-[0.08em] text-indigo-200/55 select-none">IN</span>
                                   <div className="flex items-center justify-center gap-1.5">
                                     {(() => {
                                       const [h = '00', m = '00'] = (p.time || '00:00').split(':');
@@ -3761,8 +4090,8 @@ const App = () => {
                                   </div>
                                 </div>
                                 {/* 체크아웃 셀 */}
-                                <div className="flex-1 bg-violet-50/70 rounded-xl border border-violet-100 p-3 flex flex-col items-center gap-1">
-                                  <span className="text-[9px] font-black tracking-widest text-violet-400">체크아웃</span>
+                                <div className="relative overflow-hidden flex-1 bg-violet-50/70 rounded-xl border border-violet-100 p-3 flex flex-col items-center justify-center gap-1 min-h-[96px]">
+                                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[52px] font-black tracking-[0.06em] text-violet-200/55 select-none">OUT</span>
                                   <div className="flex items-center justify-center gap-1.5">
                                     {(() => {
                                       const nextDay = itinerary.days[dIdx + 1];
@@ -3876,6 +4205,17 @@ const App = () => {
                                     />
                                     <button
                                       type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openNaverPlaceSearch(p.activity, p.receipt?.address || p.address || '');
+                                      }}
+                                      title="네이버 지도에서 장소 검색"
+                                      className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                    >
+                                      <MapIcon size={9} />
+                                    </button>
+                                    <button
+                                      type="button"
                                       onClick={(e) => { e.stopPropagation(); void handleAutoAddr(); }}
                                       title="일정 이름으로 주소 자동 검색"
                                       className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
@@ -3886,9 +4226,19 @@ const App = () => {
                                 );
                               })()}
                               {businessWarning && (
-                                <div className="w-full px-2.5 py-1 rounded-lg border border-red-200 bg-red-50 text-red-600 text-[10px] font-black">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (businessWarning.includes('운영 시작 전 방문')) {
+                                      applyBusinessWarningFix(dIdx, pIdx);
+                                    }
+                                  }}
+                                  className="w-full px-2.5 py-1 rounded-lg border border-red-200 bg-red-50 text-red-600 text-[10px] font-black text-left hover:bg-red-100/80 transition-colors"
+                                  title={businessWarning.includes('운영 시작 전 방문') ? '클릭하면 운영 시작 시간으로 보정합니다.' : undefined}
+                                >
                                   {businessWarning}
-                                </div>
+                                </button>
                               )}
                               <div className="w-full bg-slate-50/60 border border-slate-200 rounded-lg py-1.5 px-2.5" onClick={(e) => e.stopPropagation()}>
                                 <button
@@ -3917,12 +4267,12 @@ const App = () => {
                                       }}
                                     />
                                     <div className="grid grid-cols-2 gap-1.5 mb-1.5">
-                                      <TimeInput value={p.business?.open || ''} onChange={(v) => updatePlanBusinessField(dIdx, pIdx, 'open', v)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" title="운영 시작" />
-                                      <TimeInput value={p.business?.close || ''} onChange={(v) => updatePlanBusinessField(dIdx, pIdx, 'close', v)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" title="운영 종료" />
-                                      <TimeInput value={p.business?.breakStart || ''} onChange={(v) => updatePlanBusinessField(dIdx, pIdx, 'breakStart', v)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" title="브레이크 시작" />
-                                      <TimeInput value={p.business?.breakEnd || ''} onChange={(v) => updatePlanBusinessField(dIdx, pIdx, 'breakEnd', v)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" title="브레이크 종료" />
-                                      <TimeInput value={p.business?.lastOrder || ''} onChange={(v) => updatePlanBusinessField(dIdx, pIdx, 'lastOrder', v)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" title="라스트오더" />
-                                      <TimeInput value={p.business?.entryClose || ''} onChange={(v) => updatePlanBusinessField(dIdx, pIdx, 'entryClose', v)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" title="입장 마감" />
+                                      <TimeInput value={p.business?.open || ''} onChange={(v) => updatePlanBusinessField(dIdx, pIdx, 'open', v)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" title="운영 시작" placeholder="10:00" />
+                                      <TimeInput value={p.business?.close || ''} onChange={(v) => updatePlanBusinessField(dIdx, pIdx, 'close', v)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" title="운영 종료" placeholder="20:00" />
+                                      <TimeInput value={p.business?.breakStart || ''} onChange={(v) => updatePlanBusinessField(dIdx, pIdx, 'breakStart', v)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" title="브레이크 시작" placeholder="15:00" />
+                                      <TimeInput value={p.business?.breakEnd || ''} onChange={(v) => updatePlanBusinessField(dIdx, pIdx, 'breakEnd', v)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" title="브레이크 종료" placeholder="17:00" />
+                                      <TimeInput value={p.business?.lastOrder || ''} onChange={(v) => updatePlanBusinessField(dIdx, pIdx, 'lastOrder', v)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" title="라스트오더" placeholder="21:00" />
+                                      <TimeInput value={p.business?.entryClose || ''} onChange={(v) => updatePlanBusinessField(dIdx, pIdx, 'entryClose', v)} className="text-[10px] font-bold bg-white border border-slate-200 rounded px-2 py-1 outline-none focus:border-[#3182F6]" title="입장 마감" placeholder="20:30" />
                                     </div>
                                     <div className="flex items-center gap-1 flex-wrap">
                                       {WEEKDAY_OPTIONS.map(w => {
@@ -4101,12 +4451,23 @@ const App = () => {
                                 <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                               </div>
                               {/* 거리 */}
-                              <div
-                                className="flex items-center gap-1 text-slate-400 text-xs font-bold"
+                              <button
+                                type="button"
+                                className="flex items-center gap-1 text-slate-400 text-xs font-bold hover:text-[#3182F6] transition-colors"
                                 title="구간 거리"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const prevAddr = getRouteAddress(p, 'from');
+                                  const toAddr = getRouteAddress(nextItem, 'to');
+                                  if (!prevAddr || !toAddr) {
+                                    setLastAction("길찾기용 출발/도착 주소가 필요합니다.");
+                                    return;
+                                  }
+                                  openNaverRouteSearch(p.activity || '출발지', prevAddr, nextItem.activity || '도착지', toAddr);
+                                }}
                               >
                                 <MapIcon size={11} /><span>{formatDistanceText(nextItem.distance)}</span>
-                              </div>
+                              </button>
                               {/* 자동경로 */}
                               {(() => {
                                 const rid = `${dIdx}_${pIdx + 1}`; const busy = calculatingRouteId === rid; return (

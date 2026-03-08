@@ -88,6 +88,15 @@
 1. 앱 로드 → Firestore `getDoc('itinerary/main')` → 없으면 초기 데이터
 2. 상태 변경 → 1초 debounce → Firestore `setDoc('itinerary/main', itinerary)`
 
+## 경로 계산 검토(카카오 이중검수)
+- 기본 정책: `카카오 경로(API)` 우선, 실패 시 `OSRM` 대체, 최종 하한 검수 적용.
+- 서버 함수: `api/route-verify.js`
+- 필수 환경변수(배포/로컬):
+  - `KAKAO_REST_API_KEY`
+- 검토 방식:
+  - 카카오 `RECOMMEND` + `TIME` 두 결과를 비교해 duration 과소값을 방지
+  - 직선거리/도로거리 기반 최소 소요시간 하한 검수 후 최종 반영
+
 ## 스크롤 네비게이션
 - 각 일차 첫 번째 아이템: `id="day-marker-N"` 부여
 - `IntersectionObserver`로 스크롤 감지 → `activeDay` 자동 업데이트

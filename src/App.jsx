@@ -725,6 +725,28 @@ const App = () => {
     }
     return '';
   };
+  const getBusinessWarningNow = (businessRaw) => {
+    const business = normalizeBusiness(businessRaw || {});
+    const hasBiz = business.open || business.close || business.breakStart || business.breakEnd || business.closedDays.length;
+    if (!hasBiz) return '';
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const weekdayMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const todayKey = weekdayMap[now.getDay()];
+    if (business.closedDays.includes(todayKey)) {
+      const label = WEEKDAY_OPTIONS.find(d => d.value === todayKey)?.label || todayKey;
+      return `오늘(${label}) 휴무`;
+    }
+    if (business.open && nowMins < timeToMinutes(business.open)) return `영업 전 (${business.open} 오픈)`;
+    if (business.close && nowMins >= timeToMinutes(business.close)) return `영업 종료 (${business.close} 마감)`;
+    if (business.breakStart && business.breakEnd) {
+      const bs = timeToMinutes(business.breakStart);
+      const be = timeToMinutes(business.breakEnd);
+      if (nowMins >= bs && nowMins < be) return `브레이크 타임 (${business.breakStart}~${business.breakEnd})`;
+    }
+    return '';
+  };
+
   const formatBusinessSummary = (businessRaw) => {
     const business = normalizeBusiness(businessRaw || {});
     const segs = [];
@@ -2021,6 +2043,7 @@ const App = () => {
               const isEditing = editingPlaceId === place.id;
               const isPlaceRevisit = typeof place.revisit === 'boolean' ? place.revisit : false;
               const isPlaceExpanded = expandedPlaceId === place.id;
+              const bizWarningNow = getBusinessWarningNow(place.business);
 
               if (isEditing && editPlaceDraft) {
                 return null;
@@ -2038,7 +2061,7 @@ const App = () => {
                     e.dataTransfer.effectAllowed = copy ? 'copy' : 'move';
                   }}
                   onDragEnd={() => { setDraggingFromLibrary(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false); }}
-                  className="relative w-full rounded-3xl border-2 border-slate-200 bg-white cursor-grab active:cursor-grabbing select-none transition-all hover:shadow-lg group overflow-hidden"
+                  className={`relative w-full rounded-3xl border-2 bg-white cursor-grab active:cursor-grabbing select-none transition-all hover:shadow-lg group overflow-hidden ${bizWarningNow ? 'border-orange-400' : 'border-slate-200'}`}
                 >
                   <div className="p-4 flex flex-col gap-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap pr-12 cursor-pointer" onClick={(e) => { e.stopPropagation(); setEditingPlaceId(place.id); setEditPlaceDraft({ ...place, address: place.address || place.receipt?.address || '', business: normalizeBusiness(place.business || {}), receipt: deepClone(place.receipt || { address: place.address || '', items: [] }), showBusinessEditor: !!(place.business?.open || place.business?.close || place.business?.closedDays?.length) }); }}>
@@ -2054,8 +2077,8 @@ const App = () => {
                         <span className="text-[10px] font-bold truncate">{place.address}</span>
                       </div>
                     )}
-                    <div className="w-full px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-500 truncate">
-                      {formatBusinessSummary(place.business)}
+                    <div className={`w-full px-2.5 py-1 rounded-lg border text-[10px] font-bold truncate ${bizWarningNow ? 'border-orange-200 bg-orange-50 text-orange-500' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
+                      {bizWarningNow || formatBusinessSummary(place.business)}
                     </div>
                     {place.memo && (
                       <div className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[10px] font-medium text-slate-600 truncate">

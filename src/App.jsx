@@ -756,20 +756,32 @@ const App = () => {
     const business = normalizeBusiness(businessRaw || {});
     const hasBiz = business.open || business.close || business.breakStart || business.breakEnd || business.closedDays.length;
     if (!hasBiz) return '';
-    const now = new Date();
-    const nowMins = now.getHours() * 60 + now.getMinutes();
+    // 기준 시각: 현재 활성 일차의 첫 일정 시각 (없으면 시스템 시각)
+    const activeDayData = itinerary.days?.find(d => d.day === activeDay);
+    const firstItem = activeDayData?.plan?.find(p => p.type !== 'backup' && p.time);
+    const refMins = firstItem
+      ? timeToMinutes(firstItem.time)
+      : (new Date().getHours() * 60 + new Date().getMinutes());
+    // 기준 요일: tripStartDate + (activeDay - 1) (없으면 오늘)
     const weekdayMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-    const todayKey = weekdayMap[now.getDay()];
+    let todayKey;
+    if (tripStartDate && activeDayData) {
+      const d = new Date(tripStartDate);
+      d.setDate(d.getDate() + (activeDayData.day - 1));
+      todayKey = weekdayMap[d.getDay()];
+    } else {
+      todayKey = weekdayMap[new Date().getDay()];
+    }
     if (business.closedDays.includes(todayKey)) {
       const label = WEEKDAY_OPTIONS.find(d => d.value === todayKey)?.label || todayKey;
-      return `오늘(${label}) 휴무`;
+      return `${label} 휴무일`;
     }
-    if (business.open && nowMins < timeToMinutes(business.open)) return `영업 전 (${business.open} 오픈)`;
-    if (business.close && nowMins >= timeToMinutes(business.close)) return `영업 종료 (${business.close} 마감)`;
+    if (business.open && refMins < timeToMinutes(business.open)) return `영업 전 (${business.open} 오픈)`;
+    if (business.close && refMins >= timeToMinutes(business.close)) return `영업 종료 (${business.close} 마감)`;
     if (business.breakStart && business.breakEnd) {
       const bs = timeToMinutes(business.breakStart);
       const be = timeToMinutes(business.breakEnd);
-      if (nowMins >= bs && nowMins < be) return `브레이크 타임 (${business.breakStart}~${business.breakEnd})`;
+      if (refMins >= bs && refMins < be) return `브레이크 타임 (${business.breakStart}~${business.breakEnd})`;
     }
     return '';
   };

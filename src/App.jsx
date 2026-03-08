@@ -676,15 +676,30 @@ const App = () => {
   const handleLogin = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      // 팝업 차단 및 모바일 환경을 고려하여 리다이렉트 방식으로 변경
-      await signInWithRedirect(auth, provider);
+      // 팝업 방식으로 복구 (에러를 즉시 확인하기 위함)
+      await signInWithPopup(auth, provider);
     } catch (e) {
-      console.error('로그인 시도 실패:', e);
-      // 에러 메시지를 좀 더 구체적으로 보여주어 원인 파악을 돕습니다.
-      const errorMsg = e.code === 'auth/unauthorized-domain'
-        ? '현재 도메인이 Firebase 승인된 도메인에 등록되지 않았습니다. (Firebase Console > Authentication > Settings)'
-        : `로그인을 시작할 수 없습니다. (${e.code || e.message})`;
+      console.error('로그인 에러 상세:', e);
+      let errorMsg = '로그인 과정을 시작할 수 없습니다.';
+
+      if (e.code === 'auth/configuration-not-found') {
+        errorMsg = 'Firebase 프로젝트에서 "구글 로그인"이 활성화되지 않았습니다.\n\n해결 방법:\n1. Firebase Console 접속\n2. Authentication > Sign-in method\n3. [Add new provider] 클릭 후 "Google" 활성화';
+      } else if (e.code === 'auth/unauthorized-domain') {
+        errorMsg = `현재 도메인(${window.location.hostname})이 Firebase 승인 된 도메인에 없습니다.\n\n해결 방법:\n1. Firebase Console > Authentication > Settings\n2. [Authorized domains]에 "${window.location.hostname}" 추가`;
+      } else if (e.code === 'auth/popup-blocked') {
+        errorMsg = '브라우저에서 팝업이 차단되었습니다. 팝업 차단을 해제하고 다시 시도해 주세요.';
+      } else {
+        errorMsg += `\n(오류 코드: ${e.code || e.message})`;
+      }
       alert(errorMsg);
+    }
+  };
+
+  // 로그인 없이 로컬 모드로 시작하기 (임시 방편)
+  const handleGuestMode = () => {
+    if (window.confirm('계정 없이 시작하시겠습니까? 데이터가 서버에 저장되지 않을 수 있습니다.')) {
+      setUser({ uid: 'guest_user', displayName: 'GUEST', isGuest: true });
+      setAuthLoading(false);
     }
   };
 
@@ -2409,13 +2424,28 @@ const App = () => {
             <p className="text-slate-500 font-bold text-[15px] leading-relaxed">복잡한 여행 계획은 잊으세요.<br />당신에게 최적화된 동선을 만들어 드립니다.</p>
           </div>
 
-          <button
-            onClick={handleLogin}
-            className="group relative flex items-center justify-center gap-3 bg-white border border-slate-200 hover:border-[#3182F6] hover:bg-blue-50/50 px-8 py-4.5 rounded-[24px] transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1 active:scale-95"
-          >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6" />
-            <span className="text-[17px] font-black text-slate-700 group-hover:text-[#3182F6]">Google 계정으로 시작하기</span>
-          </button>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleLogin}
+              className="group relative flex items-center justify-center gap-3 bg-white border border-slate-200 hover:border-[#3182F6] hover:bg-blue-50/50 px-8 py-4.5 rounded-[24px] transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1 active:scale-95"
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6" />
+              <span className="text-[17px] font-black text-slate-700 group-hover:text-[#3182F6]">Google 계정으로 시작하기</span>
+            </button>
+
+            <div className="flex items-center gap-3 py-2">
+              <div className="flex-1 h-px bg-slate-100" />
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">or</span>
+              <div className="flex-1 h-px bg-slate-100" />
+            </div>
+
+            <button
+              onClick={handleGuestMode}
+              className="text-[13px] font-bold text-slate-400 hover:text-slate-600 transition-colors py-2"
+            >
+              로그인 없이 일단 둘러보기 (로컬 전용)
+            </button>
+          </div>
 
           <p className="text-[12px] font-bold text-slate-400 tracking-wide">로그인 시 개인별 맞춤 일정을 저장하고 불러올 수 있습니다.</p>
         </div>

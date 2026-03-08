@@ -2022,33 +2022,48 @@ const App = () => {
             <Package size={14} className="text-slate-300" />
           </div>
         ) : (
-        <div
-          className="flex-1 overflow-y-auto no-scrollbar py-8 px-5 flex flex-col"
-          onDragOver={(e) => { if (draggingFromTimeline) e.preventDefault(); }}
-          onDrop={(e) => {
-            e.preventDefault();
-            if (draggingFromTimeline) {
-              if (draggingFromTimeline.altIdx !== undefined) {
-                dropAltOnLibrary(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
-              } else {
-                dropTimelineItemOnLibrary(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx);
-              }
-              setDraggingFromTimeline(null);
-            }
-          }}
-        >
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-              <Package size={14} className="text-[#3182F6]" />
+        <>
+          {/* ── 고정 헤더 ── */}
+          <div className="px-5 pt-5 pb-3 border-b border-slate-100 bg-white shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                <Package size={14} className="text-[#3182F6]" />
+              </div>
+              <p className="text-[14px] font-black text-slate-800 tracking-tight flex-1">내 장소</p>
+              {(() => {
+                const activeDayData = itinerary.days?.find(d => d.day === activeDay);
+                const firstItem = activeDayData?.plan?.find(p => p.type !== 'backup' && p.time);
+                return firstItem?.time ? (
+                  <span className="text-[9px] font-black text-slate-400 bg-slate-100 px-2 py-1 rounded-md tracking-wider shrink-0">
+                    기준 {firstItem.time}
+                  </span>
+                ) : null;
+              })()}
+              <button
+                onClick={() => setIsAddingPlace(v => !v)}
+                className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] transition-colors shrink-0"
+              >
+                <Plus size={11} />
+              </button>
             </div>
-            <p className="text-[14px] font-black text-slate-800 tracking-tight flex-1">내 장소</p>
-            <button
-              onClick={() => setIsAddingPlace(v => !v)}
-              className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] transition-colors"
-            >
-              <Plus size={11} />
-            </button>
           </div>
+
+          {/* ── 스크롤 컨텐츠 ── */}
+          <div
+            className="flex-1 overflow-y-auto no-scrollbar px-5 pt-4 pb-8 flex flex-col"
+            onDragOver={(e) => { if (draggingFromTimeline) e.preventDefault(); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (draggingFromTimeline) {
+                if (draggingFromTimeline.altIdx !== undefined) {
+                  dropAltOnLibrary(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
+                } else {
+                  dropTimelineItemOnLibrary(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx);
+                }
+                setDraggingFromTimeline(null);
+              }
+            }}
+          >
 
           {/* 타임라인 드래그 중: 드롭 유도 영역 */}
           {draggingFromTimeline && (
@@ -2187,7 +2202,8 @@ const App = () => {
               드래그해서 일정에 추가
             </p>
           )}
-        </div>
+          </div>
+        </>
         )}
       </div>
 

@@ -664,7 +664,11 @@ const App = () => {
       await signInWithRedirect(auth, provider);
     } catch (e) {
       console.error('로그인 시도 실패:', e);
-      alert('로그인을 시작할 수 없습니다. 잠시 후 다시 시도해 주세요.');
+      // 에러 메시지를 좀 더 구체적으로 보여주어 원인 파악을 돕습니다.
+      const errorMsg = e.code === 'auth/unauthorized-domain'
+        ? '현재 도메인이 Firebase 승인된 도메인에 등록되지 않았습니다. (Firebase Console > Authentication > Settings)'
+        : `로그인을 시작할 수 없습니다. (${e.code || e.message})`;
+      alert(errorMsg);
     }
   };
 

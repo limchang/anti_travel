@@ -674,18 +674,36 @@ const App = () => {
 
     if (dayNum) setActiveDay(dayNum);
 
-    let targetElId = `day-marker-${dayNum}`;
-    if (itemId) {
-      targetElId = itemId;
-      setActiveItemId(itemId);
-      setHighlightedItemId(itemId);
-      setTimeout(() => setHighlightedItemId(null), 1500);
-    } else {
+    let targetItemId = itemId;
+    if (!targetItemId) {
       // Day 클릭 시 해당 일자의 첫 일정 활성화
       const targetDay = itinerary.days?.find(d => d.day === dayNum);
       const firstItem = targetDay?.plan?.find(p => p.type !== 'backup');
-      if (firstItem) setActiveItemId(firstItem.id);
+      if (firstItem) targetItemId = firstItem.id;
     }
+
+    if (targetItemId) {
+      setActiveItemId(targetItemId);
+      setHighlightedItemId(targetItemId);
+      setTimeout(() => setHighlightedItemId(null), 1500);
+
+      // 해당 일정을 기준 장소(basePlanRef)로 자동 지정 (toggleReceipt와 동일 로직)
+      let found = null;
+      for (const d of itinerary.days || []) {
+        found = d.plan?.find(p => p.id === targetItemId);
+        if (found) break;
+      }
+      if (found) {
+        const addr = getRouteAddress(found, 'to');
+        if (addr) {
+          setBasePlanRef({ id: found.id, name: found.activity, address: addr });
+        } else {
+          setBasePlanRef({ id: found.id, name: found.activity, address: '' });
+        }
+      }
+    }
+
+    let targetElId = itemId || `day-marker-${dayNum}`;
 
     const el = document.getElementById(targetElId);
     if (el) {

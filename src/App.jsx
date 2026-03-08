@@ -9,7 +9,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Calendar, GripVertical
+  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Calendar, GripVertical, Gift
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -83,6 +83,7 @@ const PLACE_TYPES = [
   { label: '숙소', types: ['lodge'], Icon: Bed, className: 'text-indigo-600 bg-indigo-50 border-indigo-200 hover:bg-indigo-100' },
   { label: '뷰맛집', types: ['view'], Icon: Eye, className: 'text-sky-600 bg-sky-50 border-sky-200 hover:bg-sky-100' },
   { label: '체험', types: ['experience'], Icon: Star, className: 'text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100' },
+  { label: '기념품샵', types: ['souvenir'], Icon: Gift, className: 'text-teal-600 bg-teal-50 border-teal-200 hover:bg-teal-100' },
   { label: '픽업', types: ['pickup'], Icon: Package, className: 'text-orange-500 bg-orange-50 border-orange-200 hover:bg-orange-100' },
   { label: '장소', types: ['place'], Icon: MapPin, className: 'text-slate-500 bg-slate-50 border-slate-200 hover:bg-slate-100' },
 ];
@@ -96,6 +97,7 @@ const TAG_OPTIONS = [
   { label: '오픈런', value: 'openrun' },
   { label: '뷰맛집', value: 'view' },
   { label: '체험', value: 'experience' },
+  { label: '기념품샵', value: 'souvenir' },
   { label: '장소', value: 'place' },
   { label: '신규', value: 'new' },
   { label: '재방문', value: 'revisit' },
@@ -138,6 +140,7 @@ const getTagButtonClass = (value, active) => {
   if (value === 'openrun') return 'text-red-500 bg-red-50 border-red-100';
   if (value === 'view') return 'text-sky-600 bg-sky-50 border-sky-200';
   if (value === 'experience') return 'text-emerald-600 bg-emerald-50 border-emerald-200';
+  if (value === 'souvenir') return 'text-teal-600 bg-teal-50 border-teal-200';
   if (value === 'new') return 'text-emerald-600 bg-emerald-50 border-emerald-200';
   if (value === 'revisit') return 'text-blue-600 bg-blue-50 border-blue-200';
   return 'text-slate-500 bg-slate-100 border-slate-200';
@@ -2095,6 +2098,7 @@ const App = () => {
       case 'openrun': return <div key={type} className={`${style} text-red-500 bg-red-50 border-red-100`}><Timer size={10} /> 오픈런</div>;
       case 'view': return <div key={type} className={`${style} text-sky-600 bg-sky-50 border-sky-100`}><Eye size={10} /> 뷰맛집</div>;
       case 'experience': return <div key={type} className={`${style} text-emerald-600 bg-emerald-50 border-emerald-100`}><Star size={10} /> 체험</div>;
+      case 'souvenir': return <div key={type} className={`${style} text-teal-600 bg-teal-50 border-teal-100`}><Gift size={10} /> 기념품샵</div>;
       case 'pickup': return <div key={type} className={`${style} text-orange-500 bg-orange-50 border-orange-100`}><Package size={10} /> 픽업</div>;
       case 'new': return <span key="new" className={style + ' text-emerald-600 bg-emerald-50 border-emerald-200'}>신규</span>;
       case 'revisit': return <span key="revisit" className={style + ' text-blue-600 bg-blue-50 border-blue-200'}>재방문</span>;

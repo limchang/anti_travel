@@ -25,30 +25,56 @@ const extractAddressInPage = async (ctx) => {
 };
 
 const extractHoursInPage = async (ctx) => {
+  await ctx.evaluate(() => {
+    const clickables = Array.from(document.querySelectorAll('a, button, [role="button"]'));
+    clickables.forEach((el) => {
+      const t = (el.textContent || '').trim();
+      if (/영업시간|운영시간|더보기|전체보기|펼치기/.test(t)) {
+        try { el.click(); } catch (_) { /* noop */ }
+      }
+    });
+  }).catch(() => {});
+  await ctx.waitForTimeout?.(600).catch(() => {});
   return ctx.evaluate(() => {
-    const timeRows = Array.from(document.querySelectorAll('.UITkP, .A_cdD, .w9m60, time'));
-    if (timeRows.length > 0) {
-      return Array.from(new Set(timeRows.map((row) => row.innerText.trim().replace(/\n/g, ' ')))).join('\n');
-    }
-    const textRows = Array.from(document.querySelectorAll('span, div')).map((el) => (el.textContent || '').trim()).filter(Boolean);
-    const candidates = textRows.filter((t) => /\d{1,2}:\d{2}/.test(t) || /영업|브레이크|라스트오더|입장마감/.test(t));
-    return Array.from(new Set(candidates)).slice(0, 6).join('\n');
+    const rows = Array.from(document.querySelectorAll('li, div, span, p'))
+      .map((el) => (el.textContent || '').replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+
+    const rich = rows.filter((t) =>
+      /(월|화|수|목|금|토|일)/.test(t) ||
+      /\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}/.test(t) ||
+      /브레이크|라스트오더|입장마감|휴무|영업\s*종료|영업\s*중/.test(t)
+    );
+    const unique = Array.from(new Set(rich))
+      .filter((t) => t.length >= 4 && t.length <= 80)
+      .slice(0, 14);
+    return unique.join('\n');
   }).catch(() => '');
 };
 
 const extractMenusInPage = async (ctx) => {
+  await ctx.evaluate(() => {
+    const clickables = Array.from(document.querySelectorAll('a, button, [role="button"]'));
+    const menuTab = clickables.find((el) => /메뉴/.test((el.textContent || '').trim()));
+    if (menuTab) {
+      try { menuTab.click(); } catch (_) { /* noop */ }
+    }
+  }).catch(() => {});
+  await ctx.waitForTimeout?.(600).catch(() => {});
+
   return ctx.evaluate(() => {
     const rows = Array.from(document.querySelectorAll('li, div'));
     const result = [];
 
     for (const el of rows) {
-      const txt = (el.textContent || '').trim();
+      const txt = (el.textContent || '').replace(/\s+/g, ' ').trim();
       if (!txt) continue;
       const m = txt.match(/([가-힣A-Za-z0-9\s\-\(\)\/]{2,40})\s*([0-9][0-9,]{2,})\s*원?/);
       if (!m) continue;
       const name = m[1].trim();
       const price = Number(String(m[2]).replace(/,/g, '')) || 0;
       if (!name || price <= 0) continue;
+      if (/영업|리뷰|사진|예약|전화|길찾기/.test(name)) continue;
       if (!result.find((r) => r.name === name)) result.push({ name, price });
       if (result.length >= 5) break;
     }
@@ -88,8 +114,8 @@ export default async function handler(req, res) {
   try {
     browser = await launchBrowser();
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
-    await page.waitForTimeout(1200);
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForTimeout(1800);
 
     let title = (await page.title()) || '';
     title = title.replace(' - 네이버지도', '').replace('네이버 지도', '').trim();
@@ -101,20 +127,12 @@ export default async function handler(req, res) {
     if (frameElement) {
       const frame = await frameElement.contentFrame();
       if (frame) {
-        await frame.waitForTimeout(1000);
+        await frame.waitForTimeout(1500);
         const inFrameTitle = await frame.evaluate(() => {
           const titleEl = document.querySelector('.Fc1rA') || document.querySelector('.GHAhO') || document.querySelector('span.Fc1rA');
           return titleEl ? titleEl.textContent?.trim() : '';
         }).catch(() => '');
         if (inFrameTitle) title = inFrameTitle;
-
-        await frame.evaluate(() => {
-          const expandBtns = Array.from(document.querySelectorAll('a, button'))
-            .filter((e) => /영업시간|더보기/.test(e.textContent || ''));
-          expandBtns.forEach((btn) => {
-            try { btn.click(); } catch (_) { /* noop */ }
-          });
-        }).catch(() => {});
 
         hours = await extractHoursInPage(frame);
         address = await extractAddressInPage(frame);
@@ -135,4 +153,3 @@ export default async function handler(req, res) {
     }
   }
 }
-

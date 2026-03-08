@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { db, auth } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
+import { onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import {
   Navigation, MessageSquare, LogOut, User as UserIcon,
   Hourglass, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
@@ -641,26 +641,44 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
 const App = () => {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState('');
 
   // ── 인증 감시 ──
   useEffect(() => {
     let isMounted = true;
+    let hasResolvedAuth = false;
 
-    // 만약 인증 확인이 너무 오래 걸리면(6초) 강제로 로딩을 해제하는 안전장치
+    // 인증 확인이 예상보다 오래 걸릴 때 화면 고정 방지
     const failsafe = setTimeout(() => {
-      if (isMounted) setAuthLoading(false);
-    }, 6000);
-
-    // 리다이렉트 결과 처리 (침묵 모드로 처리하여 새로고침 시 에러 최소화)
-    getRedirectResult(auth).catch((e) => {
-      if (isMounted && e.code !== 'auth/redirect-cancelled-by-user') {
-        console.warn('Redirect Login Note:', e.message);
+      if (isMounted && !hasResolvedAuth) {
+        console.warn('Auth initialization timeout fallback');
+        setAuthLoading(false);
       }
-    });
+    }, 12000);
+
+    const initAuth = async () => {
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+      } catch (e) {
+        console.warn('Auth persistence setup failed:', e?.code || e?.message);
+      }
+
+      try {
+        await getRedirectResult(auth);
+      } catch (e) {
+        if (isMounted && e.code !== 'auth/redirect-cancelled-by-user') {
+          console.warn('Redirect Login Note:', e?.code || e?.message);
+          setAuthError(`로그인 처리 중 오류: ${e?.code || e?.message || 'unknown'}`);
+        }
+      }
+    };
+    initAuth();
 
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       if (isMounted) {
+        hasResolvedAuth = true;
         clearTimeout(failsafe);
+        setAuthError('');
         setUser(u);
         setAuthLoading(false);
       }
@@ -674,23 +692,28 @@ const App = () => {
   }, []);
 
   const handleLogin = async () => {
+    setAuthError('');
     try {
       const provider = new GoogleAuthProvider();
-      // 팝업 방식으로 복구 (에러를 즉시 확인하기 위함)
+      provider.setCustomParameters({ prompt: 'select_account' });
       await signInWithPopup(auth, provider);
     } catch (e) {
-      console.error('로그인 에러 상세:', e);
+      console.error('로그인 에러 상세:', e?.code, e?.message);
       let errorMsg = '로그인 과정을 시작할 수 없습니다.';
 
       if (e.code === 'auth/configuration-not-found') {
         errorMsg = 'Firebase 프로젝트에서 "구글 로그인"이 활성화되지 않았습니다.\n\n해결 방법:\n1. Firebase Console 접속\n2. Authentication > Sign-in method\n3. [Add new provider] 클릭 후 "Google" 활성화';
       } else if (e.code === 'auth/unauthorized-domain') {
         errorMsg = `현재 도메인(${window.location.hostname})이 Firebase 승인 된 도메인에 없습니다.\n\n해결 방법:\n1. Firebase Console > Authentication > Settings\n2. [Authorized domains]에 "${window.location.hostname}" 추가`;
-      } else if (e.code === 'auth/popup-blocked') {
-        errorMsg = '브라우저에서 팝업이 차단되었습니다. 팝업 차단을 해제하고 다시 시도해 주세요.';
+      } else if (e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request' || e.code === 'auth/operation-not-supported-in-this-environment') {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        await signInWithRedirect(auth, provider);
+        return;
       } else {
         errorMsg += `\n(오류 코드: ${e.code || e.message})`;
       }
+      setAuthError(errorMsg);
       alert(errorMsg);
     }
   };
@@ -2286,6 +2309,10 @@ const App = () => {
   // Firestore 저장 (1초 디바운스, 사용자 UID 기준)
   useEffect(() => {
     if (!user || loading || !itinerary || !itinerary.days || itinerary.days.length === 0) return;
+    if (user.isGuest) {
+      safeLocalStorageSet('guest_itinerary', JSON.stringify(itinerary));
+      return;
+    }
     const timer = setTimeout(() => {
       setDoc(doc(db, 'users', user.uid, 'itinerary', 'main'), itinerary)
         .catch(e => console.error('Firestore 저장 실패:', e));
@@ -2298,6 +2325,19 @@ const App = () => {
     if (!user) return;
     (async () => {
       setLoading(true);
+      if (user.isGuest) {
+        try {
+          const raw = safeLocalStorageGet('guest_itinerary', '');
+          const parsed = raw ? JSON.parse(raw) : null;
+          if (parsed && Array.isArray(parsed.days)) {
+            setItinerary(parsed);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.warn('게스트 로컬 데이터 로드 실패:', e);
+        }
+      }
       try {
         // 1. 먼저 내 고유 데이터가 있는지 확인
         const snap = await getDoc(doc(db, 'users', user.uid, 'itinerary', 'main'));
@@ -2448,6 +2488,11 @@ const App = () => {
           </div>
 
           <p className="text-[12px] font-bold text-slate-400 tracking-wide">로그인 시 개인별 맞춤 일정을 저장하고 불러올 수 있습니다.</p>
+          {authError && (
+            <div className="text-left text-[11px] font-bold text-red-500 bg-red-50 border border-red-200 rounded-xl px-3 py-2 whitespace-pre-wrap">
+              {authError}
+            </div>
+          )}
         </div>
       </div>
     );

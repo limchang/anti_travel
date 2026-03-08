@@ -647,6 +647,7 @@ const App = () => {
   const [dropTarget, setDropTarget] = useState(null);
   const [dropOnItem, setDropOnItem] = useState(null); // { dayIdx, pIdx } — Plan B 드롭 대상
   const [isDragCopy, setIsDragCopy] = useState(false); // Ctrl+드래그 시 복사 모드
+  const [dragCoord, setDragCoord] = useState({ x: 0, y: 0 });
   const ctrlHeldRef = useRef(false);
   const [isAddingPlace, setIsAddingPlace] = useState(false);
   const [newPlaceName, setNewPlaceName] = useState('');
@@ -735,6 +736,32 @@ const App = () => {
   const heroSentinelRef = useRef(null);
   const [heroCollapsed, setHeroCollapsed] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
+
+  const scrollIntervalRef = useRef(null);
+  const lastTouchYRef = useRef(null);
+
+  const startAutoScroll = useCallback(() => {
+    if (scrollIntervalRef.current) return;
+    scrollIntervalRef.current = setInterval(() => {
+      if (lastTouchYRef.current === null) return;
+      const y = lastTouchYRef.current;
+      const threshold = 120;
+      const speedMultiplier = 1.2;
+      if (y < threshold) {
+        window.scrollBy(0, -Math.pow((threshold - y) / 8, speedMultiplier) - 2);
+      } else if (y > window.innerHeight - threshold) {
+        window.scrollBy(0, Math.pow((y - (window.innerHeight - threshold)) / 8, speedMultiplier) + 2);
+      }
+    }, 16);
+  }, []);
+
+  const stopAutoScroll = useCallback(() => {
+    if (scrollIntervalRef.current) {
+      clearInterval(scrollIntervalRef.current);
+      scrollIntervalRef.current = null;
+    }
+    lastTouchYRef.current = null;
+  }, []);
 
   useEffect(() => {
     const onKeyDown = (e) => { if (e.key === 'Control') ctrlHeldRef.current = true; };
@@ -2367,17 +2394,17 @@ const App = () => {
           {col1Collapsed ? <ChevronRight size={11} /> : <ChevronLeft size={11} />}
         </button>
       </div>
-
-      {/* ── Col2 테두리 탭 (왼쪽 경계) ── */}
+      {/* ── Col2 Toggle (Floating) ── */}
       <div
-        className="fixed z-[141] top-1/2 transition-all duration-300"
-        style={{ right: col2Collapsed ? 44 : 300, transform: 'translateX(50%) translateY(-50%)' }}
+        className="fixed z-[150] top-1/2 transition-all duration-300 pointer-events-none"
+        style={{ right: col2Collapsed ? 44 : 310, transform: 'translateX(50%) translateY(-50%)' }}
       >
         <button
           onClick={() => setCol2Collapsed(v => !v)}
-          className="w-5 h-10 bg-white border border-[#E5E8EB] rounded-full flex items-center justify-center shadow-sm hover:border-[#3182F6] hover:text-[#3182F6] text-slate-400 transition-colors"
+          className="w-5 h-10 bg-white border border-[#E5E8EB] rounded-full flex items-center justify-center shadow-lg hover:border-[#3182F6] hover:text-[#3182F6] text-slate-400 transition-all hover:scale-110 active:scale-95 group pointer-events-auto"
+          title={col2Collapsed ? "내 장소 열기" : "내 장소 접기"}
         >
-          {col2Collapsed ? <ChevronLeft size={11} /> : <ChevronRight size={11} />}
+          {col2Collapsed ? <ChevronLeft size={11} className="group-hover:-translate-x-0.5 transition-transform" /> : <ChevronRight size={11} className="group-hover:translate-x-0.5 transition-transform" />}
         </button>
       </div>
 
@@ -2512,15 +2539,13 @@ const App = () => {
         )}
       </div>
 
-      {/* ── Col2: 내 장소 (우측 고정) ── */}
       <div
         className="flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[140] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-hidden"
         style={{ right: 0, width: col2Collapsed ? 44 : 310 }}
       >
         {col2Collapsed ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-2">
-            <Package size={16} className="text-slate-400" />
-            <span className="text-[8px] font-black text-slate-300 [writing-mode:vertical-rl] tracking-wider">내 장소</span>
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <Package size={14} className="text-slate-300" />
           </div>
         ) : (
           <>
@@ -2706,11 +2731,19 @@ const App = () => {
                               setDraggingFromTimeline(null);
                             }
                           }}
-                          onTouchStart={(e) => { setDraggingFromLibrary(place); setIsDragCopy(false); }}
+                          onTouchStart={(e) => {
+                            const touch = e.touches[0];
+                            setDragCoord({ x: touch.clientX, y: touch.clientY });
+                            setDraggingFromLibrary(place);
+                            setIsDragCopy(false);
+                            startAutoScroll();
+                          }}
                           onTouchMove={(e) => {
                             if (!draggingFromLibrary) return;
                             e.preventDefault();
                             const touch = e.touches[0];
+                            setDragCoord({ x: touch.clientX, y: touch.clientY });
+                            lastTouchYRef.current = touch.clientY;
                             const el = document.elementFromPoint(touch.clientX, touch.clientY);
                             const dropEl = el?.closest('[data-droptarget]');
                             const dropItemEl = el?.closest('[data-dropitem]');
@@ -2728,6 +2761,7 @@ const App = () => {
                             }
                           }}
                           onTouchEnd={(e) => {
+                            stopAutoScroll();
                             if (draggingFromLibrary) {
                               if (dropTarget) {
                                 addNewItem(dropTarget.dayIdx, dropTarget.insertAfterPIdx, draggingFromLibrary.types, draggingFromLibrary);
@@ -2739,12 +2773,10 @@ const App = () => {
                             }
                             setDraggingFromLibrary(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false);
                           }}
-                          className={`relative w-full shrink-0 rounded-[20px] border bg-white cursor-grab active:cursor-grabbing select-none transition-all duration-300 group overflow-hidden hover:-translate-y-0.5
+                          className={`relative w-full shrink-0 rounded-[20px] border bg-white cursor-grab active:cursor-grabbing select-none transition-all duration-300 group overflow-hidden hover:-translate-y-0.5 touch-none
                     ${draggingFromLibrary?.id === place.id ? 'pointer-events-none opacity-50' : ''}
                     ${bizWarningNow ? 'border-orange-200 hover:shadow-[0_8px_24px_-4px_rgba(249,115,22,0.15)] ring-1 ring-orange-100' : openStatus === true ? 'border-[#3182F6]/30 shadow-[0_4px_16px_-4px_rgba(49,130,246,0.1)] hover:shadow-[0_8px_24px_-4px_rgba(49,130,246,0.15)] ring-1 ring-[#3182F6]/10' : 'border-slate-100 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.06)] hover:border-slate-200'}`}
                         >
-                          {/* 하단 드래그 핸들 (가로 긴 바 형태) */}
-                          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-20 h-1 bg-slate-200 group-hover:bg-[#3182F6]/30 rounded-full transition-all duration-300 z-10 pointer-events-none" />
                           <div className="p-4 flex flex-col gap-2.5">
                             <div className="flex items-center gap-1.5 flex-wrap pr-12 cursor-pointer" onClick={(e) => { e.stopPropagation(); setEditingPlaceId(place.id); setEditPlaceDraft({ ...place, address: place.address || place.receipt?.address || '', business: normalizeBusiness(place.business || {}), receipt: deepClone(place.receipt || { address: place.address || '', items: [] }), showBusinessEditor: !!(place.business?.open || place.business?.close || place.business?.breakStart || place.business?.breakEnd || place.business?.lastOrder || place.business?.closedDays?.length) }); }}>
                               {chips}
@@ -3131,12 +3163,17 @@ const App = () => {
                       }}
                       onTouchStart={(e) => {
                         if (p.type === 'backup' || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+                        const touch = e.touches[0];
+                        setDragCoord({ x: touch.clientX, y: touch.clientY });
                         setDraggingFromTimeline({ dayIdx: dIdx, pIdx, altIdx: planPos > 0 ? planPos - 1 : undefined });
+                        startAutoScroll();
                       }}
                       onTouchMove={(e) => {
                         if (!draggingFromTimeline) return;
                         e.preventDefault();
                         const touch = e.touches[0];
+                        setDragCoord({ x: touch.clientX, y: touch.clientY });
+                        lastTouchYRef.current = touch.clientY;
                         const el = document.elementFromPoint(touch.clientX, touch.clientY);
                         setIsDroppingOnDeleteZone(false);
                         const isDel = !!el?.closest('[data-deletezone]');
@@ -3152,6 +3189,7 @@ const App = () => {
                         }
                       }}
                       onTouchEnd={(e) => {
+                        stopAutoScroll();
                         if (draggingFromTimeline) {
                           const touch = e.changedTouches[0];
                           const el = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -3181,11 +3219,9 @@ const App = () => {
                         }
                         setDraggingFromTimeline(null); setDropTarget(null); setDropOnItem(null); setIsDroppingOnDeleteZone(false);
                       }}
-                      className={`relative w-full flex flex-col border rounded-[24px] transition-all overflow-hidden cursor-grab active:cursor-grabbing group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${hasPlanB ? 'ring-1 ring-amber-100' : ''} ${stateStyles}`}
+                      className={`relative w-full flex flex-col border rounded-[24px] transition-all overflow-hidden cursor-grab active:cursor-grabbing group touch-none ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${hasPlanB ? 'ring-1 ring-amber-100' : ''} ${stateStyles}`}
                       onClick={() => toggleReceipt(p.id)}
                     >
-                      {/* 상단 드래그 핸들 (가로 긴 바 형태) */}
-                      <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-20 h-1 bg-slate-100 group-hover:bg-[#3182F6]/20 rounded-full transition-all duration-300 z-30 pointer-events-none" />
                       {/* Plan B 페이지 인디케이터 */}
                       {hasPlanB && (
                         <div className="absolute top-2.5 right-11 z-20 pointer-events-none">
@@ -3848,6 +3884,29 @@ const App = () => {
             </div>
           )
         }
+
+        {/* ── 드래그 프리뷰 고스트 (모바일용) ── */}
+        {(draggingFromLibrary || draggingFromTimeline) && (
+          <div
+            className="fixed pointer-events-none z-[9999] bg-white/95 backdrop-blur-xl border-2 border-[#3182F6] rounded-2xl px-5 py-3.5 shadow-[0_20px_50px_rgba(49,130,246,0.3)] flex items-center gap-4 animate-in fade-in zoom-in duration-200"
+            style={{
+              left: dragCoord.x,
+              top: dragCoord.y,
+              transform: 'translate(-50%, -120%)', // 손가락에 가리지 않게 위로 띄움
+              minWidth: '180px'
+            }}
+          >
+            <div className="w-1.5 h-10 bg-gradient-to-b from-[#3182F6] to-indigo-500 rounded-full shrink-0" />
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[9px] font-black text-[#3182F6] uppercase tracking-[0.15em]">Dragging Object</span>
+              <span className="text-[15px] font-black text-slate-800 truncate max-w-[140px]">
+                {draggingFromLibrary?.name ||
+                  (itinerary.days?.[draggingFromTimeline?.dayIdx]?.plan?.[draggingFromTimeline?.pIdx]?.activity) ||
+                  '일정 이동 중'}
+              </span>
+            </div>
+          </div>
+        )}
       </div >
 
       <style>{`

@@ -666,6 +666,17 @@ const App = () => {
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [activeDay, setActiveDay] = useState(1);
   const [activeItemId, setActiveItemId] = useState(null);
+  const isNavScrolling = React.useRef(false);
+  const navScrollTimeout = React.useRef(null);
+  const handleNavClick = (day) => {
+    isNavScrolling.current = true;
+    if (navScrollTimeout.current) clearTimeout(navScrollTimeout.current);
+    document.getElementById(`day-marker-${day}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setActiveDay(day);
+    navScrollTimeout.current = setTimeout(() => {
+      isNavScrolling.current = false;
+    }, 800);
+  };
   const [basePlanRef, setBasePlanRef] = useState(null); // { dayIdx, pIdx, id, name, address }
   const [placeDistanceMap, setPlaceDistanceMap] = useState({});
   const [col1Collapsed, setCol1Collapsed] = useState(false);
@@ -764,7 +775,7 @@ const App = () => {
       const el = document.getElementById(`day-marker-${d.day}`);
       if (!el) return;
       const obs = new IntersectionObserver(
-        ([entry]) => { if (entry.isIntersecting) setActiveDay(d.day); },
+        ([entry]) => { if (entry.isIntersecting && !isNavScrolling.current) setActiveDay(d.day); },
         { rootMargin: '-30% 0px -60% 0px', threshold: 0 }
       );
       obs.observe(el);
@@ -776,7 +787,7 @@ const App = () => {
         const el = document.getElementById(elemId);
         if (!el) return;
         const obs = new IntersectionObserver(
-          ([entry]) => { if (entry.isIntersecting) setActiveItemId(p.id); },
+          ([entry]) => { if (entry.isIntersecting && !isNavScrolling.current) setActiveItemId(p.id); },
           { rootMargin: '-5% 0px -85% 0px', threshold: 0 }
         );
         obs.observe(el);
@@ -2091,28 +2102,6 @@ const App = () => {
     setLastAction("별도 일정이 추가되었습니다.");
   };
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const dayElements = document.querySelectorAll('[data-day]');
-      let currentActiveDay = null; // Will store the ID of closest element
-      let minDistance = Infinity;
-
-      dayElements.forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        // Calculate offset (roughly targeting near top of the window, ~200px)
-        const distance = Math.abs(rect.top - 200);
-        if (distance < minDistance) {
-          minDistance = distance;
-          currentActiveDay = parseInt(el.getAttribute('data-day'), 10);
-        }
-      });
-      if (currentActiveDay) setActiveDay(currentActiveDay);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   // Firestore 저장 (1초 디바운스)
   useEffect(() => {
     if (!loading && itinerary && itinerary.days && itinerary.days.length > 0) {
@@ -2358,7 +2347,7 @@ const App = () => {
                   <div key={d.day} className="flex items-start gap-1.5 group">
                     <div
                       className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-[15px] font-black shadow-sm transition-all duration-300 cursor-pointer ${activeDay === d.day ? 'bg-[#3182F6] text-white ring-4 ring-blue-50' : 'bg-white text-slate-400 border border-slate-200 group-hover:border-[#3182F6] group-hover:text-[#3182F6]'}`}
-                      onClick={() => { document.getElementById(`day-marker-${d.day}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); setActiveDay(d.day); }}
+                      onClick={() => handleNavClick(d.day)}
                     >
                       {d.day}
                     </div>
@@ -2366,7 +2355,7 @@ const App = () => {
                       <div className="flex items-center gap-2">
                         <span
                           className={`text-[15px] tracking-tight transition-colors duration-300 whitespace-nowrap cursor-pointer ${activeDay === d.day ? 'text-[#3182F6] font-black' : 'text-slate-500 font-bold group-hover:text-slate-800'}`}
-                          onClick={() => { document.getElementById(`day-marker-${d.day}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); setActiveDay(d.day); }}
+                          onClick={() => handleNavClick(d.day)}
                         >Day {d.day}</span>
                         <button
                           onClick={(e) => {
@@ -2767,22 +2756,24 @@ const App = () => {
               <div className="mb-8 sticky top-0 z-[120]">
                 {/* 컴팩트 스티키 바 (스크롤 시) */}
                 {heroCollapsed && (
-                  <div className="bg-gradient-to-r from-[#1e3a8a] to-[#3182F6] rounded-2xl px-5 py-3 flex items-center justify-between gap-4 shadow-md">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <MapPin size={10} className="text-white/60 shrink-0" />
-                      <span className="text-[12px] font-black text-white truncate">{tripRegion || '여행지'}</span>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="text-right">
-                        <p className="text-[8px] font-black uppercase tracking-wider text-white/40 leading-none mb-0.5">남은 예산</p>
-                        <p className="text-[16px] font-black text-white tabular-nums leading-none" style={{ letterSpacing: '-0.02em' }}>₩{budgetSummary.remaining.toLocaleString()}</p>
+                  <div className="bg-white/90 backdrop-blur-2xl border border-slate-200/80 rounded-[20px] px-5 py-3.5 flex items-center justify-between gap-4 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.08)] mx-4 mt-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
+                        <MapPin size={12} className="text-[#3182F6]" />
                       </div>
-                      <div className="w-px h-8 bg-white/20" />
-                      <div className="flex flex-col gap-1 items-end">
-                        <div className="w-20 h-[2px] bg-white/20 rounded-full overflow-hidden">
-                          <div className="h-full bg-white rounded-full" style={{ width: `${usedPct}%` }} />
+                      <span className="text-[14px] font-black text-slate-800 truncate">{tripRegion || '여행지'}</span>
+                    </div>
+                    <div className="flex items-center gap-4 shrink-0">
+                      <div className="text-right">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">남은 예산</p>
+                        <p className="text-[15px] font-black text-[#3182F6] tabular-nums leading-none tracking-tight">₩{budgetSummary.remaining.toLocaleString()}</p>
+                      </div>
+                      <div className="w-px h-8 bg-slate-100" />
+                      <div className="flex flex-col gap-1.5 items-end">
+                        <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-[#3182F6] to-indigo-500 rounded-full" style={{ width: `${usedPct}%` }} />
                         </div>
-                        <span className="text-[9px] text-white/40 font-bold tabular-nums">{usedPct}%</span>
+                        <span className="text-[9px] text-slate-400 font-bold tabular-nums tracking-wider">{usedPct}%</span>
                       </div>
                     </div>
                   </div>
@@ -2790,78 +2781,96 @@ const App = () => {
 
                 {/* 풀 카드 (최상단) */}
                 {!heroCollapsed && (
-                  <section className="mb-8 mt-2 px-2">
-                    <div className="max-w-[560px] mx-auto rounded-[28px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.06)] bg-white border border-slate-200">
-                      <div
-                        className="px-6 pt-7 pb-8 relative overflow-hidden"
-                        style={{
-                          backgroundImage: "linear-gradient(to bottom, rgba(20,40,90,0.3) 0%, rgba(37,99,235,0.95) 100%), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80')",
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                        }}
-                      >
-                        <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/[0.08] blur-2xl" />
-                        <div className="flex items-start justify-between relative z-10">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 mb-2.5">
-                              <MapPin size={11} className="text-white/70 shrink-0" />
-                              <input value={tripRegion} onChange={(e) => setTripRegion(e.target.value)} placeholder="여행지"
-                                className="bg-transparent border-none outline-none text-[26px] font-black text-white placeholder:text-white/30 w-40 leading-none" />
-                            </div>
-                            <div className="relative">
-                              <button onClick={() => setShowDatePicker(v => !v)}
-                                className="flex items-center gap-2 bg-white/12 hover:bg-white/20 px-3 py-1.5 rounded-xl transition-colors">
-                                <span className="text-[11px] font-bold text-white/75">
-                                  {tripStartDate ? tripStartDate.replace(/-/g, '. ') : '시작일 선택'}
+                  <section className="mb-10 px-4 mt-6">
+                    <div className="max-w-[560px] mx-auto rounded-[32px] p-7 sm:p-9 relative overflow-hidden bg-white shadow-[0_12px_40px_-12px_rgba(0,0,0,0.06)] border border-slate-100/80">
+                      {/* 배경 장식 (글래스모피즘 라이트닝) */}
+                      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-bl from-blue-50 via-indigo-50/20 to-transparent rounded-full blur-[60px] -translate-y-1/3 translate-x-1/4 opacity-80 pointer-events-none" />
+
+                      <div className="relative z-10 flex flex-col gap-8">
+                        {/* 🌟 1. 타이틀 & 일정 */}
+                        <div className="flex flex-col gap-4">
+                          <input
+                            value={tripRegion}
+                            onChange={(e) => setTripRegion(e.target.value)}
+                            placeholder="어디로 떠나시나요?"
+                            className="bg-transparent border-none outline-none text-[32px] sm:text-[38px] font-black text-slate-800 placeholder:text-slate-300 w-full tracking-[-0.03em] leading-none"
+                          />
+                          <div className="relative flex items-center gap-2">
+                            <button
+                              onClick={() => setShowDatePicker(v => !v)}
+                              className="flex items-center gap-2.5 bg-slate-50 hover:bg-blue-50 border border-slate-100 hover:border-blue-100 px-4 py-2.5 rounded-2xl transition-all group"
+                            >
+                              <Calendar size={14} className="text-slate-400 group-hover:text-[#3182F6] transition-colors shrink-0" />
+                              <div className="flex items-center gap-1.5 pt-0.5">
+                                <span className="text-[12px] font-extrabold text-slate-600 group-hover:text-blue-700 transition-colors">
+                                  {tripStartDate ? tripStartDate.replace(/-/g, '. ') : '시작일'}
                                 </span>
-                                <span className="text-white/40 text-[10px] font-black">→</span>
-                                <span className="text-[11px] font-bold text-white/75">
-                                  {tripEndDate ? tripEndDate.replace(/-/g, '. ') : '종료일 선택'}
+                                <span className="text-slate-300 text-[10px] font-black">~</span>
+                                <span className="text-[12px] font-extrabold text-slate-600 group-hover:text-blue-700 transition-colors">
+                                  {tripEndDate ? tripEndDate.replace(/-/g, '. ') : '종료일'}
                                 </span>
-                              </button>
-                              {showDatePicker && (
-                                <>
-                                  <div className="fixed inset-0 z-[299]" onClick={() => setShowDatePicker(false)} />
-                                  <DateRangePicker
-                                    startDate={tripStartDate} endDate={tripEndDate}
-                                    onStartChange={setTripStartDate} onEndChange={setTripEndDate}
-                                    onClose={() => setShowDatePicker(false)}
-                                  />
-                                </>
-                              )}
+                              </div>
+                            </button>
+                            <div className="px-3 py-2 bg-slate-50 border border-slate-100 rounded-2xl">
+                              <span className="text-[12px] font-black text-slate-500">
+                                {tripDays > 0 ? `${tripNights}박 ${tripDays}일` : `${itinerary.days?.length || 0}일 일정`}
+                              </span>
                             </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="bg-white px-5 pt-4 pb-5">
-                        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 mb-0.5">남은 예산</p>
-                        <p className="text-[36px] font-black text-slate-800 leading-none tabular-nums mb-4" style={{ letterSpacing: '-0.02em' }}>
-                          ₩{budgetSummary.remaining.toLocaleString()}
-                        </p>
-                        <div className="grid grid-cols-2 gap-2.5 mb-4">
-                          <div className="bg-slate-50 rounded-xl px-3 py-2.5">
-                            <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">지출 합계</p>
-                            <p className="text-[15px] font-black text-slate-700 tabular-nums" style={{ letterSpacing: '-0.01em' }}>₩{budgetSummary.total.toLocaleString()}</p>
-                          </div>
-                          <div className="bg-slate-50 rounded-xl px-3 py-2.5 cursor-pointer hover:bg-blue-50 transition-colors" onClick={() => setEditingBudget(true)}>
-                            <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">총 예산</p>
-                            {editingBudget ? (
-                              <input type="number" defaultValue={MAX_BUDGET} autoFocus
-                                className="text-[15px] font-black text-slate-700 w-full bg-transparent border-b border-slate-300 outline-none tabular-nums"
-                                onBlur={(e) => { const val = Number(e.target.value); if (val > 0) setItinerary(prev => ({ ...prev, maxBudget: val })); setEditingBudget(false); }}
-                                onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setEditingBudget(false); }}
-                              />
-                            ) : (
-                              <p className="text-[15px] font-black text-slate-400 tabular-nums" style={{ letterSpacing: '-0.01em' }}>₩{MAX_BUDGET.toLocaleString()}</p>
+
+                            {showDatePicker && (
+                              <>
+                                <div className="fixed inset-0 z-[299]" onClick={() => setShowDatePicker(false)} />
+                                <DateRangePicker
+                                  startDate={tripStartDate} endDate={tripEndDate}
+                                  onStartChange={setTripStartDate} onEndChange={setTripEndDate}
+                                  onClose={() => setShowDatePicker(false)}
+                                />
+                              </>
                             )}
                           </div>
                         </div>
-                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-1.5">
-                          <div className="h-full bg-gradient-to-r from-[#3182F6] to-[#6366f1] rounded-full transition-all duration-700" style={{ width: `${usedPct}%` }} />
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-[10px] text-slate-400 font-bold tabular-nums">{usedPct}% 사용</span>
-                          <span className="text-[10px] text-slate-400 font-bold">{itinerary.days?.length || 0}일 일정</span>
+
+                        <div className="w-full h-px bg-slate-100/80" />
+
+                        {/* 🌟 2. 예산 현황 요약 */}
+                        <div className="flex flex-col gap-6">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2.5">총 남은 예산</p>
+                            <p className="text-[42px] font-black text-[#3182F6] leading-none tabular-nums tracking-tighter">
+                              ₩{budgetSummary.remaining.toLocaleString()}
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-slate-50/70 border border-slate-100 rounded-2xl p-4">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5 mt-0.5">현재 지출</p>
+                              <p className="text-[16px] font-bold text-slate-700 tabular-nums tracking-tight">₩{budgetSummary.total.toLocaleString()}</p>
+                            </div>
+                            <div className="bg-slate-50/70 border border-slate-100 rounded-2xl p-4 cursor-pointer hover:bg-blue-50/50 hover:border-blue-100 transition-all group" onClick={() => setEditingBudget(true)}>
+                              <p className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5 mt-0.5">
+                                설정 예산 <Plus size={9} className="opacity-0 group-hover:opacity-100 text-[#3182F6] transition-opacity" />
+                              </p>
+                              {editingBudget ? (
+                                <input type="number" defaultValue={MAX_BUDGET} autoFocus
+                                  className="text-[16px] font-bold text-[#3182F6] w-full bg-transparent border-b border-blue-200 outline-none tabular-nums"
+                                  onBlur={(e) => { const val = Number(e.target.value); if (val > 0) setItinerary(prev => ({ ...prev, maxBudget: val })); setEditingBudget(false); }}
+                                  onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setEditingBudget(false); }}
+                                />
+                              ) : (
+                                <p className="text-[16px] font-bold text-slate-400 tabular-nums tracking-tight">₩{MAX_BUDGET.toLocaleString()}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-2">
+                            <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden shadow-inner flex items-center">
+                              <div className="h-full bg-gradient-to-r from-[#3182F6] via-indigo-500 to-purple-500 rounded-full transition-all duration-1000 ease-out" style={{ width: `${usedPct}%` }} />
+                            </div>
+                            <div className="flex justify-between items-center px-1">
+                              <span className="text-[10px] text-slate-400 font-bold tabular-nums">{usedPct}% 사용됨</span>
+                              <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Safe</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>

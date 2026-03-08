@@ -1,0 +1,23 @@
+
+D:\諛뷀깢?붾㈃\anti_planer\src\App.jsx
+    13:7   error    'getTimeOfDayOverlay' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                              no-unused-vars
+   121:14  error    'e' is defined but never used                                                                                                                    no-unused-vars
+   167:14  error    'e' is defined but never used                                                                                                                    no-unused-vars
+   227:6   warning  React Hook React.useEffect has a missing dependency: 'handleImageAnalyze'. Either include it or remove the dependency array                      react-hooks/exhaustive-deps
+   422:10  error    'refreshing' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                       no-unused-vars
+   442:10  error    'aiSuggestions' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                    no-unused-vars
+   450:10  error    'dashboardHeight' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                  no-unused-vars
+   610:16  error    'e' is defined but never used                                                                                                                    no-unused-vars
+   739:9   error    'updateWaitingTime' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                no-unused-vars
+   831:6   warning  React Hook useMemo has a missing dependency: 'MAX_BUDGET'. Either include it or remove the dependency array                                      react-hooks/exhaustive-deps
+  1127:9   error    'updateAlternative' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                no-unused-vars
+  1266:9   error    'handleRefresh' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                    no-unused-vars
+  1280:9   error    'addSuggestionAsAlternative' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                       no-unused-vars
+  1335:39  error    Unnecessary escape character: \(                                                                                                                 no-useless-escape
+  1438:9   error    'addBackupItem' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                    no-unused-vars
+  1582:6   warning  React Hook useEffect has missing dependencies: 'getMenuLineTotal' and 'recalculateSchedule'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  1954:23  error    'isOpenRun' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                        no-unused-vars
+  2387:44  error    'e' is defined but never used                                                                                                                    no-unused-vars
+
+??18 problems (15 errors, 3 warnings)
+

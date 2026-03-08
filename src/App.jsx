@@ -1,9 +1,10 @@
 /* eslint-disable no-unused-vars, react-hooks/exhaustive-deps, no-useless-escape */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import {
-  Navigation, MessageSquare,
+  Navigation, MessageSquare, LogOut, User as UserIcon,
   Hourglass, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
@@ -638,6 +639,38 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
   );
 };
 const App = () => {
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // ── 인증 감시 ──
+  useEffect(() => {
+    return onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthLoading(false);
+    });
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (e) {
+      console.error('로그인 실패:', e);
+      alert('로그인에 실패했습니다. 다시 시도해 주세요.');
+    }
+  };
+
+  const handleLogout = async () => {
+    if (!window.confirm('로그아웃 하시겠습니까?')) return;
+    try {
+      await signOut(auth);
+      setItinerary(null);
+      setLoading(true);
+    } catch (e) {
+      console.error('로그아웃 실패:', e);
+    }
+  };
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [draggingFromLibrary, setDraggingFromLibrary] = useState(null);
@@ -670,6 +703,10 @@ const App = () => {
   const [activeItemId, setActiveItemId] = useState(null);
   const isNavScrolling = React.useRef(false);
   const navScrollTimeout = React.useRef(null);
+  const longPressTimerRef = useRef(null);
+  const touchStartPosRef = useRef({ x: 0, y: 0 });
+  const isDraggingActiveRef = useRef(false);
+  const dragGhostRef = useRef(null);
   const handleNavClick = (dayNum, itemId = null) => {
     isNavScrolling.current = true;
     if (navScrollTimeout.current) clearTimeout(navScrollTimeout.current);
@@ -2199,22 +2236,23 @@ const App = () => {
     setLastAction("별도 일정이 추가되었습니다.");
   };
 
-  // Firestore 저장 (1초 디바운스)
+  // Firestore 저장 (1초 디바운스, 사용자 UID 기준)
   useEffect(() => {
-    if (!loading && itinerary && itinerary.days && itinerary.days.length > 0) {
-      const timer = setTimeout(() => {
-        setDoc(doc(db, 'itinerary', 'main'), itinerary)
-          .catch(e => console.error('Firestore 저장 실패:', e));
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [itinerary, loading]);
+    if (!user || loading || !itinerary || !itinerary.days || itinerary.days.length === 0) return;
+    const timer = setTimeout(() => {
+      setDoc(doc(db, 'users', user.uid, 'itinerary', 'main'), itinerary)
+        .catch(e => console.error('Firestore 저장 실패:', e));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [itinerary, loading, user]);
 
-  // Firestore 로드
+  // Firestore 로드 (사용자 UID 기준)
   useEffect(() => {
+    if (!user) return;
     (async () => {
+      setLoading(true);
       try {
-        const snap = await getDoc(doc(db, 'itinerary', 'main'));
+        const snap = await getDoc(doc(db, 'users', user.uid, 'itinerary', 'main'));
         if (snap.exists()) {
           const parsed = snap.data();
           if (parsed && Array.isArray(parsed.days)) {
@@ -2301,9 +2339,41 @@ const App = () => {
       setItinerary({ days: calculatedDays, places: [] });
       setLoading(false);
     })();
-  }, []);
+  }, [user]);
 
-  if (loading) return <div className="min-h-screen bg-[#F2F4F6] flex items-center justify-center font-bold text-slate-400">PLANNER LOADING...</div>;
+  if (authLoading) return <div className="min-h-screen bg-[#F2F4F6] flex items-center justify-center font-bold text-slate-400">인증 확인 중...</div>;
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#F2F4F6] flex items-center justify-center p-6 sm:p-12 relative overflow-hidden">
+        {/* 장식용 배경 */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-100 rounded-full blur-[120px] opacity-60 animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-100 rounded-full blur-[120px] opacity-60 animate-pulse" style={{ animationDelay: '1s' }} />
+
+        <div className="bg-white/80 backdrop-blur-2xl border border-white p-12 rounded-[48px] shadow-[0_32px_80px_rgba(0,0,0,0.06)] max-w-[480px] w-full text-center flex flex-col gap-8 z-10">
+          <div className="flex flex-col gap-3">
+            <div className="w-16 h-16 bg-gradient-to-br from-[#3182F6] to-indigo-500 rounded-3xl flex items-center justify-center mx-auto shadow-lg shadow-blue-500/20 mb-2 transform hover:scale-110 transition-transform">
+              <Navigation size={32} className="text-white fill-white/20" />
+            </div>
+            <h1 className="text-[32px] font-black tracking-tight text-slate-800 leading-tight">나만의 여행 계획<br /><span className="text-[#3182F6]">Anti Planer</span></h1>
+            <p className="text-slate-500 font-bold text-[15px] leading-relaxed">복잡한 여행 계획은 잊으세요.<br />당신에게 최적화된 동선을 만들어 드립니다.</p>
+          </div>
+
+          <button
+            onClick={handleLogin}
+            className="group relative flex items-center justify-center gap-3 bg-white border border-slate-200 hover:border-[#3182F6] hover:bg-blue-50/50 px-8 py-4.5 rounded-[24px] transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1 active:scale-95"
+          >
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6" />
+            <span className="text-[17px] font-black text-slate-700 group-hover:text-[#3182F6]">Google 계정으로 시작하기</span>
+          </button>
+
+          <p className="text-[12px] font-bold text-slate-400 tracking-wide">로그인 시 개인별 맞춤 일정을 저장하고 불러올 수 있습니다.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading || !itinerary) return <div className="min-h-screen bg-[#F2F4F6] flex items-center justify-center font-bold text-slate-400">일정을 불러오고 있습니다...</div>;
 
   return (
     <div className="min-h-screen bg-[#F2F4F6] text-[#191F28] font-sans flex overflow-x-hidden font-bold flex-row relative">
@@ -2421,7 +2491,7 @@ const App = () => {
           <>
             {/* ── 고정 헤더 ── */}
             <div className="px-5 pt-5 pb-3 border-b border-slate-100 bg-white shrink-0">
-              <div className="flex items-center gap-2.5 flex-1">
+              <div className="flex items-center gap-2.5 flex-1 mb-3">
                 <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
                   <MapIcon size={14} className="text-[#3182F6]" />
                 </div>
@@ -2433,6 +2503,19 @@ const App = () => {
                 >
                   <Navigation size={11} />
                   {isCalculatingAllRoutes ? '탐색중...' : '전체경로'}
+                </button>
+              </div>
+
+              {/* 사용자 정보 & 로그아웃 버튼 */}
+              <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
+                <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border-2 border-white shadow-sm">
+                  {user.photoURL ? <img src={user.photoURL} alt="User" /> : <div className="w-full h-full bg-slate-200 flex items-center justify-center"><UserIcon size={12} className="text-slate-400" /></div>}
+                </div>
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-[11px] font-black text-slate-700 truncate">{user.displayName || '사용자'}</span>
+                </div>
+                <button onClick={handleLogout} className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all" title="로그아웃">
+                  <LogOut size={12} />
                 </button>
               </div>
             </div>
@@ -2731,52 +2814,95 @@ const App = () => {
                               setDraggingFromTimeline(null);
                             }
                           }}
-                          onTouchStart={(e) => {
-                            const touch = e.touches[0];
-                            setDragCoord({ x: touch.clientX, y: touch.clientY });
-                            setDraggingFromLibrary(place);
-                            setIsDragCopy(false);
-                            startAutoScroll();
-                          }}
-                          onTouchMove={(e) => {
-                            if (!draggingFromLibrary) return;
-                            e.preventDefault();
-                            const touch = e.touches[0];
-                            setDragCoord({ x: touch.clientX, y: touch.clientY });
-                            lastTouchYRef.current = touch.clientY;
-                            const el = document.elementFromPoint(touch.clientX, touch.clientY);
-                            const dropEl = el?.closest('[data-droptarget]');
-                            const dropItemEl = el?.closest('[data-dropitem]');
-                            if (dropEl) {
-                              const [di, pi] = dropEl.dataset.droptarget.split('-').map(Number);
-                              setDropTarget({ dayIdx: di, insertAfterPIdx: pi });
-                              setDropOnItem(null);
-                            } else if (dropItemEl) {
-                              const [di, pi] = dropItemEl.dataset.dropitem.split('-').map(Number);
-                              setDropTarget(null);
-                              setDropOnItem({ dayIdx: di, pIdx: pi });
-                            } else {
-                              setDropTarget(null);
-                              setDropOnItem(null);
-                            }
-                          }}
-                          onTouchEnd={(e) => {
-                            stopAutoScroll();
-                            if (draggingFromLibrary) {
-                              if (dropTarget) {
-                                addNewItem(dropTarget.dayIdx, dropTarget.insertAfterPIdx, draggingFromLibrary.types, draggingFromLibrary);
-                                if (!isDragCopy) removePlace(draggingFromLibrary.id);
-                              } else if (dropOnItem) {
-                                addPlaceAsPlanB(dropOnItem.dayIdx, dropOnItem.pIdx, draggingFromLibrary);
-                                if (!isDragCopy) removePlace(draggingFromLibrary.id);
-                              }
-                            }
-                            setDraggingFromLibrary(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false);
-                          }}
-                          className={`relative w-full shrink-0 rounded-[20px] border bg-white cursor-grab active:cursor-grabbing select-none transition-all duration-300 group overflow-hidden hover:-translate-y-0.5 touch-none
+                          className={`relative w-full shrink-0 rounded-[20px] border bg-white cursor-grab active:cursor-grabbing select-none transition-all duration-300 group overflow-hidden hover:-translate-y-0.5
                     ${draggingFromLibrary?.id === place.id ? 'pointer-events-none opacity-50' : ''}
                     ${bizWarningNow ? 'border-orange-200 hover:shadow-[0_8px_24px_-4px_rgba(249,115,22,0.15)] ring-1 ring-orange-100' : openStatus === true ? 'border-[#3182F6]/30 shadow-[0_4px_16px_-4px_rgba(49,130,246,0.1)] hover:shadow-[0_8px_24px_-4px_rgba(49,130,246,0.15)] ring-1 ring-[#3182F6]/10' : 'border-slate-100 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.06)] hover:border-slate-200'}`}
                         >
+                          {/* 모바일용 상단 드래그 핸들 전용 영역 */}
+                          <div
+                            className="absolute top-0 left-0 right-0 h-14 z-50 touch-none flex items-start justify-center pt-2"
+                            onTouchStart={(e) => {
+                              const touch = e.touches[0];
+                              const startX = touch.clientX;
+                              const startY = touch.clientY;
+                              touchStartPosRef.current = { x: startX, y: startY };
+                              isDraggingActiveRef.current = false;
+
+                              if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+                              longPressTimerRef.current = setTimeout(() => {
+                                if (window.navigator.vibrate) window.navigator.vibrate(20);
+                                isDraggingActiveRef.current = true;
+                                setDragCoord({ x: startX, y: startY });
+                                setDraggingFromLibrary(place);
+                                setIsDragCopy(false);
+                                startAutoScroll();
+                              }, 300);
+                            }}
+                            onTouchMove={(e) => {
+                              const touch = e.touches[0];
+                              const moveX = touch.clientX;
+                              const moveY = touch.clientY;
+
+                              if (!isDraggingActiveRef.current) {
+                                const dist = Math.hypot(moveX - touchStartPosRef.current.x, moveY - touchStartPosRef.current.y);
+                                if (dist > 10) {
+                                  if (longPressTimerRef.current) {
+                                    clearTimeout(longPressTimerRef.current);
+                                    longPressTimerRef.current = null;
+                                  }
+                                }
+                                return;
+                              }
+
+                              e.preventDefault();
+                              const x = moveX;
+                              const y = moveY;
+
+                              if (dragGhostRef.current) {
+                                dragGhostRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -120%)`;
+                              }
+
+                              lastTouchYRef.current = y;
+                              const el = document.elementFromPoint(x, y);
+                              const dropEl = el?.closest('[data-droptarget]');
+                              const dropItemEl = el?.closest('[data-dropitem]');
+                              if (dropEl) {
+                                const [di, pi] = dropEl.dataset.droptarget.split('-').map(Number);
+                                setDropTarget({ dayIdx: di, insertAfterPIdx: pi });
+                                setDropOnItem(null);
+                              } else if (dropItemEl) {
+                                const [di, pi] = dropItemEl.dataset.dropitem.split('-').map(Number);
+                                setDropTarget(null);
+                                setDropOnItem({ dayIdx: di, pIdx: pi });
+                              } else {
+                                setDropTarget(null);
+                                setDropOnItem(null);
+                              }
+                            }}
+                            onTouchEnd={(e) => {
+                              if (longPressTimerRef.current) {
+                                clearTimeout(longPressTimerRef.current);
+                                longPressTimerRef.current = null;
+                              }
+                              stopAutoScroll();
+                              if (isDraggingActiveRef.current && draggingFromLibrary) {
+                                const touch = e.changedTouches[0];
+                                const el = document.elementFromPoint(touch.clientX, touch.clientY);
+                                // ... existing drop logic is already using states, but we need to ensure the final states are correct
+                                if (dropTarget) {
+                                  addNewItem(dropTarget.dayIdx, dropTarget.insertAfterPIdx, draggingFromLibrary.types, draggingFromLibrary);
+                                  if (!isDragCopy) removePlace(draggingFromLibrary.id);
+                                } else if (dropOnItem) {
+                                  addPlaceAsPlanB(dropOnItem.dayIdx, dropOnItem.pIdx, draggingFromLibrary);
+                                  if (!isDragCopy) removePlace(draggingFromLibrary.id);
+                                }
+                              }
+                              isDraggingActiveRef.current = false;
+                              setDraggingFromLibrary(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false);
+                            }}
+                          >
+                            <div className="w-12 h-1 bg-slate-200 group-hover:bg-[#3182F6]/40 rounded-full transition-all" />
+                          </div>
                           <div className="p-4 flex flex-col gap-2.5">
                             <div className="flex items-center gap-1.5 flex-wrap pr-12 cursor-pointer" onClick={(e) => { e.stopPropagation(); setEditingPlaceId(place.id); setEditPlaceDraft({ ...place, address: place.address || place.receipt?.address || '', business: normalizeBusiness(place.business || {}), receipt: deepClone(place.receipt || { address: place.address || '', items: [] }), showBusinessEditor: !!(place.business?.open || place.business?.close || place.business?.breakStart || place.business?.breakEnd || place.business?.lastOrder || place.business?.closedDays?.length) }); }}>
                               {chips}
@@ -3161,67 +3287,107 @@ const App = () => {
                           setDraggingFromLibrary(null); setDropOnItem(null); setIsDragCopy(false);
                         }
                       }}
-                      onTouchStart={(e) => {
-                        if (p.type === 'backup' || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-                        const touch = e.touches[0];
-                        setDragCoord({ x: touch.clientX, y: touch.clientY });
-                        setDraggingFromTimeline({ dayIdx: dIdx, pIdx, altIdx: planPos > 0 ? planPos - 1 : undefined });
-                        startAutoScroll();
-                      }}
-                      onTouchMove={(e) => {
-                        if (!draggingFromTimeline) return;
-                        e.preventDefault();
-                        const touch = e.touches[0];
-                        setDragCoord({ x: touch.clientX, y: touch.clientY });
-                        lastTouchYRef.current = touch.clientY;
-                        const el = document.elementFromPoint(touch.clientX, touch.clientY);
-                        setIsDroppingOnDeleteZone(false);
-                        const isDel = !!el?.closest('[data-deletezone]');
-                        const isLib = !!el?.closest('[data-library-dropzone]');
-                        const dropEl = el?.closest('[data-droptarget]');
+                      className={`relative w-full flex flex-col border rounded-[24px] transition-all overflow-hidden cursor-grab active:cursor-grabbing group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${hasPlanB ? 'ring-1 ring-amber-100' : ''} ${stateStyles}`}
+                      onClick={() => toggleReceipt(p.id)}
+                    >
+                      {/* 모바일용 상단 드래그 핸들 전용 영역 */}
+                      <div
+                        className="absolute top-0 left-0 right-0 h-14 z-50 touch-none flex items-start justify-center pt-2"
+                        onTouchStart={(e) => {
+                          if (p.type === 'backup' || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+                          const touch = e.touches[0];
+                          const startX = touch.clientX;
+                          const startY = touch.clientY;
+                          touchStartPosRef.current = { x: startX, y: startY };
+                          isDraggingActiveRef.current = false;
 
-                        if (isDel) setIsDroppingOnDeleteZone(true);
-                        if (dropEl) {
-                          const [di, pi] = dropEl.dataset.droptarget.split('-').map(Number);
-                          setDropTarget({ dayIdx: di, insertAfterPIdx: pi });
-                        } else {
-                          setDropTarget(null);
-                        }
-                      }}
-                      onTouchEnd={(e) => {
-                        stopAutoScroll();
-                        if (draggingFromTimeline) {
-                          const touch = e.changedTouches[0];
-                          const el = document.elementFromPoint(touch.clientX, touch.clientY);
+                          if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+                          longPressTimerRef.current = setTimeout(() => {
+                            if (window.navigator.vibrate) window.navigator.vibrate(20);
+                            isDraggingActiveRef.current = true;
+                            setDragCoord({ x: startX, y: startY });
+                            setDraggingFromTimeline({ dayIdx: dIdx, pIdx, altIdx: planPos > 0 ? planPos - 1 : undefined });
+                            startAutoScroll();
+                          }, 300);
+                        }}
+                        onTouchMove={(e) => {
+                          const touch = e.touches[0];
+                          const moveX = touch.clientX;
+                          const moveY = touch.clientY;
+
+                          if (!isDraggingActiveRef.current) {
+                            const dist = Math.hypot(moveX - touchStartPosRef.current.x, moveY - touchStartPosRef.current.y);
+                            if (dist > 10) {
+                              if (longPressTimerRef.current) {
+                                clearTimeout(longPressTimerRef.current);
+                                longPressTimerRef.current = null;
+                              }
+                            }
+                            return;
+                          }
+
+                          e.preventDefault();
+                          const x = moveX;
+                          const y = moveY;
+
+                          if (dragGhostRef.current) {
+                            dragGhostRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -120%)`;
+                          }
+
+                          lastTouchYRef.current = y;
+                          const el = document.elementFromPoint(x, y);
+                          setIsDroppingOnDeleteZone(false);
                           const isDel = !!el?.closest('[data-deletezone]');
                           const isLib = !!el?.closest('[data-library-dropzone]');
                           const dropEl = el?.closest('[data-droptarget]');
 
-                          if (isDel) {
-                            if (draggingFromTimeline.altIdx === undefined) {
-                              deletePlanItem(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx);
-                            }
-                          } else if (isLib) {
-                            if (draggingFromTimeline.altIdx !== undefined) {
-                              dropAltOnLibrary(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
-                            } else {
-                              const src = itinerary.days?.[draggingFromTimeline.dayIdx]?.plan?.[draggingFromTimeline.pIdx];
-                              dropTimelineItemOnLibrary(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, askPlanBMoveMode(src));
-                            }
-                          } else if (dropEl) {
+                          if (isDel) setIsDroppingOnDeleteZone(true);
+                          if (dropEl) {
                             const [di, pi] = dropEl.dataset.droptarget.split('-').map(Number);
-                            if (draggingFromTimeline.altIdx !== undefined) {
-                              insertAlternativeToTimeline(di, pi, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
-                            } else {
-                              movePlanItem(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, di, pi);
+                            setDropTarget({ dayIdx: di, insertAfterPIdx: pi });
+                          } else {
+                            setDropTarget(null);
+                          }
+                        }}
+                        onTouchEnd={(e) => {
+                          if (longPressTimerRef.current) {
+                            clearTimeout(longPressTimerRef.current);
+                            longPressTimerRef.current = null;
+                          }
+                          stopAutoScroll();
+                          if (isDraggingActiveRef.current && draggingFromTimeline) {
+                            const touch = e.changedTouches[0];
+                            const el = document.elementFromPoint(touch.clientX, touch.clientY);
+                            const isDel = !!el?.closest('[data-deletezone]');
+                            const isLib = !!el?.closest('[data-library-dropzone]');
+                            const dropEl = el?.closest('[data-droptarget]');
+
+                            if (isDel) {
+                              if (draggingFromTimeline.altIdx === undefined) {
+                                deletePlanItem(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx);
+                              }
+                            } else if (isLib) {
+                              if (draggingFromTimeline.altIdx !== undefined) {
+                                dropAltOnLibrary(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
+                              } else {
+                                const src = itinerary.days?.[draggingFromTimeline.dayIdx]?.plan?.[draggingFromTimeline.pIdx];
+                                dropTimelineItemOnLibrary(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, askPlanBMoveMode(src));
+                              }
+                            } else if (dropEl) {
+                              const [di, pi] = dropEl.dataset.droptarget.split('-').map(Number);
+                              if (draggingFromTimeline.altIdx !== undefined) {
+                                insertAlternativeToTimeline(di, pi, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
+                              } else {
+                                movePlanItem(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, di, pi);
+                              }
                             }
                           }
-                        }
-                        setDraggingFromTimeline(null); setDropTarget(null); setDropOnItem(null); setIsDroppingOnDeleteZone(false);
-                      }}
-                      className={`relative w-full flex flex-col border rounded-[24px] transition-all overflow-hidden cursor-grab active:cursor-grabbing group touch-none ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${hasPlanB ? 'ring-1 ring-amber-100' : ''} ${stateStyles}`}
-                      onClick={() => toggleReceipt(p.id)}
-                    >
+                          isDraggingActiveRef.current = false;
+                          setDraggingFromTimeline(null); setDropTarget(null); setDropOnItem(null); setIsDroppingOnDeleteZone(false);
+                        }}
+                      >
+                        <div className="w-12 h-1 bg-slate-200 group-hover:bg-[#3182F6]/40 rounded-full transition-all" />
+                      </div>
                       {/* Plan B 페이지 인디케이터 */}
                       {hasPlanB && (
                         <div className="absolute top-2.5 right-11 z-20 pointer-events-none">
@@ -3888,12 +4054,14 @@ const App = () => {
         {/* ── 드래그 프리뷰 고스트 (모바일용) ── */}
         {(draggingFromLibrary || draggingFromTimeline) && (
           <div
+            ref={dragGhostRef}
             className="fixed pointer-events-none z-[9999] bg-white/95 backdrop-blur-xl border-2 border-[#3182F6] rounded-2xl px-5 py-3.5 shadow-[0_20px_50px_rgba(49,130,246,0.3)] flex items-center gap-4 animate-in fade-in zoom-in duration-200"
             style={{
-              left: dragCoord.x,
-              top: dragCoord.y,
-              transform: 'translate(-50%, -120%)', // 손가락에 가리지 않게 위로 띄움
-              minWidth: '180px'
+              left: 0,
+              top: 0,
+              transform: `translate3d(${dragCoord.x}px, ${dragCoord.y}px, 0) translate(-50%, -120%)`,
+              minWidth: '180px',
+              willChange: 'transform'
             }}
           >
             <div className="w-1.5 h-10 bg-gradient-to-b from-[#3182F6] to-indigo-500 rounded-full shrink-0" />

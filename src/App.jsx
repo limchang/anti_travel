@@ -725,6 +725,33 @@ const App = () => {
     }
     return '';
   };
+  const getDropWarning = (place, dIdx, insertAfterPIdx) => {
+    if (!place?.business) return '';
+    const business = normalizeBusiness(place.business || {});
+    const hasBiz = business.open || business.close || business.breakStart || business.breakEnd || business.closedDays.length;
+    if (!hasBiz) return '';
+    const day = itinerary.days?.[dIdx];
+    if (!day) return '';
+    const prevItem = day.plan[insertAfterPIdx];
+    const nextItem = day.plan[insertAfterPIdx + 1];
+    const estimatedMins = prevItem
+      ? timeToMinutes(prevItem.time || '00:00') + (prevItem.duration || 60)
+      : nextItem ? timeToMinutes(nextItem.time || '00:00') : 0;
+    const weekday = getWeekdayForDayIndex(dIdx);
+    if (weekday && business.closedDays.includes(weekday)) {
+      const label = WEEKDAY_OPTIONS.find(d => d.value === weekday)?.label || weekday;
+      return `${label} 휴무`;
+    }
+    if (business.open && estimatedMins < timeToMinutes(business.open)) return `영업 전 (${business.open}~)`;
+    if (business.close && estimatedMins >= timeToMinutes(business.close)) return `영업 종료`;
+    if (business.breakStart && business.breakEnd) {
+      const bs = timeToMinutes(business.breakStart);
+      const be = timeToMinutes(business.breakEnd);
+      if (estimatedMins >= bs && estimatedMins < be) return `브레이크 (${business.breakStart}~${business.breakEnd})`;
+    }
+    return '';
+  };
+
   const getBusinessWarningNow = (businessRaw) => {
     const business = normalizeBusiness(businessRaw || {});
     const hasBiz = business.open || business.close || business.breakStart || business.breakEnd || business.closedDays.length;
@@ -2901,6 +2928,7 @@ const App = () => {
                     {/* 일차 마지막 아이템 아래 드롭 존 */}
                     {pIdx === d.plan.length - 1 && p.type !== 'backup' && (draggingFromLibrary || draggingFromTimeline?.altIdx !== undefined) && (() => {
                       const isDropHere = dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === pIdx;
+                      const dropWarn = isDropHere && draggingFromLibrary ? getDropWarning(draggingFromLibrary, dIdx, pIdx) : '';
                       return (
                         <div
                           className="relative w-full pt-3 -mb-3 z-10 cursor-copy"
@@ -2917,8 +2945,8 @@ const App = () => {
                             setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropTarget(null); setIsDragCopy(false);
                           }}
                         >
-                          <div className={`w-full flex items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed transition-all duration-150 text-[11px] font-black ${isDropHere ? 'h-12 border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'h-8 border-slate-200 text-slate-300'}`}>
-                            <Plus size={11} /> 이곳에 놓아주세요
+                          <div className={`w-full flex items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed transition-all duration-150 text-[11px] font-black ${isDropHere ? (dropWarn ? 'h-14 border-orange-400 bg-orange-50 text-orange-500' : 'h-12 border-[#3182F6] bg-blue-50 text-[#3182F6]') : 'h-8 border-slate-200 text-slate-300'}`}>
+                            <Plus size={11} /> {isDropHere && dropWarn ? dropWarn : '이곳에 놓아주세요'}
                           </div>
                         </div>
                       );
@@ -2933,6 +2961,7 @@ const App = () => {
 
                           if (draggingFromLibrary || draggingFromTimeline?.altIdx !== undefined) {
                             const isDropHere = dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === pIdx;
+                            const dropWarn = isDropHere && draggingFromLibrary ? getDropWarning(draggingFromLibrary, dIdx, pIdx) : '';
                             return (
                               <div
                                 className="z-10 w-full cursor-copy"
@@ -2949,8 +2978,8 @@ const App = () => {
                                   setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropTarget(null); setIsDragCopy(false);
                                 }}
                               >
-                                <div className={`w-full flex items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed transition-all duration-150 text-[11px] font-black ${isDropHere ? 'h-12 border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'h-8 border-slate-200 text-slate-300'}`}>
-                                  <Plus size={11} /> 이곳에 놓아주세요
+                                <div className={`w-full flex items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed transition-all duration-150 text-[11px] font-black ${isDropHere ? (dropWarn ? 'h-14 border-orange-400 bg-orange-50 text-orange-500' : 'h-12 border-[#3182F6] bg-blue-50 text-[#3182F6]') : 'h-8 border-slate-200 text-slate-300'}`}>
+                                  <Plus size={11} /> {isDropHere && dropWarn ? dropWarn : '이곳에 놓아주세요'}
                                 </div>
                               </div>
                             );

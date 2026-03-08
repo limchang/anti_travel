@@ -668,21 +668,37 @@ const App = () => {
   const [activeItemId, setActiveItemId] = useState(null);
   const isNavScrolling = React.useRef(false);
   const navScrollTimeout = React.useRef(null);
-  const handleNavClick = (day) => {
+  const handleNavClick = (dayNum, itemId = null) => {
     isNavScrolling.current = true;
     if (navScrollTimeout.current) clearTimeout(navScrollTimeout.current);
 
-    // 해당 날짜의 첫 번째 유효 일정 찾기
-    const targetDay = itinerary.days?.find(d => d.day === day);
-    const firstItem = targetDay?.plan?.find(p => p.type !== 'backup');
+    if (dayNum) setActiveDay(dayNum);
 
-    document.getElementById(`day-marker-${day}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setActiveDay(day);
-    if (firstItem) setActiveItemId(firstItem.id);
+    let targetElId = `day-marker-${dayNum}`;
+    if (itemId) {
+      targetElId = itemId;
+      setActiveItemId(itemId);
+      setHighlightedItemId(itemId);
+      setTimeout(() => setHighlightedItemId(null), 1500);
+    } else {
+      // Day 클릭 시 해당 일자의 첫 일정 활성화
+      const targetDay = itinerary.days?.find(d => d.day === dayNum);
+      const firstItem = targetDay?.plan?.find(p => p.type !== 'backup');
+      if (firstItem) setActiveItemId(firstItem.id);
+    }
 
+    const el = document.getElementById(targetElId);
+    if (el) {
+      el.scrollIntoView({
+        behavior: 'smooth',
+        block: itemId ? 'center' : 'start'
+      });
+    }
+
+    // 스크롤 중 Observer가 다른 일정을 가로채지 못하도록 1.5초간 잠금
     navScrollTimeout.current = setTimeout(() => {
       isNavScrolling.current = false;
-    }, 1000); // 스크롤 시간을 고려하여 1초간 점유
+    }, 1500);
   };
   const [basePlanRef, setBasePlanRef] = useState(null); // { dayIdx, pIdx, id, name, address }
   const [placeDistanceMap, setPlaceDistanceMap] = useState({});
@@ -2406,13 +2422,7 @@ const App = () => {
                           return (
                             <div key={p.id}>
                               <button
-                                onClick={() => {
-                                  const elId = pIdx === 0 ? `day-marker-${d.day}` : p.id;
-                                  document.getElementById(elId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                  setActiveItemId(p.id);
-                                  setHighlightedItemId(p.id);
-                                  setTimeout(() => setHighlightedItemId(null), 1500);
-                                }}
+                                onClick={() => handleNavClick(d.day, p.id)}
                                 className={`w-full text-left flex items-center gap-1.5 px-0.5 py-0.5 rounded-lg transition-all ${isActive ? 'bg-blue-50' : 'hover:bg-slate-50'}`}
                               >
                                 <span className={`shrink-0 text-[9px] tabular-nums leading-none ${isActive ? 'font-black text-[#3182F6]' : 'font-bold text-slate-400'}`}>{p.time || '--:--'}</span>

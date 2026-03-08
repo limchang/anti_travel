@@ -512,7 +512,16 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
         <input
           autoFocus
           value={newPlaceName}
-          onChange={(e) => setNewPlaceName(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (/https?:\/\/(naver\.me|map\.naver\.com|place\.map\.kakao\.com)/.test(val)) {
+              setMemo(val);
+              setNewPlaceName('지도 장소 (직접 입력 필요)');
+              setAddressSearchNote('지도 자동 추출은 브라우저 보안(CORS)으로 인해 백엔드 연동 전까지 제한됩니다.');
+            } else {
+              setNewPlaceName(val);
+            }
+          }}
           onBlur={() => { void tryAutoFillAddress(false); }}
           onKeyDown={(e) => {
             if (e.key === 'Escape') onCancel();
@@ -521,7 +530,7 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
               void tryAutoFillAddress(true);
             }
           }}
-          placeholder="일정 이름 입력"
+          placeholder="일정 이름 입력 (지도 링크 붙여넣기 가능)"
           className="w-full bg-transparent text-[17px] font-black text-slate-800 leading-tight outline-none border-b border-slate-200 focus:border-slate-400 transition-colors pb-1"
         />
 
@@ -1420,12 +1429,35 @@ const App = () => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const dayPlan = nextData.days[dayIdx].plan;
       const item = dayPlan[pIdx];
+      const nextItem = dayPlan[pIdx + 1];
+
+      const isNextFixed = nextItem?.isTimeFixed;
+      const isAutoLocked = (item.duration || 0) >= 120 && !item.types?.includes('lodge') && !item.types?.includes('ship');
+      const originalDuration = item.duration || 60;
 
       item.duration = 60;
+
+      if ((isNextFixed || isAutoLocked) && originalDuration > 60) {
+        const remainingTime = originalDuration - 60;
+        dayPlan.splice(pIdx + 1, 0, {
+          id: `backup_${Date.now()}`,
+          time: '-',
+          activity: '별도 일정 (잔여)',
+          type: 'backup',
+          price: 0,
+          duration: remainingTime,
+          state: 'unconfirmed',
+          receipt: { address: '장소 미정', items: [] },
+          types: ['place']
+        });
+        setLastAction("잔여 일정 블록이 생성되었습니다.");
+      } else {
+        setLastAction("소요 시간을 60분으로 초기화했습니다.");
+      }
+
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
     });
-    setLastAction("소요 시간을 60분으로 초기화했습니다.");
   };
 
   const updateWaitingTime = (dayIdx, pIdx, delta) => {
@@ -1811,6 +1843,31 @@ const App = () => {
       return nextData;
     });
     setLastAction("플랜 B를 일정표에 추가했습니다.");
+  };
+
+  const moveTimelineItem = (targetDayIdx, insertAfterPIdx, sourceDayIdx, sourcePIdx, isCopy) => {
+    if (!isCopy && targetDayIdx === sourceDayIdx && insertAfterPIdx === sourcePIdx) return;
+    saveHistory();
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const sourcePlanItem = nextData.days[sourceDayIdx]?.plan?.[sourcePIdx];
+      if (!sourcePlanItem) return nextData;
+
+      const itemToMove = deepClone(sourcePlanItem);
+      itemToMove.id = `item_${Date.now()}`;
+      if (!isCopy) {
+        nextData.days[sourceDayIdx].plan.splice(sourcePIdx, 1);
+        nextData.days[sourceDayIdx].plan = recalculateSchedule(nextData.days[sourceDayIdx].plan);
+        if (targetDayIdx === sourceDayIdx && insertAfterPIdx > sourcePIdx) {
+          insertAfterPIdx--;
+        }
+      }
+
+      nextData.days[targetDayIdx].plan.splice(insertAfterPIdx + 1, 0, itemToMove);
+      nextData.days[targetDayIdx].plan = recalculateSchedule(nextData.days[targetDayIdx].plan);
+      return nextData;
+    });
+    setLastAction(isCopy ? "일정을 복사했습니다." : "일정을 이동했습니다.");
   };
 
   const removeAlternative = (dayIdx, pIdx, altIdx) => {
@@ -2635,24 +2692,10 @@ const App = () => {
                   {isCalculatingAllRoutes ? '탐색중...' : '전체경로'}
                 </button>
               </div>
-
-              {/* 사용자 정보 & 로그아웃 버튼 */}
-              <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
-                <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border-2 border-white shadow-sm">
-                  {user.photoURL ? <img src={user.photoURL} alt="User" /> : <div className="w-full h-full bg-slate-200 flex items-center justify-center"><UserIcon size={12} className="text-slate-400" /></div>}
-                </div>
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-[11px] font-black text-slate-700 truncate">{user.displayName || '사용자'}</span>
-                </div>
-                <button onClick={handleLogout} className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all" title="로그아웃">
-                  <LogOut size={12} />
-                </button>
-              </div>
             </div>
             {/* ── 스크롤 컨텐츠 ── */}
             <div className="flex-1 overflow-y-auto no-scrollbar py-6 px-5 flex flex-col">
               <nav className="flex flex-col gap-6 relative -ml-2">
-                <div className="absolute left-[15px] top-4 bottom-8 w-px bg-slate-100 -z-10" />
                 {itinerary.days?.map((d, dNavIdx) => (
                   <div key={d.day} className="flex items-start gap-1.5 group">
                     <div
@@ -2700,7 +2743,7 @@ const App = () => {
                       </div>
                       <span className="text-[11px] text-slate-400 font-semibold whitespace-nowrap truncate max-w-[170px]">{d.plan?.filter(p => p.type !== 'backup').length || 0}개 일정 · {tripRegion || '지역 미설정'}</span>
                       {/* 일정 제목 목록 */}
-                      <div className="flex flex-col gap-0.5 mt-1 -ml-3">
+                      <div className="flex flex-col gap-0.5 mt-2 -ml-[40px]">
                         {(d.plan || []).filter(p => p.type !== 'backup').map((p, pIdx, arr) => {
                           const isActive = activeItemId === p.id;
                           const nextP = arr[pIdx + 1];
@@ -2712,9 +2755,9 @@ const App = () => {
                                 onClick={() => handleNavClick(d.day, p.id)}
                                 className={`w-full text-left flex items-center gap-1.5 px-0.5 py-0.5 rounded-lg transition-all ${isActive ? 'bg-blue-50' : 'hover:bg-slate-50'}`}
                               >
-                                <span className={`shrink-0 text-[9px] tabular-nums leading-none ${isActive ? 'font-black text-[#3182F6]' : 'font-bold text-slate-400'}`}>{p.time || '--:--'}</span>
+                                <span className={`shrink-0 text-[10px] w-8 text-center tabular-nums leading-none ${isActive ? 'font-black text-[#3182F6]' : 'font-bold text-slate-400'}`}>{p.time || '--:--'}</span>
                                 <div className={`shrink-0 scale-90 origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-60'}`}>{getCategoryBadge((p.types?.[0]) || p.type || 'place')}</div>
-                                <span className={`text-[10px] truncate max-w-[70px] leading-none transition-all ${isActive ? 'font-black text-[#3182F6]' : 'font-bold text-slate-500'}`}>{p.activity}</span>
+                                <span className={`text-[10px] truncate max-w-[100px] leading-none transition-all ${isActive ? 'font-black text-[#3182F6]' : 'font-bold text-slate-500'}`}>{p.activity}</span>
                                 {!p.types?.includes('ship') && (() => {
                                   // 숙소 마지막 항목: overnight duration 계산
                                   const isLastLodge = p.types?.includes('lodge') && pIdx === arr.length - 1;
@@ -2747,6 +2790,21 @@ const App = () => {
                   </div>
                 ))}
               </nav>
+            </div>
+
+            {/* ── 하단 고정: 사용자 정보 & 로그아웃 버튼 ── */}
+            <div className="p-4 border-t border-slate-100 bg-white shrink-0 mt-auto">
+              <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
+                <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border-2 border-white shadow-sm">
+                  {user.photoURL ? <img src={user.photoURL} alt="User" /> : <div className="w-full h-full bg-slate-200 flex items-center justify-center"><UserIcon size={12} className="text-slate-400" /></div>}
+                </div>
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-[11px] font-black text-slate-700 truncate">{user.displayName || '사용자'}</span>
+                </div>
+                <button onClick={handleLogout} className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all" title="로그아웃">
+                  <LogOut size={12} />
+                </button>
+              </div>
             </div>
           </>
         )}
@@ -2927,6 +2985,9 @@ const App = () => {
                             setDraggingFromLibrary(place);
                             setIsDragCopy(copy);
                             e.dataTransfer.effectAllowed = copy ? 'copy' : 'move';
+                            try {
+                              e.dataTransfer.setData('text/plain', `library:${place.id || place.name || 'item'}`);
+                            } catch (_) { /* noop */ }
                           }}
                           onDragEnd={() => { setDraggingFromLibrary(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false); }}
                           onDragOver={(e) => {
@@ -3397,24 +3458,39 @@ const App = () => {
                       data-dropitem={`${dIdx}-${pIdx}`}
                       draggable={p.type !== 'backup'}
                       onDragStart={(e) => {
+                        const copy = ctrlHeldRef.current;
                         if (p.type === 'backup' || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') { e.preventDefault(); return; }
+                        setIsDragCopy(copy);
                         setDraggingFromTimeline({ dayIdx: dIdx, pIdx, altIdx: planPos > 0 ? planPos - 1 : undefined });
-                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.effectAllowed = copy ? 'copy' : 'move';
+                        try {
+                          e.dataTransfer.setData('text/plain', `timeline:${p.id || `${dIdx}-${pIdx}`}`);
+                        } catch (_) { /* noop */ }
                       }}
-                      onDragEnd={() => setDraggingFromTimeline(null)}
+                      onDragEnd={() => { setDraggingFromTimeline(null); setIsDragCopy(false); }}
                       onDragOver={(e) => {
-                        if (draggingFromLibrary && p.type !== 'backup') {
+                        if ((draggingFromLibrary || draggingFromTimeline) && p.type !== 'backup') {
                           e.preventDefault(); e.stopPropagation();
                           setDropOnItem({ dayIdx: dIdx, pIdx });
                         }
                       }}
                       onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropOnItem(null); }}
                       onDrop={(e) => {
-                        if (draggingFromLibrary && dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx) {
+                        if (dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx) {
                           e.preventDefault(); e.stopPropagation();
-                          addPlaceAsPlanB(dIdx, pIdx, draggingFromLibrary);
-                          if (!isDragCopy) removePlace(draggingFromLibrary.id);
-                          setDraggingFromLibrary(null); setDropOnItem(null); setIsDragCopy(false);
+                          if (draggingFromLibrary) {
+                            addPlaceAsPlanB(dIdx, pIdx, draggingFromLibrary);
+                            if (!isDragCopy) removePlace(draggingFromLibrary.id);
+                          } else if (draggingFromTimeline && draggingFromTimeline.altIdx === undefined) {
+                            const sourcePlanItem = itinerary.days[draggingFromTimeline.dayIdx]?.plan?.[draggingFromTimeline.pIdx];
+                            if (sourcePlanItem && (draggingFromTimeline.dayIdx !== dIdx || draggingFromTimeline.pIdx !== pIdx)) {
+                              addPlaceAsPlanB(dIdx, pIdx, toAlternativeFromItem(sourcePlanItem));
+                              if (!isDragCopy) {
+                                deletePlanItem(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx);
+                              }
+                            }
+                          }
+                          setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropOnItem(null); setIsDragCopy(false);
                         }
                       }}
                       className={`relative w-full flex flex-col border rounded-[24px] transition-all overflow-hidden cursor-grab active:cursor-grabbing group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${hasPlanB ? 'ring-1 ring-amber-100' : ''} ${stateStyles}`}
@@ -3422,7 +3498,7 @@ const App = () => {
                     >
                       {/* 모바일용 상단 드래그 핸들 전용 영역 */}
                       <div
-                        className="absolute top-0 left-0 right-0 h-14 z-50 touch-none flex items-start justify-center pt-2"
+                        className="absolute top-0 left-0 right-0 h-14 z-50 touch-none md:pointer-events-none flex items-start justify-center pt-2"
                         onTouchStart={(e) => {
                           if (p.type === 'backup' || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
                           const touch = e.touches[0];
@@ -4038,7 +4114,7 @@ const App = () => {
                   </div>{/* /Plan B wrapper */}
 
                   {/* 일차 마지막 아이템 아래 드롭 존 */}
-                  {pIdx === d.plan.length - 1 && p.type !== 'backup' && (draggingFromLibrary || draggingFromTimeline?.altIdx !== undefined) && (() => {
+                  {pIdx === d.plan.length - 1 && p.type !== 'backup' && (draggingFromLibrary || draggingFromTimeline !== null) && (() => {
                     const isDropHere = dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === pIdx;
                     const dropWarn = isDropHere && draggingFromLibrary ? getDropWarning(draggingFromLibrary, dIdx, pIdx) : '';
                     return (
@@ -4054,6 +4130,8 @@ const App = () => {
                             if (!isDragCopy) removePlace(draggingFromLibrary.id);
                           } else if (draggingFromTimeline?.altIdx !== undefined) {
                             insertAlternativeToTimeline(dIdx, pIdx, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
+                          } else if (draggingFromTimeline && draggingFromTimeline.altIdx === undefined) {
+                            moveTimelineItem(dIdx, pIdx, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, isDragCopy);
                           }
                           setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropTarget(null); setIsDragCopy(false);
                         }}
@@ -4072,7 +4150,7 @@ const App = () => {
                         const nextItem = d.plan[pIdx + 1];
                         if (!nextItem || nextItem.type === 'backup') return null;
 
-                        if (draggingFromLibrary || draggingFromTimeline?.altIdx !== undefined) {
+                        if (draggingFromLibrary || draggingFromTimeline !== null) {
                           const isDropHere = dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === pIdx;
                           const dropWarn = isDropHere && draggingFromLibrary ? getDropWarning(draggingFromLibrary, dIdx, pIdx) : '';
                           return (
@@ -4088,6 +4166,8 @@ const App = () => {
                                   if (!isDragCopy) removePlace(draggingFromLibrary.id);
                                 } else if (draggingFromTimeline?.altIdx !== undefined) {
                                   insertAlternativeToTimeline(dIdx, pIdx, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
+                                } else if (draggingFromTimeline && draggingFromTimeline.altIdx === undefined) {
+                                  moveTimelineItem(dIdx, pIdx, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, isDragCopy);
                                 }
                                 setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropTarget(null); setIsDragCopy(false);
                               }}

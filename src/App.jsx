@@ -2704,20 +2704,17 @@ const App = () => {
 
                 {/* 풀 카드 (최상단) */}
                 {!heroCollapsed && (
-                  <section
-                    className="-mx-4 mb-10 relative"
-                    style={{
-                      backgroundImage:
-                        "linear-gradient(120deg, rgba(16,42,124,0.22) 0%, rgba(37,99,235,0.18) 45%, rgba(59,130,246,0.14) 100%), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2200&q=80')",
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                    }}
-                  >
-                    <div className="h-[260px]" />
-                    <div className="relative -mt-[120px] max-w-[560px] mx-auto rounded-3xl overflow-hidden shadow-xl border border-blue-100 bg-white/95 backdrop-blur-[1px]">
-                      <div className="px-5 pt-5 pb-5 bg-gradient-to-r from-[#1e3a8a] to-[#3182F6] relative">
-                        <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white/[0.07]" />
-                        <div className="absolute right-4 top-14 w-12 h-12 rounded-full bg-white/[0.07]" />
+                  <section className="mb-8 mt-2 px-2">
+                    <div className="max-w-[560px] mx-auto rounded-[28px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.06)] bg-white border border-slate-200">
+                      <div
+                        className="px-6 pt-7 pb-8 relative overflow-hidden"
+                        style={{
+                          backgroundImage: "linear-gradient(to bottom, rgba(20,40,90,0.3) 0%, rgba(37,99,235,0.95) 100%), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80')",
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                        }}
+                      >
+                        <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/[0.08] blur-2xl" />
                         <div className="flex items-start justify-between relative z-10">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 mb-2.5">
@@ -3259,7 +3256,18 @@ const App = () => {
                                 };
                                 return (
                                   <div className="flex items-center gap-2 text-slate-500 bg-white w-full px-2 py-1 rounded-lg border border-slate-200 shadow-sm" onClick={(e) => e.stopPropagation()}>
-                                    <MapPin size={12} className="text-[#3182F6] shrink-0" />
+                                    <button
+                                      type="button"
+                                      title="내 장소 정렬 기준 설정"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setBasePlanRef({ id: p.id, name: p.activity, address: p.receipt?.address || '' });
+                                        setLastAction(`'${p.activity}'을(를) 거리 계산 기준으로 설정했습니다.`);
+                                      }}
+                                      className="shrink-0 transition-colors hover:bg-amber-50 p-1 -ml-1 rounded-md"
+                                    >
+                                      <MapPin size={12} className={basePlanRef?.id === p.id ? "text-amber-500" : "text-[#3182F6]"} />
+                                    </button>
                                     <input
                                       value={p.receipt?.address || ''}
                                       onChange={(e) => updateAddress(dIdx, pIdx, e.target.value)}
@@ -3282,14 +3290,17 @@ const App = () => {
                                   {businessWarning}
                                 </div>
                               )}
-                              <div className="w-full bg-slate-50/60 border border-slate-200 rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
+                              <div className="w-full bg-slate-50/60 border border-slate-200 rounded-lg py-1.5 px-2.5" onClick={(e) => e.stopPropagation()}>
                                 <button
                                   type="button"
                                   onClick={() => setBusinessEditorTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx }))}
-                                  className="w-full flex items-center justify-between text-left"
+                                  className="w-full flex items-center gap-2 text-left"
                                 >
-                                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">영업 정보 (선택)</span>
-                                  <span className="text-[10px] font-bold text-slate-500 truncate ml-2">{formatBusinessSummary(p.business)}</span>
+                                  {formatBusinessSummary(p.business) === '미설정' ? (
+                                    <span className="text-[10px] font-bold text-slate-400">영업 정보 (선택)</span>
+                                  ) : (
+                                    <span className="text-[10px] font-bold text-slate-600 truncate flex-1">{formatBusinessSummary(p.business)}</span>
+                                  )}
                                 </button>
                                 {businessEditorTarget?.dayIdx === dIdx && businessEditorTarget?.pIdx === pIdx && (
                                   <>

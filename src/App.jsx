@@ -644,17 +644,33 @@ const App = () => {
 
   // ── 인증 감시 ──
   useEffect(() => {
-    // 리다이렉트 결과 처리 (에러 확인용)
+    let isMounted = true;
+
+    // 만약 인증 확인이 너무 오래 걸리면(6초) 강제로 로딩을 해제하는 안전장치
+    const failsafe = setTimeout(() => {
+      if (isMounted) setAuthLoading(false);
+    }, 6000);
+
+    // 리다이렉트 결과 처리 (침묵 모드로 처리하여 새로고침 시 에러 최소화)
     getRedirectResult(auth).catch((e) => {
-      if (e.code !== 'auth/redirect-cancelled-by-user') {
-        console.error('리다이렉트 로그인 결과 에러:', e);
+      if (isMounted && e.code !== 'auth/redirect-cancelled-by-user') {
+        console.warn('Redirect Login Note:', e.message);
       }
     });
 
-    return onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setAuthLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      if (isMounted) {
+        clearTimeout(failsafe);
+        setUser(u);
+        setAuthLoading(false);
+      }
     });
+
+    return () => {
+      isMounted = false;
+      clearTimeout(failsafe);
+      unsubscribe();
+    };
   }, []);
 
   const handleLogin = async () => {

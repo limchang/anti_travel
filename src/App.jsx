@@ -752,26 +752,40 @@ const App = () => {
     return '';
   };
 
-  const getBusinessWarningNow = (businessRaw) => {
-    const business = normalizeBusiness(businessRaw || {});
-    const hasBiz = business.open || business.close || business.breakStart || business.breakEnd || business.closedDays.length;
-    if (!hasBiz) return '';
-    // 기준 시각: 현재 활성 일차의 첫 일정 시각 (없으면 시스템 시각)
+  // 현재 스크롤 위치 아이템(activeItemId) 기준 시각/요일 계산
+  const getActiveRefContext = () => {
+    const weekdayMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    for (let dIdx = 0; dIdx < (itinerary.days?.length || 0); dIdx++) {
+      const day = itinerary.days[dIdx];
+      const item = day.plan?.find(p => p.id === activeItemId && p.time);
+      if (item) {
+        let todayKey = weekdayMap[new Date().getDay()];
+        if (tripStartDate) {
+          const d = new Date(tripStartDate);
+          d.setDate(d.getDate() + dIdx);
+          todayKey = weekdayMap[d.getDay()];
+        }
+        return { refMins: timeToMinutes(item.time), todayKey, refTime: item.time };
+      }
+    }
+    // fallback: 활성 일차 첫 아이템
     const activeDayData = itinerary.days?.find(d => d.day === activeDay);
     const firstItem = activeDayData?.plan?.find(p => p.type !== 'backup' && p.time);
-    const refMins = firstItem
-      ? timeToMinutes(firstItem.time)
-      : (new Date().getHours() * 60 + new Date().getMinutes());
-    // 기준 요일: tripStartDate + (activeDay - 1) (없으면 오늘)
-    const weekdayMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-    let todayKey;
+    let todayKey = weekdayMap[new Date().getDay()];
     if (tripStartDate && activeDayData) {
       const d = new Date(tripStartDate);
       d.setDate(d.getDate() + (activeDayData.day - 1));
       todayKey = weekdayMap[d.getDay()];
-    } else {
-      todayKey = weekdayMap[new Date().getDay()];
     }
+    const refMins = firstItem ? timeToMinutes(firstItem.time) : (new Date().getHours() * 60 + new Date().getMinutes());
+    return { refMins, todayKey, refTime: firstItem?.time || null };
+  };
+
+  const getBusinessWarningNow = (businessRaw) => {
+    const business = normalizeBusiness(businessRaw || {});
+    const hasBiz = business.open || business.close || business.breakStart || business.breakEnd || business.closedDays.length;
+    if (!hasBiz) return '';
+    const { refMins, todayKey } = getActiveRefContext();
     if (business.closedDays.includes(todayKey)) {
       const label = WEEKDAY_OPTIONS.find(d => d.value === todayKey)?.label || todayKey;
       return `${label} 휴무일`;
@@ -1923,13 +1937,18 @@ const App = () => {
             <MapIcon size={14} className="text-slate-300" />
           </div>
         ) : (
-        <div className="flex-1 overflow-y-auto no-scrollbar py-8 px-5 flex flex-col">
-        <div className="flex items-center gap-2.5 mb-7">
-          <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-            <MapIcon size={14} className="text-[#3182F6]" />
+        <>
+        {/* ── 고정 헤더 ── */}
+        <div className="px-5 pt-5 pb-3 border-b border-slate-100 bg-white shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+              <MapIcon size={14} className="text-[#3182F6]" />
+            </div>
+            <h2 className="text-[14px] font-black text-slate-800 tracking-tight">일정 안내</h2>
           </div>
-          <h2 className="text-[14px] font-black text-slate-800 tracking-tight">일정 안내</h2>
         </div>
+        {/* ── 스크롤 컨텐츠 ── */}
+        <div className="flex-1 overflow-y-auto no-scrollbar py-6 px-5 flex flex-col">
         <nav className="flex flex-col gap-6 relative -ml-2">
           <div className="absolute left-[15px] top-4 bottom-8 w-px bg-slate-100 -z-10" />
           {itinerary.days?.map((d) => (
@@ -2009,6 +2028,7 @@ const App = () => {
           ))}
         </nav>
         </div>
+        </>
         )}
       </div>
 
@@ -2031,11 +2051,10 @@ const App = () => {
               </div>
               <p className="text-[14px] font-black text-slate-800 tracking-tight flex-1">내 장소</p>
               {(() => {
-                const activeDayData = itinerary.days?.find(d => d.day === activeDay);
-                const firstItem = activeDayData?.plan?.find(p => p.type !== 'backup' && p.time);
-                return firstItem?.time ? (
+                const { refTime } = getActiveRefContext();
+                return refTime ? (
                   <span className="text-[9px] font-black text-slate-400 bg-slate-100 px-2 py-1 rounded-md tracking-wider shrink-0">
-                    기준 {firstItem.time}
+                    기준 {refTime}
                   </span>
                 ) : null;
               })()}

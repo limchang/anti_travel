@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { db, auth } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
 import {
   Navigation, MessageSquare, LogOut, User as UserIcon,
   Hourglass, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
@@ -644,6 +644,13 @@ const App = () => {
 
   // ── 인증 감시 ──
   useEffect(() => {
+    // 리다이렉트 결과 처리 (에러 확인용)
+    getRedirectResult(auth).catch((e) => {
+      if (e.code !== 'auth/redirect-cancelled-by-user') {
+        console.error('리다이렉트 로그인 결과 에러:', e);
+      }
+    });
+
     return onAuthStateChanged(auth, (u) => {
       setUser(u);
       setAuthLoading(false);
@@ -653,10 +660,11 @@ const App = () => {
   const handleLogin = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      // 팝업 차단 및 모바일 환경을 고려하여 리다이렉트 방식으로 변경
+      await signInWithRedirect(auth, provider);
     } catch (e) {
-      console.error('로그인 실패:', e);
-      alert('로그인에 실패했습니다. 다시 시도해 주세요.');
+      console.error('로그인 시도 실패:', e);
+      alert('로그인을 시작할 수 없습니다. 잠시 후 다시 시도해 주세요.');
     }
   };
 
@@ -2246,38 +2254,51 @@ const App = () => {
     return () => clearTimeout(timer);
   }, [itinerary, loading, user]);
 
-  // Firestore 로드 (사용자 UID 기준)
+  // Firestore 로드 (사용자 UID 기준 + 마이그레이션 로직)
   useEffect(() => {
     if (!user) return;
     (async () => {
       setLoading(true);
       try {
+        // 1. 먼저 내 고유 데이터가 있는지 확인
         const snap = await getDoc(doc(db, 'users', user.uid, 'itinerary', 'main'));
+        let finalData = null;
+
         if (snap.exists()) {
-          const parsed = snap.data();
-          if (parsed && Array.isArray(parsed.days)) {
-            const patchedDays = parsed.days.map(d => ({
-              ...d,
-              plan: d.plan.map(p => {
-                let updatedP = { ...p };
-                if (updatedP.types?.includes('ship')) {
-                  const defaultStart = d.day === 1 ? '목포항' : '제주항';
-                  const defaultEnd = d.day === 1 ? '제주항' : '목포항';
-                  updatedP.startPoint = updatedP.startPoint || defaultStart;
-                  updatedP.endPoint = updatedP.endPoint || defaultEnd;
-                }
-                if (updatedP.receipt?.items) {
-                  updatedP.price = updatedP.receipt.items.reduce((sum, m) => sum + (m.selected ? getMenuLineTotal(m) : 0), 0);
-                }
-                return updatedP;
-              })
-            }));
-            setItinerary({ days: patchedDays, places: parsed.places || [] });
-            setLoading(false);
-            return;
+          finalData = snap.data();
+        } else {
+          // 2. 고유 데이터가 없다면, 기존에 공용으로 쓰던 데이터가 있는지 확인
+          const commonSnap = await getDoc(doc(db, 'itinerary', 'main'));
+          if (commonSnap.exists()) {
+            finalData = commonSnap.data();
+            // 3. 공용 데이터를 찾았다면, 내 계정으로 즉시 복사 (마이그레이션)
+            await setDoc(doc(db, 'users', user.uid, 'itinerary', 'main'), finalData);
+            console.log('기존 데이터를 내 계정으로 성공적으로 가져왔습니다.');
           }
         }
-      } catch (e) { console.error('Firestore 로드 실패:', e); }
+
+        if (finalData && Array.isArray(finalData.days)) {
+          const patchedDays = finalData.days.map(d => ({
+            ...d,
+            plan: (d.plan || []).map(p => {
+              let updatedP = { ...p };
+              if (updatedP.types?.includes('ship')) {
+                const defaultStart = d.day === 1 ? '목포항' : '제주항';
+                const defaultEnd = d.day === 1 ? '제주항' : '목포항';
+                updatedP.startPoint = updatedP.startPoint || defaultStart;
+                updatedP.endPoint = updatedP.endPoint || defaultEnd;
+              }
+              if (updatedP.receipt?.items) {
+                updatedP.price = updatedP.receipt.items.reduce((sum, m) => sum + (m.selected ? getMenuLineTotal(m) : 0), 0);
+              }
+              return updatedP;
+            })
+          }));
+          setItinerary({ days: patchedDays, places: finalData.places || [] });
+          setLoading(false);
+          return;
+        }
+      } catch (e) { console.error('Firestore 로드/마이그레이션 실패:', e); }
 
       // 초기 데이터
       const initialData = {

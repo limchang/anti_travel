@@ -676,7 +676,11 @@ const App = () => {
     if (!window.confirm('로그아웃 하시겠습니까?')) return;
     try {
       await signOut(auth);
-      setItinerary(null);
+      // 로그아웃 시 모든 개인화 상태 초기화
+      setItinerary({ days: [], places: [] });
+      setHistory([]);
+      setActiveItemId(null);
+      setBasePlanRef(null);
       setLoading(true);
     } catch (e) {
       console.error('로그아웃 실패:', e);
@@ -2366,7 +2370,12 @@ const App = () => {
     })();
   }, [user]);
 
-  if (authLoading) return <div className="min-h-screen bg-[#F2F4F6] flex items-center justify-center font-bold text-slate-400">인증 확인 중...</div>;
+  if (authLoading) return (
+    <div className="min-h-screen bg-[#F2F4F6] flex flex-col items-center justify-center gap-4">
+      <div className="w-12 h-12 border-4 border-[#3182F6]/20 border-t-[#3182F6] rounded-full animate-spin" />
+      <div className="font-black text-slate-400 text-sm animate-pulse">본인 인증 확인 중...</div>
+    </div>
+  );
 
   if (!user) {
     return (
@@ -2398,7 +2407,12 @@ const App = () => {
     );
   }
 
-  if (loading || !itinerary) return <div className="min-h-screen bg-[#F2F4F6] flex items-center justify-center font-bold text-slate-400">일정을 불러오고 있습니다...</div>;
+  if (loading || !itinerary) return (
+    <div className="min-h-screen bg-[#F2F4F6] flex flex-col items-center justify-center gap-4">
+      <div className="w-12 h-12 border-4 border-[#3182F6]/20 border-t-[#3182F6] rounded-full animate-spin" />
+      <div className="font-black text-slate-400 text-sm animate-pulse">일정을 불러오고 있습니다...</div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#F2F4F6] text-[#191F28] font-sans flex overflow-x-hidden font-bold flex-row relative">

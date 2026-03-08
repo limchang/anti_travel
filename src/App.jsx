@@ -671,11 +671,18 @@ const App = () => {
   const handleNavClick = (day) => {
     isNavScrolling.current = true;
     if (navScrollTimeout.current) clearTimeout(navScrollTimeout.current);
+
+    // 해당 날짜의 첫 번째 유효 일정 찾기
+    const targetDay = itinerary.days?.find(d => d.day === day);
+    const firstItem = targetDay?.plan?.find(p => p.type !== 'backup');
+
     document.getElementById(`day-marker-${day}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setActiveDay(day);
+    if (firstItem) setActiveItemId(firstItem.id);
+
     navScrollTimeout.current = setTimeout(() => {
       isNavScrolling.current = false;
-    }, 800);
+    }, 1000); // 스크롤 시간을 고려하여 1초간 점유
   };
   const [basePlanRef, setBasePlanRef] = useState(null); // { dayIdx, pIdx, id, name, address }
   const [placeDistanceMap, setPlaceDistanceMap] = useState({});

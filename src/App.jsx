@@ -143,10 +143,23 @@ const getTagButtonClass = (value, active) => {
 };
 const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', className = '' }) => {
   const selected = normalizeTagOrder(value);
+  const [customInput, setCustomInput] = React.useState('');
+
+  const handleAddCustom = () => {
+    const val = customInput.trim();
+    if (val && !selected.includes(val)) {
+      onChange(normalizeTagOrder([...selected, val]));
+    }
+    setCustomInput('');
+  };
+
+  const predefinedValues = new Set(TAG_OPTIONS.map(v => v.value));
+  const customTags = selected.filter(v => !predefinedValues.has(v) && v !== 'place');
+
   return (
     <div className={className}>
       <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">{title}</p>
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-1 items-center">
         {TAG_OPTIONS.map(t => {
           const active = selected.includes(t.value);
           return (
@@ -156,6 +169,21 @@ const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', class
             </button>
           );
         })}
+        {customTags.map(t => (
+          <button key={t} type="button" onClick={() => onChange(normalizeTagOrder(selected.filter(v => v !== t)))}
+            className="px-2 py-0.5 rounded-lg text-[10px] font-black border transition-colors text-slate-600 bg-slate-100 border-slate-300 hover:bg-slate-200">
+            {t} <span className="text-slate-400 ml-0.5">✕</span>
+          </button>
+        ))}
+        <input
+          type="text"
+          value={customInput}
+          onChange={e => setCustomInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustom(); } }}
+          onBlur={handleAddCustom}
+          placeholder="+ 직접 입력"
+          className="ml-1 w-20 px-2 py-0.5 rounded-lg text-[10px] font-black border border-slate-200 bg-white placeholder:text-slate-300 outline-none focus:border-[#3182F6]"
+        />
       </div>
     </div>
   );
@@ -298,7 +326,7 @@ const searchAddressFromPlaceName = async (keyword, regionHint = '', kakaoKey = K
         const first = data.documents?.[0];
         if (first) {
           const addr = first.road_address_name || first.address_name || '';
-          if (addr) return { address: addr, source: '카카오' };
+          if (addr) return { address: addr, lat: first.y, lon: first.x, source: '카카오' };
         }
         return { address: '', source: '카카오', error: '검색 결과 없음' };
       }
@@ -339,14 +367,13 @@ const searchAddressFromPlaceName = async (keyword, regionHint = '', kakaoKey = K
       // 도로명 주소 우선 구성
       for (const r of results) {
         const road = buildRoadAddress(r.address);
-        if (road) return { address: road, source: 'Nominatim' };
+        if (road) return { address: road, lat: r.lat, lon: r.lon, source: 'Nominatim' };
       }
-      // 도로명 없으면 display_name 정제
       const raw = results[0].display_name || '';
       if (raw) {
         // 한국 주소 역순 정제: "번지, 도로명, 동, 시, 도, 대한민국" → "시 도로명 번지"
         const parts = raw.split(', ').filter(p => p !== '대한민국' && !/^\d{5}$/.test(p));
-        return { address: parts.slice(0, 4).reverse().join(' '), source: 'Nominatim' };
+        return { address: parts.slice(0, 4).reverse().join(' '), lat: results[0].lat, lon: results[0].lon, source: 'Nominatim' };
       }
     } catch (e) {
       clearTimeout(timeoutId);
@@ -473,9 +500,9 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
   };
 
   return (
-    <div className="mb-3 w-full shrink-0 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div className="px-3 py-2 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
-        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">새 장소 등록</p>
+    <div className="mb-4 w-full shrink-0 rounded-[20px] border border-slate-100 bg-white shadow-[0_4px_16px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-100/60 bg-slate-50/50 flex items-center justify-between">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">새 장소 등록</p>
       </div>
 
       <div className="p-3 flex flex-col gap-2.5">
@@ -800,6 +827,50 @@ const App = () => {
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
   };
   const geoCacheRef = useRef({});
+
+  // 1) basePlanRef 변경 시 내 장소들의 거리를 계산
+  useEffect(() => {
+    if (!basePlanRef?.address) {
+      setPlaceDistanceMap({});
+      return;
+    }
+
+    const calc = async () => {
+      try {
+        setLastAction("내 장소 거리 계산 중...");
+        const baseRes = await searchAddressFromPlaceName(basePlanRef.address);
+        if (!baseRes?.lat || !baseRes?.lon) {
+          setLastAction("기준 일정의 좌표를 찾을 수 없습니다.");
+          return;
+        }
+        const bLat = parseFloat(baseRes.lat);
+        const bLon = parseFloat(baseRes.lon);
+
+        const newMap = {};
+        const places = itinerary.places || [];
+        for (const p of places) {
+          if (!p.receipt?.address && !p.address) continue;
+          const queryAddr = p.receipt?.address || p.address;
+          if (geoCacheRef.current[queryAddr]) {
+            const { lat, lon } = geoCacheRef.current[queryAddr];
+            newMap[p.id] = +haversineKm(bLat, bLon, lat, lon).toFixed(1);
+          } else {
+            const pRes = await searchAddressFromPlaceName(queryAddr);
+            if (pRes?.lat && pRes?.lon) {
+              geoCacheRef.current[queryAddr] = { lat: parseFloat(pRes.lat), lon: parseFloat(pRes.lon) };
+              newMap[p.id] = +haversineKm(bLat, bLon, parseFloat(pRes.lat), parseFloat(pRes.lon)).toFixed(1);
+            }
+          }
+        }
+        setPlaceDistanceMap(newMap);
+        setLastAction(`'${basePlanRef.name}' 기준으로 내 장소 거리를 업데이트했습니다.`);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    calc();
+  }, [basePlanRef?.id, basePlanRef?.address, itinerary.places]);
+
   const formatDistanceText = (distance) => {
     const num = Number(distance);
     if (!Number.isFinite(num) || num <= 0) return '미계산';
@@ -1641,6 +1712,23 @@ const App = () => {
 
   const toggleReceipt = (id) => {
     setExpandedId(prev => (prev === id ? null : id));
+    if (expandedId !== id) {
+      let found = null;
+      for (const d of itinerary.days || []) {
+        found = d.plan?.find(p => p.id === id);
+        if (found) break;
+      }
+      if (found) {
+        const addr = getRouteAddress(found, 'to');
+        if (addr) {
+          setBasePlanRef({ id: found.id, name: found.activity, address: addr });
+          setLastAction(`'${found.activity}'을(를) 내 장소 거리 계산 기준으로 설정했습니다.`);
+        } else {
+          setBasePlanRef({ id: found.id, name: found.activity, address: '' });
+          setLastAction(`'${found.activity}'엔 주소 정보가 없어 거리를 계산할 수 없습니다.`);
+        }
+      }
+    }
   };
 
 
@@ -1658,7 +1746,8 @@ const App = () => {
       case 'pickup': return <div key={type} className={`${style} text-orange-500 bg-orange-50 border-orange-100`}><Package size={10} /> 픽업</div>;
       case 'new': return <span key="new" className={style + ' text-emerald-600 bg-emerald-50 border-emerald-200'}>신규</span>;
       case 'revisit': return <span key="revisit" className={style + ' text-blue-600 bg-blue-50 border-blue-200'}>재방문</span>;
-      default: return <div key={type} className={`${style} text-slate-500 bg-slate-100 border-slate-200`}><MapIcon size={10} /> 장소</div>;
+      case 'place': return <div key={type} className={`${style} text-slate-500 bg-slate-100 border-slate-200`}><MapIcon size={10} /> 장소</div>;
+      default: return <div key={type} className={`${style} text-slate-500 bg-slate-100 border-slate-200`}># {type}</div>;
     }
   };
 
@@ -2372,8 +2461,8 @@ const App = () => {
 
       {/* ── Col2: 내 장소 (우측 고정) ── */}
       <div
-        className="flex flex-col fixed top-0 bottom-0 bg-white border-l border-[#E5E8EB] z-[140] shadow-[-4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-hidden"
-        style={{ right: 0, width: col2Collapsed ? 44 : 300 }}
+        className="flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[140] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-hidden"
+        style={{ right: 0, width: col2Collapsed ? 44 : 310 }}
       >
         {col2Collapsed ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-2">
@@ -2383,7 +2472,7 @@ const App = () => {
         ) : (
           <>
             {/* ── 고정 헤더 ── */}
-            <div className="px-5 pt-5 pb-3 border-b border-slate-100 bg-white shrink-0">
+            <div className="px-5 pt-6 pb-4 border-b border-slate-100/50 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
                   <Package size={14} className="text-[#3182F6]" />
@@ -2478,8 +2567,9 @@ const App = () => {
                 return (
                   <div className="flex flex-col gap-1.5 overflow-y-auto no-scrollbar flex-1 items-center min-h-0">
                     {basePlanRef?.id && (
-                      <div className="w-[372px] px-2 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-[10px] font-black text-[#3182F6]">
-                        기준 일정 <span className="text-blue-700">{basePlanRef.name}</span> 로부터 거리순 정렬 완료
+                      <div className="w-full mb-1 px-3 py-2 rounded-[14px] border border-blue-100 bg-blue-50/50 text-[11px] font-black text-[#3182F6] flex items-center gap-1.5 shadow-[0_2px_8px_-2px_rgba(49,130,246,0.08)]">
+                        <MapPin size={12} className="text-blue-400" />
+                        <span className="truncate flex-1">기준 <span className="text-blue-700">{basePlanRef.name}</span> 거리순 정렬</span>
                       </div>
                     )}
                     {visiblePlaces.length === 0 && !isAddingPlace && (
@@ -2494,10 +2584,6 @@ const App = () => {
                       const bizWarningNow = getBusinessWarningNow(place.business);
                       const openStatus = isOpenAt(place.business); // true=영업중, false=마감, null=정보없음
                       const baseDistance = placeDistanceMap[place.id];
-
-                      if (isEditing && editPlaceDraft) {
-                        return null;
-                      }
 
 
                       return (
@@ -2546,8 +2632,8 @@ const App = () => {
                             }
                             setDraggingFromLibrary(null); setDropTarget(null); setIsDragCopy(false);
                           }}
-                          className={`relative w-full shrink-0 rounded-3xl border-2 bg-white cursor-grab active:cursor-grabbing select-none transition-all hover:shadow-lg group overflow-hidden
-                    ${bizWarningNow ? 'border-orange-400' : openStatus === true ? 'border-[#3182F6] shadow-[0_0_0_3px_rgba(49,130,246,0.12)]' : 'border-slate-200'}`}
+                          className={`relative w-full shrink-0 rounded-[20px] border bg-white cursor-grab active:cursor-grabbing select-none transition-all duration-300 group overflow-hidden hover:-translate-y-0.5
+                    ${bizWarningNow ? 'border-orange-200 hover:shadow-[0_8px_24px_-4px_rgba(249,115,22,0.15)] ring-1 ring-orange-100' : openStatus === true ? 'border-[#3182F6]/30 shadow-[0_4px_16px_-4px_rgba(49,130,246,0.1)] hover:shadow-[0_8px_24px_-4px_rgba(49,130,246,0.15)] ring-1 ring-[#3182F6]/10' : 'border-slate-100 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.06)] hover:border-slate-200'}`}
                         >
                           <div className="p-4 flex flex-col gap-2.5">
                             <div className="flex items-center gap-1.5 flex-wrap pr-12 cursor-pointer" onClick={(e) => { e.stopPropagation(); setEditingPlaceId(place.id); setEditPlaceDraft({ ...place, address: place.address || place.receipt?.address || '', business: normalizeBusiness(place.business || {}), receipt: deepClone(place.receipt || { address: place.address || '', items: [] }), showBusinessEditor: !!(place.business?.open || place.business?.close || place.business?.breakStart || place.business?.breakEnd || place.business?.lastOrder || place.business?.closedDays?.length) }); }}>
@@ -2792,10 +2878,10 @@ const App = () => {
             {itinerary.days?.map((d, dIdx) => d.plan?.map((p, pIdx) => {
               const isExpanded = expandedId === p.id;
               let stateStyles;
-              if (p.types?.includes('lodge')) stateStyles = 'bg-[#F4F6FB] border-[#C7D2FE] shadow-sm';
-              else if (p.types?.includes('ship')) stateStyles = 'bg-blue-50/20 border-blue-200 shadow-sm';
-              else if (p.isTimeFixed) stateStyles = 'bg-white border-[#3182F6]/50 shadow-md';
-              else stateStyles = 'bg-white border-slate-200';
+              if (p.types?.includes('lodge')) stateStyles = 'bg-slate-50 border-slate-200 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]';
+              else if (p.types?.includes('ship')) stateStyles = 'bg-[#f4fafe] border-blue-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]';
+              else if (p.isTimeFixed) stateStyles = 'bg-white border-[#3182F6]/30 shadow-[0_8px_30px_-4px_rgba(49,130,246,0.08)] ring-1 ring-[#3182F6]/10';
+              else stateStyles = 'bg-white border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.06)] hover:border-slate-200';
 
               const chips = p.types ? p.types.map(t => getCategoryBadge(t)) : (p.type ? [getCategoryBadge(p.type)] : []);
               const isNextFixed = (pIdx < d.plan.length - 1) && d.plan[pIdx + 1]?.isTimeFixed;
@@ -2898,7 +2984,7 @@ const App = () => {
                           setDraggingFromLibrary(null); setDropOnItem(null); setIsDragCopy(false);
                         }
                       }}
-                      className={`relative w-full flex flex-col border-2 rounded-3xl hover:shadow-lg transition-all overflow-hidden cursor-grab active:cursor-grabbing ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${hasPlanB ? 'ring-1 ring-amber-100' : ''} ${stateStyles}`}
+                      className={`relative w-full flex flex-col border rounded-[24px] transition-all overflow-hidden cursor-grab active:cursor-grabbing ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${hasPlanB ? 'ring-1 ring-amber-100' : ''} ${stateStyles}`}
                       onClick={() => toggleReceipt(p.id)}
                     >
                       {/* Plan B 페이지 인디케이터 */}
@@ -2912,7 +2998,7 @@ const App = () => {
                       <div className="flex items-stretch border-b border-slate-100 border-dashed">
 
                         {/* 🟢 좌측 컨트롤 타워 */}
-                        {!isShip && !isLodge && <div className={`relative flex flex-col items-center justify-center gap-2 w-[110px] sm:w-[9rem] shrink-0 ${p.isTimeFixed ? 'bg-blue-50/80' : 'bg-black/[0.02]'} border-r border-slate-100/50 py-3 sm:py-4 px-2 sm:px-3 overflow-hidden transition-all duration-300`}>
+                        {!isShip && !isLodge && <div className={`relative flex flex-col items-center justify-center gap-2 w-[110px] sm:w-[9rem] shrink-0 ${p.isTimeFixed ? 'bg-blue-50/20' : 'bg-transparent'} border-r border-slate-100 flex-none py-4 px-2 sm:px-3 overflow-hidden transition-all duration-300`}>
                           {/* 락 상태일 때 컨트롤 타워 전체에 은은하게 깔리는 거대 자물쇠 */}
                           {p.isTimeFixed && (
                             <Lock size={90} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-500 opacity-[0.035] pointer-events-none" />
@@ -2954,7 +3040,7 @@ const App = () => {
 
                           {/* ✅ 소요 시간 조절 */}
                           {(
-                            <div className={`flex items-center justify-between w-full bg-white px-1 sm:px-2 py-1 rounded-xl border shadow-sm my-1.5 transition-colors ${isNextFixed || isAutoLocked ? 'border-orange-200 ring-1 ring-orange-100' : 'border-slate-200'}`} onClick={(e) => e.stopPropagation()}>
+                            <div className={`flex items-center justify-between w-[90%] bg-white px-2 py-1.5 rounded-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] border my-1 transition-colors ${isNextFixed || isAutoLocked ? 'border-orange-200/60' : 'border-slate-100/60'}`} onClick={(e) => e.stopPropagation()}>
                               <button onClick={() => updateDuration(dIdx, pIdx, -TIME_UNIT)} className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isNextFixed || isAutoLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-500'}`}><Minus size={10} /></button>
                               <span
                                 className={`text-[12px] whitespace-nowrap font-extrabold tabular-nums cursor-pointer hover:underline ${isNextFixed || isAutoLocked ? 'text-orange-500' : 'text-slate-600 hover:text-blue-600'}`}

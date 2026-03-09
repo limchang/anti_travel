@@ -5460,9 +5460,9 @@ const App = () => {
                                             </div>
                                             <span className={`text-[20px] font-black pb-0.5 ${isDurationLocked ? 'text-orange-200' : 'text-slate-200'}`}>:</span>
                                             <div className="flex flex-col items-center">
-                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, TIME_UNIT); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${isDurationLocked ? 'opacity-20 cursor-not-allowed text-slate-300' : 'text-slate-300 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronUp size={13} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, mStep); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${isDurationLocked ? 'opacity-20 cursor-not-allowed text-slate-300' : 'text-slate-300 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronUp size={13} /></button>
                                               <span className={`text-[30px] font-black tracking-tight tabular-nums leading-none w-[42px] text-center ${isDurationLocked ? 'text-orange-400' : 'text-slate-800'}`}>{String((p.duration||0)%60).padStart(2,'0')}</span>
-                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, -TIME_UNIT); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${isDurationLocked ? 'opacity-20 cursor-not-allowed text-slate-300' : 'text-slate-300 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronDown size={13} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, -mStep); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${isDurationLocked ? 'opacity-20 cursor-not-allowed text-slate-300' : 'text-slate-300 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronDown size={13} /></button>
                                             </div>
                                           </div>
                                           {/* 잠금 + 프리셋 2x2 */}
@@ -5471,7 +5471,7 @@ const App = () => {
                                               <Timer size={9} /> {p.isDurationFixed ? '고정됨' : '고정'}
                                             </button>
                                             {[30, 60, 90, 120].map(v => (
-                                              <button key={v} onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) setDurationValue(dIdx, pIdx, v); }} className={`w-full py-1 rounded-lg text-[9px] font-black transition-all text-center ${isDurationLocked ? 'opacity-20 cursor-not-allowed text-slate-300' : 'bg-slate-50 text-slate-500 hover:bg-orange-400 hover:text-white'}`}>
+                                              <button key={v} onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) setDurationValue(dIdx, pIdx, v); }} className="w-full py-1 rounded-lg text-[9px] font-black transition-all text-center bg-slate-50 text-slate-500 hover:bg-orange-400 hover:text-white">
                                                 {v < 60 ? `${v}m` : v % 60 === 0 ? `${v/60}h` : `1.5h`}
                                               </button>
                                             ))}

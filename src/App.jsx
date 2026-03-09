@@ -5291,23 +5291,19 @@ const App = () => {
                                           {/* 시작 시각 */}
                                           <div className="flex flex-col items-center gap-0.5">
                                             {p.isTimeFixed && <span className="text-[7px] font-black tracking-widest text-[#3182F6]/50 uppercase leading-none">고정</span>}
-                                            <span className={`text-[26px] font-black tabular-nums tracking-tight leading-none ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{hh}:{mm}</span>
+                                            <span className={`text-[22px] font-black tabular-nums tracking-tight leading-none ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{hh}:{mm}</span>
                                           </div>
-                                          {/* 소요시간 구분선 */}
-                                          <div className="flex items-center gap-1 w-full">
-                                            <div className={`flex-1 h-px ${isDurationLocked ? 'bg-orange-200' : 'bg-slate-100'}`} />
-                                            <div
-                                              className="flex items-center gap-0.5 cursor-pointer"
-                                              onClick={(e) => { e.stopPropagation(); if (isAutoLocked) { setLastAction('자동 연동 일정은 소요시간을 조절할 수 없습니다.'); return; } setTimeControllerTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx) ? null : { dayIdx: dIdx, pIdx }); }}
-                                            >
-                                              <button onClick={(e) => { e.stopPropagation(); if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; } updateDuration(dIdx, pIdx, -TIME_UNIT); }} className={`w-3.5 h-3.5 flex items-center justify-center transition-colors ${isDurationLocked ? 'text-orange-300' : 'text-slate-300 hover:text-[#3182F6]'}`}><Minus size={8} strokeWidth={3} /></button>
-                                              <span className={`text-[9px] font-black tabular-nums px-0.5 ${isAutoLocked ? 'text-red-400' : isDurationLocked ? 'text-orange-400' : 'text-slate-400 hover:text-[#3182F6]'}`}>{fmtDur(p.duration)}</span>
-                                              <button onClick={(e) => { e.stopPropagation(); if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; } updateDuration(dIdx, pIdx, TIME_UNIT); }} className={`w-3.5 h-3.5 flex items-center justify-center transition-colors ${isDurationLocked ? 'text-orange-300' : 'text-slate-300 hover:text-[#3182F6]'}`}><Plus size={8} strokeWidth={3} /></button>
-                                            </div>
-                                            <div className={`flex-1 h-px ${isDurationLocked ? 'bg-orange-200' : 'bg-slate-100'}`} />
+                                          {/* 소요시간 셀 */}
+                                          <div
+                                            className={`flex items-center gap-0.5 px-2 py-1 rounded-full cursor-pointer transition-colors ${isAutoLocked ? 'bg-red-500' : isDurationLocked ? 'bg-orange-400' : 'bg-orange-400 hover:bg-orange-500'}`}
+                                            onClick={(e) => { e.stopPropagation(); if (isAutoLocked) { setLastAction('자동 연동 일정은 소요시간을 조절할 수 없습니다.'); return; } setTimeControllerTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx) ? null : { dayIdx: dIdx, pIdx }); }}
+                                          >
+                                            <button onClick={(e) => { e.stopPropagation(); if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; } updateDuration(dIdx, pIdx, -TIME_UNIT); }} className="w-3.5 h-3.5 flex items-center justify-center text-white/60 hover:text-white transition-colors"><Minus size={8} strokeWidth={3} /></button>
+                                            <span className="text-[9px] font-black tabular-nums text-white px-0.5">{fmtDur(p.duration)}</span>
+                                            <button onClick={(e) => { e.stopPropagation(); if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; } updateDuration(dIdx, pIdx, TIME_UNIT); }} className="w-3.5 h-3.5 flex items-center justify-center text-white/60 hover:text-white transition-colors"><Plus size={8} strokeWidth={3} /></button>
                                           </div>
                                           {/* 종료 시각 */}
-                                          <span className={`text-[13px] font-bold tabular-nums tracking-tight leading-none ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-400'}`}>{ehh}:{emm}</span>
+                                          <span className={`text-[22px] font-black tabular-nums tracking-tight leading-none ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-400'}`}>{ehh}:{emm}</span>
                                         </div>
                                       );
                                     }

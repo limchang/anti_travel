@@ -1123,6 +1123,7 @@ const App = () => {
   const [routeCache, setRouteCache] = useState({});
   const [calculatingRouteId, setCalculatingRouteId] = useState(null);
   const [isCalculatingAllRoutes, setIsCalculatingAllRoutes] = useState(false);
+  const [routeCalcProgress, setRouteCalcProgress] = useState(0);
   const [dashboardHeight, setDashboardHeight] = useState(200);
   const dashboardRef = useRef(null);
   const heroTriggerRef = useRef(null);
@@ -2439,6 +2440,24 @@ const App = () => {
     });
   }, [itinerary.places, placeDistanceMap, basePlanRef?.id]);
 
+  const usedPlaceLookup = useMemo(() => {
+    const normalize = (v = '') => String(v).replace(/\s+/g, ' ').trim().toLowerCase();
+    const names = new Set();
+    const addresses = new Set();
+    const full = new Set();
+    (itinerary.days || []).forEach((day) => {
+      (day?.plan || []).forEach((item) => {
+        if (!item || item.type === 'backup') return;
+        const n = normalize(item.activity || item.name || '');
+        const a = normalize(item?.receipt?.address || item?.address || '');
+        if (n) names.add(n);
+        if (a) addresses.add(a);
+        if (n || a) full.add(`${n}|${a}`);
+      });
+    });
+    return { names, addresses, full };
+  }, [itinerary.days]);
+
   const updateMemo = (dayIdx, pIdx, value) => {
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
@@ -3077,7 +3096,7 @@ const App = () => {
     return replace ? 'replace_with_planb' : 'only_main';
   };
 
-  const addInitialItem = (dayIdx = 0) => {
+  const addInitialItem = (dayIdx = 0, placeData = null) => {
     saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
@@ -3090,25 +3109,31 @@ const App = () => {
       if (!Array.isArray(nextData.days[dayIdx].plan)) {
         nextData.days[dayIdx].plan = [];
       }
+      const receiptPayload = placeData?.receipt
+        ? deepClone(placeData.receipt)
+        : { address: placeData?.address || '', items: [] };
+      const priceFromReceipt = Array.isArray(receiptPayload.items)
+        ? receiptPayload.items.reduce((sum, m) => sum + (m.selected === false ? 0 : getMenuLineTotal(m)), 0)
+        : 0;
       nextData.days[dayIdx].plan.push({
         id: `item_${Date.now()}`,
         time: '09:00',
-        activity: '새 일정',
-        types: ['place'],
-        revisit: false,
-        business: normalizeBusiness({}),
-        price: 0,
+        activity: placeData?.name || '새 일정',
+        types: placeData?.types || ['place'],
+        revisit: typeof placeData?.revisit === 'boolean' ? placeData.revisit : false,
+        business: normalizeBusiness(placeData?.business || {}),
+        price: placeData ? (priceFromReceipt || placeData.price || 0) : 0,
         duration: 60,
         state: 'unconfirmed',
         travelTimeOverride: '15분',
         bufferTimeOverride: '10분',
-        receipt: { address: '', items: [] },
-        memo: ''
+        receipt: receiptPayload,
+        memo: placeData?.memo || ''
       });
       nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
       return nextData;
     });
-    setLastAction('첫 일정이 추가되었습니다.');
+    setLastAction(placeData ? `'${placeData.name}'이(가) 첫 일정으로 추가되었습니다.` : '첫 일정이 추가되었습니다.');
   };
 
   const addNewItem = (dayIdx, insertIndex, types = ['place'], placeData = null) => {
@@ -3361,16 +3386,29 @@ const App = () => {
 
   const autoCalculateAllRoutes = async () => {
     setIsCalculatingAllRoutes(true);
+    setRouteCalcProgress(0);
     setRouteCache({});
     setLastAction("전체 경로 내역을 지우고 재탐색 시작...");
+    const jobs = [];
     for (let di = 0; di < itinerary.days.length; di++) {
       const plan = itinerary.days[di].plan || [];
       for (let pi = 0; pi < plan.length; pi++) {
         if (plan[pi].type === 'backup' || plan[pi].types?.includes('ship')) continue;
-        await autoCalculateRouteFor(di, pi, { forceRefresh: true });
-        await new Promise(r => setTimeout(r, 500));
+        jobs.push({ dayIdx: di, pIdx: pi });
       }
     }
+    if (jobs.length === 0) {
+      setIsCalculatingAllRoutes(false);
+      setLastAction("재탐색할 경로가 없습니다.");
+      return;
+    }
+    for (let i = 0; i < jobs.length; i++) {
+      const job = jobs[i];
+      await autoCalculateRouteFor(job.dayIdx, job.pIdx, { forceRefresh: true });
+      setRouteCalcProgress(Math.round(((i + 1) / jobs.length) * 100));
+      await new Promise(r => setTimeout(r, 350));
+    }
+    setRouteCalcProgress(100);
     setIsCalculatingAllRoutes(false);
     setLastAction("전체 경로 재탐색 완료!");
   };
@@ -3861,7 +3899,7 @@ const App = () => {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#3182F6] text-[11px] font-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Navigation size={11} />
-                  {isCalculatingAllRoutes ? '탐색중...' : '전체경로'}
+                  {isCalculatingAllRoutes ? `탐색 ${routeCalcProgress}%` : '전체경로'}
                 </button>
               </div>
             </div>
@@ -4872,7 +4910,28 @@ const App = () => {
           <div ref={heroTriggerRef} className="h-px w-full" />
           <div className={`w-full mx-auto flex flex-col relative z-0 ${timelineMaxClass} ${isCompactTimeline ? 'gap-4' : 'gap-6'}`}>
             {totalTimelineItems === 0 && (
-              <div className="w-full rounded-[24px] border border-slate-200 bg-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.2)] p-5 flex flex-col items-center gap-3">
+              <div
+                data-droptarget="empty-timeline"
+                onDragOver={(e) => {
+                  if (draggingFromLibrary) {
+                    e.preventDefault();
+                    setDropTarget({ dayIdx: 0, insertAfterPIdx: -1 });
+                  }
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null);
+                }}
+                onDrop={(e) => {
+                  if (!draggingFromLibrary) return;
+                  e.preventDefault();
+                  addInitialItem(0, draggingFromLibrary);
+                  if (!isDragCopy) removePlace(draggingFromLibrary.id);
+                  setDraggingFromLibrary(null);
+                  setDropTarget(null);
+                  setIsDragCopy(false);
+                }}
+                className={`w-full rounded-[24px] border bg-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.2)] p-5 flex flex-col items-center gap-3 transition-all ${draggingFromLibrary ? 'cursor-copy border-[#3182F6]/40' : 'border-slate-200'} ${dropTarget?.dayIdx === 0 && dropTarget?.insertAfterPIdx === -1 ? 'ring-2 ring-[#3182F6] bg-blue-50/40' : ''}`}
+              >
                 <p className="text-[12px] font-black text-slate-500">아직 등록된 일정이 없습니다.</p>
                 <button
                   type="button"
@@ -4881,6 +4940,9 @@ const App = () => {
                 >
                   + 첫 일정 추가
                 </button>
+                {draggingFromLibrary && (
+                  <p className="text-[11px] font-black text-[#3182F6]">내 장소 카드를 여기로 드래그해서 바로 추가할 수 있습니다.</p>
+                )}
               </div>
             )}
 
@@ -4995,7 +5057,7 @@ const App = () => {
                         <div
                           data-no-drag="true"
                           onClick={(e) => { e.stopPropagation(); cyclePlan(1); }}
-                          className="absolute right-0 top-0 bottom-0 z-[11] w-[5%] min-w-[26px] flex items-center justify-end pr-[2px] cursor-pointer"
+                          className="absolute right-0 top-0 bottom-0 z-[11] w-[5%] min-w-[26px] flex items-center justify-center translate-x-[18%] cursor-pointer"
                           title="다음 플랜"
                         >
                           <ChevronRight size={14} className="text-slate-400 hover:text-[#3182F6] transition-colors" />
@@ -5366,7 +5428,11 @@ const App = () => {
                                     {/* 선적 셀 */}
                                     <div className="flex-1 flex flex-col items-center gap-1 bg-blue-50/80 border border-blue-100 rounded-xl px-2 py-2.5">
                                       <span className="text-[8px] text-blue-400 font-black tracking-widest uppercase">선적</span>
-                                      {timeInput('load', p.time || '00:00', d => updateStartTime(dIdx, pIdx, d))}
+                                      <div className="flex items-center gap-1 text-[13px] font-black text-blue-800 tabular-nums">
+                                        {timeInput('load', p.time || '00:00', d => updateStartTime(dIdx, pIdx, d))}
+                                        <span className="text-blue-400">-</span>
+                                        <span>{minutesToTime(boardMins)}</span>
+                                      </div>
                                     </div>
                                     {/* 출항 셀 */}
                                     <div className="flex-1 flex flex-col items-center gap-1 bg-sky-50/80 border border-sky-100 rounded-xl px-2 py-2.5">
@@ -5702,7 +5768,7 @@ const App = () => {
                     const dropWarn = isDropHere && draggingFromLibrary ? getDropWarning(draggingFromLibrary, dIdx, pIdx) : '';
                     return (
                       <div
-                        className="relative w-full pt-3 -mb-3 z-10 cursor-copy"
+                        className="relative w-full pt-4 pb-1 -mb-3 z-10 cursor-copy"
                         data-droptarget={`${dIdx}-${pIdx}`}
                         onDragOver={(e) => { e.preventDefault(); setDropTarget({ dayIdx: dIdx, insertAfterPIdx: pIdx }); }}
                         onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null); }}
@@ -5719,7 +5785,7 @@ const App = () => {
                           setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropTarget(null); setIsDragCopy(false);
                         }}
                       >
-                        <div className={`w-full flex items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed transition-all duration-150 text-[11px] font-black ${isDropHere ? (dropWarn ? 'h-14 border-orange-400 bg-orange-50 text-orange-500' : 'h-12 border-[#3182F6] bg-blue-50 text-[#3182F6]') : 'h-8 border-slate-200 text-slate-300'}`}>
+                        <div className={`w-full flex items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed transition-all duration-150 text-[11px] font-black ${isDropHere ? (dropWarn ? 'h-20 border-orange-400 bg-orange-50 text-orange-500 shadow-[0_8px_20px_-10px_rgba(251,146,60,0.45)]' : 'h-20 border-[#3182F6] bg-blue-50 text-[#3182F6] shadow-[0_8px_20px_-10px_rgba(49,130,246,0.45)]') : 'h-14 border-slate-300 bg-slate-50/70 text-slate-400'}`}>
                           <Plus size={11} /> {isDropHere && dropWarn ? dropWarn : '이곳에 놓아주세요'}
                         </div>
                       </div>
@@ -5755,7 +5821,7 @@ const App = () => {
                                 setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropTarget(null); setIsDragCopy(false);
                               }}
                             >
-                              <div className={`w-full flex items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed transition-all duration-150 text-[11px] font-black ${isDropHere ? (dropWarn ? 'h-14 border-orange-400 bg-orange-50 text-orange-500' : 'h-12 border-[#3182F6] bg-blue-50 text-[#3182F6]') : 'h-8 border-slate-200 text-slate-300'}`}>
+                              <div className={`w-full flex items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed transition-all duration-150 text-[11px] font-black ${isDropHere ? (dropWarn ? 'h-20 border-orange-400 bg-orange-50 text-orange-500 shadow-[0_8px_20px_-10px_rgba(251,146,60,0.45)]' : 'h-20 border-[#3182F6] bg-blue-50 text-[#3182F6] shadow-[0_8px_20px_-10px_rgba(49,130,246,0.45)]') : 'h-14 border-slate-300 bg-slate-50/70 text-slate-400'}`}>
                                 <Plus size={11} /> {isDropHere && dropWarn ? dropWarn : '이곳에 놓아주세요'}
                               </div>
                             </div>

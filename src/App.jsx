@@ -1146,6 +1146,18 @@ const App = () => {
     document.addEventListener('mousedown', handleOutside);
     return () => document.removeEventListener('mousedown', handleOutside);
   }, [timeControllerTarget]);
+
+  // 소요시간 컨트롤러 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (!durationControllerTarget) return;
+      if (e.target.closest('[data-duration-trigger="true"]')) return;
+      if (e.target.closest('.group\\/duration-tower')) return;
+      setDurationControllerTarget(null);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [durationControllerTarget]);
   const [planVariantPicker, setPlanVariantPicker] = useState(null); // { dayIdx, pIdx, left, top }
   const conflictAlertKeyRef = useRef('');
   const [lastAction, setLastAction] = useState("3일차 시작 일정이 수정되었습니다.");
@@ -5363,89 +5375,83 @@ const App = () => {
                               </div>
 
                               {/* ✅ 소요 시간 조절 */}
-                              {(
-                                <div className={`flex items-center justify-between w-[90%] bg-white px-2 py-1.5 rounded-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] border my-1 transition-colors ${isDurationLocked ? 'border-orange-200/80' : 'border-slate-100/60'}`} onClick={(e) => e.stopPropagation()}>
-                                  <button
-                                    onClick={() => {
-                                      if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; }
-                                      updateDuration(dIdx, pIdx, -TIME_UNIT);
-                                    }}
-                                    className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-500'}`}
-                                  ><Minus size={10} /></button>
-                                  <span
-                                    data-duration-trigger="true"
-                                    className={`text-[12px] whitespace-nowrap font-extrabold tabular-nums ${isAutoLocked ? 'cursor-not-allowed text-orange-500' : (p.isDurationFixed ? 'cursor-pointer text-orange-500 hover:underline' : 'cursor-pointer hover:underline text-slate-600 hover:text-blue-600')}`}
-                                    onClick={(e) => {
-                                      if (isAutoLocked) {
-                                        setLastAction('자동 연동 일정은 소요시간 컨트롤러를 열 수 없습니다.');
-                                        return;
-                                      }
-                                      const rect = e.currentTarget.getBoundingClientRect();
-                                      const popW = 184;
-                                      const popH = 104;
-                                      const safeLeft = Math.min(
-                                        window.innerWidth - popW - 12,
-                                        Math.max(12, rect.left + rect.width / 2 - popW / 2)
-                                      );
-                                      // 소요시간 칩과 겹치도록 상단에 오버레이 배치
-                                      const preferredTop = rect.top - 18;
-                                      const safeTop = Math.max(8, Math.min(window.innerHeight - popH - 8, preferredTop));
-                                      setDurationControllerTarget(prev =>
-                                        (prev?.dayIdx === dIdx && prev?.pIdx === pIdx)
-                                          ? null
-                                          : { dayIdx: dIdx, pIdx, left: safeLeft, top: safeTop }
-                                      );
-                                    }}
-                                    title="소요시간 컨트롤러 열기"
-                                  >{fmtDur(p.duration)}</span>
-                                  <button
-                                    onClick={() => {
-                                      if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; }
-                                      updateDuration(dIdx, pIdx, TIME_UNIT);
-                                    }}
-                                    className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-500'}`}
-                                  ><Plus size={10} /></button>
-                                </div>
-                              )}
-                              {!isAutoLocked && durationControllerTarget?.dayIdx === dIdx && durationControllerTarget?.pIdx === pIdx && (
-                                <div
-                                  data-duration-controller="true"
-                                  className="fixed z-[140] w-[184px] rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_14px_32px_-12px_rgba(15,23,42,0.25)] p-2"
-                                  style={{ left: durationControllerTarget.left, top: durationControllerTarget.top }}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <div className="grid grid-cols-3 gap-1.5">
+                              {(() => {
+                                const isExpanding = durationControllerTarget?.dayIdx === dIdx && durationControllerTarget?.pIdx === pIdx;
+                                const hrs = Math.floor((p.duration || 0) / 60);
+                                const mins = (p.duration || 0) % 60;
+
+                                if (isExpanding) {
+                                  return (
+                                    <div className="group/duration-tower relative flex flex-col items-center justify-center transition-all duration-300 ease-out z-20 w-[240px] sm:w-[260px] -ml-[75px] sm:-ml-[80px]" onClick={(e) => e.stopPropagation()}>
+                                      <div className="flex flex-row items-center justify-center gap-3 py-2.5 bg-white/95 backdrop-blur-md rounded-2xl border border-blue-100 shadow-[0_20px_40px_-12px_rgba(49,130,246,0.15)] animate-in fade-in zoom-in duration-300 w-full px-3">
+                                        <div className="flex flex-col items-center gap-1">
+                                          <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, 60); }} className={`w-7 h-7 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-100 transition-colors ${isDurationLocked ? 'opacity-30 cursor-not-allowed' : 'hover:bg-blue-50 text-slate-500 hover:text-blue-600'}`}><ChevronUp size={12} /></button>
+                                          <div className="flex flex-col items-center px-4 bg-white rounded-xl py-1 border border-slate-100 min-w-[50px]">
+                                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-0.5">Hrs</span>
+                                            <span className="text-[18px] font-black tracking-tighter tabular-nums text-slate-800 leading-none">{hrs}</span>
+                                          </div>
+                                          <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, -60); }} className={`w-7 h-7 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-100 transition-colors ${isDurationLocked ? 'opacity-30 cursor-not-allowed' : 'hover:bg-blue-50 text-slate-500 hover:text-blue-600'}`}><ChevronDown size={12} /></button>
+                                        </div>
+                                        <div className="flex flex-col items-center gap-1">
+                                          <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, 10); }} className={`w-7 h-7 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-100 transition-colors ${isDurationLocked ? 'opacity-30 cursor-not-allowed' : 'hover:bg-blue-50 text-slate-500 hover:text-blue-600'}`}><ChevronUp size={12} /></button>
+                                          <div className="flex flex-col items-center px-4 bg-white rounded-xl py-1 border border-slate-100 min-w-[50px]">
+                                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-0.5">Min</span>
+                                            <span className="text-[18px] font-black tracking-tighter tabular-nums text-slate-800 leading-none">{mins}</span>
+                                          </div>
+                                          <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, -10); }} className={`w-7 h-7 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-100 transition-colors ${isDurationLocked ? 'opacity-30 cursor-not-allowed' : 'hover:bg-blue-50 text-slate-500 hover:text-blue-600'}`}><ChevronDown size={12} /></button>
+                                        </div>
+                                        <div className="w-px h-10 bg-slate-100 mx-1" />
+                                        <div className="flex flex-col gap-1.5">
+                                          <div className="flex gap-1">
+                                            {[30, 60, 90, 120].map(v => (
+                                              <button
+                                                key={v}
+                                                onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) setDurationValue(dIdx, pIdx, v); setDurationControllerTarget(null); }}
+                                                className={`px-2 py-1.5 rounded-lg border text-[10px] font-black transition-all ${isDurationLocked ? 'opacity-30 cursor-not-allowed' : 'bg-white border-slate-100 text-slate-500 hover:border-blue-400 hover:text-blue-600'}`}
+                                              >{v < 60 ? `${v}m` : (v % 60 === 0 ? `${v / 60}h` : `${Math.floor(v / 60)}h30`)}</button>
+                                            ))}
+                                          </div>
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); toggleDurationLock(dIdx, pIdx); }}
+                                            className={`w-full py-1.5 rounded-lg border text-[9px] font-black flex items-center justify-center gap-1.5 transition-all ${p.isDurationFixed ? 'bg-orange-100 border-orange-200 text-orange-600' : 'bg-slate-50 border-slate-100 text-slate-400 hover:border-orange-300 hover:text-orange-500'}`}
+                                          >
+                                            <Timer size={11} /> {p.isDurationFixed ? '잠금 해제' : '소요시간 잠금'}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <div className={`flex items-center justify-between w-[90%] bg-white px-2 py-1.5 rounded-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] border my-1 transition-all duration-300 ${isDurationLocked ? 'border-orange-200/80 bg-orange-50/5' : 'border-slate-100/60 hover:border-blue-200 cursor-pointer'}`} onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isAutoLocked) { setLastAction('자동 연동 일정은 소요시간을 조절할 수 없습니다.'); return; }
+                                    setDurationControllerTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx) ? null : { dayIdx: dIdx, pIdx });
+                                  }}>
                                     <button
-                                      type="button"
-                                      onClick={() => { setDurationValue(dIdx, pIdx, 10); setDurationControllerTarget(null); }}
-                                      className="py-1 rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-black text-[#3182F6] hover:bg-blue-100"
-                                    >
-                                      10분
-                                    </button>
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; }
+                                        updateDuration(dIdx, pIdx, -TIME_UNIT);
+                                      }}
+                                      className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-600'}`}
+                                    ><Minus size={10} /></button>
+                                    <span
+                                      data-duration-trigger="true"
+                                      className={`text-[12px] whitespace-nowrap font-extrabold tabular-nums px-1 ${isAutoLocked ? 'cursor-not-allowed text-orange-500' : (p.isDurationFixed ? 'text-orange-500 hover:underline' : 'text-slate-600 hover:text-blue-600')}`}
+                                    >{fmtDur(p.duration)}</span>
                                     <button
-                                      type="button"
-                                      onClick={() => { setDurationValue(dIdx, pIdx, 30); setDurationControllerTarget(null); }}
-                                      className="py-1 rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-black text-[#3182F6] hover:bg-blue-100"
-                                    >
-                                      30분
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => { setDurationValue(dIdx, pIdx, 60); setDurationControllerTarget(null); }}
-                                      className="py-1 rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-black text-[#3182F6] hover:bg-blue-100"
-                                    >
-                                      60분
-                                    </button>
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; }
+                                        updateDuration(dIdx, pIdx, TIME_UNIT);
+                                      }}
+                                      className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-600'}`}
+                                    ><Plus size={10} /></button>
                                   </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => { toggleDurationLock(dIdx, pIdx); setDurationControllerTarget(null); }}
-                                    className={`mt-2 w-full py-1 rounded-lg border text-[10px] font-black transition-colors ${p.isDurationFixed ? 'border-orange-300 bg-orange-50 text-orange-600 hover:bg-orange-100' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
-                                  >
-                                    {p.isDurationFixed ? '소요시간 잠금 해제' : '소요시간 잠그기'}
-                                  </button>
-                                </div>
-                              )}
+                                );
+                              })()}
 
                             </div>
                           )}

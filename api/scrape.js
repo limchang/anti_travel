@@ -4,7 +4,7 @@ import puppeteer from 'puppeteer';
 
 const isNaverUrl = (raw = '') => {
   const v = String(raw || '').trim();
-  return /^https?:\/\/(naver\.me|map\.naver\.com|pcmap\.place\.naver\.com)\//i.test(v);
+  return /^https?:\/\/(naver\.me|map\.naver\.com|pcmap\.place\.naver\.com|m\.place\.naver\.com)\//i.test(v);
 };
 
 const extractAddressInPage = async (ctx) => {
@@ -25,16 +25,24 @@ const extractAddressInPage = async (ctx) => {
 };
 
 const extractHoursInPage = async (ctx) => {
-  await ctx.evaluate(() => {
-    const clickables = Array.from(document.querySelectorAll('a, button, [role="button"]'));
-    clickables.forEach((el) => {
-      const t = (el.textContent || '').trim();
-      if (/영업시간|운영시간|더보기|전체보기|펼치기/.test(t)) {
-        try { el.click(); } catch (_) { /* noop */ }
-      }
-    });
-  }).catch(() => {});
-  await ctx.waitForTimeout?.(600).catch(() => {});
+  // 영업시간 요약 라인(영업 중/종료)과 더보기 버튼을 반복 클릭해서 상세 시간을 펼친다.
+  const expandHours = async () => {
+    await ctx.evaluate(() => {
+      const clickables = Array.from(document.querySelectorAll('a, button, [role="button"], div, span'));
+      clickables.forEach((el) => {
+        const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!t) return;
+        if (/(영업\s*시간|운영\s*시간|영업\s*정보|영업\s*중|영업\s*종료|더보기|전체보기|펼치기|정보\s*더보기|매일\s*\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2})/i.test(t)) {
+          try { el.click(); } catch (_) { /* noop */ }
+        }
+      });
+    }).catch(() => {});
+  };
+  await expandHours();
+  await ctx.waitForTimeout?.(500).catch(() => {});
+  await expandHours();
+  await ctx.waitForTimeout?.(700).catch(() => {});
+
   return ctx.evaluate(() => {
     const rows = Array.from(document.querySelectorAll('li, div, span, p'))
       .map((el) => (el.textContent || '').replace(/\s+/g, ' ').trim())
@@ -42,12 +50,13 @@ const extractHoursInPage = async (ctx) => {
 
     const rich = rows.filter((t) =>
       /(월|화|수|목|금|토|일)/.test(t) ||
+      /매일\s*\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}/.test(t) ||
       /\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}/.test(t) ||
-      /브레이크|라스트오더|입장마감|휴무|영업\s*종료|영업\s*중/.test(t)
+      /브레이크|라스트오더|입장마감|휴무|영업\s*종료|영업\s*중|영업시간|운영시간/.test(t)
     );
     const unique = Array.from(new Set(rich))
       .filter((t) => t.length >= 4 && t.length <= 80)
-      .slice(0, 14);
+      .slice(0, 20);
     return unique.join('\n');
   }).catch(() => '');
 };

@@ -3666,31 +3666,48 @@ const App = () => {
 
             {/* ── 하단 고정: 사용자 정보 & 로그아웃 버튼 ── */}
             <div className="p-4 border-t border-slate-100 bg-white shrink-0 mt-auto">
-              <div className="grid grid-cols-2 gap-1.5 mb-2">
-                <button
-                  onClick={() => setShowPlanManager(true)}
-                  className="px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                >
-                  목록보기
-                </button>
-                <button
-                  onClick={() => setShowShareManager(true)}
-                  className="px-2 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-[10px] font-black text-[#3182F6] hover:bg-blue-100 transition-colors"
-                >
-                  공유하기
-                </button>
-              </div>
-              <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
-                <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border-2 border-white shadow-sm">
-                  {user.photoURL ? <img src={user.photoURL} alt="User" /> : <div className="w-full h-full bg-slate-200 flex items-center justify-center"><UserIcon size={12} className="text-slate-400" /></div>}
+              {canManagePlan && (
+                <div className="grid grid-cols-2 gap-1.5 mb-2">
+                  <button
+                    onClick={() => setShowPlanManager(true)}
+                    className="px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                  >
+                    목록보기
+                  </button>
+                  <button
+                    onClick={() => setShowShareManager(true)}
+                    className="px-2 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-[10px] font-black text-[#3182F6] hover:bg-blue-100 transition-colors"
+                  >
+                    공유하기
+                  </button>
                 </div>
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-[11px] font-black text-slate-700 truncate">{user.displayName || '사용자'}</span>
+              )}
+              {user ? (
+                <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
+                  <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border-2 border-white shadow-sm">
+                    {user.photoURL ? <img src={user.photoURL} alt="User" /> : <div className="w-full h-full bg-slate-200 flex items-center justify-center"><UserIcon size={12} className="text-slate-400" /></div>}
+                  </div>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-[11px] font-black text-slate-700 truncate">{user.displayName || '사용자'}</span>
+                  </div>
+                  {!user.isGuest ? (
+                    <button onClick={handleLogout} className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all" title="로그아웃">
+                      <LogOut size={12} />
+                    </button>
+                  ) : (
+                    <button onClick={handleLogin} className="px-2 py-1 rounded-lg text-[10px] font-black text-[#3182F6] bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors" title="로그인">
+                      로그인
+                    </button>
+                  )}
                 </div>
-                <button onClick={handleLogout} className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all" title="로그아웃">
-                  <LogOut size={12} />
-                </button>
-              </div>
+              ) : (
+                <div className="flex items-center justify-between gap-2 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
+                  <span className="text-[10px] font-black text-slate-500">공유 보기 모드</span>
+                  <button onClick={handleLogin} className="px-2 py-1 rounded-lg text-[10px] font-black text-[#3182F6] bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors" title="로그인">
+                    로그인
+                  </button>
+                </div>
+              )}
             </div>
           </>
         )}

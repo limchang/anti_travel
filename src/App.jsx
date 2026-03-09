@@ -5256,7 +5256,7 @@ const App = () => {
                                 ));
                               }}
                               className={`relative flex flex-col items-center justify-center gap-2 shrink-0 border-r border-slate-100 flex-none overflow-hidden transition-all duration-500 cursor-pointer group/tower ${timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx
-                                ? 'w-[240px] sm:w-[280px] bg-slate-50/80 shadow-inner'
+                                ? 'w-[200px] sm:w-[220px] bg-slate-50/80 shadow-inner'
                                 : (isCompactTimeline ? 'w-[30%] py-3' : 'w-[30%] py-4 px-2 sm:px-3')
                                 } ${p.isTimeFixed ? 'bg-blue-50/40' : 'bg-transparent'}`}
                             >
@@ -5329,12 +5329,12 @@ const App = () => {
                                             </div>
                                           </div>
                                           {/* 잠금 + 단위 2x2 */}
-                                          <div className="grid grid-cols-2 gap-1">
+                                          <div className="grid grid-cols-2 gap-1 flex-1">
                                             <button onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`col-span-2 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[9px] font-black transition-all ${p.isTimeFixed ? 'bg-[#3182F6] text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
                                               {p.isTimeFixed ? <Lock size={9} /> : <Unlock size={9} />} {p.isTimeFixed ? '고정됨' : '고정'}
                                             </button>
                                             {[1, 5, 15, 30].map(s => (
-                                              <button key={s} onClick={(e) => { e.stopPropagation(); setTimeControllerTarget(prev => ({ ...prev, step: s })); }} className={`py-1 rounded-lg text-[9px] font-black transition-all text-center ${mStep === s ? (p.isTimeFixed ? 'bg-[#3182F6] text-white' : 'bg-slate-700 text-white') : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>
+                                              <button key={s} onClick={(e) => { e.stopPropagation(); setTimeControllerTarget(prev => ({ ...prev, step: s })); }} className={`w-full py-1 rounded-lg text-[9px] font-black transition-all text-center ${mStep === s ? (p.isTimeFixed ? 'bg-[#3182F6] text-white' : 'bg-slate-700 text-white') : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>
                                                 {s}
                                               </button>
                                             ))}
@@ -5361,12 +5361,12 @@ const App = () => {
                                             <span className={`text-[12px] font-black mb-0.5 ${isDurationLocked ? 'text-orange-200' : 'text-slate-200'}`}>m</span>
                                           </div>
                                           {/* 잠금 + 프리셋 2x2 */}
-                                          <div className="grid grid-cols-2 gap-1">
+                                          <div className="grid grid-cols-2 gap-1 flex-1">
                                             <button onClick={(e) => { e.stopPropagation(); toggleDurationLock(dIdx, pIdx); }} className={`col-span-2 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[9px] font-black transition-all ${p.isDurationFixed ? 'bg-orange-400 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
                                               <Timer size={9} /> {p.isDurationFixed ? '고정됨' : '고정'}
                                             </button>
                                             {[30, 60, 90, 120].map(v => (
-                                              <button key={v} onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) setDurationValue(dIdx, pIdx, v); }} className={`py-1 rounded-lg text-[9px] font-black transition-all text-center ${isDurationLocked ? 'opacity-20 cursor-not-allowed text-slate-300' : 'bg-slate-50 text-slate-500 hover:bg-orange-400 hover:text-white'}`}>
+                                              <button key={v} onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) setDurationValue(dIdx, pIdx, v); }} className={`w-full py-1 rounded-lg text-[9px] font-black transition-all text-center ${isDurationLocked ? 'opacity-20 cursor-not-allowed text-slate-300' : 'bg-slate-50 text-slate-500 hover:bg-orange-400 hover:text-white'}`}>
                                                 {v < 60 ? `${v}m` : v % 60 === 0 ? `${v/60}h` : `1.5h`}
                                               </button>
                                             ))}

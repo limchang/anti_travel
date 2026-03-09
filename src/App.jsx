@@ -1470,8 +1470,9 @@ const App = () => {
 
   // 히어로 카드 스크롤 감지 → 컴팩트 플로팅 바 전환 (히스테리시스)
   useEffect(() => {
-    const COLLAPSE_AT = -90;
-    const EXPAND_AT = -24;
+    // 카드 하단(바닥 기준)이 상단에 닿을 때 축소되도록 기준을 늦춘다.
+    const COLLAPSE_AT = 0;
+    const EXPAND_AT = 56;
     let ticking = false;
 
     const evaluate = () => {
@@ -4314,8 +4315,6 @@ const App = () => {
             </>
           )}
 
-          <div ref={heroTriggerRef} className="h-px w-full" />
-
           {/* ── 여행 헤더 카드 ── */}
           {(() => {
             const tripDays = (tripStartDate && tripEndDate)
@@ -4588,6 +4587,7 @@ const App = () => {
               </div>
             );
           })()}
+          <div ref={heroTriggerRef} className="h-px w-full" />
           <div className={`w-full mx-auto flex flex-col relative z-0 ${isCompactTimeline ? 'max-w-[500px] gap-4' : 'max-w-[560px] gap-6'}`}>
 
             {itinerary.days?.map((d, dIdx) => d.plan?.map((p, pIdx) => {

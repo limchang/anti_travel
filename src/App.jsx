@@ -17,14 +17,18 @@ const UPDATE_NOTES = [
   {
     version: '1.0.0.0',
     date: '2026-03-10',
-    items: [
-      '🗓️ 일정 카드에 플랜B 기능 추가 — 같은 날 대안 일정을 카드 안에 나란히 보관하고 좌우 화살표로 전환할 수 있어요',
-      '🗂️ 카테고리 뱃지가 장소 이름 아래로 이동해 더 읽기 쉬워졌어요',
-      '⏱️ 소요시간 표시를 00:00 형식으로 통일했어요',
-      '🔒 소요시간 잠금 시에만 주황색으로 강조 표시돼요',
-      '📐 시간 셀 확장 너비를 줄여 화면을 더 넓게 쓸 수 있어요',
-      '📌 사이드바가 열릴 때 일정 영역을 밀어내는 방식으로 바뀌었어요',
-      '🅱️ 플랜B 일정 드래그 시 현재 보이는 일정만 이동해요',
+    timeline: [
+      { time: '23:50', emoji: '⛴️', title: '선적 종료 시간 직접 편집 가능', desc: '선박 카드에서 선적 종료 시간을 탭·드래그로 바로 수정할 수 있어요.' },
+      { time: '23:20', emoji: '⏱️', title: '이동 단위 공유', desc: '시작 시각 이동 단위(1/5/15/30분)를 선택하면 소요시간 스피너도 같은 단위로 맞춰져요.' },
+      { time: '23:05', emoji: '🔒', title: '잠금 버튼 테두리 강조', desc: '시간 셀 확장 시 잠금 상태일 때 색상 ring이 추가되어 한눈에 확인할 수 있어요.' },
+      { time: '22:40', emoji: '📱', title: '모바일 초기 사이드바 접힘', desc: '모바일 환경에서 앱 시작 시 양쪽 사이드바가 자동으로 닫혀 있어요.' },
+      { time: '22:15', emoji: '🗂️', title: '버전 시스템 도입', desc: '좌측 사이드바 하단에 버전 뱃지가 생겼어요. 눌러보시면 이 화면이 뜹니다 😄' },
+      { time: '21:55', emoji: '📌', title: '사이드바 밀어내기 방식', desc: '사이드바를 열면 일정 영역 위에 겹치지 않고 옆으로 밀어내요.' },
+      { time: '21:30', emoji: '🅱️', title: '플랜B 셀 너비 통일', desc: '플랜B가 달린 일정 카드가 일반 카드와 동일한 너비로 표시돼요.' },
+      { time: '20:50', emoji: '🚀', title: '플랜B 드래그 개선', desc: '플랜B가 달린 일정을 드래그하면 현재 보이는 일정만 이동해요.' },
+      { time: '20:10', emoji: '🗓️', title: '카테고리 위치 변경', desc: '등록된 일정 탭에서 카테고리 뱃지가 장소 이름 아래로 이동했어요.' },
+      { time: '19:30', emoji: '00:00', title: '시간 표기 통일', desc: '시작·소요시간 모두 00:00 형식으로 표기를 통일했어요.' },
+      { time: '18:45', emoji: '🔒', title: '소요시간 잠금 표시', desc: '소요시간이 잠긴 경우에만 주황색으로 강조돼요.' },
     ],
   },
 ];
@@ -4508,24 +4512,38 @@ const App = () => {
                       <button onClick={() => setShowUpdateNotes(false)} className="text-white/60 hover:text-white transition-colors mt-0.5"><X size={20} /></button>
                     </div>
                   </div>
-                  {/* 내용 */}
-                  <div className="px-6 py-5 max-h-[55vh] overflow-y-auto">
+                  {/* 내용 — 타임라인 */}
+                  <div className="px-6 py-4 max-h-[55vh] overflow-y-auto">
                     {UPDATE_NOTES.map((note, ni) => (
-                      <div key={note.version} className={ni > 0 ? 'mt-6 pt-6 border-t border-slate-100' : ''}>
+                      <div key={note.version} className={ni > 0 ? 'mt-8 pt-6 border-t border-slate-100' : ''}>
                         {ni > 0 && (
-                          <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-2 mb-4">
                             <span className="text-[12px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg">v{note.version}</span>
                             <span className="text-[11px] text-slate-400 font-bold">{note.date}</span>
                           </div>
                         )}
-                        <ul className="flex flex-col gap-3">
-                          {note.items.map((item, i) => (
-                            <li key={i} className="flex items-start gap-2.5">
-                              <span className="text-[18px] leading-none mt-0.5 shrink-0">{item.split(' ')[0]}</span>
-                              <span className="text-[13px] text-slate-700 font-bold leading-relaxed">{item.split(' ').slice(1).join(' ')}</span>
-                            </li>
+                        <div className="relative flex flex-col">
+                          {/* 세로 타임라인 줄 */}
+                          <div className="absolute left-[42px] top-3 bottom-3 w-px bg-slate-100" />
+                          {note.timeline.map((entry, i) => (
+                            <div key={i} className="flex gap-3 mb-4 last:mb-0">
+                              {/* 시간 뱃지 */}
+                              <div className="shrink-0 w-[42px] flex flex-col items-center pt-0.5">
+                                <span className="text-[11px] font-black text-[#3182F6] tabular-nums leading-none bg-blue-50 border border-blue-100 rounded-lg px-1.5 py-1 text-center w-full">{entry.time}</span>
+                              </div>
+                              {/* 도트 */}
+                              <div className="shrink-0 w-2 h-2 rounded-full bg-[#3182F6]/30 border-2 border-[#3182F6] mt-1.5 z-10" />
+                              {/* 내용 */}
+                              <div className="flex-1 min-w-0 pb-1">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span className="text-[14px] leading-none">{entry.emoji.length <= 2 ? entry.emoji : ''}</span>
+                                  <span className="text-[13px] font-black text-slate-800">{entry.title}</span>
+                                </div>
+                                <p className="text-[11px] text-slate-500 font-bold leading-relaxed">{entry.desc}</p>
+                              </div>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       </div>
                     ))}
                   </div>

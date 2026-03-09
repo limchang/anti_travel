@@ -2097,22 +2097,6 @@ const App = () => {
     setLastAction(`소요 시간을 ${nextMinutes}분으로 설정했습니다.`);
   };
 
-  const resetDuration = (dayIdx, pIdx) => {
-    let nextAction = "소요 시간을 60분으로 초기화했습니다.";
-    saveHistory();
-    setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
-      const dayPlan = nextData.days[dayIdx].plan;
-      const item = dayPlan[pIdx];
-
-      item.duration = 60;
-
-      nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
-      return nextData;
-    });
-    setLastAction(nextAction);
-  };
-
   const updateWaitingTime = (dayIdx, pIdx, delta) => {
     saveHistory();
     setItinerary(prev => {
@@ -4659,16 +4643,14 @@ const App = () => {
                                   }
                                   const rect = e.currentTarget.getBoundingClientRect();
                                   const popW = 184;
-                                  const popH = 160;
+                                  const popH = 104;
                                   const safeLeft = Math.min(
                                     window.innerWidth - popW - 12,
                                     Math.max(12, rect.left + rect.width / 2 - popW / 2)
                                   );
-                                  // 소요시간 텍스트 바로 아래(공간 있으면) 또는 위에 표시
-                                  const spaceBelow = window.innerHeight - rect.bottom;
-                                  const safeTop = spaceBelow >= popH + 12
-                                    ? rect.bottom + 6
-                                    : Math.max(12, rect.top - popH - 6);
+                                  // 소요시간 칩과 겹치도록 상단에 오버레이 배치
+                                  const preferredTop = rect.top - 18;
+                                  const safeTop = Math.max(8, Math.min(window.innerHeight - popH - 8, preferredTop));
                                   setDurationControllerTarget(prev =>
                                     (prev?.dayIdx === dIdx && prev?.pIdx === pIdx)
                                       ? null
@@ -4696,7 +4678,7 @@ const App = () => {
                                 className="w-full mb-2 py-1 rounded-lg border border-dashed border-slate-300 bg-white/40 text-center text-[11px] font-black text-slate-700"
                                 title="현재 소요 시간"
                               >
-                                {fmtDur(p.duration)} (기본 60분)
+                                {fmtDur(p.duration)}
                               </div>
                               <div className="grid grid-cols-3 gap-1.5">
                                 <button

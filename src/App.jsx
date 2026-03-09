@@ -12,6 +12,23 @@ import {
   ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal
 } from 'lucide-react';
 
+const APP_VERSION = '1.0.0.0';
+const UPDATE_NOTES = [
+  {
+    version: '1.0.0.0',
+    date: '2026-03-10',
+    items: [
+      '🗓️ 일정 카드에 플랜B 기능 추가 — 같은 날 대안 일정을 카드 안에 나란히 보관하고 좌우 화살표로 전환할 수 있어요',
+      '🗂️ 카테고리 뱃지가 장소 이름 아래로 이동해 더 읽기 쉬워졌어요',
+      '⏱️ 소요시간 표시를 00:00 형식으로 통일했어요',
+      '🔒 소요시간 잠금 시에만 주황색으로 강조 표시돼요',
+      '📐 시간 셀 확장 너비를 줄여 화면을 더 넓게 쓸 수 있어요',
+      '📌 사이드바가 열릴 때 일정 영역을 밀어내는 방식으로 바뀌었어요',
+      '🅱️ 플랜B 일정 드래그 시 현재 보이는 일정만 이동해요',
+    ],
+  },
+];
+
 class AppErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -1098,6 +1115,7 @@ const App = () => {
   const [newPlanRegion, setNewPlanRegion] = useState('');
   const [newPlanTitle, setNewPlanTitle] = useState('');
   const [showShareManager, setShowShareManager] = useState(false);
+  const [showUpdateNotes, setShowUpdateNotes] = useState(false);
   const [showPlanOptions, setShowPlanOptions] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [shareSettings, setShareSettings] = useState({ visibility: 'private', permission: 'viewer' });
@@ -1575,10 +1593,7 @@ const App = () => {
       setShowEntryChooser(false);
       return;
     }
-    if (loading) return;
-    if (entryChooserShownRef.current) return;
-    entryChooserShownRef.current = true;
-    setShowEntryChooser(true);
+    // 자동 열기 제거 — 사용자가 직접 목록열기 버튼으로 열도록 변경
   }, [user, loading, sharedSource]);
 
   // 모바일 터치 드래그 — HTML5 DnD는 모바일에서 동작 안 하므로 터치 전용 구현
@@ -4131,6 +4146,17 @@ const App = () => {
             </div>
           </>
         )}
+        {/* 버전 뱃지 */}
+        {!col1Collapsed && (
+          <button
+            onClick={() => setShowUpdateNotes(true)}
+            className="shrink-0 mx-3 mb-3 py-1.5 px-3 rounded-xl border border-slate-100 bg-slate-50 hover:border-[#3182F6]/30 hover:bg-blue-50/40 transition-colors flex items-center gap-1.5 group"
+            title="업데이트 노트"
+          >
+            <span className="text-[10px] font-black text-slate-300 group-hover:text-[#3182F6] transition-colors">v{APP_VERSION}</span>
+            <span className="text-[10px] text-slate-300 group-hover:text-slate-400 transition-colors">업데이트 노트</span>
+          </button>
+        )}
       </div>
 
       <div
@@ -4458,6 +4484,36 @@ const App = () => {
             <div className={`mx-auto mb-3 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-[11px] font-black text-amber-700 ${isCompactTimeline ? 'max-w-[500px]' : 'max-w-[560px]'}`}>
               공유 일정 보기 모드입니다. (편집 권한 없음)
             </div>
+          )}
+
+          {showUpdateNotes && (
+            <>
+              <div className="fixed inset-0 z-[280] bg-black/20 backdrop-blur-[1px]" onClick={() => setShowUpdateNotes(false)} />
+              <div className="fixed z-[281] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(520px,92vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)] p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-[16px] font-black text-slate-800">업데이트 노트</p>
+                    <p className="text-[11px] text-slate-400 font-bold mt-0.5">Anti Planer v{APP_VERSION}</p>
+                  </div>
+                  <button onClick={() => setShowUpdateNotes(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+                </div>
+                <div className="flex flex-col gap-5 max-h-[60vh] overflow-y-auto pr-1">
+                  {UPDATE_NOTES.map((note) => (
+                    <div key={note.version}>
+                      <div className="flex items-center gap-2 mb-2.5">
+                        <span className="text-[12px] font-black text-[#3182F6] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg">v{note.version}</span>
+                        <span className="text-[11px] text-slate-400 font-bold">{note.date}</span>
+                      </div>
+                      <ul className="flex flex-col gap-1.5">
+                        {note.items.map((item, i) => (
+                          <li key={i} className="text-[12px] text-slate-700 font-bold leading-relaxed">{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
           )}
 
           {showEntryChooser && !user?.isGuest && !sharedSource?.ownerId && (

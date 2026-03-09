@@ -2854,21 +2854,49 @@ const App = () => {
     setPendingAutoRouteJobs(prev => [...prev, { dayIdx: targetDayIdx, targetIdx: insertAfterPIdx + 1 }]);
   };
 
-  const moveTimelineItem = (targetDayIdx, insertAfterPIdx, sourceDayIdx, sourcePIdx, isCopy) => {
+  const moveTimelineItem = (targetDayIdx, insertAfterPIdx, sourceDayIdx, sourcePIdx, isCopy, activePlanPos) => {
     if (!isCopy && targetDayIdx === sourceDayIdx && insertAfterPIdx === sourcePIdx) return;
     saveHistory();
+    let sourceIdToReset = null;
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
-      const sourcePlanItem = nextData.days[sourceDayIdx]?.plan?.[sourcePIdx];
-      if (!sourcePlanItem) return nextData;
+      const src = nextData.days[sourceDayIdx]?.plan?.[sourcePIdx];
+      if (!src) return nextData;
 
-      const itemToMove = deepClone(sourcePlanItem);
-      itemToMove.id = `item_${Date.now()}`;
-      if (!isCopy) {
-        nextData.days[sourceDayIdx].plan.splice(sourcePIdx, 1);
+      const hasAlts = src.alternatives?.length > 0;
+      let itemToMove;
+      let sourceRemoved = false;
+
+      if (hasAlts && activePlanPos !== undefined && !isCopy) {
+        sourceIdToReset = src.id;
+        if (activePlanPos === 0) {
+          // 메인 플랜만 이동 — 첫 번째 대안이 새 메인으로 승격
+          itemToMove = deepClone(src);
+          delete itemToMove.alternatives;
+          itemToMove.id = `item_${Date.now()}`;
+          const [newMain, ...rest] = src.alternatives;
+          Object.assign(src, { activity: newMain.activity, price: newMain.price, memo: newMain.memo,
+            revisit: newMain.revisit, business: newMain.business, types: newMain.types,
+            duration: newMain.duration, receipt: newMain.receipt, alternatives: rest });
+        } else {
+          // 현재 보이는 대안만 이동 — 대안 배열에서 제거
+          const altIdx = activePlanPos - 1;
+          const alt = src.alternatives[altIdx];
+          itemToMove = { id: `item_${Date.now()}`, time: src.time, duration: alt.duration || src.duration,
+            activity: alt.activity, price: alt.price, memo: alt.memo, revisit: alt.revisit,
+            business: alt.business, types: alt.types, receipt: alt.receipt,
+            state: src.state, isTimeFixed: src.isTimeFixed };
+          src.alternatives.splice(altIdx, 1);
+        }
         nextData.days[sourceDayIdx].plan = recalculateSchedule(nextData.days[sourceDayIdx].plan);
-        if (targetDayIdx === sourceDayIdx && insertAfterPIdx > sourcePIdx) {
-          insertAfterPIdx--;
+      } else {
+        itemToMove = deepClone(src);
+        itemToMove.id = `item_${Date.now()}`;
+        if (!isCopy) {
+          nextData.days[sourceDayIdx].plan.splice(sourcePIdx, 1);
+          nextData.days[sourceDayIdx].plan = recalculateSchedule(nextData.days[sourceDayIdx].plan);
+          if (targetDayIdx === sourceDayIdx && insertAfterPIdx > sourcePIdx) insertAfterPIdx--;
+          sourceRemoved = true;
         }
       }
 
@@ -2876,6 +2904,7 @@ const App = () => {
       nextData.days[targetDayIdx].plan = recalculateSchedule(nextData.days[targetDayIdx].plan);
       return nextData;
     });
+    if (sourceIdToReset) setViewingPlanIdx(prev => { const n = {...prev}; delete n[sourceIdToReset]; return n; });
     setLastAction(isCopy ? "일정을 복사했습니다." : "일정을 이동했습니다.");
   };
 
@@ -3845,7 +3874,7 @@ const App = () => {
           insertAlternativeToTimeline(dIdx, pIdx, payload.dayIdx, payload.pIdx, payload.altIdx);
           changedByDrag = true;
         } else {
-          moveTimelineItem(dIdx, pIdx, payload.dayIdx, payload.pIdx, false);
+          moveTimelineItem(dIdx, pIdx, payload.dayIdx, payload.pIdx, false, payload.planPos);
           changedByDrag = true;
         }
       } else if (dropitemEl && payload.altIdx === undefined) {
@@ -4321,6 +4350,7 @@ const App = () => {
                     ${bizWarningNow ? 'border-orange-200 hover:shadow-[0_8px_24px_-4px_rgba(249,115,22,0.15)] ring-1 ring-orange-100' : openStatus === true ? 'border-[#3182F6]/30 shadow-[0_4px_16px_-4px_rgba(49,130,246,0.1)] hover:shadow-[0_8px_24px_-4px_rgba(49,130,246,0.15)] ring-1 ring-[#3182F6]/10' : 'border-slate-100 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.06)] hover:border-slate-200'}`}
                         >
                           <div className="p-4 flex flex-col gap-2.5">
+                            <span className="text-[22px] font-black text-slate-800 leading-tight break-words whitespace-normal">{place.name}</span>
                             <div className="flex items-center gap-1.5 flex-wrap pr-12 cursor-pointer" data-no-drag="true" onClick={(e) => { e.stopPropagation(); setEditingPlaceId(place.id); setEditPlaceDraft({ ...place, address: place.address || place.receipt?.address || '', business: normalizeBusiness(place.business || {}), receipt: deepClone(place.receipt || { address: place.address || '', items: [] }), showBusinessEditor: !!(place.business?.open || place.business?.close || place.business?.breakStart || place.business?.breakEnd || place.business?.lastOrder || place.business?.entryClose || place.business?.closedDays?.length) }); }}>
                               {chips}
                               {baseDistance != null && (
@@ -4329,7 +4359,6 @@ const App = () => {
                                 </span>
                               )}
                             </div>
-                            <span className="text-[22px] font-black text-slate-800 leading-tight break-words whitespace-normal">{place.name}</span>
                             {place.address && (
                               <button
                                 type="button"
@@ -5117,7 +5146,7 @@ const App = () => {
                         const targetEl = e.target instanceof Element ? e.target : null;
                         if (targetEl?.closest('input,button,a,textarea,[contenteditable],[data-no-drag]')) return;
                         // 카드 드래그는 항상 현재 화면에 보이는(메인) 일정을 이동
-                        const payload = { dayIdx: dIdx, pIdx };
+                        const payload = { dayIdx: dIdx, pIdx, planPos: hasPlanB ? planPos : undefined };
                         touchDragSourceRef.current = { kind: 'timeline', payload, startX: e.touches[0].clientX, startY: e.touches[0].clientY };
                         isDraggingActiveRef.current = false;
                       }}
@@ -5127,7 +5156,7 @@ const App = () => {
                         const isInteractiveTarget = !!targetEl?.closest('input, button, a, textarea, [contenteditable="true"], [data-no-drag="true"]');
                         if (isInteractiveTarget) { e.preventDefault(); return; }
                         // 카드 드래그는 항상 현재 화면에 보이는(메인) 일정을 이동
-                        const payload = { dayIdx: dIdx, pIdx };
+                        const payload = { dayIdx: dIdx, pIdx, planPos: hasPlanB ? planPos : undefined };
                         desktopDragRef.current = { kind: 'timeline', payload, copy };
                         e.dataTransfer.effectAllowed = copy ? 'copy' : 'move';
                         try {
@@ -5312,7 +5341,6 @@ const App = () => {
                                     return (
                                       <div className="flex flex-col items-center w-full h-full px-2.5 py-2 gap-2 animate-in fade-in duration-200 overflow-y-auto select-none">
                                         {/* ── 시작 시각 ── */}
-                                        <span className={`text-[8px] font-black tracking-widest uppercase self-start ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-400'}`}>시작 시각</span>
                                         <div className="flex items-center gap-2 w-full justify-center">
                                           {/* 스피너 */}
                                           <div className="flex items-center gap-1">
@@ -5343,7 +5371,6 @@ const App = () => {
                                         {/* 구분선 */}
                                         <div className="w-full h-px bg-slate-100" />
                                         {/* ── 소요시간 ── */}
-                                        <span className={`text-[8px] font-black tracking-widest uppercase self-start ${isDurationLocked ? 'text-orange-400' : 'text-slate-400'}`}>소요시간</span>
                                         <div className="flex items-center gap-2 w-full justify-center">
                                           {/* 스피너 */}
                                           <div className="flex items-center gap-1">
@@ -5862,7 +5889,7 @@ const App = () => {
                               } else if (draggingFromTimeline?.altIdx !== undefined) {
                                 insertAlternativeToTimeline(dIdx, pIdx, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
                               } else if (draggingFromTimeline && draggingFromTimeline.altIdx === undefined) {
-                                moveTimelineItem(dIdx, pIdx, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, isDragCopy);
+                                moveTimelineItem(dIdx, pIdx, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, isDragCopy, draggingFromTimeline.planPos);
                               }
                               setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropTarget(null); setIsDragCopy(false);
                             }}
@@ -5900,7 +5927,7 @@ const App = () => {
                                     } else if (draggingFromTimeline?.altIdx !== undefined) {
                                       insertAlternativeToTimeline(dIdx, pIdx, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
                                     } else if (draggingFromTimeline && draggingFromTimeline.altIdx === undefined) {
-                                      moveTimelineItem(dIdx, pIdx, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, isDragCopy);
+                                      moveTimelineItem(dIdx, pIdx, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, isDragCopy, draggingFromTimeline.planPos);
                                     }
                                     setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropTarget(null); setIsDragCopy(false);
                                   }}

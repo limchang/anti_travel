@@ -1552,8 +1552,6 @@ const App = () => {
       hour12: false,
     });
     setPatchNotice({ timeText });
-    const timer = setTimeout(() => setPatchNotice(null), 7500);
-    return () => clearTimeout(timer);
   }, [loading]);
 
   useEffect(() => {
@@ -5323,13 +5321,26 @@ const App = () => {
                                             {p.isTimeFixed && (
                                               <div className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-[#3182F6] shadow-[0_0_6px_rgba(49,130,246,0.6)] animate-pulse" />
                                             )}
+                                            {/* 시작 */}
                                             <span className={`text-[8px] font-black tracking-widest uppercase leading-none mb-1 ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-300 group-hover/time:text-blue-200'}`}>시작</span>
                                             <div className={`flex items-baseline gap-[2px] ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800 group-hover/time:text-[#3182F6] transition-colors'}`}>
                                               <span className="text-[22px] sm:text-[24px] font-black tracking-tighter tabular-nums leading-none">{hh}</span>
                                               <span className={`text-[12px] font-black mb-0.5 ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-200 group-hover/time:text-blue-200'}`}>:</span>
                                               <span className="text-[22px] sm:text-[24px] font-black tracking-tighter tabular-nums leading-none">{mm}</span>
                                             </div>
-                                            <div className={`w-full my-1.5 border-t border-dashed ${p.isTimeFixed ? 'border-blue-100' : 'border-slate-100'}`} />
+                                            {/* 소요시간 인라인 바 */}
+                                            <div
+                                              className={`flex items-center justify-between w-full mt-2 mb-2 px-1.5 py-1 rounded-lg border transition-all group/dur ${isDurationLocked ? 'bg-orange-50/60 border-orange-200/60' : 'bg-white/80 border-slate-100 hover:border-blue-200 cursor-pointer'}`}
+                                              onClick={(e) => { e.stopPropagation(); if (isAutoLocked) { setLastAction('자동 연동 일정은 소요시간을 조절할 수 없습니다.'); return; } setDurationControllerTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx) ? null : { dayIdx: dIdx, pIdx }); }}
+                                            >
+                                              <button onClick={(e) => { e.stopPropagation(); if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; } updateDuration(dIdx, pIdx, -TIME_UNIT); }} className={`w-4 h-4 flex items-center justify-center rounded shrink-0 transition-colors ${isDurationLocked ? 'text-orange-300' : 'text-slate-300 hover:text-blue-500'}`}><Minus size={9} strokeWidth={3} /></button>
+                                              <div className="flex flex-col items-center gap-0.5" data-duration-trigger="true">
+                                                <span className={`text-[7px] font-black tracking-widest uppercase leading-none ${isDurationLocked ? 'text-orange-400/60' : 'text-slate-300 group-hover/dur:text-blue-200'}`}>소요</span>
+                                                <span className={`text-[11px] font-black tabular-nums tracking-tight leading-none transition-colors ${isAutoLocked ? 'text-red-500' : isDurationLocked ? 'text-orange-500' : 'text-slate-600 group-hover/dur:text-blue-600'}`}>{fmtDur(p.duration)}</span>
+                                              </div>
+                                              <button onClick={(e) => { e.stopPropagation(); if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; } updateDuration(dIdx, pIdx, TIME_UNIT); }} className={`w-4 h-4 flex items-center justify-center rounded shrink-0 transition-colors ${isDurationLocked ? 'text-orange-300' : 'text-slate-300 hover:text-blue-500'}`}><Plus size={9} strokeWidth={3} /></button>
+                                            </div>
+                                            {/* 종료 */}
                                             <span className={`text-[8px] font-black tracking-widest uppercase leading-none mb-0.5 ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-300 group-hover/time:text-blue-200'}`}>종료</span>
                                             <div className={`flex items-baseline gap-[2px] ${p.isTimeFixed ? 'text-blue-400/80' : 'text-slate-400 group-hover/time:text-blue-400/80 transition-colors'}`}>
                                               <span className="text-[15px] sm:text-[16px] font-black tracking-tight tabular-nums leading-none">{ehh}</span>
@@ -5395,11 +5406,13 @@ const App = () => {
                                 </div>
                               </div>
 
-                              {/* ✅ 소요 시간 조절 */}
+                              {/* ✅ 소요 시간 조절 확장 컨트롤러 */}
                               {(() => {
                                 const isExpanding = durationControllerTarget?.dayIdx === dIdx && durationControllerTarget?.pIdx === pIdx;
                                 const hrs = Math.floor((p.duration || 0) / 60);
                                 const mins = (p.duration || 0) % 60;
+
+                                if (!isExpanding) return null;
 
                                 if (isExpanding) {
                                   return (
@@ -5442,40 +5455,6 @@ const App = () => {
                                   );
                                 }
 
-                                return (
-                                  <div className={`flex items-center justify-between w-[92%] sm:w-[86%] bg-white px-1.5 py-1.5 rounded-xl shadow-sm border my-0.5 transition-all duration-300 group/dur ${isDurationLocked ? 'border-orange-200/80 bg-orange-50/20' : 'border-slate-200/60 hover:border-blue-300 hover:shadow-md cursor-pointer'}`} onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (isAutoLocked) { setLastAction('자동 연동 일정은 소요시간을 조절할 수 없습니다.'); return; }
-                                    setDurationControllerTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx) ? null : { dayIdx: dIdx, pIdx });
-                                  }}>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; }
-                                        updateDuration(dIdx, pIdx, -TIME_UNIT);
-                                      }}
-                                      className={`w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-400 hover:text-orange-500 hover:bg-orange-100' : 'text-slate-300 hover:text-blue-600 hover:bg-blue-50'}`}
-                                    ><Minus size={11} strokeWidth={3} /></button>
-
-                                    <div className="flex flex-col items-center justify-center flex-1 gap-0.5" data-duration-trigger="true">
-                                      <span className={`text-[8px] font-black tracking-widest uppercase leading-none ${isDurationLocked ? 'text-orange-400/60' : 'text-slate-300 group-hover/dur:text-blue-200'}`}>소요</span>
-                                      <span
-                                        className={`text-[12.5px] sm:text-[14px] whitespace-nowrap font-black tabular-nums tracking-tight leading-none transition-colors ${isAutoLocked ? 'cursor-not-allowed text-red-500' : (p.isDurationFixed ? 'text-orange-500' : 'text-slate-700 group-hover/dur:text-blue-600')}`}
-                                      >
-                                        {fmtDur(p.duration)}
-                                      </span>
-                                    </div>
-
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; }
-                                        updateDuration(dIdx, pIdx, TIME_UNIT);
-                                      }}
-                                      className={`w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-400 hover:text-orange-500 hover:bg-orange-100' : 'text-slate-300 hover:text-blue-600 hover:bg-blue-50'}`}
-                                    ><Plus size={11} strokeWidth={3} /></button>
-                                  </div>
-                                );
                               })()}
 
                             </div>
@@ -6093,33 +6072,34 @@ const App = () => {
           {
             patchNotice && (
               <div className="fixed top-4 right-4 z-[220] animate-in slide-in-from-right-4 fade-in duration-500">
-                <div className="bg-[#0d1117] border border-[#30363d] shadow-[0_24px_56px_-12px_rgba(0,0,0,0.75)] rounded-2xl overflow-hidden w-[340px]">
-                  {/* 터미널 상단 바 */}
-                  <div className="flex items-center gap-1.5 px-4 py-2.5 bg-[#161b22] border-b border-[#30363d]">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
-                    <span className="ml-2 text-[10px] font-mono font-bold text-[#8b949e] tracking-wide">anti_planer — update.log</span>
+                <div className="bg-white border border-slate-200 shadow-[0_20px_40px_-12px_rgba(15,23,42,0.18)] rounded-[20px] overflow-hidden w-[300px]">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-[#3182F6] animate-pulse" />
+                      <span className="text-[11px] font-black text-slate-700 tracking-widest uppercase">업데이트 노트</span>
+                    </div>
+                    <button onClick={() => setPatchNotice(null)} className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                      <X size={13} />
+                    </button>
                   </div>
-                  {/* 로그 내용 */}
-                  <div className="px-4 py-3 flex flex-col gap-[5px]">
-                    <p className="text-[9px] font-mono text-[#6e7681] mb-1">$ git log --oneline --since="7 days ago"</p>
+                  <div className="px-4 py-3 flex flex-col gap-2.5">
                     {UPDATE_LOG.map((entry, i) => (
                       <div key={i} className="flex items-start gap-2">
-                        <span className="text-[9px] font-mono text-[#3fb950] shrink-0 tabular-nums">[{entry.date}]</span>
-                        <span className={`shrink-0 text-[8px] font-black font-mono px-1 py-px rounded leading-tight ${
-                          entry.tag === 'FIX'  ? 'bg-[#da3633]/25 text-[#f85149]' :
-                          entry.tag === 'FEAT' ? 'bg-[#1f6feb]/25 text-[#58a6ff]' :
-                                                 'bg-[#3fb950]/20 text-[#3fb950]'
+                        <span className={`shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded-md leading-tight border ${
+                          entry.tag === 'FIX'  ? 'bg-red-50 text-red-500 border-red-100' :
+                          entry.tag === 'FEAT' ? 'bg-blue-50 text-[#3182F6] border-blue-100' :
+                                                 'bg-emerald-50 text-emerald-600 border-emerald-100'
                         }`}>{entry.tag}</span>
-                        <span className="text-[10px] font-mono text-[#c9d1d9] leading-tight">{entry.msg}</span>
+                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                          <span className="text-[11px] font-bold text-slate-700 leading-tight">{entry.msg}</span>
+                          <span className="text-[9px] font-bold text-slate-400">03 / {entry.date.split('.')[1]}</span>
+                        </div>
                       </div>
                     ))}
-                    <div className="mt-2 pt-2 border-t border-[#21262d] flex items-center gap-1.5">
-                      <span className="text-[9px] font-mono text-[#3fb950]">✓</span>
-                      <span className="text-[9px] font-mono text-[#8b949e]">빌드 성공 ·</span>
-                      <span className="text-[9px] font-mono text-[#6e7681] tabular-nums">{patchNotice.timeText}</span>
-                    </div>
+                  </div>
+                  <div className="px-4 py-2 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between">
+                    <span className="text-[9px] font-bold text-slate-400 tabular-nums">{patchNotice.timeText} 적용</span>
+                    <span className="text-[9px] font-black text-[#3182F6]">anti_planer</span>
                   </div>
                 </div>
               </div>

@@ -4451,7 +4451,7 @@ const App = () => {
         }
       </div>
 
-      <div className="flex-1 flex flex-col items-center w-full bg-slate-50 min-h-screen" style={{ marginLeft: isMobileLayout ? 0 : leftSidebarWidth, marginRight: isMobileLayout ? 0 : (col2Collapsed ? 44 : 300) }}>
+      <div className="flex-1 flex flex-col items-center w-full bg-slate-50 min-h-screen" style={{ marginLeft: leftSidebarWidth, marginRight: isMobileLayout ? rightSidebarWidth : (col2Collapsed ? 44 : 300) }}>
         {/* 일정 목록 */}
         <div className="w-full px-4 pt-8 pb-32">
           {isSharedReadOnly && (

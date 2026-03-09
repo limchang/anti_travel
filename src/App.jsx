@@ -1546,11 +1546,19 @@ const App = () => {
   useEffect(() => {
     if (!durationControllerTarget) return;
     const close = () => setDurationControllerTarget(null);
+    const closeOnOutside = (e) => {
+      const target = e.target;
+      if (target?.closest?.('[data-duration-controller="true"]')) return;
+      if (target?.closest?.('[data-duration-trigger="true"]')) return;
+      setDurationControllerTarget(null);
+    };
     window.addEventListener('scroll', close, true);
     window.addEventListener('resize', close);
+    document.addEventListener('pointerdown', closeOnOutside, true);
     return () => {
       window.removeEventListener('scroll', close, true);
       window.removeEventListener('resize', close);
+      document.removeEventListener('pointerdown', closeOnOutside, true);
     };
   }, [durationControllerTarget]);
 
@@ -4847,6 +4855,7 @@ const App = () => {
                                 className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-500'}`}
                               ><Minus size={10} /></button>
                               <span
+                                data-duration-trigger="true"
                                 className={`text-[12px] whitespace-nowrap font-extrabold tabular-nums ${isAutoLocked ? 'cursor-not-allowed text-orange-500' : (p.isDurationFixed ? 'cursor-pointer text-orange-500 hover:underline' : 'cursor-pointer hover:underline text-slate-600 hover:text-blue-600')}`}
                                 onClick={(e) => {
                                   if (isAutoLocked) {
@@ -4882,16 +4891,11 @@ const App = () => {
                           )}
                           {!isDurationLocked && durationControllerTarget?.dayIdx === dIdx && durationControllerTarget?.pIdx === pIdx && (
                             <div
+                              data-duration-controller="true"
                               className="fixed z-[140] w-[184px] rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_14px_32px_-12px_rgba(15,23,42,0.25)] p-2"
                               style={{ left: durationControllerTarget.left, top: durationControllerTarget.top }}
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <div
-                                className="w-full mb-2 py-1 rounded-lg border border-dashed border-slate-300 bg-white/40 text-center text-[11px] font-black text-slate-700"
-                                title="현재 소요 시간"
-                              >
-                                {fmtDur(p.duration)}
-                              </div>
                               <div className="grid grid-cols-3 gap-1.5">
                                 <button
                                   type="button"

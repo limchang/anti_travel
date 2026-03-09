@@ -3338,7 +3338,7 @@ const App = () => {
       if (!user.isGuest) await refreshPlanList(user.uid);
       setLoading(false);
     })();
-  }, [user, currentPlanId, refreshPlanList, sharedSource, tripRegion, newPlanRegion]);
+  }, [user, currentPlanId, refreshPlanList, sharedSource]);
 
   if (authLoading) return (
     <div className="min-h-screen bg-[#F2F4F6] flex flex-col items-center justify-center gap-4">

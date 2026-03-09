@@ -3621,6 +3621,11 @@ const App = () => {
                             <div className="min-w-0 flex items-center gap-1.5">
                               <div className={`shrink-0 scale-90 origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-60'}`}>{getCategoryBadge((p.types?.[0]) || p.type || 'place')}</div>
                               <span className={`text-[10px] truncate leading-none ${isActive ? 'font-black text-[#3182F6]' : 'font-bold text-slate-500'}`}>{p.activity}</span>
+                              {(p.alternatives?.length || 0) > 0 && (
+                                <span className={`shrink-0 text-[8px] leading-none px-1.5 py-0.5 rounded border ${isActive ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-amber-500 bg-amber-50/70 border-amber-200/80'}`}>
+                                  B {p.alternatives.length}
+                                </span>
+                              )}
                             </div>
                             {!p.types?.includes('ship') && (() => {
                               const isLastLodge = isLodgeStay(p.types) && pIdx === arr.length - 1;

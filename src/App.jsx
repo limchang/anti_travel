@@ -1032,6 +1032,7 @@ const App = () => {
   const [placeDistanceMap, setPlaceDistanceMap] = useState({});
   const [col1Collapsed, setCol1Collapsed] = useState(false);
   const [col2Collapsed, setCol2Collapsed] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));
   const [tagEditorTarget, setTagEditorTarget] = useState(null); // {dayIdx, pIdx}
   const [businessEditorTarget, setBusinessEditorTarget] = useState(null); // {dayIdx, pIdx}
   const [viewingPlanIdx, setViewingPlanIdx] = useState({}); // {[itemId]: altIdx} — -1 = main plan A
@@ -1045,9 +1046,31 @@ const App = () => {
   const [heroCollapsed, setHeroCollapsed] = useState(false);
   const [heroSummaryExpanded, setHeroSummaryExpanded] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
+  const isMobileLayout = viewportWidth < 1100;
+  const leftExpandedWidth = isMobileLayout ? Math.min(340, Math.round(viewportWidth * 0.82)) : 260;
+  const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 310;
+  const leftCollapsedWidth = isMobileLayout ? 0 : 44;
+  const rightCollapsedWidth = isMobileLayout ? 0 : 44;
+  const leftSidebarWidth = col1Collapsed ? leftCollapsedWidth : leftExpandedWidth;
+  const rightSidebarWidth = col2Collapsed ? rightCollapsedWidth : rightExpandedWidth;
 
   const scrollIntervalRef = useRef(null);
   const lastTouchYRef = useRef(null);
+  const mobileSwitchRef = useRef(isMobileLayout);
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    if (isMobileLayout && !mobileSwitchRef.current) {
+      setCol1Collapsed(true);
+      setCol2Collapsed(true);
+    }
+    mobileSwitchRef.current = isMobileLayout;
+  }, [isMobileLayout]);
 
   const startAutoScroll = useCallback(() => {
     if (scrollIntervalRef.current) return;
@@ -3505,7 +3528,10 @@ const App = () => {
       {/* ── Col1 테두리 탭 (오른쪽 경계) ── */}
       <div
         className="fixed z-[141] top-1/2 transition-all duration-300"
-        style={{ left: col1Collapsed ? 44 : 260, transform: 'translateX(-50%) translateY(-50%)' }}
+        style={{
+          left: isMobileLayout ? (col1Collapsed ? 12 : Math.max(8, leftSidebarWidth - 6)) : leftSidebarWidth,
+          transform: isMobileLayout ? 'translateY(-50%)' : 'translateX(-50%) translateY(-50%)'
+        }}
       >
         <button
           onClick={() => setCol1Collapsed(v => !v)}
@@ -3517,7 +3543,10 @@ const App = () => {
       {/* ── Col2 Toggle (Floating) ── */}
       <div
         className="fixed z-[150] top-1/2 transition-all duration-300 pointer-events-none"
-        style={{ right: col2Collapsed ? 44 : 310, transform: 'translateX(50%) translateY(-50%)' }}
+        style={{
+          right: isMobileLayout ? (col2Collapsed ? 12 : Math.max(8, rightSidebarWidth - 6)) : (col2Collapsed ? 44 : 310),
+          transform: isMobileLayout ? 'translateY(-50%)' : 'translateX(50%) translateY(-50%)'
+        }}
       >
         <button
           onClick={() => setCol2Collapsed(v => !v)}
@@ -3531,7 +3560,7 @@ const App = () => {
       {/* ── Col1: 예산 + 일정 네비게이션 ── */}
       <div
         className="flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] z-[140] shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-hidden"
-        style={{ width: col1Collapsed ? 44 : 260 }}
+        style={{ width: leftSidebarWidth }}
       >
         {col1Collapsed ? (
           <div className="flex-1 flex items-center justify-center">
@@ -3668,7 +3697,7 @@ const App = () => {
 
       <div
         className="flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[140] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-hidden"
-        style={{ right: 0, width: col2Collapsed ? 44 : 310 }}
+        style={{ right: 0, width: rightSidebarWidth }}
       >
         {col2Collapsed ? (
           <div className="flex-1 flex flex-col items-center justify-center">
@@ -4004,7 +4033,7 @@ const App = () => {
         }
       </div >
 
-      <div className="flex-1 flex flex-col items-center w-full bg-white min-h-screen" style={{ marginLeft: col1Collapsed ? 44 : 260, marginRight: col2Collapsed ? 44 : 300 }}>
+      <div className="flex-1 flex flex-col items-center w-full bg-white min-h-screen" style={{ marginLeft: isMobileLayout ? 0 : leftSidebarWidth, marginRight: isMobileLayout ? 0 : (col2Collapsed ? 44 : 300) }}>
         {/* 일정 목록 */}
         <div className="w-full px-4 pt-8 pb-32">
           {isSharedReadOnly && (
@@ -4288,7 +4317,7 @@ const App = () => {
                 {heroCollapsed && (
                   <div
                     className="fixed top-0 z-[190] pointer-events-none"
-                    style={{ left: col1Collapsed ? 44 : 260, right: col2Collapsed ? 44 : 300 }}
+                    style={{ left: isMobileLayout ? 12 : leftSidebarWidth, right: isMobileLayout ? 12 : (col2Collapsed ? 44 : 300) }}
                   >
                     <div className="w-full bg-white/96 backdrop-blur-2xl border-b border-slate-200/90 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.5)] pointer-events-auto min-h-[88px] px-4 py-2.5 flex flex-col justify-center gap-2">
                       <div className="flex items-center gap-2">

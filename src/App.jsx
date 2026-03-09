@@ -1207,8 +1207,8 @@ const App = () => {
     setPlanOptionRegion(tripRegion || '');
     setPlanOptionStartDate(tripStartDate || '');
     setPlanOptionEndDate(tripEndDate || '');
-    setPlanOptionBudget(String(MAX_BUDGET || 0));
-  }, [showPlanOptions, tripRegion, tripStartDate, tripEndDate, MAX_BUDGET]);
+    setPlanOptionBudget(String(itinerary?.maxBudget || 0));
+  }, [showPlanOptions, tripRegion, tripStartDate, tripEndDate, itinerary?.maxBudget]);
 
   useEffect(() => {
     const onKeyDown = (e) => { if (e.key === 'Control') ctrlHeldRef.current = true; };
@@ -3396,12 +3396,7 @@ const App = () => {
     );
   }
 
-  if (loading || !itinerary) return (
-    <div className="min-h-screen bg-[#F2F4F6] flex flex-col items-center justify-center gap-4">
-      <div className="w-12 h-12 border-4 border-[#3182F6]/20 border-t-[#3182F6] rounded-full animate-spin" />
-      <div className="font-black text-slate-400 text-sm animate-pulse">일정을 불러오고 있습니다...</div>
-    </div>
-  );
+  if (!itinerary) return null;
 
   const isOwnerSession = !!user && !user.isGuest && (!sharedSource?.ownerId || sharedSource.ownerId === user.uid);
   const canManagePlan = isOwnerSession && !isSharedReadOnly;

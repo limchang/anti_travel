@@ -3771,7 +3771,7 @@ const App = () => {
 
             {/* ── 스크롤 컨텐츠 ── */}
             <div
-              className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-5 pt-4 pb-8 flex flex-col"
+              className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-5 pt-4 pb-2 flex flex-col"
               data-library-dropzone="true"
               onDragOver={(e) => { if (draggingFromTimeline) e.preventDefault(); }}
               onDrop={(e) => {
@@ -3832,7 +3832,7 @@ const App = () => {
                   return acc;
                 }, {});
                 return (
-                  <div className="flex flex-col gap-1.5 overflow-y-auto overscroll-none no-scrollbar flex-1 items-center min-h-0">
+                  <div className="w-full flex flex-col gap-1.5 items-center">
                     {/* 필터 및 정렬 상태 표시기 */}
                     <div className="w-full flex flex-col gap-1 mb-2">
                       <div className="flex flex-wrap gap-1 px-1">

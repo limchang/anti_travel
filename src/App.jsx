@@ -4432,8 +4432,8 @@ const App = () => {
                           <Share2 size={16} />
                         </button>
                       </div>}
-                      {/* 🖼️ 배경 이미지 (50% 이후 자연스러운 투명 그라데이션) */}
-                      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                      {/* 🖼️ 배경 이미지 (고정 높이, 요약 확장과 무관) */}
+                      <div className="absolute left-0 right-0 top-0 h-[520px] sm:h-[560px] overflow-hidden pointer-events-none">
                         <img
                           src={getRegionCoverImage(tripRegion)}
                           className="w-full h-full object-cover opacity-95 scale-105"
@@ -4441,13 +4441,13 @@ const App = () => {
                         />
                         <div
                           className="absolute inset-0"
-                          style={{ background: 'linear-gradient(to bottom, rgba(15,23,42,0.26) 0%, rgba(15,23,42,0.14) 48%, rgba(242,244,246,0.18) 62%, rgba(242,244,246,0) 78%, rgba(242,244,246,0) 100%)' }}
+                          style={{ background: 'linear-gradient(to bottom, rgba(15,23,42,0.26) 0%, rgba(15,23,42,0.12) 46%, rgba(242,244,246,0.16) 62%, rgba(242,244,246,0) 76%, rgba(242,244,246,0) 100%)' }}
                         />
                       </div>
 
                       <div className={`relative z-10 flex flex-col gap-10 w-full mx-auto ${timelineMaxClass}`}>
                         {/* 🌟 1. 타이틀 & 일정 */}
-                        <div className="flex flex-col gap-5 px-8 pt-8 sm:px-10 sm:pt-10">
+                        <div className="flex flex-col gap-5 px-6 pt-8 sm:px-8 sm:pt-10">
                           <input
                             value={tripRegion}
                             onChange={(e) => setTripRegion(e.target.value)}

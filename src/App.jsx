@@ -4414,7 +4414,7 @@ const App = () => {
 
                 {/* 풀 카드 (최상단) */}
                 {!heroCollapsed && (
-                  <section className="mb-10 mt-6">
+                  <section className="mb-10 -mx-4 -mt-8">
                     <div className="w-full rounded-[40px] relative overflow-hidden bg-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] border border-slate-100/80">
                       {canManagePlan && <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                         <button

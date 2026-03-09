@@ -4056,7 +4056,7 @@ const App = () => {
         }
       </div >
 
-      <div className="flex-1 flex flex-col items-center w-full bg-white min-h-screen" style={{ marginLeft: isMobileLayout ? 0 : leftSidebarWidth, marginRight: isMobileLayout ? 0 : (col2Collapsed ? 44 : 300) }}>
+      <div className="flex-1 flex flex-col items-center w-full bg-slate-50 min-h-screen" style={{ marginLeft: isMobileLayout ? 0 : leftSidebarWidth, marginRight: isMobileLayout ? 0 : (col2Collapsed ? 44 : 300) }}>
         {/* 일정 목록 */}
         <div className="w-full px-4 pt-8 pb-32">
           {isSharedReadOnly && (
@@ -4578,10 +4578,10 @@ const App = () => {
             {itinerary.days?.map((d, dIdx) => d.plan?.map((p, pIdx) => {
               const isExpanded = expandedId === p.id;
               let stateStyles;
-              if (isLodgeStay(p.types)) stateStyles = 'bg-slate-50 border-slate-200 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]';
-              else if (p.types?.includes('ship')) stateStyles = 'bg-[#f4fafe] border-blue-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]';
-              else if (p.isTimeFixed) stateStyles = 'bg-white border-[#3182F6]/30 shadow-[0_8px_30px_-4px_rgba(49,130,246,0.08)] ring-1 ring-[#3182F6]/10';
-              else stateStyles = 'bg-white border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.06)] hover:border-slate-200';
+              if (isLodgeStay(p.types)) stateStyles = 'bg-white border-slate-300 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.08)]';
+              else if (p.types?.includes('ship')) stateStyles = 'bg-[#f4fafe] border-blue-200 shadow-[0_8px_24px_-8px_rgba(29,78,216,0.12)]';
+              else if (p.isTimeFixed) stateStyles = 'bg-white border-[#3182F6]/40 shadow-[0_10px_30px_-8px_rgba(49,130,246,0.12)] ring-1 ring-[#3182F6]/15';
+              else stateStyles = 'bg-white border-slate-200 shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)] hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)] hover:border-slate-300';
 
               const chips = p.types ? p.types.map(t => getCategoryBadge(t)) : (p.type ? [getCategoryBadge(p.type)] : []);
               const isLodge = isLodgeStay(p.types);
@@ -4612,8 +4612,8 @@ const App = () => {
                   className={`relative group transition-all duration-300 ${highlightedItemId === p.id ? 'scale-[1.02]' : ''}`}
                 >
                   {d.day > 1 && pIdx === 0 && (
-                    <div className="flex items-center justify-center pb-6 w-full">
-                      <div className="flex items-center bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm gap-2">
+                    <div className="flex items-center justify-center py-3 w-full">
+                      <div className="flex items-center bg-slate-50/95 px-3 py-1.5 rounded-full border border-slate-300 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.45)] gap-2">
                         {/* 이동 시간 */}
                         <div className="flex items-center gap-1.5">
                           <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
@@ -5410,7 +5410,7 @@ const App = () => {
 
                         return (
                           <div className="z-10 flex items-center justify-center w-full">
-                            <div className="flex items-center bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm gap-2">
+                            <div className="my-2 flex items-center bg-slate-50/95 px-3 py-1.5 rounded-full border border-slate-300 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.45)] gap-2">
                               {/* 이동 시간 */}
                               <div className="flex items-center gap-1.5">
                                 <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>

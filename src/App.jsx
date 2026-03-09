@@ -1072,6 +1072,15 @@ const App = () => {
     mobileSwitchRef.current = isMobileLayout;
   }, [isMobileLayout]);
 
+  useEffect(() => {
+    if (isMobileLayout) return;
+    const requiredWidthForBothPanels = leftExpandedWidth + rightExpandedWidth + 560 + 96;
+    if (viewportWidth >= requiredWidthForBothPanels && (col1Collapsed || col2Collapsed)) {
+      setCol1Collapsed(false);
+      setCol2Collapsed(false);
+    }
+  }, [viewportWidth, isMobileLayout, leftExpandedWidth, rightExpandedWidth, col1Collapsed, col2Collapsed]);
+
   const startAutoScroll = useCallback(() => {
     if (scrollIntervalRef.current) return;
     scrollIntervalRef.current = setInterval(() => {

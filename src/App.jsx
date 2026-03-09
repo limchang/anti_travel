@@ -900,6 +900,7 @@ const App = () => {
   const [newPlanTitle, setNewPlanTitle] = useState('');
   const [showShareManager, setShowShareManager] = useState(false);
   const [showPlanOptions, setShowPlanOptions] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [shareSettings, setShareSettings] = useState({ visibility: 'private', permission: 'viewer' });
   const [isSharedReadOnly, setIsSharedReadOnly] = useState(false);
   const [sharedSource, setSharedSource] = useState(null); // { ownerId, planId }
@@ -923,6 +924,10 @@ const App = () => {
   const [tripRegion, setTripRegion] = useState(() => safeLocalStorageGet('trip_region_hint', '제주시'));
   const [tripStartDate, setTripStartDate] = useState(() => safeLocalStorageGet('trip_start_date', ''));
   const [tripEndDate, setTripEndDate] = useState(() => safeLocalStorageGet('trip_end_date', ''));
+  const [planOptionRegion, setPlanOptionRegion] = useState('');
+  const [planOptionStartDate, setPlanOptionStartDate] = useState('');
+  const [planOptionEndDate, setPlanOptionEndDate] = useState('');
+  const [planOptionBudget, setPlanOptionBudget] = useState('0');
   // 초기 상태 안전하게 설정
   const [itinerary, setItinerary] = useState({ days: [], places: [] });
   const [history, setHistory] = useState([]);
@@ -1188,11 +1193,21 @@ const App = () => {
     const link = buildShareLink(user.uid, currentPlanId);
     try {
       await navigator.clipboard.writeText(link);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 1400);
       setLastAction('공유 링크를 복사했습니다.');
     } catch {
       setLastAction(`공유 링크: ${link}`);
     }
   };
+
+  useEffect(() => {
+    if (!showPlanOptions) return;
+    setPlanOptionRegion(tripRegion || '');
+    setPlanOptionStartDate(tripStartDate || '');
+    setPlanOptionEndDate(tripEndDate || '');
+    setPlanOptionBudget(String(MAX_BUDGET || 0));
+  }, [showPlanOptions, tripRegion, tripStartDate, tripEndDate, MAX_BUDGET]);
 
   useEffect(() => {
     const onKeyDown = (e) => { if (e.key === 'Control') ctrlHeldRef.current = true; };
@@ -4114,8 +4129,8 @@ const App = () => {
                   <div>
                     <p className="text-[10px] font-black text-slate-400 mb-1">여행지</p>
                     <input
-                      value={tripRegion}
-                      onChange={(e) => setTripRegion(e.target.value)}
+                      value={planOptionRegion}
+                      onChange={(e) => setPlanOptionRegion(e.target.value)}
                       placeholder="여행지"
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
                     />
@@ -4125,8 +4140,8 @@ const App = () => {
                       <p className="text-[10px] font-black text-slate-400 mb-1">시작일</p>
                       <input
                         type="date"
-                        value={tripStartDate}
-                        onChange={(e) => setTripStartDate(e.target.value)}
+                        value={planOptionStartDate}
+                        onChange={(e) => setPlanOptionStartDate(e.target.value)}
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
                       />
                     </div>
@@ -4134,8 +4149,8 @@ const App = () => {
                       <p className="text-[10px] font-black text-slate-400 mb-1">종료일</p>
                       <input
                         type="date"
-                        value={tripEndDate}
-                        onChange={(e) => setTripEndDate(e.target.value)}
+                        value={planOptionEndDate}
+                        onChange={(e) => setPlanOptionEndDate(e.target.value)}
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
                       />
                     </div>
@@ -4144,11 +4159,8 @@ const App = () => {
                     <p className="text-[10px] font-black text-slate-400 mb-1">총 예산</p>
                     <input
                       type="number"
-                      value={MAX_BUDGET}
-                      onChange={(e) => {
-                        const v = Number(e.target.value) || 0;
-                        setItinerary(prev => ({ ...prev, maxBudget: v }));
-                      }}
+                      value={planOptionBudget}
+                      onChange={(e) => setPlanOptionBudget(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
                     />
                   </div>
@@ -4164,7 +4176,13 @@ const App = () => {
                     목록 열기
                   </button>
                   <button
-                    onClick={() => setShowPlanOptions(false)}
+                    onClick={() => {
+                      setTripRegion(String(planOptionRegion || '').trim());
+                      setTripStartDate(planOptionStartDate || '');
+                      setTripEndDate(planOptionEndDate || '');
+                      setItinerary(prev => ({ ...prev, maxBudget: Number(planOptionBudget) || 0 }));
+                      setShowPlanOptions(false);
+                    }}
                     className="flex-1 py-2 rounded-xl bg-[#3182F6] text-white text-[11px] font-black"
                   >
                     완료
@@ -4205,7 +4223,7 @@ const App = () => {
                   onClick={() => { void copyShareLink(); }}
                   className="w-full py-2 rounded-xl border border-blue-200 bg-blue-50 text-[#3182F6] text-[11px] font-black hover:bg-blue-100 transition-colors"
                 >
-                  공유 링크 복사
+                  {shareCopied ? '복사됨' : '공유 링크 복사'}
                 </button>
                 <p className="text-[10px] text-slate-400 font-bold mt-2">
                   링크에는 현재 플랜 ID가 포함됩니다. (예: 다른 도시 일정 분리 공유)

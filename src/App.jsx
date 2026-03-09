@@ -239,7 +239,9 @@ const extractTimesFromText = (text = '') => {
 // 15:00 - 17:00 브레이크타임
 // 21:00 라스트오더
 const parseBusinessHoursText = (text = '') => {
-  const parsed = { open: '', close: '', breakStart: '', breakEnd: '', lastOrder: '', entryClose: '' };
+  const parsed = { open: '', close: '', breakStart: '', breakEnd: '', lastOrder: '', entryClose: '', closedDays: [] };
+  const weekdayMap = { 월: 'mon', 화: 'tue', 수: 'wed', 목: 'thu', 금: 'fri', 토: 'sat', 일: 'sun' };
+  const weekdayRanges = {};
   const lines = String(text)
     .split(/\r?\n/)
     .map(v => v.trim())
@@ -249,6 +251,28 @@ const parseBusinessHoursText = (text = '') => {
   normalizedLines.forEach((line) => {
     const lower = line.toLowerCase();
     const times = extractTimesFromText(line);
+    const dayMatch = line.match(/^(월|화|수|목|금|토|일)\b/);
+
+    // 요일별 휴무 표기: "일 정기휴무", "월 휴무", ...
+    if (dayMatch && /(휴무|정기휴무|휴점|정기\s*휴일)/i.test(lower)) {
+      const dayKey = weekdayMap[dayMatch[1]];
+      if (dayKey && !parsed.closedDays.includes(dayKey)) parsed.closedDays.push(dayKey);
+      return;
+    }
+    // 문장형 휴무 표기: "매주 일요일 휴무", "정기휴무(매주 일요일)"
+    if (/(휴무|정기휴무|휴점|정기\s*휴일)/i.test(lower)) {
+      const dayChars = [...new Set((line.match(/[월화수목금토일]/g) || []))];
+      dayChars.forEach((dc) => {
+        const dayKey = weekdayMap[dc];
+        if (dayKey && !parsed.closedDays.includes(dayKey)) parsed.closedDays.push(dayKey);
+      });
+    }
+
+    // 요일별 운영시간 표기: "월 10:00 - 17:30"
+    if (dayMatch && times.length >= 2) {
+      weekdayRanges[dayMatch[1]] = `${times[0]}-${times[1]}`;
+    }
+
     if (times.length === 0) return;
     if (/(라스트\s*오더|last\s*order|lastorder|마감주문)/i.test(lower)) {
       parsed.lastOrder = times[0] || parsed.lastOrder;
@@ -268,6 +292,18 @@ const parseBusinessHoursText = (text = '') => {
   });
 
   if (!parsed.open || !parsed.close) {
+    // 요일별 라인에서 가장 많이 반복되는 구간을 기본 영업시간으로 채택
+    const ranges = Object.values(weekdayRanges);
+    if (ranges.length > 0) {
+      const freq = ranges.reduce((acc, r) => ({ ...acc, [r]: (acc[r] || 0) + 1 }), {});
+      const top = Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0];
+      if (top) {
+        const [op, cl] = top.split('-');
+        if (!parsed.open && op) parsed.open = op;
+        if (!parsed.close && cl) parsed.close = cl;
+      }
+    }
+
     const allTimes = extractTimesFromText(String(text));
     if (!parsed.open && allTimes[0]) parsed.open = allTimes[0];
     if (!parsed.close && allTimes[1]) parsed.close = allTimes[1];
@@ -277,7 +313,7 @@ const parseBusinessHoursText = (text = '') => {
     if (!parsed.entryClose && allTimes[5]) parsed.entryClose = allTimes[5];
   }
 
-  return parsed;
+  return { ...parsed, closedDays: [...new Set(parsed.closedDays)] };
 };
 
 // 24시간 형식 시간 입력 컴포넌트 (오전/오후 없음, 24:00 지원)
@@ -4875,14 +4911,14 @@ const App = () => {
                         <div className="absolute left-0 top-0 bottom-0 z-[11] w-[5%] min-w-[26px] flex items-center justify-center pointer-events-none">
                           <button
                             onClick={(e) => { e.stopPropagation(); cyclePlan(-1); }}
-                            className="pointer-events-auto w-7 h-7 rounded-xl border border-slate-200 bg-white/95 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] transition-all shadow-[0_8px_16px_-12px_rgba(15,23,42,0.5)]"
+                            className="pointer-events-auto p-0.5 flex items-center justify-center text-slate-400 hover:text-[#3182F6] transition-colors"
                             title="이전 플랜"
                           ><ChevronLeft size={14} /></button>
                         </div>
                         <div className="absolute right-0 top-0 bottom-0 z-[11] w-[5%] min-w-[26px] flex items-center justify-center pointer-events-none">
                           <button
                             onClick={(e) => { e.stopPropagation(); cyclePlan(1); }}
-                            className="pointer-events-auto w-7 h-7 rounded-xl border border-slate-200 bg-white/95 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] transition-all shadow-[0_8px_16px_-12px_rgba(15,23,42,0.5)]"
+                            className="pointer-events-auto p-0.5 flex items-center justify-center text-slate-400 hover:text-[#3182F6] transition-colors"
                             title="다음 플랜"
                           ><ChevronRight size={14} /></button>
                         </div>

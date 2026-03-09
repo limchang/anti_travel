@@ -4415,7 +4415,7 @@ const App = () => {
                 {/* 풀 카드 (최상단) */}
                 {!heroCollapsed && (
                   <section className="mb-10 -mx-4 -mt-8">
-                    <div className="w-full rounded-[40px] relative overflow-hidden bg-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] border border-slate-100/80">
+                    <div className="w-full relative overflow-hidden bg-transparent">
                       {canManagePlan && <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                         <button
                           onClick={() => setShowPlanOptions(true)}
@@ -4432,14 +4432,17 @@ const App = () => {
                           <Share2 size={16} />
                         </button>
                       </div>}
-                      {/* 🖼️ 배경 이미지 (절반 높이) */}
-                      <div className="absolute top-0 left-0 w-full h-[52%] overflow-hidden pointer-events-none">
+                      {/* 🖼️ 배경 이미지 (50% 이후 자연스러운 투명 그라데이션) */}
+                      <div className="absolute inset-0 overflow-hidden pointer-events-none">
                         <img
                           src={getRegionCoverImage(tripRegion)}
-                          className="w-full h-full object-cover opacity-90 scale-105"
+                          className="w-full h-full object-cover opacity-95 scale-105"
                           alt="travel background"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-white" />
+                        <div
+                          className="absolute inset-0"
+                          style={{ background: 'linear-gradient(to bottom, rgba(15,23,42,0.26) 0%, rgba(15,23,42,0.14) 48%, rgba(242,244,246,0.18) 62%, rgba(242,244,246,0) 78%, rgba(242,244,246,0) 100%)' }}
+                        />
                       </div>
 
                       <div className={`relative z-10 p-8 sm:p-10 flex flex-col gap-10 w-full mx-auto ${timelineMaxClass}`}>

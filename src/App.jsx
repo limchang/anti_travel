@@ -4329,17 +4329,37 @@ const App = () => {
             const newCount = Math.max(0, allSummaryItems.length - revisitCount);
             const revisitPct = allSummaryItems.length > 0 ? Math.round((revisitCount / allSummaryItems.length) * 100) : 0;
             const newPct = allSummaryItems.length > 0 ? Math.round((newCount / allSummaryItems.length) * 100) : 0;
-            const categorySpendMap = allSummaryItems.reduce((acc, item) => {
+            const allBudgetItems = (itinerary.days || []).flatMap((day) => (day.plan || []))
+              .filter((item) => item && item.type !== 'backup');
+            const categoryLabelMap = {
+              ship: '선박',
+              lodge: '숙소',
+              food: '식당',
+              cafe: '카페',
+              tour: '관광',
+              rest: '휴식',
+              pickup: '픽업',
+              openrun: '오픈런',
+              view: '뷰맛집',
+              experience: '체험',
+              souvenir: '기념품샵',
+              place: '장소',
+              transport: '이동비',
+            };
+            const categorySpendMap = allBudgetItems.reduce((acc, item) => {
               const types = Array.isArray(item.types) ? item.types : [];
               const baseType = types.find((t) => !MODIFIER_TAGS.has(t) && t !== 'place') || types.find((t) => !MODIFIER_TAGS.has(t)) || 'place';
-              acc[baseType] = (acc[baseType] || 0) + (Number(item.price) || 0);
+              const itemPrice = Number(item.price) || 0;
+              acc[baseType] = (acc[baseType] || 0) + itemPrice;
+              if (item.distance) {
+                acc.transport = (acc.transport || 0) + calculateFuelCost(item.distance);
+              }
               return acc;
             }, {});
             const totalCategorySpend = Object.values(categorySpendMap).reduce((sum, v) => sum + Number(v || 0), 0);
             const categorySpendRows = Object.entries(categorySpendMap)
               .map(([key, value]) => {
-                const tag = TAG_OPTIONS.find((t) => t.value === key);
-                const label = tag?.label || key;
+                const label = categoryLabelMap[key] || key;
                 const amount = Number(value) || 0;
                 const pct = totalCategorySpend > 0 ? Math.round((amount / totalCategorySpend) * 100) : 0;
                 return { key, label, amount, pct };

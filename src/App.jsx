@@ -390,12 +390,8 @@ const BusinessHoursEditor = ({ business = {}, onChange }) => {
 };
 
 const fmtDur = (mins) => {
-  if (!mins || mins <= 0) return '0분';
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  if (h === 0) return `${m}분`;
-  if (m === 0) return `${h}시간`;
-  return `${h}시간${m}분`;
+  const safe = Math.max(0, Math.round(Number(mins) || 0));
+  return `${safe}분`;
 };
 const normalizeBusiness = (business = {}) => ({
   open: String(business.open || ''),
@@ -4379,11 +4375,32 @@ const App = () => {
                           <MapPin size={11} className="text-[#3182F6]" />
                         </div>
                         <span className="text-[13px] font-black text-slate-800 truncate flex-1">{tripRegion || '여행지'}</span>
-                        <span className="text-[11px] font-black text-slate-400 shrink-0 tabular-nums">
-                          {(tripStartDate && tripEndDate)
-                            ? `${tripStartDate.slice(5).replace('-', '.')}~${tripEndDate.slice(5).replace('-', '.')}`
-                            : `${tripNights}박 ${tripDays}일`}
-                        </span>
+                        <div className="relative shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setShowDatePicker(v => !v)}
+                            className="text-[11px] font-black text-slate-400 tabular-nums px-2 py-1 rounded-md hover:bg-slate-100 transition-colors"
+                            title="기간 설정"
+                          >
+                            {(tripStartDate && tripEndDate)
+                              ? `${tripStartDate.slice(5).replace('-', '.')}~${tripEndDate.slice(5).replace('-', '.')}`
+                              : `${tripNights}박 ${tripDays}일`}
+                          </button>
+                          {showDatePicker && (
+                            <>
+                              <div className="fixed inset-0 z-[299]" onClick={() => setShowDatePicker(false)} />
+                              <div className="absolute top-full right-0 z-[300] mt-2">
+                                <DateRangePicker
+                                  startDate={tripStartDate}
+                                  endDate={tripEndDate}
+                                  onStartChange={setTripStartDate}
+                                  onEndChange={setTripEndDate}
+                                  onClose={() => setShowDatePicker(false)}
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
                         {canManagePlan && <div className="flex items-center gap-1.5 shrink-0">
                           <button
                             onClick={() => setShowPlanOptions(true)}

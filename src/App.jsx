@@ -5311,13 +5311,15 @@ const App = () => {
                                     const isExpanded = timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx;
 
                                     if (!isExpanded) {
+                                      const [hh, mm] = (p.time || '00:00').split(':');
                                       return (
-                                        <div className="flex flex-col items-center justify-center pt-1 pb-1">
-                                          <div className="flex items-center gap-1">
-                                            {p.isTimeFixed && <Lock size={11} className="text-[#3182F6] -mt-0.5" />}
-                                            <span className={`text-[22px] sm:text-[26px] font-black tracking-tighter tabular-nums leading-none transition-colors ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>
-                                              {p.time || '00:00'}
-                                            </span>
+                                        <div className="flex flex-col items-center justify-center py-1">
+                                          <div className={`relative flex items-center justify-center px-1.5 py-1 rounded-xl transition-all ${p.isTimeFixed ? 'bg-blue-100/40 shadow-sm border border-blue-200/50' : 'bg-transparent'}`}>
+                                            <div className={`flex items-baseline gap-[1px] ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800 hover:text-blue-500'}`}>
+                                              <span className="text-[20px] sm:text-[23px] font-black tracking-tighter tabular-nums leading-none">{hh}</span>
+                                              <span className="text-[14px] sm:text-[16px] font-bold opacity-30 mt-0.5">:</span>
+                                              <span className="text-[20px] sm:text-[23px] font-black tracking-tighter tabular-nums leading-none">{mm}</span>
+                                            </div>
                                           </div>
                                         </div>
                                       );
@@ -5440,10 +5442,11 @@ const App = () => {
                                     ><Minus size={11} strokeWidth={3} /></button>
 
                                     <div className="flex flex-col items-center justify-center flex-1" data-duration-trigger="true">
-                                      {isDurationLocked && <Timer size={9} className="text-orange-500 mb-0.5 opacity-80" />}
                                       <span
-                                        className={`text-[12px] sm:text-[13.5px] whitespace-nowrap font-black tabular-nums tracking-tight leading-none ${isAutoLocked ? 'cursor-not-allowed text-orange-500' : (p.isDurationFixed ? 'text-orange-600' : 'text-slate-600 group-hover/dur:text-blue-600')}`}
-                                      >{fmtDur(p.duration)}</span>
+                                        className={`text-[12.5px] sm:text-[14px] whitespace-nowrap font-black tabular-nums tracking-tight leading-none transition-colors ${isAutoLocked ? 'cursor-not-allowed text-red-500' : (p.isDurationFixed ? 'text-orange-500' : 'text-slate-700 group-hover/dur:text-blue-600')}`}
+                                      >
+                                        {fmtDur(p.duration)}
+                                      </span>
                                     </div>
 
                                     <button

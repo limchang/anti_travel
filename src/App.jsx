@@ -9,7 +9,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Calendar, GripVertical, Gift, X
+  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -617,17 +617,35 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
     setAddressSearchNote('지도 링크 분석 중...');
     try {
       const apiBase = (import.meta.env.VITE_SCRAPER_API_BASE || '').replace(/\/$/, '');
-      const endpoint = `${apiBase}/api/scrape`;
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: cleanUrl }),
-      });
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody?.details || errBody?.error || `HTTP ${res.status}`);
+      const candidates = Array.from(new Set([
+        apiBase ? `${apiBase}/api/scrape` : '',
+        '/api/scrape',
+      ].filter(Boolean)));
+
+      let data = null;
+      let lastErr = null;
+
+      for (const endpoint of candidates) {
+        try {
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: cleanUrl }),
+          });
+          if (!res.ok) {
+            const errBody = await res.json().catch(() => ({}));
+            throw new Error(errBody?.details || errBody?.error || `HTTP ${res.status}`);
+          }
+          data = await res.json();
+          if (data) break;
+        } catch (err) {
+          lastErr = err;
+        }
       }
-      const data = await res.json();
+
+      if (!data) {
+        throw lastErr || new Error('스크래핑 응답이 없습니다.');
+      }
 
       if (data?.title) setNewPlaceName(String(data.title).trim());
       if (data?.address) setAddress(String(data.address).trim());
@@ -881,6 +899,7 @@ const App = () => {
   const [newPlanRegion, setNewPlanRegion] = useState('');
   const [newPlanTitle, setNewPlanTitle] = useState('');
   const [showShareManager, setShowShareManager] = useState(false);
+  const [showPlanOptions, setShowPlanOptions] = useState(false);
   const [shareSettings, setShareSettings] = useState({ visibility: 'private', permission: 'viewer' });
   const [isSharedReadOnly, setIsSharedReadOnly] = useState(false);
   const [sharedSource, setSharedSource] = useState(null); // { ownerId, planId }
@@ -1071,6 +1090,22 @@ const App = () => {
     const suffix = String(Date.now()).slice(-4);
     return `${sanitizeRegionCode(region)}-${yyyyMM}-${suffix}`;
   };
+  const makePlanCodeStable = (region = '', dateStr = '', planId = '') => {
+    const baseDate = String(dateStr || '').trim();
+    const yyyyMM = /^\d{4}-\d{2}/.test(baseDate)
+      ? baseDate.slice(0, 7).replace('-', '')
+      : new Date().toISOString().slice(0, 7).replace('-', '');
+    const tail = String(planId || 'main').replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase().padStart(4, '0');
+    return `${sanitizeRegionCode(region)}-${yyyyMM}-${tail}`;
+  };
+  const resolvePlanMetaForCard = (plan = {}) => {
+    const isCurrent = plan.id === currentPlanId;
+    const region = (isCurrent ? tripRegion : plan.region) || '여행지';
+    const title = (isCurrent ? (itinerary.planTitle || '') : plan.title) || `${region} 일정`;
+    const startDate = (isCurrent ? tripStartDate : plan.startDate) || '';
+    const code = (isCurrent ? itinerary.planCode : plan.planCode) || makePlanCodeStable(region, startDate, plan.id || currentPlanId);
+    return { region, title, startDate, code };
+  };
   const getRegionCoverImage = (region = '') => {
     const r = String(region || '').toLowerCase();
     if (/(제주|jeju)/.test(r)) return 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1600&auto=format&fit=crop';
@@ -1178,9 +1213,71 @@ const App = () => {
   }, []);
 
   useEffect(() => {
+    if (user || !sharedSource?.ownerId) return;
+    (async () => {
+      setLoading(true);
+      try {
+        const sharedSnap = await getDoc(doc(db, 'users', sharedSource.ownerId, 'itinerary', sharedSource.planId || 'main'));
+        if (!sharedSnap.exists()) {
+          setLastAction('공유 일정을 찾을 수 없습니다.');
+          setLoading(false);
+          return;
+        }
+        const sharedData = sharedSnap.data();
+        const sharedConfig = normalizeShare(sharedData.share || {});
+        if (sharedConfig.visibility === 'private') {
+          setLastAction('공유가 비공개라 접근할 수 없습니다.');
+          setLoading(false);
+          return;
+        }
+        const patchedDays = (sharedData.days || []).map(d => ({
+          ...d,
+          plan: (d.plan || []).map(p => ({ ...p }))
+        }));
+        setItinerary({
+          days: patchedDays,
+          places: sharedData.places || [],
+          maxBudget: sharedData.maxBudget || 1500000,
+          share: sharedConfig,
+          planTitle: sharedData.planTitle || `${sharedData.tripRegion || '공유'} 일정`,
+          planCode: sharedData.planCode || makePlanCode(sharedData.tripRegion || '공유', sharedData.tripStartDate || ''),
+        });
+        setShareSettings(sharedConfig);
+        if (sharedData.tripRegion) setTripRegion(sharedData.tripRegion);
+        if (typeof sharedData.tripStartDate === 'string') setTripStartDate(sharedData.tripStartDate);
+        if (typeof sharedData.tripEndDate === 'string') setTripEndDate(sharedData.tripEndDate);
+        setCurrentPlanId(sharedSource.planId || 'main');
+        setIsSharedReadOnly(sharedConfig.permission !== 'editor');
+      } catch (e) {
+        console.error('공유 일정 로드 실패:', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [user, sharedSource]);
+
+  useEffect(() => {
     if (!user || user.isGuest) return;
     void refreshPlanList(user.uid);
   }, [user, refreshPlanList]);
+
+  useEffect(() => {
+    if (!user || user.isGuest || loading || isSharedReadOnly) return;
+    const timer = setTimeout(() => {
+      const patch = {
+        planTitle: itinerary.planTitle || `${tripRegion || '여행지'} 일정`,
+        planCode: itinerary.planCode || makePlanCodeStable(tripRegion || '여행지', tripStartDate || '', currentPlanId),
+        tripRegion: tripRegion || '여행지',
+        tripStartDate: tripStartDate || '',
+        tripEndDate: tripEndDate || '',
+        updatedAt: Date.now(),
+      };
+      setDoc(doc(db, 'users', user.uid, 'itinerary', currentPlanId || 'main'), patch, { merge: true })
+        .then(() => refreshPlanList(user.uid))
+        .catch(() => {});
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [user, loading, isSharedReadOnly, currentPlanId, itinerary.planTitle, itinerary.planCode, tripRegion, tripStartDate, tripEndDate, refreshPlanList]);
 
   useEffect(() => {
     if (!user) {
@@ -2477,9 +2574,11 @@ const App = () => {
       item.receipt = deepClone(alt.receipt || { address: '', items: [] });
 
       item.alternatives[altIdx] = currentAsAlt;
+      nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
 
       return nextData;
     });
+    setPendingAutoRouteJobs(prev => [...prev, { dayIdx, targetIdx: pIdx }, { dayIdx, targetIdx: pIdx + 1 }]);
     setLastAction("플랜을 교체했습니다.");
   };
 
@@ -2504,6 +2603,7 @@ const App = () => {
       nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
       return nextData;
     });
+    setPendingAutoRouteJobs(prev => [...prev, { dayIdx, targetIdx: pIdx }, { dayIdx, targetIdx: pIdx + 1 }]);
     setLastAction("플랜을 변경했습니다.");
   };
 
@@ -3208,7 +3308,7 @@ const App = () => {
     </div>
   );
 
-  if (!user) {
+  if (!user && !sharedSource?.ownerId) {
     return (
       <div className="min-h-screen bg-[#F2F4F6] flex items-center justify-center p-6 sm:p-12 relative overflow-hidden">
         {/* 장식용 배경 */}
@@ -3264,6 +3364,9 @@ const App = () => {
       <div className="font-black text-slate-400 text-sm animate-pulse">일정을 불러오고 있습니다...</div>
     </div>
   );
+
+  const isOwnerSession = !!user && !user.isGuest && (!sharedSource?.ownerId || sharedSource.ownerId === user.uid);
+  const canManagePlan = isOwnerSession && !isSharedReadOnly;
 
   // 터치 드래그 드롭 실행 — 매 렌더마다 최신 클로저로 갱신
   executeTouchDropRef.current = (x, y) => {
@@ -3870,9 +3973,6 @@ const App = () => {
       <div className="flex-1 flex flex-col items-center w-full bg-white min-h-screen" style={{ marginLeft: col1Collapsed ? 44 : 260, marginRight: col2Collapsed ? 44 : 300 }}>
         {/* 일정 목록 */}
         <div className="w-full px-4 pt-8 pb-32">
-          <div className="max-w-[560px] mx-auto mb-2 text-[10px] font-black text-slate-400 tracking-wide">
-            {(itinerary.planCode || currentPlanId)} · {itinerary.planTitle || `${tripRegion || '여행'} 일정`}
-          </div>
           {isSharedReadOnly && (
             <div className="max-w-[560px] mx-auto mb-3 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-[11px] font-black text-amber-700">
               공유 일정 보기 모드입니다. (편집 권한 없음)
@@ -3922,30 +4022,33 @@ const App = () => {
                       <p className="text-[11px] text-slate-400 font-bold p-3">기존 일정이 없습니다. 새 일정을 생성하세요.</p>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {(planList || []).map((plan) => (
-                          <button
-                            key={plan.id}
-                            onClick={() => {
-                              setCurrentPlanId(plan.id);
-                              setShowEntryChooser(false);
-                              setLastAction(`'${plan.title}' 일정을 열었습니다.`);
-                            }}
-                            className={`relative overflow-hidden rounded-2xl border text-left min-h-[130px] transition-all hover:-translate-y-0.5 ${currentPlanId === plan.id ? 'border-[#3182F6] ring-2 ring-[#3182F6]/20' : 'border-slate-200 hover:border-slate-300'}`}
-                          >
-                            <img
-                              src={getRegionCoverImage(plan.region)}
-                              alt="plan cover"
-                              className="absolute inset-0 w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/55" />
-                            <div className="relative z-10 p-3 flex flex-col gap-1 text-white">
-                              <p className="text-[14px] font-black truncate">{plan.region || '여행지'}</p>
-                              <p className="text-[11px] font-black truncate">{plan.title}</p>
-                              <p className="text-[10px] font-bold text-white/80">{plan.startDate ? plan.startDate.replace(/-/g, '.') : '날짜 미정'}</p>
-                              <p className="text-[10px] font-black text-white/95 tracking-wide">{plan.planCode || plan.id}</p>
-                            </div>
-                          </button>
-                        ))}
+                        {(planList || []).map((plan) => {
+                          const meta = resolvePlanMetaForCard(plan);
+                          return (
+                            <button
+                              key={plan.id}
+                              onClick={() => {
+                                setCurrentPlanId(plan.id);
+                                setShowEntryChooser(false);
+                                setLastAction(`'${meta.title}' 일정을 열었습니다.`);
+                              }}
+                              className={`relative overflow-hidden rounded-2xl border text-left min-h-[130px] transition-all hover:-translate-y-0.5 ${currentPlanId === plan.id ? 'border-[#3182F6] ring-2 ring-[#3182F6]/20' : 'border-slate-200 hover:border-slate-300'}`}
+                            >
+                              <img
+                                src={getRegionCoverImage(meta.region)}
+                                alt="plan cover"
+                                className="absolute inset-0 w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/55" />
+                              <div className="relative z-10 p-3 flex flex-col gap-1 text-white">
+                                <p className="text-[14px] font-black truncate">{meta.region}</p>
+                                <p className="text-[11px] font-black truncate">{meta.title}</p>
+                                <p className="text-[10px] font-bold text-white/80">{meta.startDate ? meta.startDate.replace(/-/g, '.') : '날짜 미정'}</p>
+                                <p className="text-[10px] font-black text-white/95 tracking-wide">{meta.code}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -3987,32 +4090,116 @@ const App = () => {
                     <p className="text-[11px] text-slate-400 font-bold p-3">생성된 일정이 없습니다.</p>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {(planList || []).map((plan) => (
-                        <button
-                          key={plan.id}
-                          onClick={() => {
-                            setCurrentPlanId(plan.id);
-                            setShowPlanManager(false);
-                            setLastAction(`'${plan.title}' 일정으로 전환했습니다.`);
-                          }}
-                          className={`relative overflow-hidden rounded-2xl border text-left min-h-[130px] transition-all hover:-translate-y-0.5 ${currentPlanId === plan.id ? 'border-[#3182F6] ring-2 ring-[#3182F6]/20' : 'border-slate-200 hover:border-slate-300'}`}
-                        >
-                          <img
-                            src={getRegionCoverImage(plan.region)}
-                            alt="plan cover"
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/55" />
-                          <div className="relative z-10 p-3 flex flex-col gap-1 text-white">
-                            <p className="text-[14px] font-black truncate">{plan.region || '여행지'}</p>
-                            <p className="text-[11px] font-black truncate">{plan.title}</p>
-                            <p className="text-[10px] font-bold text-white/80">{plan.startDate ? plan.startDate.replace(/-/g, '.') : '날짜 미정'}</p>
-                            <p className="text-[10px] font-black text-white/95 tracking-wide">{plan.planCode || plan.id}</p>
-                          </div>
-                        </button>
-                      ))}
+                      {(planList || []).map((plan) => {
+                        const meta = resolvePlanMetaForCard(plan);
+                        return (
+                          <button
+                            key={plan.id}
+                            onClick={() => {
+                              setCurrentPlanId(plan.id);
+                              setShowPlanManager(false);
+                              setLastAction(`'${meta.title}' 일정으로 전환했습니다.`);
+                            }}
+                            className={`relative overflow-hidden rounded-2xl border text-left min-h-[130px] transition-all hover:-translate-y-0.5 ${currentPlanId === plan.id ? 'border-[#3182F6] ring-2 ring-[#3182F6]/20' : 'border-slate-200 hover:border-slate-300'}`}
+                          >
+                            <img
+                              src={getRegionCoverImage(meta.region)}
+                              alt="plan cover"
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/55" />
+                            <div className="relative z-10 p-3 flex flex-col gap-1 text-white">
+                              <p className="text-[14px] font-black truncate">{meta.region}</p>
+                              <p className="text-[11px] font-black truncate">{meta.title}</p>
+                              <p className="text-[10px] font-bold text-white/80">{meta.startDate ? meta.startDate.replace(/-/g, '.') : '날짜 미정'}</p>
+                              <p className="text-[10px] font-black text-white/95 tracking-wide">{meta.code}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {showPlanOptions && (
+            <>
+              <div className="fixed inset-0 z-[260] bg-black/20" onClick={() => setShowPlanOptions(false)} />
+              <div className="fixed z-[261] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[14px] font-black text-slate-800">일정 옵션</p>
+                  <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowPlanOptions(false)}><X size={16} /></button>
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 mb-1">일정 제목</p>
+                    <input
+                      value={itinerary.planTitle || ''}
+                      onChange={(e) => setItinerary(prev => ({ ...prev, planTitle: e.target.value }))}
+                      placeholder="일정 제목"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 mb-1">여행지</p>
+                    <input
+                      value={tripRegion}
+                      onChange={(e) => setTripRegion(e.target.value)}
+                      placeholder="여행지"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 mb-1">시작일</p>
+                      <input
+                        type="date"
+                        value={tripStartDate}
+                        onChange={(e) => setTripStartDate(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 mb-1">종료일</p>
+                      <input
+                        type="date"
+                        value={tripEndDate}
+                        onChange={(e) => setTripEndDate(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 mb-1">총 예산</p>
+                    <input
+                      type="number"
+                      value={MAX_BUDGET}
+                      onChange={(e) => {
+                        const v = Number(e.target.value) || 0;
+                        setItinerary(prev => ({ ...prev, maxBudget: v }));
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <button
+                    onClick={() => {
+                      setShowPlanOptions(false);
+                      setShowPlanManager(true);
+                    }}
+                    className="flex-1 py-2 rounded-xl border border-slate-200 bg-white text-[11px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                  >
+                    목록 열기
+                  </button>
+                  <button
+                    onClick={() => setShowPlanOptions(false)}
+                    className="flex-1 py-2 rounded-xl bg-[#3182F6] text-white text-[11px] font-black"
+                  >
+                    완료
+                  </button>
                 </div>
               </div>
             </>
@@ -4086,20 +4273,22 @@ const App = () => {
                             ? `${tripStartDate.slice(5).replace('-', '.')}~${tripEndDate.slice(5).replace('-', '.')}`
                             : `${tripNights}박 ${tripDays}일`}
                         </span>
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        {canManagePlan && <div className="flex items-center gap-1.5 shrink-0">
                           <button
-                            onClick={() => setShowPlanManager(true)}
-                            className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                            onClick={() => setShowPlanOptions(true)}
+                            className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors flex items-center justify-center"
+                            title="일정 옵션"
                           >
-                            목록
+                            <SlidersHorizontal size={13} />
                           </button>
                           <button
                             onClick={() => setShowShareManager(true)}
-                            className="px-2 py-1 rounded-lg border border-blue-200 bg-blue-50 text-[10px] font-black text-[#3182F6] hover:bg-blue-100 transition-colors"
+                            className="w-8 h-8 rounded-lg border border-blue-200 bg-blue-50 text-[#3182F6] hover:bg-blue-100 transition-colors flex items-center justify-center"
+                            title="공유 설정"
                           >
-                            공유
+                            <Share2 size={13} />
                           </button>
-                        </div>
+                        </div>}
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -4116,20 +4305,22 @@ const App = () => {
                 {!heroCollapsed && (
                   <section className="mb-10 px-4 mt-6">
                     <div className="max-w-[560px] mx-auto rounded-[40px] relative overflow-hidden bg-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] border border-slate-100/80">
-                      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                      {canManagePlan && <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                         <button
-                          onClick={() => setShowPlanManager(true)}
-                          className="px-3 py-1.5 rounded-xl border border-white/40 bg-white/80 backdrop-blur text-[11px] font-black text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors"
+                          onClick={() => setShowPlanOptions(true)}
+                          className="w-10 h-10 rounded-xl border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center"
+                          title="일정 옵션"
                         >
-                          목록보기
+                          <SlidersHorizontal size={16} />
                         </button>
                         <button
                           onClick={() => setShowShareManager(true)}
-                          className="px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50/90 backdrop-blur text-[11px] font-black text-[#3182F6] hover:bg-blue-100 transition-colors"
+                          className="w-10 h-10 rounded-xl border border-blue-200 bg-blue-50/90 backdrop-blur text-[#3182F6] hover:bg-blue-100 transition-colors flex items-center justify-center"
+                          title="공유 설정"
                         >
-                          공유하기
+                          <Share2 size={16} />
                         </button>
-                      </div>
+                      </div>}
                       {/* 🖼️ 배경 이미지 (절반 높이) */}
                       <div className="absolute top-0 left-0 w-full h-[52%] overflow-hidden pointer-events-none">
                         <img
@@ -4338,20 +4529,20 @@ const App = () => {
                   <div className="relative">
                     {hasPlanB && (
                       <>
-                        <div className="absolute inset-y-0 -left-5 z-30 flex items-stretch">
-                          <div className="w-9 h-full rounded-[18px] border border-slate-200 bg-white/95 shadow-[0_10px_22px_-12px_rgba(15,23,42,0.35)] flex items-center justify-center">
+                        <div className="absolute top-1 bottom-1 -left-10 z-0 flex items-stretch">
+                          <div className="w-9 h-full rounded-[22px] border border-slate-200 bg-white shadow-[0_8px_24px_-16px_rgba(15,23,42,0.45)] flex items-center justify-center">
                             <button
                               onClick={(e) => { e.stopPropagation(); cyclePlan(-1); }}
-                              className="w-7 h-7 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] transition-all"
+                              className="pointer-events-auto w-7 h-7 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] transition-all"
                               title="이전 플랜"
                             ><ChevronLeft size={14} /></button>
                           </div>
                         </div>
-                        <div className="absolute inset-y-0 -right-5 z-30 flex items-stretch">
-                          <div className="w-9 h-full rounded-[18px] border border-slate-200 bg-white/95 shadow-[0_10px_22px_-12px_rgba(15,23,42,0.35)] flex items-center justify-center">
+                        <div className="absolute top-1 bottom-1 -right-10 z-0 flex items-stretch">
+                          <div className="w-9 h-full rounded-[22px] border border-slate-200 bg-white shadow-[0_8px_24px_-16px_rgba(15,23,42,0.45)] flex items-center justify-center">
                             <button
                               onClick={(e) => { e.stopPropagation(); cyclePlan(1); }}
-                              className="w-7 h-7 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] transition-all"
+                              className="pointer-events-auto w-7 h-7 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] transition-all"
                               title="다음 플랜"
                             ><ChevronRight size={14} /></button>
                           </div>
@@ -4410,7 +4601,7 @@ const App = () => {
                           setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropOnItem(null); setIsDragCopy(false);
                         }
                       }}
-                      className={`relative w-full flex flex-col border rounded-[24px] transition-all overflow-hidden cursor-grab active:cursor-grabbing group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${hasPlanB ? 'ring-1 ring-amber-100' : ''} ${stateStyles}`}
+                      className={`relative z-10 w-full flex flex-col border rounded-[24px] transition-all overflow-hidden cursor-grab active:cursor-grabbing group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${hasPlanB ? 'ring-1 ring-amber-100' : ''} ${stateStyles}`}
                       onClick={() => toggleReceipt(p.id)}
                     >
                       {/* Plan B 페이지 인디케이터 */}
@@ -4512,30 +4703,39 @@ const App = () => {
                           )}
                           {!isDurationLocked && durationControllerTarget?.dayIdx === dIdx && durationControllerTarget?.pIdx === pIdx && (
                             <div
-                              className="fixed z-[140] w-[184px] rounded-2xl border border-slate-200 bg-white shadow-[0_14px_32px_-12px_rgba(15,23,42,0.25)] p-2"
+                              className="fixed z-[140] w-[184px] rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_14px_32px_-12px_rgba(15,23,42,0.25)] p-2"
                               style={{ left: durationControllerTarget.left, top: durationControllerTarget.top }}
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <button
-                                type="button"
-                                onClick={() => resetDuration(dIdx, pIdx)}
-                                className="w-full mb-2 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-black text-slate-700 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                                title="기본 60분으로 설정"
+                              <div
+                                className="w-full mb-2 py-1 rounded-lg border border-dashed border-slate-300 bg-white/40 text-center text-[11px] font-black text-slate-700"
+                                title="현재 소요 시간"
                               >
                                 {fmtDur(p.duration)} (기본 60분)
-                              </button>
-                              <div className="grid grid-cols-3 gap-1.5">
-                                <button type="button" onClick={() => setDurationValue(dIdx, pIdx, 10)} className="py-1 rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-black text-[#3182F6] hover:bg-blue-100">10분</button>
-                                <button type="button" onClick={() => setDurationValue(dIdx, pIdx, 30)} className="py-1 rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-black text-[#3182F6] hover:bg-blue-100">30분</button>
-                                <button type="button" onClick={() => setDurationValue(dIdx, pIdx, 60)} className="py-1 rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-black text-[#3182F6] hover:bg-blue-100">60분</button>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => setDurationControllerTarget(null)}
-                                className="w-full mt-2 py-1.5 rounded-lg bg-[#3182F6] text-white text-[10px] font-black hover:brightness-105 transition-all"
-                              >
-                                확인
-                              </button>
+                              <div className="grid grid-cols-3 gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => { setDurationValue(dIdx, pIdx, 10); setDurationControllerTarget(null); }}
+                                  className="py-1 rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-black text-[#3182F6] hover:bg-blue-100"
+                                >
+                                  10분
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setDurationValue(dIdx, pIdx, 30); setDurationControllerTarget(null); }}
+                                  className="py-1 rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-black text-[#3182F6] hover:bg-blue-100"
+                                >
+                                  30분
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setDurationValue(dIdx, pIdx, 60); setDurationControllerTarget(null); }}
+                                  className="py-1 rounded-lg bg-blue-50 border border-blue-200 text-[10px] font-black text-[#3182F6] hover:bg-blue-100"
+                                >
+                                  60분
+                                </button>
+                              </div>
                             </div>
                           )}
 

@@ -2,6 +2,8 @@ import chromium from '@sparticuz/chromium';
 import puppeteerCore from 'puppeteer-core';
 import puppeteer from 'puppeteer';
 
+const wait = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const isNaverUrl = (raw = '') => {
   const v = String(raw || '').trim();
   return /^https?:\/\/(naver\.me|map\.naver\.com|pcmap\.place\.naver\.com|m\.place\.naver\.com)\//i.test(v);
@@ -39,9 +41,9 @@ const extractHoursInPage = async (ctx) => {
     }).catch(() => {});
   };
   await expandHours();
-  await ctx.waitForTimeout?.(500).catch(() => {});
+  await wait(500);
   await expandHours();
-  await ctx.waitForTimeout?.(700).catch(() => {});
+  await wait(700);
 
   return ctx.evaluate(() => {
     const rows = Array.from(document.querySelectorAll('li, div, span, p'))
@@ -69,7 +71,7 @@ const extractMenusInPage = async (ctx) => {
       try { menuTab.click(); } catch (_) { /* noop */ }
     }
   }).catch(() => {});
-  await ctx.waitForTimeout?.(600).catch(() => {});
+  await wait(600);
 
   return ctx.evaluate(() => {
     const rows = Array.from(document.querySelectorAll('li, div'));
@@ -123,8 +125,11 @@ export default async function handler(req, res) {
   try {
     browser = await launchBrowser();
     const page = await browser.newPage();
+    if (typeof page.waitForTimeout !== 'function') {
+      page.waitForTimeout = async (ms) => wait(ms);
+    }
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(1800);
+    await wait(1800);
 
     let title = (await page.title()) || '';
     title = title.replace(' - 네이버지도', '').replace('네이버 지도', '').trim();
@@ -136,7 +141,7 @@ export default async function handler(req, res) {
     if (frameElement) {
       const frame = await frameElement.contentFrame();
       if (frame) {
-        await frame.waitForTimeout(1500);
+        await wait(1500);
         const inFrameTitle = await frame.evaluate(() => {
           const titleEl = document.querySelector('.Fc1rA') || document.querySelector('.GHAhO') || document.querySelector('span.Fc1rA');
           return titleEl ? titleEl.textContent?.trim() : '';

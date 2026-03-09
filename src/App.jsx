@@ -478,7 +478,37 @@ const searchAddressFromPlaceName = async (keyword, regionHint = '', kakaoKey = K
       continue;
     }
   }
-  return { address: '', source: 'Nominatim', error: '검색 결과 없음 (카카오 API 키 등록 시 정확도 향상)' };
+
+  // 3번: 서버 스크래퍼 fallback (네이버 지도 검색 기반)
+  try {
+    const apiBase = (import.meta.env.VITE_SCRAPER_API_BASE || '').replace(/\/$/, '');
+    const endpoints = Array.from(new Set([
+      apiBase ? `${apiBase}/api/scrape` : '',
+      '/api/scrape',
+    ].filter(Boolean)));
+    const naverSearchUrl = `https://map.naver.com/v5/search/${encodeURIComponent(searchQuery)}`;
+    for (const endpoint of endpoints) {
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: naverSearchUrl }),
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const addr = String(data?.address || '').trim();
+        if (addr && /[가-힣]/.test(addr) && /\d/.test(addr) && /(로|길|대로|번길|읍|면|동|리)/.test(addr)) {
+          return { address: addr, source: 'NaverScrape' };
+        }
+      } catch (_) {
+        // 다음 endpoint 시도
+      }
+    }
+  } catch (_) {
+    // noop
+  }
+
+  return { address: '', source: 'Nominatim', error: '검색 결과 없음 (카카오/네이버 보강 실패)' };
 };
 
 const DateRangePicker = ({ startDate, endDate, onStartChange, onEndChange, onClose }) => {
@@ -908,6 +938,7 @@ const App = () => {
   const [placeFilterTags, setPlaceFilterTags] = useState([]); // 내 장소 필터링 태그
   const [draggingFromTimeline, setDraggingFromTimeline] = useState(null);
   const [isDroppingOnDeleteZone, setIsDroppingOnDeleteZone] = useState(false);
+  const [dragBottomTarget, setDragBottomTarget] = useState('');
   const [dropTarget, setDropTarget] = useState(null);
   const [dropOnItem, setDropOnItem] = useState(null); // { dayIdx, pIdx } — Plan B 드롭 대상
   const [isDragCopy, setIsDragCopy] = useState(false); // Ctrl+드래그 시 복사 모드
@@ -2890,6 +2921,29 @@ const App = () => {
       ...prev,
       places: (prev.places || []).map(p => p.id === placeId ? { ...p, ...data } : p)
     }));
+  };
+
+  const copyTimelineItemToLibrary = (dayIdx, pIdx) => {
+    const item = itinerary.days?.[dayIdx]?.plan?.[pIdx];
+    if (!item) return;
+    saveHistory();
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      if (!nextData.places) nextData.places = [];
+      nextData.places.push({
+        id: `place_${Date.now()}`,
+        name: item.activity,
+        types: item.types || ['place'],
+        revisit: typeof item.revisit === 'boolean' ? item.revisit : isRevisitCourse(item),
+        business: normalizeBusiness(item.business || {}),
+        address: item.receipt?.address || '',
+        price: item.price || 0,
+        memo: item.memo || '',
+        receipt: deepClone(item.receipt || { items: [] })
+      });
+      return nextData;
+    });
+    setLastAction(`'${item.activity}' 일정을 내 장소로 복제했습니다.`);
   };
 
   const dropTimelineItemOnLibrary = (dayIdx, pIdx, planBMode = 'with_all') => {

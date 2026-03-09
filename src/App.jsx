@@ -5313,12 +5313,15 @@ const App = () => {
                                     if (!isExpanded) {
                                       const [hh, mm] = (p.time || '00:00').split(':');
                                       return (
-                                        <div className="flex flex-col items-center justify-center py-1">
-                                          <div className={`relative flex items-center justify-center px-1.5 py-1 rounded-xl transition-all ${p.isTimeFixed ? 'bg-blue-100/40 shadow-sm border border-blue-200/50' : 'bg-transparent'}`}>
-                                            <div className={`flex items-baseline gap-[1px] ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800 hover:text-blue-500'}`}>
-                                              <span className="text-[20px] sm:text-[23px] font-black tracking-tighter tabular-nums leading-none">{hh}</span>
-                                              <span className="text-[14px] sm:text-[16px] font-bold opacity-30 mt-0.5">:</span>
-                                              <span className="text-[20px] sm:text-[23px] font-black tracking-tighter tabular-nums leading-none">{mm}</span>
+                                        <div className="flex flex-col items-center justify-center py-1 group/time">
+                                          <div className={`relative flex items-center justify-center px-2 py-1.5 rounded-2xl transition-all duration-300 ${p.isTimeFixed ? 'bg-gradient-to-br from-blue-50/80 to-white/60 shadow-[0_4px_12px_-2px_rgba(49,130,246,0.15)] border border-blue-100' : 'bg-transparent group-hover/time:bg-slate-50 border border-transparent'}`}>
+                                            {p.isTimeFixed && (
+                                              <div className="absolute top-1 right-1.5 w-1.5 h-1.5 rounded-full bg-[#3182F6] shadow-[0_0_6px_rgba(49,130,246,0.6)] animate-pulse" />
+                                            )}
+                                            <div className={`flex items-baseline gap-[2px] ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800 group-hover/time:text-[#3182F6] transition-colors'}`}>
+                                              <span className="text-[22px] sm:text-[26px] font-black tracking-tighter tabular-nums leading-none">{hh}</span>
+                                              <span className={`text-[12px] sm:text-[14px] font-black mb-0.5 ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-200 group-hover/time:text-blue-200'}`}>:</span>
+                                              <span className="text-[22px] sm:text-[26px] font-black tracking-tighter tabular-nums leading-none">{mm}</span>
                                             </div>
                                           </div>
                                         </div>

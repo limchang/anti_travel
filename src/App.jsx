@@ -1054,6 +1054,7 @@ const App = () => {
   const leftSidebarWidth = col1Collapsed ? leftCollapsedWidth : leftExpandedWidth;
   const rightSidebarWidth = col2Collapsed ? rightCollapsedWidth : rightExpandedWidth;
   const isCompactTimeline = isMobileLayout || viewportWidth < 1380 || (!col1Collapsed && !col2Collapsed && viewportWidth < 1720);
+  const timelineMaxClass = isCompactTimeline ? 'max-w-[500px]' : 'max-w-[560px]';
 
   const scrollIntervalRef = useRef(null);
   const lastTouchYRef = useRef(null);
@@ -4413,8 +4414,8 @@ const App = () => {
 
                 {/* 풀 카드 (최상단) */}
                 {!heroCollapsed && (
-                  <section className="mb-10 px-4 mt-6">
-                    <div className={`mx-auto rounded-[40px] relative overflow-hidden bg-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] border border-slate-100/80 ${isCompactTimeline ? 'max-w-[500px]' : 'max-w-[560px]'}`}>
+                  <section className="mb-10 mt-6">
+                    <div className="w-full rounded-[40px] relative overflow-hidden bg-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] border border-slate-100/80">
                       {canManagePlan && <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                         <button
                           onClick={() => setShowPlanOptions(true)}
@@ -4441,7 +4442,7 @@ const App = () => {
                         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-white" />
                       </div>
 
-                      <div className="relative z-10 p-8 sm:p-10 flex flex-col gap-10">
+                      <div className={`relative z-10 p-8 sm:p-10 flex flex-col gap-10 w-full mx-auto ${timelineMaxClass}`}>
                         {/* 🌟 1. 타이틀 & 일정 */}
                         <div className="flex flex-col gap-5">
                           <input
@@ -4588,7 +4589,7 @@ const App = () => {
             );
           })()}
           <div ref={heroTriggerRef} className="h-px w-full" />
-          <div className={`w-full mx-auto flex flex-col relative z-0 ${isCompactTimeline ? 'max-w-[500px] gap-4' : 'max-w-[560px] gap-6'}`}>
+          <div className={`w-full mx-auto flex flex-col relative z-0 ${timelineMaxClass} ${isCompactTimeline ? 'gap-4' : 'gap-6'}`}>
 
             {itinerary.days?.map((d, dIdx) => d.plan?.map((p, pIdx) => {
               const isExpanded = expandedId === p.id;

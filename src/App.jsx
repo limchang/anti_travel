@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars, react-hooks/exhaustive-deps, no-useless-escape */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { db, auth } from './firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import {
   Navigation, MessageSquare, LogOut, User as UserIcon,
@@ -9,7 +9,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Calendar, GripVertical, Gift
+  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Calendar, GripVertical, Gift, X
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -874,6 +874,17 @@ const App = () => {
   };
 
   const [loading, setLoading] = useState(true);
+  const [currentPlanId, setCurrentPlanId] = useState('main');
+  const [planList, setPlanList] = useState([]);
+  const [showPlanManager, setShowPlanManager] = useState(false);
+  const [showEntryChooser, setShowEntryChooser] = useState(false);
+  const [newPlanRegion, setNewPlanRegion] = useState('');
+  const [newPlanTitle, setNewPlanTitle] = useState('');
+  const [showShareManager, setShowShareManager] = useState(false);
+  const [shareSettings, setShareSettings] = useState({ visibility: 'private', permission: 'viewer' });
+  const [isSharedReadOnly, setIsSharedReadOnly] = useState(false);
+  const [sharedSource, setSharedSource] = useState(null); // { ownerId, planId }
+  const entryChooserShownRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
   const [draggingFromLibrary, setDraggingFromLibrary] = useState(null);
   const [placeFilterTags, setPlaceFilterTags] = useState([]); // 내 장소 필터링 태그
@@ -1035,6 +1046,119 @@ const App = () => {
     lastTouchYRef.current = null;
   }, []);
 
+  const normalizeShare = (raw = {}) => ({
+    visibility: ['private', 'link', 'public'].includes(raw?.visibility) ? raw.visibility : 'private',
+    permission: ['viewer', 'editor'].includes(raw?.permission) ? raw.permission : 'viewer',
+  });
+
+  const buildShareLink = (ownerId, planId) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('owner', ownerId);
+    url.searchParams.set('plan', planId || 'main');
+    return url.toString();
+  };
+
+  const sanitizeRegionCode = (region = '') => {
+    const raw = String(region || '').trim().replace(/\s+/g, '');
+    if (!raw) return 'TRIP';
+    return raw.slice(0, 6).toUpperCase();
+  };
+  const makePlanCode = (region = '', dateStr = '') => {
+    const baseDate = String(dateStr || '').trim();
+    const yyyyMM = /^\d{4}-\d{2}/.test(baseDate)
+      ? baseDate.slice(0, 7).replace('-', '')
+      : new Date().toISOString().slice(0, 7).replace('-', '');
+    const suffix = String(Date.now()).slice(-4);
+    return `${sanitizeRegionCode(region)}-${yyyyMM}-${suffix}`;
+  };
+  const getRegionCoverImage = (region = '') => {
+    const r = String(region || '').toLowerCase();
+    if (/(제주|jeju)/.test(r)) return 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1600&auto=format&fit=crop';
+    if (/(부산|busan)/.test(r)) return 'https://images.unsplash.com/photo-1526481280695-3c4696659f38?q=80&w=1600&auto=format&fit=crop';
+    if (/(서울|seoul)/.test(r)) return 'https://images.unsplash.com/photo-1538485399081-7c897f6e6f68?q=80&w=1600&auto=format&fit=crop';
+    if (/(강릉|속초|동해|gangneung|sokcho)/.test(r)) return 'https://images.unsplash.com/photo-1473116763249-2faaef81ccda?q=80&w=1600&auto=format&fit=crop';
+    if (/(도쿄|tokyo)/.test(r)) return 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?q=80&w=1600&auto=format&fit=crop';
+    if (/(오사카|osaka)/.test(r)) return 'https://images.unsplash.com/photo-1590559899731-a382839e5549?q=80&w=1600&auto=format&fit=crop';
+    if (/(후쿠오카|fukuoka)/.test(r)) return 'https://images.unsplash.com/photo-1492571350019-22de08371fd3?q=80&w=1600&auto=format&fit=crop';
+    if (/(파리|paris)/.test(r)) return 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1600&auto=format&fit=crop';
+    if (/(뉴욕|new york|nyc)/.test(r)) return 'https://images.unsplash.com/photo-1499092346589-b9b6be3e94b2?q=80&w=1600&auto=format&fit=crop';
+    return 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=1600&auto=format&fit=crop';
+  };
+
+  const createBlankPlan = (region = '새 여행지', title = '') => ({
+    days: [{ day: 1, plan: [] }],
+    places: [],
+    maxBudget: 1500000,
+    tripRegion: region,
+    tripStartDate: '',
+    tripEndDate: '',
+    planTitle: title || `${region} 여행`,
+    planCode: makePlanCode(region, ''),
+    share: { visibility: 'private', permission: 'viewer' },
+    updatedAt: Date.now(),
+  });
+
+  const refreshPlanList = useCallback(async (uid) => {
+    if (!uid) return;
+    try {
+      const snap = await getDocs(collection(db, 'users', uid, 'itinerary'));
+      const list = snap.docs.map((d) => {
+        const data = d.data() || {};
+        return {
+          id: d.id,
+          title: data.planTitle || `${data.tripRegion || '여행'} 일정`,
+          region: data.tripRegion || '',
+          planCode: data.planCode || '',
+          startDate: data.tripStartDate || '',
+          updatedAt: Number(data.updatedAt || 0),
+        };
+      }).sort((a, b) => b.updatedAt - a.updatedAt);
+      setPlanList(list);
+    } catch (e) {
+      console.error('일정 목록 로드 실패:', e);
+    }
+  }, []);
+
+  const createNewPlan = async () => {
+    if (!user || user.isGuest) {
+      setLastAction('게스트 모드에서는 새 일정 생성이 제한됩니다.');
+      return;
+    }
+    const id = `plan_${Date.now()}`;
+    const region = newPlanRegion.trim() || '새 여행지';
+    const title = newPlanTitle.trim() || `${region} 여행`;
+    const payload = createBlankPlan(region, title);
+    payload.planCode = makePlanCode(region, payload.tripStartDate || '');
+    await setDoc(doc(db, 'users', user.uid, 'itinerary', id), payload);
+    await refreshPlanList(user.uid);
+    setCurrentPlanId(id);
+    setNewPlanRegion('');
+    setNewPlanTitle('');
+    setShowPlanManager(false);
+    setShowEntryChooser(false);
+    setLastAction(`'${title}' 일정이 생성되었습니다.`);
+  };
+
+  const updateShareConfig = (next) => {
+    const normalized = normalizeShare(next);
+    setShareSettings(normalized);
+    setItinerary(prev => ({ ...prev, share: normalized }));
+  };
+
+  const copyShareLink = async () => {
+    if (!user || user.isGuest) {
+      setLastAction('게스트 모드에서는 공유 링크를 만들 수 없습니다.');
+      return;
+    }
+    const link = buildShareLink(user.uid, currentPlanId);
+    try {
+      await navigator.clipboard.writeText(link);
+      setLastAction('공유 링크를 복사했습니다.');
+    } catch {
+      setLastAction(`공유 링크: ${link}`);
+    }
+  };
+
   useEffect(() => {
     const onKeyDown = (e) => { if (e.key === 'Control') ctrlHeldRef.current = true; };
     const onKeyUp = (e) => { if (e.key === 'Control') ctrlHeldRef.current = false; };
@@ -1042,6 +1166,41 @@ const App = () => {
     window.addEventListener('keyup', onKeyUp);
     return () => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); };
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ownerId = params.get('owner');
+    const planId = params.get('plan') || 'main';
+    if (ownerId) {
+      setSharedSource({ ownerId, planId });
+      setCurrentPlanId(planId);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user || user.isGuest) return;
+    void refreshPlanList(user.uid);
+  }, [user, refreshPlanList]);
+
+  useEffect(() => {
+    if (!user) {
+      entryChooserShownRef.current = false;
+      setShowEntryChooser(false);
+      return;
+    }
+    if (user.isGuest) {
+      setShowEntryChooser(false);
+      return;
+    }
+    if (sharedSource?.ownerId) {
+      setShowEntryChooser(false);
+      return;
+    }
+    if (loading) return;
+    if (entryChooserShownRef.current) return;
+    entryChooserShownRef.current = true;
+    setShowEntryChooser(true);
+  }, [user, loading, sharedSource]);
 
   // 모바일 터치 드래그 — HTML5 DnD는 모바일에서 동작 안 하므로 터치 전용 구현
   useEffect(() => {
@@ -2846,22 +3005,34 @@ const App = () => {
   // Firestore 저장 (1초 디바운스, 사용자 UID 기준)
   useEffect(() => {
     if (!user || loading || !itinerary || !itinerary.days || itinerary.days.length === 0) return;
+    if (isSharedReadOnly) return;
     if (user.isGuest) {
       safeLocalStorageSet('guest_itinerary', JSON.stringify(itinerary));
       return;
     }
     const timer = setTimeout(() => {
-      setDoc(doc(db, 'users', user.uid, 'itinerary', 'main'), itinerary)
+      const payload = {
+        ...itinerary,
+        tripRegion,
+        tripStartDate,
+        tripEndDate,
+        planTitle: itinerary.planTitle || `${tripRegion || '여행'} 일정`,
+        planCode: itinerary.planCode || makePlanCode(tripRegion || '여행', tripStartDate || ''),
+        share: normalizeShare(itinerary.share || shareSettings),
+        updatedAt: Date.now(),
+      };
+      setDoc(doc(db, 'users', user.uid, 'itinerary', currentPlanId || 'main'), payload)
         .catch(e => console.error('Firestore 저장 실패:', e));
     }, 1000);
     return () => clearTimeout(timer);
-  }, [itinerary, loading, user]);
+  }, [itinerary, loading, user, currentPlanId, tripRegion, tripStartDate, tripEndDate, isSharedReadOnly, shareSettings]);
 
   // Firestore 로드 (사용자 UID 기준 + 마이그레이션 로직)
   useEffect(() => {
     if (!user) return;
     (async () => {
       setLoading(true);
+      setIsSharedReadOnly(false);
       if (user.isGuest) {
         try {
           const raw = safeLocalStorageGet('guest_itinerary', '');
@@ -2876,20 +3047,59 @@ const App = () => {
         }
       }
       try {
+        if (sharedSource?.ownerId && sharedSource.ownerId !== user.uid) {
+          const sharedSnap = await getDoc(doc(db, 'users', sharedSource.ownerId, 'itinerary', sharedSource.planId || 'main'));
+          if (sharedSnap.exists()) {
+            const sharedData = sharedSnap.data();
+            const sharedConfig = normalizeShare(sharedData.share || {});
+            if (sharedConfig.visibility === 'private') {
+              setLastAction('공유가 비공개라 접근할 수 없습니다.');
+              setLoading(false);
+              return;
+            }
+            const patchedDays = (sharedData.days || []).map(d => ({
+              ...d,
+              plan: (d.plan || []).map(p => ({ ...p }))
+            }));
+            setItinerary({
+              days: patchedDays,
+              places: sharedData.places || [],
+              maxBudget: sharedData.maxBudget || 1500000,
+              share: sharedConfig,
+              planTitle: sharedData.planTitle || `${sharedData.tripRegion || '공유'} 일정`,
+              planCode: sharedData.planCode || makePlanCode(sharedData.tripRegion || '공유', sharedData.tripStartDate || ''),
+            });
+            setShareSettings(sharedConfig);
+            if (sharedData.tripRegion) setTripRegion(sharedData.tripRegion);
+            if (typeof sharedData.tripStartDate === 'string') setTripStartDate(sharedData.tripStartDate);
+            if (typeof sharedData.tripEndDate === 'string') setTripEndDate(sharedData.tripEndDate);
+            setCurrentPlanId(sharedSource.planId || 'main');
+            setIsSharedReadOnly(sharedConfig.permission !== 'editor');
+            setLoading(false);
+            return;
+          }
+        }
+
         // 1. 먼저 내 고유 데이터가 있는지 확인
-        const snap = await getDoc(doc(db, 'users', user.uid, 'itinerary', 'main'));
+        const targetPlanId = currentPlanId || 'main';
+        const snap = await getDoc(doc(db, 'users', user.uid, 'itinerary', targetPlanId));
         let finalData = null;
 
         if (snap.exists()) {
           finalData = snap.data();
         } else {
           // 2. 고유 데이터가 없다면, 기존에 공용으로 쓰던 데이터가 있는지 확인
-          const commonSnap = await getDoc(doc(db, 'itinerary', 'main'));
-          if (commonSnap.exists()) {
-            finalData = commonSnap.data();
-            // 3. 공용 데이터를 찾았다면, 내 계정으로 즉시 복사 (마이그레이션)
-            await setDoc(doc(db, 'users', user.uid, 'itinerary', 'main'), finalData);
-            console.log('기존 데이터를 내 계정으로 성공적으로 가져왔습니다.');
+          if (targetPlanId === 'main') {
+            const commonSnap = await getDoc(doc(db, 'itinerary', 'main'));
+            if (commonSnap.exists()) {
+              finalData = commonSnap.data();
+              // 3. 공용 데이터를 찾았다면, 내 계정으로 즉시 복사 (마이그레이션)
+              await setDoc(doc(db, 'users', user.uid, 'itinerary', 'main'), finalData);
+              console.log('기존 데이터를 내 계정으로 성공적으로 가져왔습니다.');
+            }
+          } else {
+            finalData = createBlankPlan(newPlanRegion || tripRegion || '새 여행지');
+            await setDoc(doc(db, 'users', user.uid, 'itinerary', targetPlanId), finalData);
           }
         }
 
@@ -2910,7 +3120,19 @@ const App = () => {
               return updatedP;
             })
           }));
-          setItinerary({ days: patchedDays, places: finalData.places || [] });
+          setItinerary({
+            days: patchedDays,
+            places: finalData.places || [],
+            maxBudget: finalData.maxBudget || 1500000,
+            share: normalizeShare(finalData.share || {}),
+            planTitle: finalData.planTitle || `${finalData.tripRegion || tripRegion || '여행'} 일정`,
+            planCode: finalData.planCode || makePlanCode(finalData.tripRegion || tripRegion || '여행', finalData.tripStartDate || ''),
+          });
+          setShareSettings(normalizeShare(finalData.share || {}));
+          if (finalData.tripRegion) setTripRegion(finalData.tripRegion);
+          if (typeof finalData.tripStartDate === 'string') setTripStartDate(finalData.tripStartDate);
+          if (typeof finalData.tripEndDate === 'string') setTripEndDate(finalData.tripEndDate);
+          if (!user.isGuest) await refreshPlanList(user.uid);
           setLoading(false);
           return;
         }
@@ -2974,9 +3196,10 @@ const App = () => {
       }));
 
       setItinerary({ days: calculatedDays, places: [] });
+      if (!user.isGuest) await refreshPlanList(user.uid);
       setLoading(false);
     })();
-  }, [user]);
+  }, [user, currentPlanId, refreshPlanList, sharedSource, tripRegion, newPlanRegion]);
 
   if (authLoading) return (
     <div className="min-h-screen bg-[#F2F4F6] flex flex-col items-center justify-center gap-4">
@@ -3276,6 +3499,20 @@ const App = () => {
 
             {/* ── 하단 고정: 사용자 정보 & 로그아웃 버튼 ── */}
             <div className="p-4 border-t border-slate-100 bg-white shrink-0 mt-auto">
+              <div className="grid grid-cols-2 gap-1.5 mb-2">
+                <button
+                  onClick={() => setShowPlanManager(true)}
+                  className="px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                >
+                  목록보기
+                </button>
+                <button
+                  onClick={() => setShowShareManager(true)}
+                  className="px-2 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-[10px] font-black text-[#3182F6] hover:bg-blue-100 transition-colors"
+                >
+                  공유하기
+                </button>
+              </div>
               <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
                 <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border-2 border-white shadow-sm">
                   {user.photoURL ? <img src={user.photoURL} alt="User" /> : <div className="w-full h-full bg-slate-200 flex items-center justify-center"><UserIcon size={12} className="text-slate-400" /></div>}
@@ -3633,6 +3870,194 @@ const App = () => {
       <div className="flex-1 flex flex-col items-center w-full bg-white min-h-screen" style={{ marginLeft: col1Collapsed ? 44 : 260, marginRight: col2Collapsed ? 44 : 300 }}>
         {/* 일정 목록 */}
         <div className="w-full px-4 pt-8 pb-32">
+          <div className="max-w-[560px] mx-auto mb-2 text-[10px] font-black text-slate-400 tracking-wide">
+            {(itinerary.planCode || currentPlanId)} · {itinerary.planTitle || `${tripRegion || '여행'} 일정`}
+          </div>
+          {isSharedReadOnly && (
+            <div className="max-w-[560px] mx-auto mb-3 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-[11px] font-black text-amber-700">
+              공유 일정 보기 모드입니다. (편집 권한 없음)
+            </div>
+          )}
+
+          {showEntryChooser && !user?.isGuest && !sharedSource?.ownerId && (
+            <>
+              <div className="fixed inset-0 z-[270] bg-black/25 backdrop-blur-[1px]" />
+              <div className="fixed z-[271] inset-0 flex items-center justify-center p-4">
+                <div className="w-[min(640px,94vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)] p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[16px] font-black text-slate-800">일정 선택</p>
+                    <button
+                      onClick={() => setShowEntryChooser(false)}
+                      className="text-slate-400 hover:text-slate-600"
+                      title="닫기"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-bold mb-3">
+                    로그인 후에는 먼저 기존 일정을 고르거나 새 일정을 만들 수 있습니다.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <input
+                      value={newPlanRegion}
+                      onChange={(e) => setNewPlanRegion(e.target.value)}
+                      placeholder="도시 (예: 부산)"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                    />
+                    <input
+                      value={newPlanTitle}
+                      onChange={(e) => setNewPlanTitle(e.target.value)}
+                      placeholder="일정 이름 (선택)"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                    />
+                  </div>
+                  <button
+                    onClick={() => { void createNewPlan(); }}
+                    className="w-full mb-3 py-2 rounded-xl bg-[#3182F6] text-white text-[11px] font-black"
+                  >
+                    새 일정 생성
+                  </button>
+                  <div className="max-h-[52vh] overflow-y-auto">
+                    {(planList || []).length === 0 ? (
+                      <p className="text-[11px] text-slate-400 font-bold p-3">기존 일정이 없습니다. 새 일정을 생성하세요.</p>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {(planList || []).map((plan) => (
+                          <button
+                            key={plan.id}
+                            onClick={() => {
+                              setCurrentPlanId(plan.id);
+                              setShowEntryChooser(false);
+                              setLastAction(`'${plan.title}' 일정을 열었습니다.`);
+                            }}
+                            className={`relative overflow-hidden rounded-2xl border text-left min-h-[130px] transition-all hover:-translate-y-0.5 ${currentPlanId === plan.id ? 'border-[#3182F6] ring-2 ring-[#3182F6]/20' : 'border-slate-200 hover:border-slate-300'}`}
+                          >
+                            <img
+                              src={getRegionCoverImage(plan.region)}
+                              alt="plan cover"
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/55" />
+                            <div className="relative z-10 p-3 flex flex-col gap-1 text-white">
+                              <p className="text-[14px] font-black truncate">{plan.region || '여행지'}</p>
+                              <p className="text-[11px] font-black truncate">{plan.title}</p>
+                              <p className="text-[10px] font-bold text-white/80">{plan.startDate ? plan.startDate.replace(/-/g, '.') : '날짜 미정'}</p>
+                              <p className="text-[10px] font-black text-white/95 tracking-wide">{plan.planCode || plan.id}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {showPlanManager && (
+            <>
+              <div className="fixed inset-0 z-[260] bg-black/20" onClick={() => setShowPlanManager(false)} />
+              <div className="fixed z-[261] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[14px] font-black text-slate-800">일정 관리 (도시별 예시)</p>
+                  <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowPlanManager(false)}><X size={16} /></button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <input
+                    value={newPlanRegion}
+                    onChange={(e) => setNewPlanRegion(e.target.value)}
+                    placeholder="도시 (예: 부산)"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                  />
+                  <input
+                    value={newPlanTitle}
+                    onChange={(e) => setNewPlanTitle(e.target.value)}
+                    placeholder="일정 이름 (선택)"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                  />
+                </div>
+                <button
+                  onClick={() => { void createNewPlan(); }}
+                  className="w-full mb-3 py-2 rounded-xl bg-[#3182F6] text-white text-[11px] font-black"
+                >
+                  새 도시 일정 만들기
+                </button>
+                <div className="max-h-[52vh] overflow-y-auto">
+                  {(planList || []).length === 0 ? (
+                    <p className="text-[11px] text-slate-400 font-bold p-3">생성된 일정이 없습니다.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {(planList || []).map((plan) => (
+                        <button
+                          key={plan.id}
+                          onClick={() => {
+                            setCurrentPlanId(plan.id);
+                            setShowPlanManager(false);
+                            setLastAction(`'${plan.title}' 일정으로 전환했습니다.`);
+                          }}
+                          className={`relative overflow-hidden rounded-2xl border text-left min-h-[130px] transition-all hover:-translate-y-0.5 ${currentPlanId === plan.id ? 'border-[#3182F6] ring-2 ring-[#3182F6]/20' : 'border-slate-200 hover:border-slate-300'}`}
+                        >
+                          <img
+                            src={getRegionCoverImage(plan.region)}
+                            alt="plan cover"
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/55" />
+                          <div className="relative z-10 p-3 flex flex-col gap-1 text-white">
+                            <p className="text-[14px] font-black truncate">{plan.region || '여행지'}</p>
+                            <p className="text-[11px] font-black truncate">{plan.title}</p>
+                            <p className="text-[10px] font-bold text-white/80">{plan.startDate ? plan.startDate.replace(/-/g, '.') : '날짜 미정'}</p>
+                            <p className="text-[10px] font-black text-white/95 tracking-wide">{plan.planCode || plan.id}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {showShareManager && (
+            <>
+              <div className="fixed inset-0 z-[260] bg-black/20" onClick={() => setShowShareManager(false)} />
+              <div className="fixed z-[261] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[14px] font-black text-slate-800">공유 범위 / 편집 권한</p>
+                  <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowShareManager(false)}><X size={16} /></button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <select
+                    value={shareSettings.visibility}
+                    onChange={(e) => updateShareConfig({ ...shareSettings, visibility: e.target.value })}
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                  >
+                    <option value="private">비공개</option>
+                    <option value="link">링크 소지자 공개</option>
+                    <option value="public">공개</option>
+                  </select>
+                  <select
+                    value={shareSettings.permission}
+                    onChange={(e) => updateShareConfig({ ...shareSettings, permission: e.target.value })}
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                  >
+                    <option value="viewer">보기만</option>
+                    <option value="editor">편집 가능</option>
+                  </select>
+                </div>
+                <button
+                  onClick={() => { void copyShareLink(); }}
+                  className="w-full py-2 rounded-xl border border-blue-200 bg-blue-50 text-[#3182F6] text-[11px] font-black hover:bg-blue-100 transition-colors"
+                >
+                  공유 링크 복사
+                </button>
+                <p className="text-[10px] text-slate-400 font-bold mt-2">
+                  링크에는 현재 플랜 ID가 포함됩니다. (예: 다른 도시 일정 분리 공유)
+                </p>
+              </div>
+            </>
+          )}
+
           <div ref={heroTriggerRef} className="h-px w-full" />
 
           {/* ── 여행 헤더 카드 ── */}
@@ -3647,24 +4072,42 @@ const App = () => {
                 {/* 컴팩트 플로팅 바 (스크롤 시) */}
                 {heroCollapsed && (
                   <div
-                    className="fixed top-2 z-[190] px-4 pointer-events-none"
+                    className="fixed top-0 z-[190] pointer-events-none"
                     style={{ left: col1Collapsed ? 44 : 260, right: col2Collapsed ? 44 : 300 }}
                   >
-                    <div className="max-w-[560px] mx-auto bg-white/96 backdrop-blur-2xl border border-slate-200/90 rounded-2xl px-3 py-2 flex items-center gap-2 shadow-[0_12px_28px_-14px_rgba(0,0,0,0.35)] pointer-events-auto">
-                      <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
-                        <MapPin size={11} className="text-[#3182F6]" />
+                    <div className="w-full bg-white/96 backdrop-blur-2xl border-b border-slate-200/90 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.5)] pointer-events-auto min-h-[88px] px-4 py-2.5 flex flex-col justify-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
+                          <MapPin size={11} className="text-[#3182F6]" />
+                        </div>
+                        <span className="text-[13px] font-black text-slate-800 truncate flex-1">{tripRegion || '여행지'}</span>
+                        <span className="text-[11px] font-black text-slate-400 shrink-0 tabular-nums">
+                          {(tripStartDate && tripEndDate)
+                            ? `${tripStartDate.slice(5).replace('-', '.')}~${tripEndDate.slice(5).replace('-', '.')}`
+                            : `${tripNights}박 ${tripDays}일`}
+                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() => setShowPlanManager(true)}
+                            className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                          >
+                            목록
+                          </button>
+                          <button
+                            onClick={() => setShowShareManager(true)}
+                            className="px-2 py-1 rounded-lg border border-blue-200 bg-blue-50 text-[10px] font-black text-[#3182F6] hover:bg-blue-100 transition-colors"
+                          >
+                            공유
+                          </button>
+                        </div>
                       </div>
-                      <span className="text-[12px] font-black text-slate-800 truncate max-w-[8.5rem]">{tripRegion || '여행지'}</span>
-                      <span className="text-[10px] font-black text-slate-400 shrink-0 tabular-nums">
-                        {(tripStartDate && tripEndDate)
-                          ? `${tripStartDate.slice(5).replace('-', '.')}~${tripEndDate.slice(5).replace('-', '.')}`
-                          : `${tripNights}박 ${tripDays}일`}
-                      </span>
-                      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden mx-1">
-                        <div className="h-full bg-gradient-to-r from-[#3182F6] to-indigo-500 rounded-full" style={{ width: `${usedPct}%` }} />
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-[#3182F6] to-indigo-500 rounded-full" style={{ width: `${usedPct}%` }} />
+                        </div>
+                        <span className="text-[11px] font-black text-slate-500 tabular-nums shrink-0">{usedPct}%</span>
+                        <span className="text-[14px] font-black text-[#3182F6] tabular-nums tracking-tight shrink-0">₩{budgetSummary.remaining.toLocaleString()}</span>
                       </div>
-                      <span className="text-[10px] font-black text-slate-500 tabular-nums shrink-0">{usedPct}%</span>
-                      <span className="text-[13px] font-black text-[#3182F6] tabular-nums tracking-tight shrink-0">₩{budgetSummary.remaining.toLocaleString()}</span>
                     </div>
                   </div>
                 )}
@@ -3673,10 +4116,24 @@ const App = () => {
                 {!heroCollapsed && (
                   <section className="mb-10 px-4 mt-6">
                     <div className="max-w-[560px] mx-auto rounded-[40px] relative overflow-hidden bg-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] border border-slate-100/80">
+                      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                        <button
+                          onClick={() => setShowPlanManager(true)}
+                          className="px-3 py-1.5 rounded-xl border border-white/40 bg-white/80 backdrop-blur text-[11px] font-black text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors"
+                        >
+                          목록보기
+                        </button>
+                        <button
+                          onClick={() => setShowShareManager(true)}
+                          className="px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50/90 backdrop-blur text-[11px] font-black text-[#3182F6] hover:bg-blue-100 transition-colors"
+                        >
+                          공유하기
+                        </button>
+                      </div>
                       {/* 🖼️ 배경 이미지 (절반 높이) */}
                       <div className="absolute top-0 left-0 w-full h-[52%] overflow-hidden pointer-events-none">
                         <img
-                          src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=2070&auto=format&fit=crop"
+                          src={getRegionCoverImage(tripRegion)}
                           className="w-full h-full object-cover opacity-90 scale-105"
                           alt="travel background"
                         />
@@ -3881,14 +4338,24 @@ const App = () => {
                   <div className="relative">
                     {hasPlanB && (
                       <>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); cyclePlan(-1); }}
-                          className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 w-8 h-8 bg-white border border-slate-200 rounded-xl shadow-md flex items-center justify-center text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] transition-all"
-                        ><ChevronLeft size={14} /></button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); cyclePlan(1); }}
-                          className="absolute -right-4 top-1/2 -translate-y-1/2 z-30 w-8 h-8 bg-white border border-slate-200 rounded-xl shadow-md flex items-center justify-center text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] transition-all"
-                        ><ChevronRight size={14} /></button>
+                        <div className="absolute inset-y-0 -left-5 z-30 flex items-stretch">
+                          <div className="w-9 h-full rounded-[18px] border border-slate-200 bg-white/95 shadow-[0_10px_22px_-12px_rgba(15,23,42,0.35)] flex items-center justify-center">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); cyclePlan(-1); }}
+                              className="w-7 h-7 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] transition-all"
+                              title="이전 플랜"
+                            ><ChevronLeft size={14} /></button>
+                          </div>
+                        </div>
+                        <div className="absolute inset-y-0 -right-5 z-30 flex items-stretch">
+                          <div className="w-9 h-full rounded-[18px] border border-slate-200 bg-white/95 shadow-[0_10px_22px_-12px_rgba(15,23,42,0.35)] flex items-center justify-center">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); cyclePlan(1); }}
+                              className="w-7 h-7 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] transition-all"
+                              title="다음 플랜"
+                            ><ChevronRight size={14} /></button>
+                          </div>
+                        </div>
                       </>
                     )}
                     <div
@@ -3948,8 +4415,8 @@ const App = () => {
                     >
                       {/* Plan B 페이지 인디케이터 */}
                       {hasPlanB && (
-                        <div className="absolute top-2.5 right-11 z-20 pointer-events-none">
-                          <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md border min-w-[32px] text-center text-slate-400 bg-white border-slate-200">
+                        <div className="absolute top-2 right-2 z-20 pointer-events-none">
+                          <span className="text-[11px] font-black px-2 py-1 rounded-lg border min-w-[44px] text-center text-slate-500 bg-white/95 border-slate-200 shadow-[0_8px_16px_-10px_rgba(15,23,42,0.35)]">
                             {planPos + 1}/{totalPlans}
                           </span>
                         </div>

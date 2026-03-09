@@ -1267,8 +1267,8 @@ const App = () => {
   };
   const [basePlanRef, setBasePlanRef] = useState(null); // { dayIdx, pIdx, id, name, address }
   const [placeDistanceMap, setPlaceDistanceMap] = useState({});
-  const [col1Collapsed, setCol1Collapsed] = useState(false);
-  const [col2Collapsed, setCol2Collapsed] = useState(false);
+  const [col1Collapsed, setCol1Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
+  const [col2Collapsed, setCol2Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));
   const [tagEditorTarget, setTagEditorTarget] = useState(null); // {dayIdx, pIdx}
   const [businessEditorTarget, setBusinessEditorTarget] = useState(null); // {dayIdx, pIdx}

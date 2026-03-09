@@ -937,6 +937,7 @@ const App = () => {
   const [expandedId, setExpandedId] = useState(null);
   const [expandedPlaceId, setExpandedPlaceId] = useState(null);
   const [durationControllerTarget, setDurationControllerTarget] = useState(null); // { dayIdx, pIdx, left, top }
+  const conflictAlertKeyRef = useRef('');
   const [lastAction, setLastAction] = useState("3일차 시작 일정이 수정되었습니다.");
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [activeDay, setActiveDay] = useState(1);
@@ -1394,6 +1395,24 @@ const App = () => {
   useEffect(() => {
     safeLocalStorageSet('trip_region_hint', tripRegion);
   }, [tripRegion]);
+
+  useEffect(() => {
+    const conflicts = [];
+    (itinerary.days || []).forEach((d, dIdx) => {
+      (d.plan || []).forEach((p, pIdx) => {
+        if (p?._timingConflict) conflicts.push(`${dIdx}-${pIdx}-${p.id}`);
+      });
+    });
+    if (conflicts.length === 0) {
+      conflictAlertKeyRef.current = '';
+      return;
+    }
+    const key = conflicts.join('|');
+    if (key === conflictAlertKeyRef.current) return;
+    conflictAlertKeyRef.current = key;
+    setLastAction('시간 충돌: 고정/잠금 조건으로 자동 계산이 불가한 구간이 있습니다.');
+    window.alert('시간 충돌이 발생했습니다.\n소요시간 잠금 또는 시작시간 고정을 일부 해제해 주세요.');
+  }, [itinerary.days]);
   useEffect(() => {
     safeLocalStorageSet('trip_start_date', tripStartDate);
   }, [tripStartDate]);
@@ -1999,6 +2018,8 @@ const App = () => {
       const waiting = currentItem.waitingTime || 0;
 
       const naturalArrivalMinutes = currentEndMinutes + travelMinutes + bufferMinutes;
+      currentItem._timingConflict = false;
+      currentItem._timingConflictReason = '';
 
       if (currentItem.isTimeFixed) {
         const fixedStartMinutes = timeToMinutes(currentItem.time);
@@ -2009,13 +2030,16 @@ const App = () => {
           const prevItem = dayPlan[lastMainItemIndex];
           // 페리는 duration 자동 조정 금지 (하선 시간 기준으로 고정)
           // 고정 일정의 60분은 유지 (사용자 수동 리셋/고정 의도 우선)
-          if (!prevItem.types?.includes('ship') && !prevItem.isTimeFixed) {
+          if (!prevItem.types?.includes('ship') && !prevItem.isTimeFixed && !prevItem.isDurationFixed) {
             const oldDuration = prevItem.duration || 0;
             // 최소 30분 보장 — 고정 일정 사이에 끼어도 소요시간이 0이 되지 않게
             const newDuration = Math.max(30, oldDuration + diff);
             prevItem.duration = newDuration;
             const actualDiff = newDuration - oldDuration;
             currentEndMinutes += actualDiff;
+          } else {
+            currentItem._timingConflict = true;
+            currentItem._timingConflictReason = '고정/잠금 조건으로 시간 보정 불가';
           }
         }
       } else {
@@ -2110,6 +2134,21 @@ const App = () => {
       return nextData;
     });
     setLastAction(`소요 시간을 ${nextMinutes}분으로 설정했습니다.`);
+  };
+
+  const toggleDurationLock = (dayIdx, pIdx) => {
+    saveHistory();
+    let locked = false;
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const dayPlan = nextData.days[dayIdx].plan;
+      const item = dayPlan[pIdx];
+      item.isDurationFixed = !item.isDurationFixed;
+      locked = !!item.isDurationFixed;
+      nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      return nextData;
+    });
+    setLastAction(locked ? "소요시간 잠금이 켜졌습니다." : "소요시간 잠금이 해제되었습니다.");
   };
 
   const updateWaitingTime = (dayIdx, pIdx, delta) => {
@@ -4425,7 +4464,6 @@ const App = () => {
               else stateStyles = 'bg-white border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.06)] hover:border-slate-200';
 
               const chips = p.types ? p.types.map(t => getCategoryBadge(t)) : (p.type ? [getCategoryBadge(p.type)] : []);
-              const isNextFixed = (pIdx < d.plan.length - 1) && d.plan[pIdx + 1]?.isTimeFixed;
               const isLodge = isLodgeStay(p.types);
               const isShip = p.types?.includes('ship');
               const businessWarning = !isShip ? getBusinessWarning(p, dIdx) : '';
@@ -4433,7 +4471,7 @@ const App = () => {
               const hasPlanB = planBCount > 0;
               // 스마트 락(숙소 자동 계산) 여부 확인
               const isAutoLocked = p.isAutoDuration;
-              const isDurationLocked = isNextFixed || isAutoLocked;
+              const isDurationLocked = !!p.isDurationFixed || isAutoLocked;
               // Plan B 캐러셀 — 즉시 교체
               const planPos = viewingPlanIdx[p.id] ?? 0; // 0-based 위치 표시용
               const totalPlans = planBCount + 1;
@@ -4647,16 +4685,16 @@ const App = () => {
                             <div className={`flex items-center justify-between w-[90%] bg-white px-2 py-1.5 rounded-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] border my-1 transition-colors ${isDurationLocked ? 'border-orange-200/80' : 'border-slate-100/60'}`} onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => {
-                                  if (isDurationLocked) { setLastAction('고정 연동 일정은 소요시간을 변경할 수 없습니다.'); return; }
+                                  if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; }
                                   updateDuration(dIdx, pIdx, -TIME_UNIT);
                                 }}
                                 className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-500'}`}
                               ><Minus size={10} /></button>
                               <span
-                                className={`text-[12px] whitespace-nowrap font-extrabold tabular-nums ${isDurationLocked ? 'cursor-not-allowed text-orange-500' : 'cursor-pointer hover:underline text-slate-600 hover:text-blue-600'}`}
+                                className={`text-[12px] whitespace-nowrap font-extrabold tabular-nums ${isAutoLocked ? 'cursor-not-allowed text-orange-500' : (p.isDurationFixed ? 'cursor-pointer text-orange-500 hover:underline' : 'cursor-pointer hover:underline text-slate-600 hover:text-blue-600')}`}
                                 onClick={(e) => {
-                                  if (isDurationLocked) {
-                                    setLastAction('고정 연동 일정은 소요시간 컨트롤러를 열 수 없습니다.');
+                                  if (isAutoLocked) {
+                                    setLastAction('자동 연동 일정은 소요시간 컨트롤러를 열 수 없습니다.');
                                     return;
                                   }
                                   const rect = e.currentTarget.getBoundingClientRect();
@@ -4679,7 +4717,7 @@ const App = () => {
                               >{fmtDur(p.duration)}</span>
                               <button
                                 onClick={() => {
-                                  if (isDurationLocked) { setLastAction('고정 연동 일정은 소요시간을 변경할 수 없습니다.'); return; }
+                                  if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; }
                                   updateDuration(dIdx, pIdx, TIME_UNIT);
                                 }}
                                 className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-500'}`}
@@ -4721,6 +4759,13 @@ const App = () => {
                                   60분
                                 </button>
                               </div>
+                              <button
+                                type="button"
+                                onClick={() => { toggleDurationLock(dIdx, pIdx); setDurationControllerTarget(null); }}
+                                className={`mt-2 w-full py-1 rounded-lg border text-[10px] font-black transition-colors ${p.isDurationFixed ? 'border-orange-300 bg-orange-50 text-orange-600 hover:bg-orange-100' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+                              >
+                                {p.isDurationFixed ? '소요시간 잠금 해제' : '소요시간 잠그기'}
+                              </button>
                             </div>
                           )}
 
@@ -5067,6 +5112,14 @@ const App = () => {
                                 >
                                   {businessWarning}
                                 </button>
+                              )}
+                              {p._timingConflict && (
+                                <div
+                                  className="w-full px-2.5 py-1 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-[10px] font-black text-left"
+                                  title="고정/잠금 조건 때문에 자동 보정이 불가능한 구간입니다."
+                                >
+                                  시간 충돌: 고정/잠금 조건으로 자동 계산 불가
+                                </div>
                               )}
                               <div className="w-full bg-slate-50/60 border border-slate-200 rounded-lg py-1.5 px-2.5" onClick={(e) => e.stopPropagation()}>
                                 <button

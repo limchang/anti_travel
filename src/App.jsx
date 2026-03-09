@@ -935,6 +935,8 @@ const App = () => {
   const [expandedId, setExpandedId] = useState(null);
   const [expandedPlaceId, setExpandedPlaceId] = useState(null);
   const [durationControllerTarget, setDurationControllerTarget] = useState(null); // { dayIdx, pIdx, left, top }
+  const [timeControllerTarget, setTimeControllerTarget] = useState(null); // { dayIdx, pIdx, left, top }
+  const [planVariantPicker, setPlanVariantPicker] = useState(null); // { dayIdx, pIdx, left, top }
   const conflictAlertKeyRef = useRef('');
   const [lastAction, setLastAction] = useState("3일차 시작 일정이 수정되었습니다.");
   const [aiSuggestions, setAiSuggestions] = useState({});
@@ -1591,6 +1593,44 @@ const App = () => {
     };
   }, [durationControllerTarget]);
 
+  useEffect(() => {
+    if (!timeControllerTarget) return;
+    const close = () => setTimeControllerTarget(null);
+    const closeOnOutside = (e) => {
+      const target = e.target;
+      if (target?.closest?.('[data-time-controller="true"]')) return;
+      if (target?.closest?.('[data-time-trigger="true"]')) return;
+      setTimeControllerTarget(null);
+    };
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    document.addEventListener('pointerdown', closeOnOutside, true);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+      document.removeEventListener('pointerdown', closeOnOutside, true);
+    };
+  }, [timeControllerTarget]);
+
+  useEffect(() => {
+    if (!planVariantPicker) return;
+    const close = () => setPlanVariantPicker(null);
+    const closeOnOutside = (e) => {
+      const target = e.target;
+      if (target?.closest?.('[data-plan-picker="true"]')) return;
+      if (target?.closest?.('[data-plan-picker-trigger="true"]')) return;
+      setPlanVariantPicker(null);
+    };
+    document.addEventListener('pointerdown', closeOnOutside, true);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutside, true);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [planVariantPicker]);
+
 
   const MAX_BUDGET = itinerary.maxBudget || 1500000;
   const [editingBudget, setEditingBudget] = useState(false);
@@ -1955,13 +1995,15 @@ const App = () => {
     setHistory(prev => {
       try {
         const newHistory = [...prev, JSON.parse(JSON.stringify(itinerary))];
-        // 토스트 표시
-        setUndoToast(true);
-        if (undoToastTimerRef.current) clearTimeout(undoToastTimerRef.current);
-        undoToastTimerRef.current = setTimeout(() => setUndoToast(false), 3000);
         return newHistory.slice(-20);
       } catch (e) { return prev; }
     });
+  };
+
+  const triggerUndoToast = () => {
+    setUndoToast(true);
+    if (undoToastTimerRef.current) clearTimeout(undoToastTimerRef.current);
+    undoToastTimerRef.current = setTimeout(() => setUndoToast(false), 3000);
   };
 
   const handleUndo = () => {
@@ -2668,7 +2710,8 @@ const App = () => {
       item.revisit = typeof alt.revisit === 'boolean' ? alt.revisit : false;
       item.business = normalizeBusiness(alt.business || {});
       item.types = deepClone(alt.types || ['place']);
-      item.duration = alt.duration || item.duration || 60;
+      // 플랜 교체 시 기존 일정의 시간축(소요시간)을 유지
+      item.duration = item.duration || 60;
       item.receipt = deepClone(alt.receipt || { address: '', items: [] });
 
       item.alternatives[altIdx] = currentAsAlt;
@@ -2695,7 +2738,8 @@ const App = () => {
       item.revisit = typeof nextMain.revisit === 'boolean' ? nextMain.revisit : false;
       item.business = normalizeBusiness(nextMain.business || {});
       item.types = deepClone(nextMain.types || ['place']);
-      item.duration = nextMain.duration || item.duration || 60;
+      // 플랜 회전 시 기존 일정의 시간축(소요시간)을 유지
+      item.duration = item.duration || 60;
       item.receipt = deepClone(nextMain.receipt || { address: '', items: [] });
       item.alternatives = dir > 0 ? [...alts.slice(1), currentAsAlt] : [currentAsAlt, ...alts.slice(0, -1)];
       nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
@@ -2703,6 +2747,21 @@ const App = () => {
     });
     setPendingAutoRouteJobs(prev => [...prev, { dayIdx, targetIdx: pIdx }, { dayIdx, targetIdx: pIdx + 1 }]);
     setLastAction("플랜을 변경했습니다.");
+  };
+
+  const selectPlanVariantAt = (dayIdx, pIdx, targetPos) => {
+    const item = itinerary.days?.[dayIdx]?.plan?.[pIdx];
+    if (!item) return;
+    const total = (item.alternatives?.length || 0) + 1;
+    const safePos = Math.max(0, Math.min(total - 1, Number(targetPos) || 0));
+    if (safePos === 0) {
+      setViewingPlanIdx(prev => ({ ...prev, [item.id]: 0 }));
+      setPlanVariantPicker(null);
+      return;
+    }
+    swapAlternative(dayIdx, pIdx, safePos - 1);
+    setViewingPlanIdx(prev => ({ ...prev, [item.id]: safePos }));
+    setPlanVariantPicker(null);
   };
 
   const updateAlternative = (dayIdx, pIdx, altIdx, field, value) => {
@@ -2849,7 +2908,8 @@ const App = () => {
         planItem.business = replacement.business;
         planItem.memo = replacement.memo;
         planItem.price = replacement.price;
-        planItem.duration = replacement.duration || planItem.duration || 60;
+        // 플랜B 대체 시에도 기존 시각/소요시간 축을 유지
+        planItem.duration = planItem.duration || 60;
         planItem.receipt = deepClone(replacement.receipt || { address: '', items: [] });
         planItem.alternatives = alternatives.slice(1);
       } else {
@@ -3465,6 +3525,7 @@ const App = () => {
   executeTouchDropRef.current = (x, y) => {
     const src = touchDragSourceRef.current;
     if (!src) return;
+    let changedByDrag = false;
     const el = document.elementFromPoint(x, y);
     const droptargetEl = el?.closest('[data-droptarget]');
     const dropitemEl = el?.closest('[data-dropitem]');
@@ -3476,28 +3537,35 @@ const App = () => {
         const [dIdx, pIdx] = droptargetEl.dataset.droptarget.split('-').map(Number);
         addNewItem(dIdx, pIdx, p.types, p);
         removePlace(p.id);
+        changedByDrag = true;
       } else if (dropitemEl) {
         const [dIdx, pIdx] = dropitemEl.dataset.dropitem.split('-').map(Number);
         addPlaceAsPlanB(dIdx, pIdx, p);
         removePlace(p.id);
+        changedByDrag = true;
       }
     } else if (src.kind === 'timeline') {
       const payload = src.payload;
       if (droplibEl) {
         if (payload.altIdx !== undefined) {
           dropAltOnLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
+          changedByDrag = true;
         } else {
           const item = itinerary.days?.[payload.dayIdx]?.plan?.[payload.pIdx];
           dropTimelineItemOnLibrary(payload.dayIdx, payload.pIdx, askPlanBMoveMode(item));
+          changedByDrag = true;
         }
       } else if (dropdelEl && payload.altIdx === undefined) {
         deletePlanItem(payload.dayIdx, payload.pIdx);
+        changedByDrag = true;
       } else if (droptargetEl) {
         const [dIdx, pIdx] = droptargetEl.dataset.droptarget.split('-').map(Number);
         if (payload.altIdx !== undefined) {
           insertAlternativeToTimeline(dIdx, pIdx, payload.dayIdx, payload.pIdx, payload.altIdx);
+          changedByDrag = true;
         } else {
           moveTimelineItem(dIdx, pIdx, payload.dayIdx, payload.pIdx, false);
+          changedByDrag = true;
         }
       } else if (dropitemEl && payload.altIdx === undefined) {
         const [dIdx, pIdx] = dropitemEl.dataset.dropitem.split('-').map(Number);
@@ -3505,9 +3573,11 @@ const App = () => {
         if (sourcePlanItem && (payload.dayIdx !== dIdx || payload.pIdx !== pIdx)) {
           addPlaceAsPlanB(dIdx, pIdx, toAlternativeFromItem(sourcePlanItem));
           deletePlanItem(payload.dayIdx, payload.pIdx);
+          changedByDrag = true;
         }
       }
     }
+    if (changedByDrag) triggerUndoToast();
   };
 
   return (
@@ -4487,7 +4557,7 @@ const App = () => {
                         </button>
                       </div>}
                       {/* 🖼️ 배경 이미지 (고정 높이, 요약 확장과 무관) */}
-                      <div className="absolute left-0 right-0 top-0 h-[520px] sm:h-[560px] overflow-hidden pointer-events-none">
+                      <div className="absolute left-0 right-0 top-0 h-[430px] sm:h-[450px] overflow-hidden pointer-events-none">
                         <img
                           src={getRegionCoverImage(tripRegion)}
                           className="w-full h-full object-cover opacity-95 scale-105"
@@ -4747,23 +4817,20 @@ const App = () => {
                   <div className="relative">
                     {hasPlanB && (
                       <>
-                        <div className="absolute top-1 bottom-1 -left-10 z-0 flex items-stretch">
-                          <div className="w-9 h-full rounded-[22px] border border-slate-200 bg-white shadow-[0_8px_24px_-16px_rgba(15,23,42,0.45)] flex items-center justify-center">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); cyclePlan(-1); }}
-                              className="pointer-events-auto w-7 h-7 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] transition-all"
-                              title="이전 플랜"
-                            ><ChevronLeft size={14} /></button>
-                          </div>
+                        <div className="absolute -left-[5%] -right-[5%] top-0 bottom-0 z-0 rounded-[26px] border border-slate-200/90 bg-white shadow-[0_10px_30px_-16px_rgba(15,23,42,0.35)] pointer-events-none" />
+                        <div className="absolute left-0 top-0 bottom-0 z-[11] w-[5%] min-w-[26px] flex items-center justify-center pointer-events-none">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); cyclePlan(-1); }}
+                            className="pointer-events-auto w-7 h-7 rounded-xl border border-slate-200 bg-white/95 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] transition-all shadow-[0_8px_16px_-12px_rgba(15,23,42,0.5)]"
+                            title="이전 플랜"
+                          ><ChevronLeft size={14} /></button>
                         </div>
-                        <div className="absolute top-1 bottom-1 -right-10 z-0 flex items-stretch">
-                          <div className="w-9 h-full rounded-[22px] border border-slate-200 bg-white shadow-[0_8px_24px_-16px_rgba(15,23,42,0.45)] flex items-center justify-center">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); cyclePlan(1); }}
-                              className="pointer-events-auto w-7 h-7 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] transition-all"
-                              title="다음 플랜"
-                            ><ChevronRight size={14} /></button>
-                          </div>
+                        <div className="absolute right-0 top-0 bottom-0 z-[11] w-[5%] min-w-[26px] flex items-center justify-center pointer-events-none">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); cyclePlan(1); }}
+                            className="pointer-events-auto w-7 h-7 rounded-xl border border-slate-200 bg-white/95 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] transition-all shadow-[0_8px_16px_-12px_rgba(15,23,42,0.5)]"
+                            title="다음 플랜"
+                          ><ChevronRight size={14} /></button>
                         </div>
                       </>
                     )}
@@ -4773,7 +4840,8 @@ const App = () => {
                       onTouchStart={(e) => {
                         const targetEl = e.target instanceof Element ? e.target : null;
                         if (targetEl?.closest('input,button,a,textarea,[contenteditable],[data-no-drag]')) return;
-                        const payload = { dayIdx: dIdx, pIdx, altIdx: planPos > 0 ? planPos - 1 : undefined };
+                        // 카드 드래그는 항상 현재 화면에 보이는(메인) 일정을 이동
+                        const payload = { dayIdx: dIdx, pIdx };
                         touchDragSourceRef.current = { kind: 'timeline', payload, startX: e.touches[0].clientX, startY: e.touches[0].clientY };
                         isDraggingActiveRef.current = false;
                       }}
@@ -4782,7 +4850,8 @@ const App = () => {
                         const targetEl = e.target instanceof Element ? e.target : null;
                         const isInteractiveTarget = !!targetEl?.closest('input, button, a, textarea, [contenteditable="true"], [data-no-drag="true"]');
                         if (isInteractiveTarget) { e.preventDefault(); return; }
-                        const payload = { dayIdx: dIdx, pIdx, altIdx: planPos > 0 ? planPos - 1 : undefined };
+                        // 카드 드래그는 항상 현재 화면에 보이는(메인) 일정을 이동
+                        const payload = { dayIdx: dIdx, pIdx };
                         desktopDragRef.current = { kind: 'timeline', payload, copy };
                         e.dataTransfer.effectAllowed = copy ? 'copy' : 'move';
                         try {
@@ -4825,9 +4894,49 @@ const App = () => {
                       {/* Plan B 페이지 인디케이터 */}
                       {hasPlanB && (
                         <div className="absolute top-2 right-2 z-20 pointer-events-none">
-                          <span className="text-[11px] font-black px-2 py-1 rounded-lg border min-w-[44px] text-center text-slate-500 bg-white/95 border-slate-200 shadow-[0_8px_16px_-10px_rgba(15,23,42,0.35)]">
+                          <button
+                            type="button"
+                            data-plan-picker-trigger="true"
+                            className="pointer-events-auto text-[11px] font-black px-2 py-1 rounded-lg border min-w-[44px] text-center text-slate-500 bg-white/95 border-slate-200 shadow-[0_8px_16px_-10px_rgba(15,23,42,0.35)] hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              const panelW = 250;
+                              const panelH = 180;
+                              const left = Math.max(12, Math.min(window.innerWidth - panelW - 12, rect.right - panelW));
+                              const top = Math.max(8, Math.min(window.innerHeight - panelH - 8, rect.bottom + 8));
+                              setPlanVariantPicker({ dayIdx: dIdx, pIdx, left, top });
+                            }}
+                            title="플랜 목록 보기"
+                          >
                             {planPos + 1}/{totalPlans}
-                          </span>
+                          </button>
+                        </div>
+                      )}
+                      {hasPlanB && planVariantPicker?.dayIdx === dIdx && planVariantPicker?.pIdx === pIdx && (
+                        <div
+                          data-plan-picker="true"
+                          className="fixed z-[170] w-[250px] rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_18px_36px_-18px_rgba(15,23,42,0.35)] p-2.5"
+                          style={{ left: planVariantPicker.left, top: planVariantPicker.top }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">플랜 목록 ({totalPlans}개)</p>
+                          <div className="flex flex-col gap-1 max-h-[130px] overflow-y-auto no-scrollbar">
+                            {[p, ...(p.alternatives || [])].map((v, idx) => {
+                              const active = idx === planPos;
+                              return (
+                                <button
+                                  key={`${p.id}_variant_${idx}`}
+                                  type="button"
+                                  onClick={() => selectPlanVariantAt(dIdx, pIdx, idx)}
+                                  className={`w-full text-left px-2.5 py-2 rounded-xl border transition-colors ${active ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-700 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+                                >
+                                  <p className="text-[11px] font-black truncate">{v.activity || `플랜 ${idx + 1}`}</p>
+                                  <p className="text-[10px] font-bold text-slate-400 truncate">{(v.receipt?.address || '').trim() || '주소 미정'}</p>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
                       <div className="flex items-stretch border-b border-slate-100 border-dashed">
@@ -4841,8 +4950,22 @@ const App = () => {
 
                           {/* 시간 조절 */}
                           <div
+                            data-time-trigger="true"
                             className={`relative w-full px-1 py-1 rounded-2xl cursor-pointer select-none z-10 transition-colors ${p.isTimeFixed ? 'hover:bg-blue-100/50' : 'hover:bg-slate-200/50'}`}
-                            onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              const panelW = 292;
+                              const panelH = 178;
+                              const preferredLeft = rect.right + 8;
+                              const left = Math.max(12, Math.min(window.innerWidth - panelW - 12, preferredLeft));
+                              const top = Math.max(8, Math.min(window.innerHeight - panelH - 8, rect.top - 4));
+                              setTimeControllerTarget(prev => (
+                                prev?.dayIdx === dIdx && prev?.pIdx === pIdx
+                                  ? null
+                                  : { dayIdx: dIdx, pIdx, left, top }
+                              ));
+                            }}
                           >
                             <div className="relative flex items-center justify-center gap-1.5 z-10">
                               {(() => {
@@ -4872,6 +4995,59 @@ const App = () => {
                               })()}
                             </div>
                           </div>
+
+                          {timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx && (
+                            <div
+                              data-time-controller="true"
+                              className="fixed z-[145] w-[292px] rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_18px_40px_-16px_rgba(15,23,42,0.35)] p-2.5"
+                              style={{ left: timeControllerTarget.left, top: timeControllerTarget.top }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="grid grid-cols-2 gap-2 mb-2">
+                                <div className="rounded-xl border border-slate-200 bg-white p-2">
+                                  <p className="text-[10px] font-black text-slate-500 mb-1">시각 조절</p>
+                                  <div className="flex items-center justify-between gap-1">
+                                    <button onClick={() => updateStartHour(dIdx, pIdx, 1)} className="px-2 py-1 rounded-lg border border-slate-200 text-[10px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]">+1h</button>
+                                    <button onClick={() => updateStartMinute(dIdx, pIdx, 5)} className="px-2 py-1 rounded-lg border border-slate-200 text-[10px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]">+5m</button>
+                                    <button onClick={() => updateStartMinute(dIdx, pIdx, -5)} className="px-2 py-1 rounded-lg border border-slate-200 text-[10px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]">-5m</button>
+                                    <button onClick={() => updateStartHour(dIdx, pIdx, -1)} className="px-2 py-1 rounded-lg border border-slate-200 text-[10px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]">-1h</button>
+                                  </div>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-white p-2">
+                                  <p className="text-[10px] font-black text-slate-500 mb-1">소요시간</p>
+                                  <div className="flex items-center justify-between gap-1">
+                                    <button onClick={() => updateDuration(dIdx, pIdx, -1)} className="px-2 py-1 rounded-lg border border-slate-200 text-[10px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]">-1m</button>
+                                    <button onClick={() => setDurationValue(dIdx, pIdx, 10)} className="px-2 py-1 rounded-lg border border-blue-200 bg-blue-50 text-[10px] font-black text-[#3182F6] hover:bg-blue-100">10m</button>
+                                    <button onClick={() => setDurationValue(dIdx, pIdx, 30)} className="px-2 py-1 rounded-lg border border-blue-200 bg-blue-50 text-[10px] font-black text-[#3182F6] hover:bg-blue-100">30m</button>
+                                    <button onClick={() => setDurationValue(dIdx, pIdx, 60)} className="px-2 py-1 rounded-lg border border-blue-200 bg-blue-50 text-[10px] font-black text-[#3182F6] hover:bg-blue-100">60m</button>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleTimeFix(dIdx, pIdx)}
+                                  className={`py-1.5 rounded-lg border text-[10px] font-black transition-colors ${p.isTimeFixed ? 'border-blue-300 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+                                >
+                                  {p.isTimeFixed ? '시각 잠금 해제' : '시각 잠그기'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleDurationLock(dIdx, pIdx)}
+                                  className={`py-1.5 rounded-lg border text-[10px] font-black transition-colors ${p.isDurationFixed ? 'border-orange-300 bg-orange-50 text-orange-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+                                >
+                                  {p.isDurationFixed ? '소요 잠금 해제' : '소요 잠그기'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setTimeControllerTarget(null)}
+                                  className="py-1.5 rounded-lg bg-[#3182F6] text-white text-[10px] font-black"
+                                >
+                                  확인
+                                </button>
+                              </div>
+                            </div>
+                          )}
 
                           {/* ✅ 소요 시간 조절 */}
                           {(
@@ -4918,7 +5094,7 @@ const App = () => {
                               ><Plus size={10} /></button>
                             </div>
                           )}
-                          {!isDurationLocked && durationControllerTarget?.dayIdx === dIdx && durationControllerTarget?.pIdx === pIdx && (
+                          {!isAutoLocked && durationControllerTarget?.dayIdx === dIdx && durationControllerTarget?.pIdx === pIdx && (
                             <div
                               data-duration-controller="true"
                               className="fixed z-[140] w-[184px] rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_14px_32px_-12px_rgba(15,23,42,0.25)] p-2"
@@ -5539,15 +5715,15 @@ const App = () => {
         {
           undoToast && (
             <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[150] animate-in">
-              <div className="flex items-center gap-3 bg-slate-800 text-white px-4 py-2.5 rounded-2xl shadow-xl">
-                <span className="text-[12px] font-bold">작업이 저장되었습니다</span>
+              <div className="flex items-center gap-3 bg-white/95 backdrop-blur-xl border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl shadow-[0_14px_30px_-16px_rgba(15,23,42,0.45)]">
+                <span className="text-[12px] font-bold">드래그 변경이 저장되었습니다</span>
                 <button
                   onClick={() => { handleUndo(); setUndoToast(false); }}
-                  className="text-[11px] font-black text-[#3182F6] bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-lg transition-colors"
+                  className="text-[11px] font-black text-[#3182F6] bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg transition-colors border border-blue-100"
                 >
                   되돌리기
                 </button>
-                <button onClick={() => setUndoToast(false)} className="text-white/40 hover:text-white/80 transition-colors ml-1">
+                <button onClick={() => setUndoToast(false)} className="text-slate-300 hover:text-slate-500 transition-colors ml-1">
                   ✕
                 </button>
               </div>

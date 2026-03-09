@@ -1053,6 +1053,7 @@ const App = () => {
   const rightCollapsedWidth = isMobileLayout ? 0 : 44;
   const leftSidebarWidth = col1Collapsed ? leftCollapsedWidth : leftExpandedWidth;
   const rightSidebarWidth = col2Collapsed ? rightCollapsedWidth : rightExpandedWidth;
+  const isCompactTimeline = isMobileLayout || viewportWidth < 1380 || (!col1Collapsed && !col2Collapsed && viewportWidth < 1720);
 
   const scrollIntervalRef = useRef(null);
   const lastTouchYRef = useRef(null);
@@ -4037,7 +4038,7 @@ const App = () => {
         {/* 일정 목록 */}
         <div className="w-full px-4 pt-8 pb-32">
           {isSharedReadOnly && (
-            <div className="max-w-[560px] mx-auto mb-3 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-[11px] font-black text-amber-700">
+            <div className={`mx-auto mb-3 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-[11px] font-black text-amber-700 ${isCompactTimeline ? 'max-w-[500px]' : 'max-w-[560px]'}`}>
               공유 일정 보기 모드입니다. (편집 권한 없음)
             </div>
           )}
@@ -4361,7 +4362,7 @@ const App = () => {
                 {/* 풀 카드 (최상단) */}
                 {!heroCollapsed && (
                   <section className="mb-10 px-4 mt-6">
-                    <div className="max-w-[560px] mx-auto rounded-[40px] relative overflow-hidden bg-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] border border-slate-100/80">
+                    <div className={`mx-auto rounded-[40px] relative overflow-hidden bg-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] border border-slate-100/80 ${isCompactTimeline ? 'max-w-[500px]' : 'max-w-[560px]'}`}>
                       {canManagePlan && <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                         <button
                           onClick={() => setShowPlanOptions(true)}
@@ -4513,7 +4514,7 @@ const App = () => {
               </div>
             );
           })()}
-          <div className="w-full max-w-[560px] mx-auto flex flex-col gap-6 relative z-0">
+          <div className={`w-full mx-auto flex flex-col relative z-0 ${isCompactTimeline ? 'max-w-[500px] gap-4' : 'max-w-[560px] gap-6'}`}>
 
             {itinerary.days?.map((d, dIdx) => d.plan?.map((p, pIdx) => {
               const isExpanded = expandedId === p.id;
@@ -4700,7 +4701,7 @@ const App = () => {
                       <div className="flex items-stretch border-b border-slate-100 border-dashed">
 
                         {/* 🟢 좌측 컨트롤 타워 */}
-                        {!isShip && !isLodge && <div className={`relative flex flex-col items-center justify-center gap-2 w-[110px] sm:w-[9rem] shrink-0 ${p.isTimeFixed ? 'bg-blue-50/20' : 'bg-transparent'} border-r border-slate-100 flex-none py-4 px-2 sm:px-3 overflow-visible transition-all duration-300`}>
+                        {!isShip && !isLodge && <div className={`relative flex flex-col items-center justify-center gap-2 shrink-0 ${isCompactTimeline ? 'w-[94px] sm:w-[6.5rem] py-3 px-1.5 sm:px-2' : 'w-[110px] sm:w-[9rem] py-4 px-2 sm:px-3'} ${p.isTimeFixed ? 'bg-blue-50/20' : 'bg-transparent'} border-r border-slate-100 flex-none overflow-visible transition-all duration-300`}>
                           {/* 락 상태일 때 컨트롤 타워 전체에 은은하게 깔리는 거대 자물쇠 */}
                           {p.isTimeFixed && (
                             <Lock size={90} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-500 opacity-[0.035] pointer-events-none" />
@@ -4832,7 +4833,7 @@ const App = () => {
                         </div>}
 
                         {/* 🟢 우측 정보 영역 */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-start p-3 sm:p-4 gap-2">
+                        <div className={`flex-1 min-w-0 flex flex-col justify-start gap-2 ${isCompactTimeline ? 'p-2.5 sm:p-3' : 'p-3 sm:p-4'}`}>
                           {isShip ? (
                             <div className="flex flex-col gap-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                               {/* 페리 이름 */}

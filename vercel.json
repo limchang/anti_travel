@@ -1,12 +1,10 @@
 {
   "functions": {
     "api/scrape.js": {
-      "maxDuration": 60,
-      "memory": 1024
+      "maxDuration": 60
     },
     "api/route-verify.js": {
-      "maxDuration": 30,
-      "memory": 512
+      "maxDuration": 30
     }
   }
 }

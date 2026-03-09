@@ -888,6 +888,8 @@ const App = () => {
   };
 
   const [loading, setLoading] = useState(true);
+  const [patchNotice, setPatchNotice] = useState(null); // { timeText }
+  const patchNoticeShownRef = useRef(false);
   const [currentPlanId, setCurrentPlanId] = useState('main');
   const [planList, setPlanList] = useState([]);
   const [showPlanManager, setShowPlanManager] = useState(false);
@@ -1298,6 +1300,24 @@ const App = () => {
     if (!user || user.isGuest) return;
     void refreshPlanList(user.uid);
   }, [user, refreshPlanList]);
+
+  useEffect(() => {
+    if (loading || patchNoticeShownRef.current) return;
+    patchNoticeShownRef.current = true;
+    const now = new Date();
+    const timeText = now.toLocaleString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+    setPatchNotice({ timeText });
+    const timer = setTimeout(() => setPatchNotice(null), 4200);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   useEffect(() => {
     if (!user || user.isGuest || loading || isSharedReadOnly) return;
@@ -5525,6 +5545,16 @@ const App = () => {
             </div>
           )
         }
+
+        {patchNotice && (
+          <div className="fixed top-4 right-4 z-[220] animate-in">
+            <div className="bg-white/95 backdrop-blur-xl border border-blue-100 shadow-[0_16px_32px_-16px_rgba(49,130,246,0.55)] rounded-xl px-3.5 py-2.5 min-w-[240px]">
+              <p className="text-[10px] font-black text-[#3182F6] uppercase tracking-widest">Patch Status</p>
+              <p className="text-[12px] font-black text-slate-700 mt-0.5">페이지 로딩 완료</p>
+              <p className="text-[11px] font-bold text-slate-500 tabular-nums mt-0.5">적용 시각: {patchNotice.timeText}</p>
+            </div>
+          </div>
+        )}
 
         {/* ── 드래그 프리뷰 고스트 (모바일용) ── */}
         {(draggingFromLibrary || draggingFromTimeline) && (

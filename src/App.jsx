@@ -4329,6 +4329,22 @@ const App = () => {
             const newCount = Math.max(0, allSummaryItems.length - revisitCount);
             const revisitPct = allSummaryItems.length > 0 ? Math.round((revisitCount / allSummaryItems.length) * 100) : 0;
             const newPct = allSummaryItems.length > 0 ? Math.round((newCount / allSummaryItems.length) * 100) : 0;
+            const categorySpendMap = allSummaryItems.reduce((acc, item) => {
+              const types = Array.isArray(item.types) ? item.types : [];
+              const baseType = types.find((t) => !MODIFIER_TAGS.has(t) && t !== 'place') || types.find((t) => !MODIFIER_TAGS.has(t)) || 'place';
+              acc[baseType] = (acc[baseType] || 0) + (Number(item.price) || 0);
+              return acc;
+            }, {});
+            const totalCategorySpend = Object.values(categorySpendMap).reduce((sum, v) => sum + Number(v || 0), 0);
+            const categorySpendRows = Object.entries(categorySpendMap)
+              .map(([key, value]) => {
+                const tag = TAG_OPTIONS.find((t) => t.value === key);
+                const label = tag?.label || key;
+                const amount = Number(value) || 0;
+                const pct = totalCategorySpend > 0 ? Math.round((amount / totalCategorySpend) * 100) : 0;
+                return { key, label, amount, pct };
+              })
+              .sort((a, b) => b.amount - a.amount);
             return (
               <div className="mb-8 relative">
                 {/* 컴팩트 플로팅 바 (스크롤 시) */}
@@ -4519,6 +4535,27 @@ const App = () => {
                                     <p className="text-[9px] font-black text-blue-600">재방문</p>
                                     <p className="text-[14px] font-black text-blue-700 tabular-nums">{revisitCount}개 ({revisitPct}%)</p>
                                   </div>
+                                </div>
+
+                                <div className="mt-3 pt-3 border-t border-slate-200">
+                                  <p className="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">카테고리별 지출 비율</p>
+                                  {categorySpendRows.length === 0 ? (
+                                    <p className="text-[10px] font-bold text-slate-400">지출 데이터가 없습니다.</p>
+                                  ) : (
+                                    <div className="space-y-1.5">
+                                      {categorySpendRows.map((row) => (
+                                        <div key={row.key} className="rounded-xl border border-slate-200 bg-white px-2.5 py-2">
+                                          <div className="flex items-center justify-between mb-1">
+                                            <span className="text-[10px] font-black text-slate-700">{row.label}</span>
+                                            <span className="text-[10px] font-black text-[#3182F6] tabular-nums">₩{row.amount.toLocaleString()} · {row.pct}%</span>
+                                          </div>
+                                          <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                            <div className="h-full rounded-full bg-gradient-to-r from-[#3182F6] to-indigo-500" style={{ width: `${row.pct}%` }} />
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )}

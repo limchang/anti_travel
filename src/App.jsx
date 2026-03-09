@@ -5193,7 +5193,7 @@ const App = () => {
                           setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropOnItem(null); setIsDragCopy(false);
                         }
                       }}
-                      className={`relative z-10 w-full flex flex-col transition-all group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${hasPlanB ? 'px-8 -mx-8 w-[calc(100%+64px)]' : ''}`}
+                      className={`relative z-10 w-full flex flex-col transition-all group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''}`}
                       onClick={() => toggleReceipt(p.id)}
                     >
                       {/* Plan B ◀▶ 버튼 (슬롯 좌우 여백) */}
@@ -5202,21 +5202,21 @@ const App = () => {
                           <div
                             data-no-drag="true"
                             onClick={(e) => { e.stopPropagation(); cyclePlan(-1); }}
-                            className="absolute left-0 top-0 bottom-0 z-20 w-8 flex items-center justify-center cursor-pointer hover:bg-black/5 transition-all group/nav"
+                            className="absolute left-1 top-0 bottom-0 z-20 w-7 flex items-center justify-center cursor-pointer transition-all group/nav"
                             title="이전 플랜"
                           >
-                            <div className="w-6 h-6 rounded-full bg-white shadow-sm border border-slate-100 flex items-center justify-center text-slate-300 group-hover/nav:text-[#3182F6] group-hover/nav:border-blue-200 group-hover/nav:scale-110 transition-all">
-                              <ChevronLeft size={16} />
+                            <div className="w-6 h-6 rounded-full bg-white/90 shadow-sm border border-slate-200 flex items-center justify-center text-slate-300 group-hover/nav:text-[#3182F6] group-hover/nav:border-blue-200 group-hover/nav:scale-110 transition-all">
+                              <ChevronLeft size={14} />
                             </div>
                           </div>
                           <div
                             data-no-drag="true"
                             onClick={(e) => { e.stopPropagation(); cyclePlan(1); }}
-                            className="absolute right-0 top-0 bottom-0 z-20 w-8 flex items-center justify-center cursor-pointer hover:bg-black/5 transition-all group/nav"
+                            className="absolute right-1 top-0 bottom-0 z-20 w-7 flex items-center justify-center cursor-pointer transition-all group/nav"
                             title="다음 플랜"
                           >
-                            <div className="w-6 h-6 rounded-full bg-white shadow-sm border border-slate-100 flex items-center justify-center text-slate-300 group-hover/nav:text-[#3182F6] group-hover/nav:border-blue-200 group-hover/nav:scale-110 transition-all">
-                              <ChevronRight size={16} />
+                            <div className="w-6 h-6 rounded-full bg-white/90 shadow-sm border border-slate-200 flex items-center justify-center text-slate-300 group-hover/nav:text-[#3182F6] group-hover/nav:border-blue-200 group-hover/nav:scale-110 transition-all">
+                              <ChevronRight size={14} />
                             </div>
                           </div>
                         </>

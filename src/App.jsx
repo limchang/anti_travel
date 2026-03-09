@@ -2774,7 +2774,7 @@ const App = () => {
       if (field === 'load') {
         item.time = time;
         item.isTimeFixed = true;
-      } else if (field === 'depart') {
+      } else if (field === 'depart' || field === 'loadEnd') {
         item.boardTime = time;
         const loadMins = timeToMinutes(item.time || '00:00');
         const boardMins = timeToMinutes(time);
@@ -5628,7 +5628,7 @@ const App = () => {
                                         <div className="flex items-center gap-1 text-[13px] font-black text-blue-800 tabular-nums">
                                           {timeInput('load', p.time || '00:00', d => updateStartTime(dIdx, pIdx, d))}
                                           <span className="text-blue-400">-</span>
-                                          {timeInput('depart', minutesToTime(boardMins), d => updateFerryBoardTime(dIdx, pIdx, d))}
+                                          {timeInput('loadEnd', minutesToTime(boardMins), d => updateFerryBoardTime(dIdx, pIdx, d))}
                                         </div>
                                       </div>
                                       {/* 출항 셀 */}

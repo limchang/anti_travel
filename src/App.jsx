@@ -5312,9 +5312,14 @@ const App = () => {
 
                                     if (!isExpanded) {
                                       return (
-                                        <span className={`text-[20px] sm:text-[23px] font-black tracking-tighter tabular-nums transition-colors ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>
-                                          {p.time || '00:00'}
-                                        </span>
+                                        <div className="flex flex-col items-center justify-center pt-1 pb-1">
+                                          <div className="flex items-center gap-1">
+                                            {p.isTimeFixed && <Lock size={11} className="text-[#3182F6] -mt-0.5" />}
+                                            <span className={`text-[22px] sm:text-[26px] font-black tracking-tighter tabular-nums leading-none transition-colors ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>
+                                              {p.time || '00:00'}
+                                            </span>
+                                          </div>
+                                        </div>
                                       );
                                     }
 
@@ -5420,7 +5425,7 @@ const App = () => {
                                 }
 
                                 return (
-                                  <div className={`flex items-center justify-between w-[90%] bg-white px-2 py-1.5 rounded-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] border my-1 transition-all duration-300 ${isDurationLocked ? 'border-orange-200/80 bg-orange-50/5' : 'border-slate-100/60 hover:border-blue-200 cursor-pointer'}`} onClick={(e) => {
+                                  <div className={`flex items-center justify-between w-[92%] sm:w-[86%] bg-white px-1.5 py-1.5 rounded-xl shadow-sm border my-0.5 transition-all duration-300 group/dur ${isDurationLocked ? 'border-orange-200/80 bg-orange-50/20' : 'border-slate-200/60 hover:border-blue-300 hover:shadow-md cursor-pointer'}`} onClick={(e) => {
                                     e.stopPropagation();
                                     if (isAutoLocked) { setLastAction('자동 연동 일정은 소요시간을 조절할 수 없습니다.'); return; }
                                     setDurationControllerTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx) ? null : { dayIdx: dIdx, pIdx });
@@ -5431,20 +5436,24 @@ const App = () => {
                                         if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; }
                                         updateDuration(dIdx, pIdx, -TIME_UNIT);
                                       }}
-                                      className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-600'}`}
-                                    ><Minus size={10} /></button>
-                                    <span
-                                      data-duration-trigger="true"
-                                      className={`text-[12px] whitespace-nowrap font-extrabold tabular-nums px-1 ${isAutoLocked ? 'cursor-not-allowed text-orange-500' : (p.isDurationFixed ? 'text-orange-500 hover:underline' : 'text-slate-600 hover:text-blue-600')}`}
-                                    >{fmtDur(p.duration)}</span>
+                                      className={`w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-400 hover:text-orange-500 hover:bg-orange-100' : 'text-slate-300 hover:text-blue-600 hover:bg-blue-50'}`}
+                                    ><Minus size={11} strokeWidth={3} /></button>
+
+                                    <div className="flex flex-col items-center justify-center flex-1" data-duration-trigger="true">
+                                      {isDurationLocked && <Timer size={9} className="text-orange-500 mb-0.5 opacity-80" />}
+                                      <span
+                                        className={`text-[12px] sm:text-[13.5px] whitespace-nowrap font-black tabular-nums tracking-tight leading-none ${isAutoLocked ? 'cursor-not-allowed text-orange-500' : (p.isDurationFixed ? 'text-orange-600' : 'text-slate-600 group-hover/dur:text-blue-600')}`}
+                                      >{fmtDur(p.duration)}</span>
+                                    </div>
+
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; }
                                         updateDuration(dIdx, pIdx, TIME_UNIT);
                                       }}
-                                      className={`w-4 sm:w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-300' : 'text-slate-400 hover:text-blue-600'}`}
-                                    ><Plus size={10} /></button>
+                                      className={`w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-400 hover:text-orange-500 hover:bg-orange-100' : 'text-slate-300 hover:text-blue-600 hover:bg-blue-50'}`}
+                                    ><Plus size={11} strokeWidth={3} /></button>
                                   </div>
                                 );
                               })()}

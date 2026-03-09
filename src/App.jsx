@@ -1554,16 +1554,11 @@ const App = () => {
     void refreshPlanList(user.uid);
   }, [user, refreshPlanList]);
 
-  useEffect(() => {
-    if (loading) return;
-    const now = new Date();
-    const timeText = now.toLocaleString('ko-KR', {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-      hour12: false,
-    });
-    setPatchNotice({ timeText });
-  }, [loading]);
+  // patchNotice 자동 표시 — 비활성화
+  // useEffect(() => {
+  //   if (loading) return;
+  //   setPatchNotice({ timeText: ... });
+  // }, [loading]);
 
   useEffect(() => {
     if (!user || user.isGuest || loading || isSharedReadOnly) return;

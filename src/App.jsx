@@ -1043,6 +1043,7 @@ const App = () => {
   const dashboardRef = useRef(null);
   const heroTriggerRef = useRef(null);
   const [heroCollapsed, setHeroCollapsed] = useState(false);
+  const [heroSummaryExpanded, setHeroSummaryExpanded] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
 
   const scrollIntervalRef = useRef(null);
@@ -4275,6 +4276,12 @@ const App = () => {
               : (itinerary.days?.length || 0);
             const tripNights = Math.max(0, tripDays - 1);
             const usedPct = MAX_BUDGET > 0 ? Math.min(100, Math.round((budgetSummary.total / MAX_BUDGET) * 100)) : 0;
+            const allSummaryItems = (itinerary.days || []).flatMap((day) => (day.plan || []))
+              .filter((item) => item && item.type !== 'backup' && !item.types?.includes('ship'));
+            const revisitCount = allSummaryItems.filter((item) => (typeof item.revisit === 'boolean' ? item.revisit : isRevisitCourse(item))).length;
+            const newCount = Math.max(0, allSummaryItems.length - revisitCount);
+            const revisitPct = allSummaryItems.length > 0 ? Math.round((revisitCount / allSummaryItems.length) * 100) : 0;
+            const newPct = allSummaryItems.length > 0 ? Math.round((newCount / allSummaryItems.length) * 100) : 0;
             return (
               <div className="mb-8 relative">
                 {/* 컴팩트 플로팅 바 (스크롤 시) */}
@@ -4439,6 +4446,35 @@ const App = () => {
                               </div>
                               <span className="text-[11px] font-black text-[#3182F6] tabular-nums whitespace-nowrap">{usedPct}%</span>
                             </div>
+
+                            <button
+                              type="button"
+                              onClick={() => setHeroSummaryExpanded(v => !v)}
+                              className="mt-4 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-[10px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors flex items-center gap-1.5"
+                            >
+                              여행 요약 확장
+                              <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {heroSummaryExpanded && (
+                              <div className="mt-3 w-full p-3 rounded-2xl border border-slate-200 bg-white/85 text-left">
+                                <p className="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">신규 / 재방문 비율 비교</p>
+                                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden flex">
+                                  <div className="h-full bg-emerald-400" style={{ width: `${newPct}%` }} />
+                                  <div className="h-full bg-blue-400" style={{ width: `${revisitPct}%` }} />
+                                </div>
+                                <div className="mt-2 grid grid-cols-2 gap-2">
+                                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-2">
+                                    <p className="text-[9px] font-black text-emerald-600">신규</p>
+                                    <p className="text-[14px] font-black text-emerald-700 tabular-nums">{newCount}개 ({newPct}%)</p>
+                                  </div>
+                                  <div className="rounded-xl border border-blue-200 bg-blue-50 px-2.5 py-2">
+                                    <p className="text-[9px] font-black text-blue-600">재방문</p>
+                                    <p className="text-[14px] font-black text-blue-700 tabular-nums">{revisitCount}개 ({revisitPct}%)</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

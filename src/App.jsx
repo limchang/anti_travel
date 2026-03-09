@@ -5317,19 +5317,35 @@ const App = () => {
                                             {p.isTimeFixed ? <Lock size={8} /> : <Unlock size={8} />}
                                           </button>
                                         </div>
-                                        <div className="flex items-center gap-1 justify-center">
-                                          <div className="flex flex-col items-center">
-                                            <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, 1); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${btnTone}`}><ChevronUp size={13} /></button>
-                                            <span className={`text-[30px] font-black tracking-tight tabular-nums leading-none w-[42px] text-center ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{String(isNaN(hour)?0:hour).padStart(2,'0')}</span>
-                                            <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, -1); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${btnTone}`}><ChevronDown size={13} /></button>
-                                          </div>
-                                          <span className={`text-[20px] font-black pb-0.5 ${p.isTimeFixed ? 'text-[#3182F6]/20' : 'text-slate-200'}`}>:</span>
-                                          <div className="flex flex-col items-center">
-                                            <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, TIME_UNIT); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${btnTone}`}><ChevronUp size={13} /></button>
-                                            <span className={`text-[30px] font-black tracking-tight tabular-nums leading-none w-[42px] text-center ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{String(isNaN(minute)?0:minute).padStart(2,'0')}</span>
-                                            <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, -TIME_UNIT); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${btnTone}`}><ChevronDown size={13} /></button>
-                                          </div>
-                                        </div>
+                                        {(() => {
+                                          const mStep = timeControllerTarget?.step || 10;
+                                          return (
+                                            <div className="flex items-center gap-2 w-full justify-center">
+                                              {/* 시·분 스피너 */}
+                                              <div className="flex items-center gap-1">
+                                                <div className="flex flex-col items-center">
+                                                  <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, 1); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${btnTone}`}><ChevronUp size={13} /></button>
+                                                  <span className={`text-[30px] font-black tracking-tight tabular-nums leading-none w-[42px] text-center ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{String(isNaN(hour)?0:hour).padStart(2,'0')}</span>
+                                                  <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, -1); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${btnTone}`}><ChevronDown size={13} /></button>
+                                                </div>
+                                                <span className={`text-[20px] font-black pb-0.5 ${p.isTimeFixed ? 'text-[#3182F6]/20' : 'text-slate-200'}`}>:</span>
+                                                <div className="flex flex-col items-center">
+                                                  <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, mStep); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${btnTone}`}><ChevronUp size={13} /></button>
+                                                  <span className={`text-[30px] font-black tracking-tight tabular-nums leading-none w-[42px] text-center ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{String(isNaN(minute)?0:minute).padStart(2,'0')}</span>
+                                                  <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, -mStep); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${btnTone}`}><ChevronDown size={13} /></button>
+                                                </div>
+                                              </div>
+                                              {/* 분 이동단위 2x2 */}
+                                              <div className="grid grid-cols-2 gap-1">
+                                                {[1, 5, 15, 30].map(s => (
+                                                  <button key={s} onClick={(e) => { e.stopPropagation(); setTimeControllerTarget(prev => ({ ...prev, step: s })); }} className={`w-[28px] py-1 rounded-lg text-[9px] font-black transition-all text-center ${mStep === s ? (p.isTimeFixed ? 'bg-[#3182F6] text-white' : 'bg-slate-700 text-white') : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>
+                                                    {s}
+                                                  </button>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          );
+                                        })()}
                                         {/* 구분선 */}
                                         <div className="w-full h-px bg-slate-100" />
                                         {/* 소요시간 */}
@@ -5355,10 +5371,10 @@ const App = () => {
                                             </div>
                                             <span className={`text-[12px] font-black mb-0.5 ${isDurationLocked ? 'text-orange-200' : 'text-slate-200'}`}>m</span>
                                           </div>
-                                          {/* 프리셋 4개 — 오른쪽 세로 */}
-                                          <div className="flex flex-col gap-1">
+                                          {/* 프리셋 2x2 */}
+                                          <div className="grid grid-cols-2 gap-1">
                                             {[30, 60, 90, 120].map(v => (
-                                              <button key={v} onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) setDurationValue(dIdx, pIdx, v); }} className={`px-2 py-1 rounded-lg text-[9px] font-black transition-all w-[36px] text-center ${isDurationLocked ? 'opacity-20 cursor-not-allowed text-slate-300' : 'bg-slate-50 text-slate-500 hover:bg-orange-400 hover:text-white'}`}>
+                                              <button key={v} onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) setDurationValue(dIdx, pIdx, v); }} className={`px-1.5 py-1 rounded-lg text-[9px] font-black transition-all text-center ${isDurationLocked ? 'opacity-20 cursor-not-allowed text-slate-300' : 'bg-slate-50 text-slate-500 hover:bg-orange-400 hover:text-white'}`}>
                                                 {v < 60 ? `${v}m` : v % 60 === 0 ? `${v/60}h` : `1.5h`}
                                               </button>
                                             ))}

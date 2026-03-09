@@ -5287,96 +5287,97 @@ const App = () => {
                                       const endMins = timeToMinutes(p.time || '00:00') + (p.duration || 0);
                                       const [ehh, emm] = minutesToTime(endMins).split(':');
                                       return (
-                                        <div className="flex flex-col justify-end pb-2 group/time w-full px-1.5 h-full">
-                                          <div className="flex flex-col w-full gap-1">
-                                            {/* 시작 칩 */}
-                                            <div className={`flex items-center gap-1 px-2 py-1.5 rounded-xl ${p.isTimeFixed ? 'bg-[#3182F6]' : 'bg-slate-800 group-hover/time:bg-slate-700'} transition-colors`}>
-                                              <span style={{writingMode:'vertical-rl',textOrientation:'mixed'}} className="text-[6px] font-black leading-none shrink-0 select-none text-white/40">시작</span>
-                                              <div className="flex items-baseline gap-[2px] text-white">
-                                                <span className="text-[18px] font-black tracking-tighter tabular-nums leading-none">{hh}</span>
-                                                <span className="text-[10px] font-black mb-0.5 text-white/30">:</span>
-                                                <span className="text-[18px] font-black tracking-tighter tabular-nums leading-none">{mm}</span>
+                                        <div className="flex flex-col items-start justify-center w-full h-full py-3 px-3 select-none">
+                                          {/* 시작 시각 */}
+                                          <div className="flex items-center gap-1.5">
+                                            <div className={`w-2 h-2 rounded-full shrink-0 shadow-sm ${p.isTimeFixed ? 'bg-[#3182F6] shadow-blue-200' : 'bg-slate-400'}`} />
+                                            <span className={`text-[20px] font-black tabular-nums tracking-tighter leading-none ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>
+                                              {hh}<span className={`text-[13px] mx-px ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-300'}`}>:</span>{mm}
+                                            </span>
+                                          </div>
+                                          {/* 연결선 + 소요시간 */}
+                                          <div className="flex items-stretch ml-[3px] my-0.5">
+                                            <div className={`w-px mx-[3px] self-stretch ${isDurationLocked ? 'bg-orange-300' : 'bg-slate-200'}`} style={{minHeight: 14}} />
+                                            <div className="ml-2 flex items-center">
+                                              <div
+                                                className={`flex items-center gap-0.5 px-1.5 py-[3px] rounded-full border transition-all ${isDurationLocked ? 'bg-orange-50 border-orange-200' : 'bg-white border-slate-100 hover:border-[#3182F6]/40 cursor-pointer'}`}
+                                                onClick={(e) => { e.stopPropagation(); if (isAutoLocked) { setLastAction('자동 연동 일정은 소요시간을 조절할 수 없습니다.'); return; } setTimeControllerTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx) ? null : { dayIdx: dIdx, pIdx }); }}
+                                              >
+                                                <button onClick={(e) => { e.stopPropagation(); if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; } updateDuration(dIdx, pIdx, -TIME_UNIT); }} className={`w-3 h-3 flex items-center justify-center rounded-full transition-colors ${isDurationLocked ? 'text-orange-300' : 'text-slate-300 hover:text-[#3182F6]'}`}><Minus size={8} strokeWidth={3} /></button>
+                                                <span className={`text-[9px] font-black tabular-nums tracking-tight leading-none px-0.5 ${isAutoLocked ? 'text-red-400' : isDurationLocked ? 'text-orange-500' : 'text-slate-500'}`}>{fmtDur(p.duration)}</span>
+                                                <button onClick={(e) => { e.stopPropagation(); if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; } updateDuration(dIdx, pIdx, TIME_UNIT); }} className={`w-3 h-3 flex items-center justify-center rounded-full transition-colors ${isDurationLocked ? 'text-orange-300' : 'text-slate-300 hover:text-[#3182F6]'}`}><Plus size={8} strokeWidth={3} /></button>
                                               </div>
                                             </div>
-                                            {/* 소요시간 바 — 클릭 시 시간 셀 확장 */}
-                                            <div
-                                              className={`flex items-center justify-between w-full px-1.5 py-0.5 rounded-lg border transition-all group/dur ${isDurationLocked ? 'bg-orange-50/80 border-orange-200/60' : 'bg-white/90 border-slate-100 hover:border-blue-200 cursor-pointer'}`}
-                                              onClick={(e) => { e.stopPropagation(); if (isAutoLocked) { setLastAction('자동 연동 일정은 소요시간을 조절할 수 없습니다.'); return; } setTimeControllerTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx) ? null : { dayIdx: dIdx, pIdx }); }}
-                                            >
-                                              <button onClick={(e) => { e.stopPropagation(); if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; } updateDuration(dIdx, pIdx, -TIME_UNIT); }} className={`w-4 h-4 flex items-center justify-center rounded shrink-0 transition-colors ${isDurationLocked ? 'text-orange-300' : 'text-slate-300 hover:text-blue-500'}`}><Minus size={9} strokeWidth={3} /></button>
-                                              <span className={`text-[11px] font-black tabular-nums tracking-tight leading-none transition-colors ${isAutoLocked ? 'text-red-500' : isDurationLocked ? 'text-orange-500' : 'text-slate-500 group-hover/dur:text-blue-600'}`}>{fmtDur(p.duration)}</span>
-                                              <button onClick={(e) => { e.stopPropagation(); if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; } updateDuration(dIdx, pIdx, TIME_UNIT); }} className={`w-4 h-4 flex items-center justify-center rounded shrink-0 transition-colors ${isDurationLocked ? 'text-orange-300' : 'text-slate-300 hover:text-blue-500'}`}><Plus size={9} strokeWidth={3} /></button>
-                                            </div>
-                                            {/* 종료 칩 */}
-                                            <div className={`flex items-center gap-1 px-2 py-1.5 rounded-xl ${p.isTimeFixed ? 'bg-blue-400/80' : 'bg-slate-600 group-hover/time:bg-slate-500'} transition-colors`}>
-                                              <span style={{writingMode:'vertical-rl',textOrientation:'mixed'}} className="text-[6px] font-black leading-none shrink-0 select-none text-white/40">종료</span>
-                                              <div className="flex items-baseline gap-[2px] text-white">
-                                                <span className="text-[18px] font-black tracking-tighter tabular-nums leading-none">{ehh}</span>
-                                                <span className="text-[10px] font-black mb-0.5 text-white/30">:</span>
-                                                <span className="text-[18px] font-black tracking-tighter tabular-nums leading-none">{emm}</span>
-                                              </div>
-                                            </div>
+                                          </div>
+                                          {/* 종료 시각 */}
+                                          <div className="flex items-center gap-1.5">
+                                            <div className={`w-2 h-2 rounded-full border-[1.5px] shrink-0 bg-white ${p.isTimeFixed ? 'border-blue-300' : 'border-slate-300'}`} />
+                                            <span className={`text-[14px] font-bold tabular-nums tracking-tight leading-none ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-400'}`}>
+                                              {ehh}<span className="text-[9px] mx-px opacity-60">:</span>{emm}
+                                            </span>
                                           </div>
                                         </div>
                                       );
                                     }
 
                                     return (
-                                      <div className="flex flex-col items-center w-full px-1.5 py-1.5 gap-1.5 animate-in fade-in duration-200 overflow-y-auto max-h-[calc(100%-8px)]">
-                                        {/* 시작 시각 */}
-                                        <div className={`w-full rounded-2xl border px-2 py-2 flex flex-col items-center gap-1.5 ${p.isTimeFixed ? 'bg-gradient-to-br from-blue-50 to-white border-blue-100' : 'bg-white border-slate-100'}`}>
-                                          <span className={`text-[7px] font-black tracking-widest uppercase ${p.isTimeFixed ? 'text-blue-400' : 'text-slate-400'}`}>시작 시각</span>
-                                          <div className="flex items-center gap-1">
+                                      <div className="flex flex-col items-center w-full h-full px-2 py-2 gap-2 animate-in fade-in duration-200 overflow-y-auto">
+                                        {/* ── 시작 시각 ── */}
+                                        <div className={`w-full rounded-2xl px-2.5 py-2 flex flex-col items-center gap-2 ${p.isTimeFixed ? 'bg-[#3182F6]/8 border border-[#3182F6]/20' : 'bg-slate-50 border border-slate-100'}`}>
+                                          <div className="flex items-center gap-1 w-full justify-center">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${p.isTimeFixed ? 'bg-[#3182F6]' : 'bg-slate-300'}`} />
+                                            <span className={`text-[8px] font-black tracking-widest uppercase ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-400'}`}>시작 시각</span>
+                                          </div>
+                                          <div className="flex items-center gap-0.5">
+                                            {/* 시 */}
                                             <div className="flex flex-col items-center gap-0.5">
-                                              <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, 1); }} className={`w-6 h-6 flex items-center justify-center rounded-lg border bg-white transition-colors ${btnTone}`}><ChevronUp size={11} /></button>
-                                              <div className={`px-1.5 py-1 rounded-xl border min-w-[36px] text-center ${p.isTimeFixed ? 'bg-white border-blue-100' : 'bg-white border-slate-100'}`}>
-                                                <span className={`text-[20px] font-black tracking-tighter tabular-nums leading-none ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{String(isNaN(hour) ? 0 : hour).padStart(2, '0')}</span>
-                                              </div>
-                                              <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, -1); }} className={`w-6 h-6 flex items-center justify-center rounded-lg border bg-white transition-colors ${btnTone}`}><ChevronDown size={11} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, 1); }} className={`w-7 h-5 flex items-center justify-center rounded-lg transition-colors ${btnTone}`}><ChevronUp size={12} /></button>
+                                              <span className={`text-[26px] font-black tracking-tighter tabular-nums leading-none w-[38px] text-center ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{String(isNaN(hour) ? 0 : hour).padStart(2, '0')}</span>
+                                              <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, -1); }} className={`w-7 h-5 flex items-center justify-center rounded-lg transition-colors ${btnTone}`}><ChevronDown size={12} /></button>
                                             </div>
-                                            <span className={`text-[16px] font-black mb-0.5 ${p.isTimeFixed ? 'text-blue-200' : 'text-slate-200'}`}>:</span>
+                                            <span className={`text-[20px] font-black leading-none pb-0.5 ${p.isTimeFixed ? 'text-[#3182F6]/30' : 'text-slate-200'}`}>:</span>
+                                            {/* 분 */}
                                             <div className="flex flex-col items-center gap-0.5">
-                                              <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, TIME_UNIT); }} className={`w-6 h-6 flex items-center justify-center rounded-lg border bg-white transition-colors ${btnTone}`}><ChevronUp size={11} /></button>
-                                              <div className={`px-1.5 py-1 rounded-xl border min-w-[36px] text-center ${p.isTimeFixed ? 'bg-white border-blue-100' : 'bg-white border-slate-100'}`}>
-                                                <span className={`text-[20px] font-black tracking-tighter tabular-nums leading-none ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{String(isNaN(minute) ? 0 : minute).padStart(2, '0')}</span>
-                                              </div>
-                                              <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, -TIME_UNIT); }} className={`w-6 h-6 flex items-center justify-center rounded-lg border bg-white transition-colors ${btnTone}`}><ChevronDown size={11} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, TIME_UNIT); }} className={`w-7 h-5 flex items-center justify-center rounded-lg transition-colors ${btnTone}`}><ChevronUp size={12} /></button>
+                                              <span className={`text-[26px] font-black tracking-tighter tabular-nums leading-none w-[38px] text-center ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{String(isNaN(minute) ? 0 : minute).padStart(2, '0')}</span>
+                                              <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, -TIME_UNIT); }} className={`w-7 h-5 flex items-center justify-center rounded-lg transition-colors ${btnTone}`}><ChevronDown size={12} /></button>
                                             </div>
                                           </div>
-                                          <button onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`w-full flex items-center justify-center gap-1 py-1 rounded-xl border text-[9px] font-black transition-all ${p.isTimeFixed ? 'bg-blue-100 border-blue-200 text-[#3182F6]' : 'bg-white border-slate-200 text-slate-400 hover:border-blue-300 hover:text-[#3182F6]'}`}>
-                                            {p.isTimeFixed ? <Lock size={9} /> : <Unlock size={9} />} {p.isTimeFixed ? '고정 해제' : '시각 고정'}
+                                          <button onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`w-full flex items-center justify-center gap-1 py-1 rounded-xl text-[8px] font-black transition-all ${p.isTimeFixed ? 'bg-[#3182F6] text-white' : 'bg-white border border-slate-200 text-slate-400 hover:border-[#3182F6]/40 hover:text-[#3182F6]'}`}>
+                                            {p.isTimeFixed ? <Lock size={8} /> : <Unlock size={8} />} {p.isTimeFixed ? '고정됨' : '시각 고정'}
                                           </button>
                                         </div>
-                                        {/* 소요시간 */}
-                                        <div className="w-full rounded-2xl border bg-white border-slate-100 px-2 py-2 flex flex-col items-center gap-1.5">
-                                          <span className="text-[7px] font-black tracking-widest uppercase text-slate-400">소요시간</span>
-                                          <div className="flex items-center gap-1">
+                                        {/* ── 소요시간 ── */}
+                                        <div className={`w-full rounded-2xl px-2.5 py-2 flex flex-col items-center gap-2 ${isDurationLocked ? 'bg-orange-50 border border-orange-100' : 'bg-white border border-slate-100'}`}>
+                                          <div className="flex items-center gap-1 w-full justify-center">
+                                            <div className={`w-1.5 h-1.5 rounded-full border ${isDurationLocked ? 'border-orange-400' : 'border-slate-300'}`} />
+                                            <span className={`text-[8px] font-black tracking-widest uppercase ${isDurationLocked ? 'text-orange-400' : 'text-slate-400'}`}>소요시간</span>
+                                          </div>
+                                          <div className="flex items-baseline gap-1">
+                                            {/* h */}
                                             <div className="flex flex-col items-center gap-0.5">
-                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, 60); }} className={`w-6 h-6 flex items-center justify-center rounded-lg border bg-white transition-colors ${isDurationLocked ? 'opacity-30 cursor-not-allowed text-slate-300' : 'text-slate-400 hover:text-blue-500 hover:bg-blue-50'}`}><ChevronUp size={11} /></button>
-                                              <div className="px-1.5 py-1 rounded-xl border border-slate-100 bg-white min-w-[36px] text-center">
-                                                <span className={`text-[20px] font-black tracking-tighter tabular-nums leading-none ${isDurationLocked ? 'text-orange-500' : 'text-slate-800'}`}>{Math.floor((p.duration||0)/60)}</span>
-                                              </div>
-                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, -60); }} className={`w-6 h-6 flex items-center justify-center rounded-lg border bg-white transition-colors ${isDurationLocked ? 'opacity-30 cursor-not-allowed text-slate-300' : 'text-slate-400 hover:text-blue-500 hover:bg-blue-50'}`}><ChevronDown size={11} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, 60); }} className={`w-7 h-5 flex items-center justify-center rounded-lg transition-colors ${isDurationLocked ? 'opacity-20 cursor-not-allowed text-slate-300' : 'text-slate-400 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronUp size={12} /></button>
+                                              <span className={`text-[26px] font-black tracking-tighter tabular-nums leading-none w-[32px] text-center ${isDurationLocked ? 'text-orange-500' : 'text-slate-800'}`}>{Math.floor((p.duration||0)/60)}</span>
+                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, -60); }} className={`w-7 h-5 flex items-center justify-center rounded-lg transition-colors ${isDurationLocked ? 'opacity-20 cursor-not-allowed text-slate-300' : 'text-slate-400 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronDown size={12} /></button>
                                             </div>
-                                            <span className="text-[14px] font-black text-slate-200 mb-0.5">h</span>
+                                            <span className={`text-[12px] font-black mb-1 ${isDurationLocked ? 'text-orange-200' : 'text-slate-200'}`}>h</span>
+                                            {/* m */}
                                             <div className="flex flex-col items-center gap-0.5">
-                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, 10); }} className={`w-6 h-6 flex items-center justify-center rounded-lg border bg-white transition-colors ${isDurationLocked ? 'opacity-30 cursor-not-allowed text-slate-300' : 'text-slate-400 hover:text-blue-500 hover:bg-blue-50'}`}><ChevronUp size={11} /></button>
-                                              <div className="px-1.5 py-1 rounded-xl border border-slate-100 bg-white min-w-[36px] text-center">
-                                                <span className={`text-[20px] font-black tracking-tighter tabular-nums leading-none ${isDurationLocked ? 'text-orange-500' : 'text-slate-800'}`}>{(p.duration||0)%60}</span>
-                                              </div>
-                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, -10); }} className={`w-6 h-6 flex items-center justify-center rounded-lg border bg-white transition-colors ${isDurationLocked ? 'opacity-30 cursor-not-allowed text-slate-300' : 'text-slate-400 hover:text-blue-500 hover:bg-blue-50'}`}><ChevronDown size={11} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, TIME_UNIT); }} className={`w-7 h-5 flex items-center justify-center rounded-lg transition-colors ${isDurationLocked ? 'opacity-20 cursor-not-allowed text-slate-300' : 'text-slate-400 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronUp size={12} /></button>
+                                              <span className={`text-[26px] font-black tracking-tighter tabular-nums leading-none w-[38px] text-center ${isDurationLocked ? 'text-orange-500' : 'text-slate-800'}`}>{String((p.duration||0)%60).padStart(2,'0')}</span>
+                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, -TIME_UNIT); }} className={`w-7 h-5 flex items-center justify-center rounded-lg transition-colors ${isDurationLocked ? 'opacity-20 cursor-not-allowed text-slate-300' : 'text-slate-400 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronDown size={12} /></button>
                                             </div>
-                                            <span className="text-[14px] font-black text-slate-200 mb-0.5">m</span>
+                                            <span className={`text-[12px] font-black mb-1 ${isDurationLocked ? 'text-orange-200' : 'text-slate-200'}`}>m</span>
                                           </div>
                                           <div className="grid grid-cols-4 gap-1 w-full">
                                             {[10,20,30,45,60,90,120,180].map(v => (
-                                              <button key={v} onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) setDurationValue(dIdx, pIdx, v); }} className={`py-1 rounded-lg border text-[8px] font-black transition-all ${isDurationLocked ? 'opacity-30 cursor-not-allowed border-slate-100 text-slate-400' : 'bg-white border-slate-100 text-slate-500 hover:border-blue-300 hover:text-blue-600'}`}>
+                                              <button key={v} onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) setDurationValue(dIdx, pIdx, v); }} className={`py-1 rounded-lg text-[8px] font-black transition-all ${isDurationLocked ? 'opacity-25 cursor-not-allowed bg-slate-50 text-slate-400' : 'bg-slate-50 text-slate-500 hover:bg-[#3182F6] hover:text-white'}`}>
                                                 {v < 60 ? `${v}m` : v % 60 === 0 ? `${v/60}h` : `${Math.floor(v/60)}h${v%60}`}
                                               </button>
                                             ))}
                                           </div>
-                                          <button onClick={(e) => { e.stopPropagation(); toggleDurationLock(dIdx, pIdx); }} className={`w-full flex items-center justify-center gap-1 py-1 rounded-xl border text-[9px] font-black transition-all ${p.isDurationFixed ? 'bg-orange-100 border-orange-200 text-orange-600' : 'bg-white border-slate-200 text-slate-400 hover:border-orange-300 hover:text-orange-500'}`}>
-                                            <Timer size={9} /> {p.isDurationFixed ? '소요 잠금 해제' : '소요시간 잠금'}
+                                          <button onClick={(e) => { e.stopPropagation(); toggleDurationLock(dIdx, pIdx); }} className={`w-full flex items-center justify-center gap-1 py-1 rounded-xl text-[8px] font-black transition-all ${p.isDurationFixed ? 'bg-orange-500 text-white' : 'bg-white border border-slate-200 text-slate-400 hover:border-orange-300 hover:text-orange-500'}`}>
+                                            <Timer size={8} /> {p.isDurationFixed ? '소요 고정됨' : '소요시간 고정'}
                                           </button>
                                         </div>
                                       </div>

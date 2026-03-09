@@ -242,6 +242,7 @@ const parseBusinessHoursText = (text = '') => {
   const parsed = { open: '', close: '', breakStart: '', breakEnd: '', lastOrder: '', entryClose: '', closedDays: [] };
   const weekdayMap = { 월: 'mon', 화: 'tue', 수: 'wed', 목: 'thu', 금: 'fri', 토: 'sat', 일: 'sun' };
   const weekdayRanges = {};
+  let pendingWeekday = '';
   const lines = String(text)
     .split(/\r?\n/)
     .map(v => v.trim())
@@ -252,6 +253,15 @@ const parseBusinessHoursText = (text = '') => {
     const lower = line.toLowerCase();
     const times = extractTimesFromText(line);
     const dayMatch = line.match(/^(월|화|수|목|금|토|일)\b/);
+
+    if (/^(월|화|수|목|금|토|일)$/.test(line)) {
+      pendingWeekday = line;
+      return;
+    }
+    if (pendingWeekday && times.length >= 2) {
+      weekdayRanges[pendingWeekday] = `${times[0]}-${times[1]}`;
+      pendingWeekday = '';
+    }
 
     // 요일별 휴무 표기: "일 정기휴무", "월 휴무", ...
     if (dayMatch && /(휴무|정기휴무|휴점|정기\s*휴일)/i.test(lower)) {
@@ -720,7 +730,13 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
       if (Array.isArray(data?.menus) && data.menus.length > 0) {
         const normalizedMenus = data.menus
           .map((m) => ({ name: String(m?.name || '').trim(), price: Number(m?.price) || 0 }))
-          .filter((m) => m.name);
+          .filter((m) => {
+            if (!m.name) return false;
+            // 주소/UI 텍스트가 대표 메뉴로 들어오는 오탐 제거
+            if (/(제주|서울|부산|인천|경기|강원|충북|충남|전북|전남|경북|경남)/.test(m.name) && /(로|길|대로|번길|동|읍|면)\s*\d/.test(m.name)) return false;
+            if (/(이전\s*페이지|다음\s*페이지|닫기|펼치기|이미지\s*개수|translateX|translateY)/i.test(m.name)) return false;
+            return true;
+          });
         if (normalizedMenus.length) setMenus(normalizedMenus.slice(0, 5));
       }
 
@@ -1002,7 +1018,7 @@ const App = () => {
   const [expandedId, setExpandedId] = useState(null);
   const [expandedPlaceId, setExpandedPlaceId] = useState(null);
   const [durationControllerTarget, setDurationControllerTarget] = useState(null); // { dayIdx, pIdx, left, top }
-  const [timeControllerTarget, setTimeControllerTarget] = useState(null); // { dayIdx, pIdx, left, top }
+  const [timeControllerTarget, setTimeControllerTarget] = useState(null); // { dayIdx, pIdx }
   const [planVariantPicker, setPlanVariantPicker] = useState(null); // { dayIdx, pIdx, left, top }
   const conflictAlertKeyRef = useRef('');
   const [lastAction, setLastAction] = useState("3일차 시작 일정이 수정되었습니다.");
@@ -1661,25 +1677,6 @@ const App = () => {
   }, [durationControllerTarget]);
 
   useEffect(() => {
-    if (!timeControllerTarget) return;
-    const close = () => setTimeControllerTarget(null);
-    const closeOnOutside = (e) => {
-      const target = e.target;
-      if (target?.closest?.('[data-time-controller="true"]')) return;
-      if (target?.closest?.('[data-time-trigger="true"]')) return;
-      setTimeControllerTarget(null);
-    };
-    window.addEventListener('scroll', close, true);
-    window.addEventListener('resize', close);
-    document.addEventListener('pointerdown', closeOnOutside, true);
-    return () => {
-      window.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
-      document.removeEventListener('pointerdown', closeOnOutside, true);
-    };
-  }, [timeControllerTarget]);
-
-  useEffect(() => {
     if (!planVariantPicker) return;
     const close = () => setPlanVariantPicker(null);
     const closeOnOutside = (e) => {
@@ -1702,6 +1699,10 @@ const App = () => {
   const MAX_BUDGET = itinerary.maxBudget || 1500000;
   const [editingBudget, setEditingBudget] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const totalTimelineItems = useMemo(
+    () => (itinerary.days || []).reduce((sum, d) => sum + ((d?.plan || []).filter(p => p.type !== 'backup').length), 0),
+    [itinerary.days]
+  );
   const FUEL_PRICE_PER_LITER = 1700;
   const CAR_EFFICIENCY = 13;
   // 코드 오류 수정 및 3일차 일정 변경 키
@@ -1744,11 +1745,11 @@ const App = () => {
     const raw = Math.max(1, Number(rawDurationMins) || 1);
     if (isSameAddress) return raw;
 
-    // 2차 검수: 도심 체감 주행 하한(신호/진출입 포함)
-    const byRoadSpeed = Math.ceil((d / 18) * 60); // 18km/h 기준
-    const byStraight = Math.ceil((s / 22) * 60); // 직선거리 22km/h 기준
-    const signalPenalty = d >= 0.25 ? 3 : 2;
-    const shortTripFloor = d >= 0.25 && d < 1.2 ? 6 : (d < 0.25 ? 4 : 0);
+    // 2차 검수: 지나친 과소값만 보정 (기존 18km/h 하한은 과보정 발생)
+    const byRoadSpeed = Math.ceil((d / 35) * 60); // 35km/h 기준
+    const byStraight = Math.ceil((s / 45) * 60); // 직선거리 45km/h 기준
+    const signalPenalty = d >= 0.25 ? 2 : 1;
+    const shortTripFloor = d >= 0.25 && d < 1.2 ? 4 : (d < 0.25 ? 2 : 0);
 
     return Math.max(raw, byRoadSpeed + signalPenalty, byStraight + signalPenalty, shortTripFloor);
   };
@@ -2982,6 +2983,29 @@ const App = () => {
     setLastAction(`'${item.activity}' 일정을 내 장소로 복제했습니다.`);
   };
 
+  const copyAlternativeToLibrary = (dayIdx, pIdx, altIdx) => {
+    const alt = normalizeAlternative(itinerary.days?.[dayIdx]?.plan?.[pIdx]?.alternatives?.[altIdx]);
+    if (!alt) return;
+    saveHistory();
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      if (!nextData.places) nextData.places = [];
+      nextData.places.push({
+        id: `place_${Date.now()}`,
+        name: alt.activity,
+        types: alt.types || ['place'],
+        revisit: typeof alt.revisit === 'boolean' ? alt.revisit : false,
+        business: normalizeBusiness(alt.business || {}),
+        address: alt.receipt?.address || '',
+        price: alt.price || 0,
+        memo: alt.memo || '',
+        receipt: deepClone(alt.receipt || { address: '', items: [] })
+      });
+      return nextData;
+    });
+    setLastAction(`'${alt.activity}' 플랜 B를 내 장소로 복제했습니다.`);
+  };
+
   const dropTimelineItemOnLibrary = (dayIdx, pIdx, planBMode = 'with_all') => {
     const item = itinerary.days[dayIdx].plan[pIdx];
     saveHistory();
@@ -3051,6 +3075,40 @@ const App = () => {
     if (withAll) return 'with_all';
     const replace = window.confirm('기준 일정을 플랜 B 1안으로 대체할까요?\n(확인: 대체 / 취소: 기준 일정만 내 장소로 이동)');
     return replace ? 'replace_with_planb' : 'only_main';
+  };
+
+  const addInitialItem = (dayIdx = 0) => {
+    saveHistory();
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      if (!Array.isArray(nextData.days) || nextData.days.length === 0) {
+        nextData.days = [{ day: 1, plan: [] }];
+      }
+      if (!nextData.days[dayIdx]) {
+        nextData.days[dayIdx] = { day: dayIdx + 1, plan: [] };
+      }
+      if (!Array.isArray(nextData.days[dayIdx].plan)) {
+        nextData.days[dayIdx].plan = [];
+      }
+      nextData.days[dayIdx].plan.push({
+        id: `item_${Date.now()}`,
+        time: '09:00',
+        activity: '새 일정',
+        types: ['place'],
+        revisit: false,
+        business: normalizeBusiness({}),
+        price: 0,
+        duration: 60,
+        state: 'unconfirmed',
+        travelTimeOverride: '15분',
+        bufferTimeOverride: '10분',
+        receipt: { address: '', items: [] },
+        memo: ''
+      });
+      nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
+      return nextData;
+    });
+    setLastAction('첫 일정이 추가되었습니다.');
   };
 
   const addNewItem = (dayIdx, insertIndex, types = ['place'], placeData = null) => {
@@ -3621,6 +3679,7 @@ const App = () => {
     const dropitemEl = el?.closest('[data-dropitem]');
     const droplibEl = el?.closest('[data-library-dropzone]');
     const dropdelEl = el?.closest('[data-deletezone]');
+    const dropActionEl = el?.closest('[data-drag-action]');
     if (src.kind === 'library') {
       const p = src.place;
       if (droptargetEl) {
@@ -3636,7 +3695,30 @@ const App = () => {
       }
     } else if (src.kind === 'timeline') {
       const payload = src.payload;
-      if (droplibEl) {
+      if (dropActionEl) {
+        const action = dropActionEl.getAttribute('data-drag-action');
+        if (action === 'move_to_library') {
+          if (payload.altIdx !== undefined) {
+            dropAltOnLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
+          } else {
+            const item = itinerary.days?.[payload.dayIdx]?.plan?.[payload.pIdx];
+            dropTimelineItemOnLibrary(payload.dayIdx, payload.pIdx, askPlanBMoveMode(item));
+          }
+          changedByDrag = true;
+        } else if (action === 'delete') {
+          if (payload.altIdx === undefined) {
+            deletePlanItem(payload.dayIdx, payload.pIdx);
+            changedByDrag = true;
+          }
+        } else if (action === 'copy_to_library') {
+          if (payload.altIdx !== undefined) {
+            copyAlternativeToLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
+          } else {
+            copyTimelineItemToLibrary(payload.dayIdx, payload.pIdx);
+          }
+          changedByDrag = true;
+        }
+      } else if (droplibEl) {
         if (payload.altIdx !== undefined) {
           dropAltOnLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
           changedByDrag = true;
@@ -4226,26 +4308,6 @@ const App = () => {
                 );
               })()}
             </div>
-            {/* ── 삭제 존 (타임라인에서 드래그 시 하단 표시) ── */}
-            {draggingFromTimeline && (
-              <div
-                className={`shrink-0 mx-4 mb-4 h-14 flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-all ${isDroppingOnDeleteZone ? 'border-red-400 bg-red-50 text-red-500' : 'border-slate-200 bg-slate-50 text-slate-400'}`}
-                data-deletezone="true"
-                onDragOver={(e) => { e.preventDefault(); setIsDroppingOnDeleteZone(true); }}
-                onDragLeave={() => setIsDroppingOnDeleteZone(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDroppingOnDeleteZone(false);
-                  if (draggingFromTimeline && draggingFromTimeline.altIdx === undefined) {
-                    deletePlanItem(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx);
-                  }
-                  setDraggingFromTimeline(null);
-                }}
-              >
-                <Trash2 size={14} />
-                <span className="text-[11px] font-black">{isDroppingOnDeleteZone ? '놓으면 삭제' : '여기로 드래그하면 삭제'}</span>
-              </div>
-            )}
           </>
         )
         }
@@ -4807,6 +4869,18 @@ const App = () => {
           })()}
           <div ref={heroTriggerRef} className="h-px w-full" />
           <div className={`w-full mx-auto flex flex-col relative z-0 ${timelineMaxClass} ${isCompactTimeline ? 'gap-4' : 'gap-6'}`}>
+            {totalTimelineItems === 0 && (
+              <div className="w-full rounded-[24px] border border-slate-200 bg-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.2)] p-5 flex flex-col items-center gap-3">
+                <p className="text-[12px] font-black text-slate-500">아직 등록된 일정이 없습니다.</p>
+                <button
+                  type="button"
+                  onClick={() => addInitialItem(0)}
+                  className="px-4 py-2 rounded-xl bg-[#3182F6] text-white text-[12px] font-black hover:bg-blue-600 transition-colors"
+                >
+                  + 첫 일정 추가
+                </button>
+              </div>
+            )}
 
             {itinerary.days?.map((d, dIdx) => d.plan?.map((p, pIdx) => {
               const isExpanded = expandedId === p.id;
@@ -4908,19 +4982,21 @@ const App = () => {
                     {hasPlanB && (
                       <>
                         <div className="absolute -left-[5%] -right-[5%] top-0 bottom-0 z-0 rounded-[26px] border border-slate-200/90 bg-white shadow-[0_10px_30px_-16px_rgba(15,23,42,0.35)] pointer-events-none" />
-                        <div className="absolute left-0 top-0 bottom-0 z-[11] w-[5%] min-w-[26px] flex items-center justify-center pointer-events-none">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); cyclePlan(-1); }}
-                            className="pointer-events-auto p-0.5 flex items-center justify-center text-slate-400 hover:text-[#3182F6] transition-colors"
-                            title="이전 플랜"
-                          ><ChevronLeft size={14} /></button>
+                        <div
+                          data-no-drag="true"
+                          onClick={(e) => { e.stopPropagation(); cyclePlan(-1); }}
+                          className="absolute left-0 top-0 bottom-0 z-[11] w-[5%] min-w-[26px] flex items-center justify-start pl-[2px] cursor-pointer"
+                          title="이전 플랜"
+                        >
+                          <ChevronLeft size={14} className="text-slate-400 hover:text-[#3182F6] transition-colors" />
                         </div>
-                        <div className="absolute right-0 top-0 bottom-0 z-[11] w-[5%] min-w-[26px] flex items-center justify-center pointer-events-none">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); cyclePlan(1); }}
-                            className="pointer-events-auto p-0.5 flex items-center justify-center text-slate-400 hover:text-[#3182F6] transition-colors"
-                            title="다음 플랜"
-                          ><ChevronRight size={14} /></button>
+                        <div
+                          data-no-drag="true"
+                          onClick={(e) => { e.stopPropagation(); cyclePlan(1); }}
+                          className="absolute right-0 top-0 bottom-0 z-[11] w-[5%] min-w-[26px] flex items-center justify-end pr-[2px] cursor-pointer"
+                          title="다음 플랜"
+                        >
+                          <ChevronRight size={14} className="text-slate-400 hover:text-[#3182F6] transition-colors" />
                         </div>
                       </>
                     )}
@@ -5044,16 +5120,10 @@ const App = () => {
                             className={`relative w-full px-1 py-1 rounded-2xl cursor-pointer select-none z-10 transition-colors ${p.isTimeFixed ? 'hover:bg-blue-100/50' : 'hover:bg-slate-200/50'}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              const panelW = 292;
-                              const panelH = 178;
-                              const preferredLeft = rect.right + 8;
-                              const left = Math.max(12, Math.min(window.innerWidth - panelW - 12, preferredLeft));
-                              const top = Math.max(8, Math.min(window.innerHeight - panelH - 8, rect.top - 4));
                               setTimeControllerTarget(prev => (
                                 prev?.dayIdx === dIdx && prev?.pIdx === pIdx
                                   ? null
-                                  : { dayIdx: dIdx, pIdx, left, top }
+                                  : { dayIdx: dIdx, pIdx }
                               ));
                             }}
                           >
@@ -5085,59 +5155,6 @@ const App = () => {
                               })()}
                             </div>
                           </div>
-
-                          {timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx && (
-                            <div
-                              data-time-controller="true"
-                              className="fixed z-[145] w-[292px] rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_18px_40px_-16px_rgba(15,23,42,0.35)] p-2.5"
-                              style={{ left: timeControllerTarget.left, top: timeControllerTarget.top }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="grid grid-cols-2 gap-2 mb-2">
-                                <div className="rounded-xl border border-slate-200 bg-white p-2">
-                                  <p className="text-[10px] font-black text-slate-500 mb-1">시각 조절</p>
-                                  <div className="flex items-center justify-between gap-1">
-                                    <button onClick={() => updateStartHour(dIdx, pIdx, 1)} className="px-2 py-1 rounded-lg border border-slate-200 text-[10px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]">+1h</button>
-                                    <button onClick={() => updateStartMinute(dIdx, pIdx, 5)} className="px-2 py-1 rounded-lg border border-slate-200 text-[10px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]">+5m</button>
-                                    <button onClick={() => updateStartMinute(dIdx, pIdx, -5)} className="px-2 py-1 rounded-lg border border-slate-200 text-[10px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]">-5m</button>
-                                    <button onClick={() => updateStartHour(dIdx, pIdx, -1)} className="px-2 py-1 rounded-lg border border-slate-200 text-[10px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]">-1h</button>
-                                  </div>
-                                </div>
-                                <div className="rounded-xl border border-slate-200 bg-white p-2">
-                                  <p className="text-[10px] font-black text-slate-500 mb-1">소요시간</p>
-                                  <div className="flex items-center justify-between gap-1">
-                                    <button onClick={() => updateDuration(dIdx, pIdx, -1)} className="px-2 py-1 rounded-lg border border-slate-200 text-[10px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]">-1m</button>
-                                    <button onClick={() => setDurationValue(dIdx, pIdx, 10)} className="px-2 py-1 rounded-lg border border-blue-200 bg-blue-50 text-[10px] font-black text-[#3182F6] hover:bg-blue-100">10m</button>
-                                    <button onClick={() => setDurationValue(dIdx, pIdx, 30)} className="px-2 py-1 rounded-lg border border-blue-200 bg-blue-50 text-[10px] font-black text-[#3182F6] hover:bg-blue-100">30m</button>
-                                    <button onClick={() => setDurationValue(dIdx, pIdx, 60)} className="px-2 py-1 rounded-lg border border-blue-200 bg-blue-50 text-[10px] font-black text-[#3182F6] hover:bg-blue-100">60m</button>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-3 gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => toggleTimeFix(dIdx, pIdx)}
-                                  className={`py-1.5 rounded-lg border text-[10px] font-black transition-colors ${p.isTimeFixed ? 'border-blue-300 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
-                                >
-                                  {p.isTimeFixed ? '시각 잠금 해제' : '시각 잠그기'}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => toggleDurationLock(dIdx, pIdx)}
-                                  className={`py-1.5 rounded-lg border text-[10px] font-black transition-colors ${p.isDurationFixed ? 'border-orange-300 bg-orange-50 text-orange-600' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
-                                >
-                                  {p.isDurationFixed ? '소요 잠금 해제' : '소요 잠그기'}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setTimeControllerTarget(null)}
-                                  className="py-1.5 rounded-lg bg-[#3182F6] text-white text-[10px] font-black"
-                                >
-                                  확인
-                                </button>
-                              </div>
-                            </div>
-                          )}
 
                           {/* ✅ 소요 시간 조절 */}
                           {(
@@ -5827,6 +5844,78 @@ const App = () => {
               <p className="text-[10px] font-black text-[#3182F6] uppercase tracking-widest">Patch Status</p>
               <p className="text-[12px] font-black text-slate-700 mt-0.5">페이지 로딩 완료</p>
               <p className="text-[11px] font-bold text-slate-500 tabular-nums mt-0.5">적용 시각: {patchNotice.timeText}</p>
+            </div>
+          </div>
+        )}
+
+        {draggingFromTimeline && (
+          <div className="fixed left-1/2 -translate-x-1/2 bottom-4 z-[230] w-[min(680px,94vw)]">
+            <div className="grid grid-cols-3 gap-2">
+              <div
+                data-drag-action="move_to_library"
+                onDragOver={(e) => { e.preventDefault(); setDragBottomTarget('move_to_library'); }}
+                onDragLeave={() => setDragBottomTarget(prev => (prev === 'move_to_library' ? '' : prev))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const payload = draggingFromTimeline;
+                  if (!payload) return;
+                  if (payload.altIdx !== undefined) {
+                    dropAltOnLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
+                  } else {
+                    const item = itinerary.days?.[payload.dayIdx]?.plan?.[payload.pIdx];
+                    dropTimelineItemOnLibrary(payload.dayIdx, payload.pIdx, askPlanBMoveMode(item));
+                  }
+                  triggerUndoToast();
+                  setDragBottomTarget('');
+                  setDraggingFromTimeline(null);
+                }}
+                className={`h-12 rounded-2xl border-2 border-dashed flex items-center justify-center gap-1.5 text-[11px] font-black transition-all ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
+              >
+                <Package size={13} />
+                내장소로 이동
+              </div>
+              <div
+                data-drag-action="delete"
+                onDragOver={(e) => { e.preventDefault(); setDragBottomTarget('delete'); }}
+                onDragLeave={() => setDragBottomTarget(prev => (prev === 'delete' ? '' : prev))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const payload = draggingFromTimeline;
+                  if (!payload) return;
+                  if (payload.altIdx === undefined) {
+                    deletePlanItem(payload.dayIdx, payload.pIdx);
+                    triggerUndoToast();
+                  }
+                  setDragBottomTarget('');
+                  setDraggingFromTimeline(null);
+                }}
+                className={`h-12 rounded-2xl border-2 border-dashed flex items-center justify-center gap-1.5 text-[11px] font-black transition-all ${dragBottomTarget === 'delete' ? 'border-red-400 bg-red-50 text-red-500' : 'border-slate-200 bg-white text-slate-500'}`}
+              >
+                <Trash2 size={13} />
+                삭제
+              </div>
+              <div
+                data-drag-action="copy_to_library"
+                onDragOver={(e) => { e.preventDefault(); setDragBottomTarget('copy_to_library'); }}
+                onDragLeave={() => setDragBottomTarget(prev => (prev === 'copy_to_library' ? '' : prev))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const payload = draggingFromTimeline;
+                  if (!payload) return;
+                  if (payload.altIdx !== undefined) {
+                    copyAlternativeToLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
+                  } else {
+                    copyTimelineItemToLibrary(payload.dayIdx, payload.pIdx);
+                  }
+                  triggerUndoToast();
+                  setDragBottomTarget('');
+                  setDraggingFromTimeline(null);
+                }}
+                className={`h-12 rounded-2xl border-2 border-dashed flex items-center justify-center gap-1.5 text-[11px] font-black transition-all ${dragBottomTarget === 'copy_to_library' ? 'border-emerald-400 bg-emerald-50 text-emerald-600' : 'border-slate-200 bg-white text-slate-500'}`}
+              >
+                <PlusCircle size={13} />
+                내장소로 복제
+              </div>
             </div>
           </div>
         )}

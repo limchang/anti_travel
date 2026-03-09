@@ -5316,36 +5316,37 @@ const App = () => {
                                       const endMins = timeToMinutes(p.time || '00:00') + (p.duration || 0);
                                       const [ehh, emm] = minutesToTime(endMins).split(':');
                                       return (
-                                        <div className="flex flex-col items-center justify-center py-0.5 group/time w-full px-1.5">
-                                          <div className={`relative flex flex-col items-center justify-center w-full px-2 py-2 rounded-2xl transition-all duration-300 ${p.isTimeFixed ? 'bg-gradient-to-br from-blue-50 to-white/80 shadow-[0_4px_12px_-2px_rgba(49,130,246,0.18)] border border-blue-100/80' : 'bg-white/60 border border-slate-100 group-hover/time:border-blue-100 group-hover/time:bg-blue-50/30 group-hover/time:shadow-sm'}`}>
+                                        <div className="flex flex-col justify-center py-0.5 group/time w-full px-1.5">
+                                          <div className={`relative flex flex-col w-full px-2 py-2.5 gap-1.5 rounded-2xl transition-all duration-300 ${p.isTimeFixed ? 'bg-gradient-to-br from-blue-50 to-white/80 shadow-[0_4px_12px_-2px_rgba(49,130,246,0.18)] border border-blue-100/80' : 'bg-white/60 border border-slate-100 group-hover/time:border-blue-100 group-hover/time:bg-blue-50/30 group-hover/time:shadow-sm'}`}>
                                             {p.isTimeFixed && (
                                               <div className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-[#3182F6] shadow-[0_0_6px_rgba(49,130,246,0.6)] animate-pulse" />
                                             )}
-                                            {/* 시작 */}
-                                            <span className={`text-[8px] font-black tracking-widest uppercase leading-none mb-1 ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-300 group-hover/time:text-blue-200'}`}>시작</span>
-                                            <div className={`flex items-baseline gap-[2px] ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800 group-hover/time:text-[#3182F6] transition-colors'}`}>
-                                              <span className="text-[22px] sm:text-[24px] font-black tracking-tighter tabular-nums leading-none">{hh}</span>
-                                              <span className={`text-[12px] font-black mb-0.5 ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-200 group-hover/time:text-blue-200'}`}>:</span>
-                                              <span className="text-[22px] sm:text-[24px] font-black tracking-tighter tabular-nums leading-none">{mm}</span>
+                                            {/* 시작 — 라벨 왼쪽 세로 */}
+                                            <div className="flex items-center gap-1.5">
+                                              <span style={{writingMode:'vertical-rl',textOrientation:'mixed'}} className={`text-[7px] font-black leading-none shrink-0 select-none ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-300 group-hover/time:text-blue-200'}`}>시작</span>
+                                              <div className={`flex items-baseline gap-[2px] ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800 group-hover/time:text-[#3182F6] transition-colors'}`}>
+                                                <span className="text-[18px] font-black tracking-tighter tabular-nums leading-none">{hh}</span>
+                                                <span className={`text-[11px] font-black mb-0.5 ${p.isTimeFixed ? 'text-blue-200' : 'text-slate-200 group-hover/time:text-blue-200'}`}>:</span>
+                                                <span className="text-[18px] font-black tracking-tighter tabular-nums leading-none">{mm}</span>
+                                              </div>
                                             </div>
-                                            {/* 소요시간 인라인 바 */}
+                                            {/* 소요시간 바 */}
                                             <div
-                                              className={`flex items-center justify-between w-full mt-2 mb-2 px-1.5 py-1 rounded-lg border transition-all group/dur ${isDurationLocked ? 'bg-orange-50/60 border-orange-200/60' : 'bg-white/80 border-slate-100 hover:border-blue-200 cursor-pointer'}`}
+                                              className={`flex items-center justify-between w-full px-1.5 py-0.5 rounded-lg border transition-all group/dur ${isDurationLocked ? 'bg-orange-50/60 border-orange-200/60' : 'bg-white/80 border-slate-100 hover:border-blue-200 cursor-pointer'}`}
                                               onClick={(e) => { e.stopPropagation(); if (isAutoLocked) { setLastAction('자동 연동 일정은 소요시간을 조절할 수 없습니다.'); return; } setDurationControllerTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx) ? null : { dayIdx: dIdx, pIdx }); }}
                                             >
                                               <button onClick={(e) => { e.stopPropagation(); if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; } updateDuration(dIdx, pIdx, -TIME_UNIT); }} className={`w-4 h-4 flex items-center justify-center rounded shrink-0 transition-colors ${isDurationLocked ? 'text-orange-300' : 'text-slate-300 hover:text-blue-500'}`}><Minus size={9} strokeWidth={3} /></button>
-                                              <div className="flex flex-col items-center gap-0.5" data-duration-trigger="true">
-                                                <span className={`text-[7px] font-black tracking-widest uppercase leading-none ${isDurationLocked ? 'text-orange-400/60' : 'text-slate-300 group-hover/dur:text-blue-200'}`}>소요</span>
-                                                <span className={`text-[11px] font-black tabular-nums tracking-tight leading-none transition-colors ${isAutoLocked ? 'text-red-500' : isDurationLocked ? 'text-orange-500' : 'text-slate-600 group-hover/dur:text-blue-600'}`}>{fmtDur(p.duration)}</span>
-                                              </div>
+                                              <span className={`text-[11px] font-black tabular-nums tracking-tight leading-none transition-colors ${isAutoLocked ? 'text-red-500' : isDurationLocked ? 'text-orange-500' : 'text-slate-500 group-hover/dur:text-blue-600'}`} data-duration-trigger="true">{fmtDur(p.duration)}</span>
                                               <button onClick={(e) => { e.stopPropagation(); if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; } updateDuration(dIdx, pIdx, TIME_UNIT); }} className={`w-4 h-4 flex items-center justify-center rounded shrink-0 transition-colors ${isDurationLocked ? 'text-orange-300' : 'text-slate-300 hover:text-blue-500'}`}><Plus size={9} strokeWidth={3} /></button>
                                             </div>
-                                            {/* 종료 */}
-                                            <span className={`text-[8px] font-black tracking-widest uppercase leading-none mb-0.5 ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-300 group-hover/time:text-blue-200'}`}>종료</span>
-                                            <div className={`flex items-baseline gap-[2px] ${p.isTimeFixed ? 'text-blue-400/80' : 'text-slate-400 group-hover/time:text-blue-400/80 transition-colors'}`}>
-                                              <span className="text-[15px] sm:text-[16px] font-black tracking-tight tabular-nums leading-none">{ehh}</span>
-                                              <span className={`text-[9px] font-black mb-0.5 ${p.isTimeFixed ? 'text-blue-200' : 'text-slate-200 group-hover/time:text-blue-200'}`}>:</span>
-                                              <span className="text-[15px] sm:text-[16px] font-black tracking-tight tabular-nums leading-none">{emm}</span>
+                                            {/* 종료 — 라벨 왼쪽 세로 */}
+                                            <div className="flex items-center gap-1.5">
+                                              <span style={{writingMode:'vertical-rl',textOrientation:'mixed'}} className={`text-[7px] font-black leading-none shrink-0 select-none ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-300 group-hover/time:text-blue-200'}`}>종료</span>
+                                              <div className={`flex items-baseline gap-[2px] ${p.isTimeFixed ? 'text-blue-400' : 'text-slate-600 group-hover/time:text-blue-400 transition-colors'}`}>
+                                                <span className="text-[18px] font-black tracking-tighter tabular-nums leading-none">{ehh}</span>
+                                                <span className={`text-[11px] font-black mb-0.5 ${p.isTimeFixed ? 'text-blue-200' : 'text-slate-200 group-hover/time:text-blue-200'}`}>:</span>
+                                                <span className="text-[18px] font-black tracking-tighter tabular-nums leading-none">{emm}</span>
+                                              </div>
                                             </div>
                                           </div>
                                         </div>

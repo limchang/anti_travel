@@ -3997,17 +3997,11 @@ const App = () => {
                   <p className="text-[11px] text-slate-500 font-bold mb-3">
                     로그인 후에는 먼저 기존 일정을 고르거나 새 일정을 만들 수 있습니다.
                   </p>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="mb-3">
                     <input
                       value={newPlanRegion}
                       onChange={(e) => setNewPlanRegion(e.target.value)}
                       placeholder="도시 (예: 부산)"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
-                    />
-                    <input
-                      value={newPlanTitle}
-                      onChange={(e) => setNewPlanTitle(e.target.value)}
-                      placeholder="일정 이름 (선택)"
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
                     />
                   </div>
@@ -4042,9 +4036,12 @@ const App = () => {
                               <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/55" />
                               <div className="relative z-10 p-3 flex flex-col gap-1 text-white">
                                 <p className="text-[14px] font-black truncate">{meta.region}</p>
-                                <p className="text-[11px] font-black truncate">{meta.title}</p>
-                                <p className="text-[10px] font-bold text-white/80">{meta.startDate ? meta.startDate.replace(/-/g, '.') : '날짜 미정'}</p>
-                                <p className="text-[10px] font-black text-white/95 tracking-wide">{meta.code}</p>
+                                {meta.startDate && (
+                                  <p className="text-[10px] font-bold text-white/80">{meta.startDate.replace(/-/g, '.')}</p>
+                                )}
+                                {meta.code && meta.code !== 'main' && (
+                                  <p className="text-[10px] font-black text-white/95 tracking-wide">{meta.code}</p>
+                                )}
                               </div>
                             </button>
                           );
@@ -4065,17 +4062,11 @@ const App = () => {
                   <p className="text-[14px] font-black text-slate-800">일정 관리 (도시별 예시)</p>
                   <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowPlanManager(false)}><X size={16} /></button>
                 </div>
-                <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="mb-3">
                   <input
                     value={newPlanRegion}
                     onChange={(e) => setNewPlanRegion(e.target.value)}
                     placeholder="도시 (예: 부산)"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
-                  />
-                  <input
-                    value={newPlanTitle}
-                    onChange={(e) => setNewPlanTitle(e.target.value)}
-                    placeholder="일정 이름 (선택)"
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
                   />
                 </div>
@@ -4110,9 +4101,12 @@ const App = () => {
                             <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/55" />
                             <div className="relative z-10 p-3 flex flex-col gap-1 text-white">
                               <p className="text-[14px] font-black truncate">{meta.region}</p>
-                              <p className="text-[11px] font-black truncate">{meta.title}</p>
-                              <p className="text-[10px] font-bold text-white/80">{meta.startDate ? meta.startDate.replace(/-/g, '.') : '날짜 미정'}</p>
-                              <p className="text-[10px] font-black text-white/95 tracking-wide">{meta.code}</p>
+                              {meta.startDate && (
+                                <p className="text-[10px] font-bold text-white/80">{meta.startDate.replace(/-/g, '.')}</p>
+                              )}
+                              {meta.code && meta.code !== 'main' && (
+                                <p className="text-[10px] font-black text-white/95 tracking-wide">{meta.code}</p>
+                              )}
                             </div>
                           </button>
                         );
@@ -4133,15 +4127,6 @@ const App = () => {
                   <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowPlanOptions(false)}><X size={16} /></button>
                 </div>
                 <div className="space-y-2">
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 mb-1">일정 제목</p>
-                    <input
-                      value={itinerary.planTitle || ''}
-                      onChange={(e) => setItinerary(prev => ({ ...prev, planTitle: e.target.value }))}
-                      placeholder="일정 제목"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
-                    />
-                  </div>
                   <div>
                     <p className="text-[10px] font-black text-slate-400 mb-1">여행지</p>
                     <input

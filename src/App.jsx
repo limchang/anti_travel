@@ -5437,7 +5437,7 @@ const App = () => {
                                           </div>
                                           {/* 잠금 + 단위 2x2 */}
                                           <div className="grid grid-cols-2 gap-1 flex-1">
-                                            <button onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`col-span-2 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[9px] font-black transition-all ${p.isTimeFixed ? 'bg-[#3182F6] text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                                            <button onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`col-span-2 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[9px] font-black transition-all ${p.isTimeFixed ? 'bg-[#3182F6] text-white ring-2 ring-[#3182F6]/40 ring-offset-1' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'}`}>
                                               {p.isTimeFixed ? <Lock size={9} /> : <Unlock size={9} />} {p.isTimeFixed ? '고정됨' : '고정'}
                                             </button>
                                             {[1, 5, 15, 30].map(s => (
@@ -5467,7 +5467,7 @@ const App = () => {
                                           </div>
                                           {/* 잠금 + 프리셋 2x2 */}
                                           <div className="grid grid-cols-2 gap-1 flex-1">
-                                            <button onClick={(e) => { e.stopPropagation(); toggleDurationLock(dIdx, pIdx); }} className={`col-span-2 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[9px] font-black transition-all ${p.isDurationFixed ? 'bg-orange-400 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                                            <button onClick={(e) => { e.stopPropagation(); toggleDurationLock(dIdx, pIdx); }} className={`col-span-2 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[9px] font-black transition-all ${p.isDurationFixed ? 'bg-orange-400 text-white ring-2 ring-orange-400/40 ring-offset-1' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'}`}>
                                               <Timer size={9} /> {p.isDurationFixed ? '고정됨' : '고정'}
                                             </button>
                                             {[30, 60, 90, 120].map(v => (

@@ -4488,29 +4488,52 @@ const App = () => {
 
           {showUpdateNotes && (
             <>
-              <div className="fixed inset-0 z-[280] bg-black/20 backdrop-blur-[1px]" onClick={() => setShowUpdateNotes(false)} />
-              <div className="fixed z-[281] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(520px,92vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)] p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-[16px] font-black text-slate-800">업데이트 노트</p>
-                    <p className="text-[11px] text-slate-400 font-bold mt-0.5">Anti Planer v{APP_VERSION}</p>
-                  </div>
-                  <button onClick={() => setShowUpdateNotes(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
-                </div>
-                <div className="flex flex-col gap-5 max-h-[60vh] overflow-y-auto pr-1">
-                  {UPDATE_NOTES.map((note) => (
-                    <div key={note.version}>
-                      <div className="flex items-center gap-2 mb-2.5">
-                        <span className="text-[12px] font-black text-[#3182F6] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg">v{note.version}</span>
-                        <span className="text-[11px] text-slate-400 font-bold">{note.date}</span>
+              <div className="fixed inset-0 z-[280] bg-black/30 backdrop-blur-sm" onClick={() => setShowUpdateNotes(false)} />
+              <div className="fixed z-[281] inset-0 flex items-center justify-center p-4 pointer-events-none">
+                <div className="pointer-events-auto w-[min(600px,96vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_40px_100px_-30px_rgba(15,23,42,0.5)] overflow-hidden">
+                  {/* 헤더 */}
+                  <div className="bg-gradient-to-br from-[#3182F6] to-[#1a5fd4] px-6 pt-6 pb-5">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-white/60 text-[11px] font-black tracking-widest uppercase">Anti Planer</span>
+                        </div>
+                        <p className="text-white text-[26px] font-black leading-none">업데이트 노트</p>
+                        <div className="flex items-center gap-2 mt-2.5">
+                          <span className="bg-white/20 text-white text-[13px] font-black px-3 py-1 rounded-full">v{APP_VERSION}</span>
+                          <span className="text-white/60 text-[12px] font-bold">{UPDATE_NOTES[0]?.date}</span>
+                          <span className="bg-white/15 text-white/90 text-[10px] font-black px-2 py-0.5 rounded-full">최신</span>
+                        </div>
                       </div>
-                      <ul className="flex flex-col gap-1.5">
-                        {note.items.map((item, i) => (
-                          <li key={i} className="text-[12px] text-slate-700 font-bold leading-relaxed">{item}</li>
-                        ))}
-                      </ul>
+                      <button onClick={() => setShowUpdateNotes(false)} className="text-white/60 hover:text-white transition-colors mt-0.5"><X size={20} /></button>
                     </div>
-                  ))}
+                  </div>
+                  {/* 내용 */}
+                  <div className="px-6 py-5 max-h-[55vh] overflow-y-auto">
+                    {UPDATE_NOTES.map((note, ni) => (
+                      <div key={note.version} className={ni > 0 ? 'mt-6 pt-6 border-t border-slate-100' : ''}>
+                        {ni > 0 && (
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-[12px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg">v{note.version}</span>
+                            <span className="text-[11px] text-slate-400 font-bold">{note.date}</span>
+                          </div>
+                        )}
+                        <ul className="flex flex-col gap-3">
+                          {note.items.map((item, i) => (
+                            <li key={i} className="flex items-start gap-2.5">
+                              <span className="text-[18px] leading-none mt-0.5 shrink-0">{item.split(' ')[0]}</span>
+                              <span className="text-[13px] text-slate-700 font-bold leading-relaxed">{item.split(' ').slice(1).join(' ')}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                  {/* 푸터 */}
+                  <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/60">
+                    <span className="text-[11px] text-slate-400 font-bold">문의 및 피드백은 언제든 환영해요 🙌</span>
+                    <button onClick={() => setShowUpdateNotes(false)} className="px-4 py-1.5 rounded-xl bg-[#3182F6] text-white text-[12px] font-black hover:bg-[#1a5fd4] transition-colors">확인</button>
+                  </div>
                 </div>
               </div>
             </>

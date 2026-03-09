@@ -4445,9 +4445,9 @@ const App = () => {
                         />
                       </div>
 
-                      <div className={`relative z-10 p-8 sm:p-10 flex flex-col gap-10 w-full mx-auto ${timelineMaxClass}`}>
+                      <div className={`relative z-10 flex flex-col gap-10 w-full mx-auto ${timelineMaxClass}`}>
                         {/* 🌟 1. 타이틀 & 일정 */}
-                        <div className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-5 px-8 pt-8 sm:px-10 sm:pt-10">
                           <input
                             value={tripRegion}
                             onChange={(e) => setTripRegion(e.target.value)}
@@ -4493,7 +4493,7 @@ const App = () => {
 
                         {/* 🌟 2. 예산 현황 요약 (연결된 셀 스타일) */}
                         <div className="flex flex-col gap-8">
-                          <div className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.04)] rounded-[32px] overflow-hidden flex flex-col pt-8 pb-7 px-8 items-center text-center">
+                          <div className="w-full bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.04)] rounded-[32px] overflow-hidden flex flex-col pt-8 pb-7 px-8 items-center text-center">
                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Total Remaining Budget</p>
                             <p className="text-[48px] font-black text-[#3182F6] leading-none tabular-nums tracking-tighter mb-8">
                               ₩{budgetSummary.remaining.toLocaleString()}

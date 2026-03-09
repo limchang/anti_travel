@@ -3222,6 +3222,7 @@ const App = () => {
 
   const autoCalculateRouteFor = async (dayIdx, targetIdx, options = {}) => {
     const silent = !!options.silent;
+    const forceRefresh = !!options.forceRefresh;
     let prevItem;
     if (targetIdx === 0 && dayIdx > 0) {
       const prevDayPlan = itinerary.days[dayIdx - 1].plan;
@@ -3239,7 +3240,7 @@ const App = () => {
     }
 
     const key = `${addr1}|${addr2}`;
-    if (routeCache[key] && !routeCache[key].failed) {
+    if (!forceRefresh && routeCache[key] && !routeCache[key].failed) {
       const cached = routeCache[key];
       const cachedDistance = Math.max(0.1, Number(cached.distance) || 0.1);
       const verifiedCachedDuration = verifyRouteDurationMins({
@@ -3360,12 +3361,13 @@ const App = () => {
 
   const autoCalculateAllRoutes = async () => {
     setIsCalculatingAllRoutes(true);
-    setLastAction("전체 경로 재탐색 시작...");
+    setRouteCache({});
+    setLastAction("전체 경로 내역을 지우고 재탐색 시작...");
     for (let di = 0; di < itinerary.days.length; di++) {
       const plan = itinerary.days[di].plan || [];
       for (let pi = 0; pi < plan.length; pi++) {
         if (plan[pi].type === 'backup' || plan[pi].types?.includes('ship')) continue;
-        await autoCalculateRouteFor(di, pi);
+        await autoCalculateRouteFor(di, pi, { forceRefresh: true });
         await new Promise(r => setTimeout(r, 500));
       }
     }

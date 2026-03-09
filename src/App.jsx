@@ -4150,17 +4150,7 @@ const App = () => {
             </div>
           </>
         )}
-        {/* 버전 뱃지 */}
-        {!col1Collapsed && (
-          <button
-            onClick={() => setShowUpdateNotes(true)}
-            className="shrink-0 mx-3 mb-3 py-1.5 px-3 rounded-xl border border-slate-100 bg-slate-50 hover:border-[#3182F6]/30 hover:bg-blue-50/40 transition-colors flex items-center gap-1.5 group"
-            title="업데이트 노트"
-          >
-            <span className="text-[10px] font-black text-slate-300 group-hover:text-[#3182F6] transition-colors">v{APP_VERSION}</span>
-            <span className="text-[10px] text-slate-300 group-hover:text-slate-400 transition-colors">업데이트 노트</span>
-          </button>
-        )}
+        {/* 버전 뱃지 — 비활성화 */}
       </div>
 
       <div

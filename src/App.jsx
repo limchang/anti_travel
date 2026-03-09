@@ -205,6 +205,15 @@ const WEEKDAY_OPTIONS = [
   { label: '일', value: 'sun' },
 ];
 const EMPTY_BUSINESS = { open: '', close: '', breakStart: '', breakEnd: '', lastOrder: '', entryClose: '', closedDays: [] };
+const UPDATE_LOG = [
+  { date: '03.09', tag: 'UX',   msg: '시간 셀 — 시작·종료 시간 분리 표시' },
+  { date: '03.09', tag: 'UX',   msg: '일정 셀 — 시간/정보 영역 50:50 분할' },
+  { date: '03.09', tag: 'UX',   msg: '금액 요약 셀 — 카드 내 좌우 여백 추가' },
+  { date: '03.09', tag: 'FIX',  msg: '내장소 수정 모달 터치 드래그 충돌 수정' },
+  { date: '03.08', tag: 'FEAT', msg: '영업 시간 에디터 통합 + 프리셋 버튼' },
+  { date: '03.08', tag: 'FEAT', msg: '24:00 마감 시간 입력 지원' },
+  { date: '03.08', tag: 'FIX',  msg: '고정 일정 사이 소요시간 최소 30분 보장' },
+];
 // 터치 시 나오는 시간 컨트롤러 프리셋 (필드별)
 const BUSINESS_PRESETS = {
   open: ['06:00', '08:00', '09:00', '10:00', '10:30', '11:00'],
@@ -1082,7 +1091,6 @@ const App = () => {
 
   const [loading, setLoading] = useState(true);
   const [patchNotice, setPatchNotice] = useState(null); // { timeText }
-  const patchNoticeShownRef = useRef(false);
   const [currentPlanId, setCurrentPlanId] = useState('main');
   const [planList, setPlanList] = useState([]);
   const [showPlanManager, setShowPlanManager] = useState(false);
@@ -1536,20 +1544,15 @@ const App = () => {
   }, [user, refreshPlanList]);
 
   useEffect(() => {
-    if (loading || patchNoticeShownRef.current) return;
-    patchNoticeShownRef.current = true;
+    if (loading) return;
     const now = new Date();
     const timeText = now.toLocaleString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
       hour12: false,
     });
     setPatchNotice({ timeText });
-    const timer = setTimeout(() => setPatchNotice(null), 4200);
+    const timer = setTimeout(() => setPatchNotice(null), 7500);
     return () => clearTimeout(timer);
   }, [loading]);
 
@@ -5285,7 +5288,7 @@ const App = () => {
                               }}
                               className={`relative flex flex-col items-center justify-center gap-2 shrink-0 border-r border-slate-100 flex-none overflow-hidden transition-all duration-500 cursor-pointer group/tower ${timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx
                                 ? 'w-[240px] sm:w-[280px] bg-slate-50/80 shadow-inner'
-                                : (isCompactTimeline ? 'w-[94px] sm:w-[6.5rem] py-3' : 'w-[110px] sm:w-[9rem] py-4 px-2 sm:px-3')
+                                : (isCompactTimeline ? 'w-1/2 py-3' : 'w-1/2 py-4 px-2 sm:px-3')
                                 } ${p.isTimeFixed ? 'bg-blue-50/40' : 'bg-transparent'}`}
                             >
                               {/* 락 상태일 때 컨트롤 타워 전체에 은은하게 깔리는 거대 자물쇠 */}
@@ -5312,16 +5315,26 @@ const App = () => {
 
                                     if (!isExpanded) {
                                       const [hh, mm] = (p.time || '00:00').split(':');
+                                      const endMins = timeToMinutes(p.time || '00:00') + (p.duration || 0);
+                                      const [ehh, emm] = minutesToTime(endMins).split(':');
                                       return (
-                                        <div className="flex flex-col items-center justify-center py-1 group/time">
-                                          <div className={`relative flex items-center justify-center px-2 py-1.5 rounded-2xl transition-all duration-300 ${p.isTimeFixed ? 'bg-gradient-to-br from-blue-50/80 to-white/60 shadow-[0_4px_12px_-2px_rgba(49,130,246,0.15)] border border-blue-100' : 'bg-transparent group-hover/time:bg-slate-50 border border-transparent'}`}>
+                                        <div className="flex flex-col items-center justify-center py-0.5 group/time w-full px-1.5">
+                                          <div className={`relative flex flex-col items-center justify-center w-full px-2 py-2 rounded-2xl transition-all duration-300 ${p.isTimeFixed ? 'bg-gradient-to-br from-blue-50 to-white/80 shadow-[0_4px_12px_-2px_rgba(49,130,246,0.18)] border border-blue-100/80' : 'bg-white/60 border border-slate-100 group-hover/time:border-blue-100 group-hover/time:bg-blue-50/30 group-hover/time:shadow-sm'}`}>
                                             {p.isTimeFixed && (
-                                              <div className="absolute top-1 right-1.5 w-1.5 h-1.5 rounded-full bg-[#3182F6] shadow-[0_0_6px_rgba(49,130,246,0.6)] animate-pulse" />
+                                              <div className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-[#3182F6] shadow-[0_0_6px_rgba(49,130,246,0.6)] animate-pulse" />
                                             )}
+                                            <span className={`text-[8px] font-black tracking-widest uppercase leading-none mb-1 ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-300 group-hover/time:text-blue-200'}`}>시작</span>
                                             <div className={`flex items-baseline gap-[2px] ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800 group-hover/time:text-[#3182F6] transition-colors'}`}>
-                                              <span className="text-[22px] sm:text-[26px] font-black tracking-tighter tabular-nums leading-none">{hh}</span>
-                                              <span className={`text-[12px] sm:text-[14px] font-black mb-0.5 ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-200 group-hover/time:text-blue-200'}`}>:</span>
-                                              <span className="text-[22px] sm:text-[26px] font-black tracking-tighter tabular-nums leading-none">{mm}</span>
+                                              <span className="text-[22px] sm:text-[24px] font-black tracking-tighter tabular-nums leading-none">{hh}</span>
+                                              <span className={`text-[12px] font-black mb-0.5 ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-200 group-hover/time:text-blue-200'}`}>:</span>
+                                              <span className="text-[22px] sm:text-[24px] font-black tracking-tighter tabular-nums leading-none">{mm}</span>
+                                            </div>
+                                            <div className={`w-full my-1.5 border-t border-dashed ${p.isTimeFixed ? 'border-blue-100' : 'border-slate-100'}`} />
+                                            <span className={`text-[8px] font-black tracking-widest uppercase leading-none mb-0.5 ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-300 group-hover/time:text-blue-200'}`}>종료</span>
+                                            <div className={`flex items-baseline gap-[2px] ${p.isTimeFixed ? 'text-blue-400/80' : 'text-slate-400 group-hover/time:text-blue-400/80 transition-colors'}`}>
+                                              <span className="text-[15px] sm:text-[16px] font-black tracking-tight tabular-nums leading-none">{ehh}</span>
+                                              <span className={`text-[9px] font-black mb-0.5 ${p.isTimeFixed ? 'text-blue-200' : 'text-slate-200 group-hover/time:text-blue-200'}`}>:</span>
+                                              <span className="text-[15px] sm:text-[16px] font-black tracking-tight tabular-nums leading-none">{emm}</span>
                                             </div>
                                           </div>
                                         </div>
@@ -5444,7 +5457,8 @@ const App = () => {
                                       className={`w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors shrink-0 ${isDurationLocked ? 'text-orange-400 hover:text-orange-500 hover:bg-orange-100' : 'text-slate-300 hover:text-blue-600 hover:bg-blue-50'}`}
                                     ><Minus size={11} strokeWidth={3} /></button>
 
-                                    <div className="flex flex-col items-center justify-center flex-1" data-duration-trigger="true">
+                                    <div className="flex flex-col items-center justify-center flex-1 gap-0.5" data-duration-trigger="true">
+                                      <span className={`text-[8px] font-black tracking-widest uppercase leading-none ${isDurationLocked ? 'text-orange-400/60' : 'text-slate-300 group-hover/dur:text-blue-200'}`}>소요</span>
                                       <span
                                         className={`text-[12.5px] sm:text-[14px] whitespace-nowrap font-black tabular-nums tracking-tight leading-none transition-colors ${isAutoLocked ? 'cursor-not-allowed text-red-500' : (p.isDurationFixed ? 'text-orange-500' : 'text-slate-700 group-hover/dur:text-blue-600')}`}
                                       >
@@ -5468,7 +5482,7 @@ const App = () => {
                           )}
 
                           {/* 🟢 우측 정보 영역 */}
-                          <div className={`flex-1 min-w-0 flex flex-col justify-start gap-2 ${isCompactTimeline ? 'p-2.5 sm:p-3' : 'p-3 sm:p-4'}`}>
+                          <div className={`w-1/2 flex-none min-w-0 flex flex-col justify-start gap-2 ${isCompactTimeline ? 'p-2.5 sm:p-3' : 'p-3 sm:p-4'}`}>
                             {isShip ? (
                               <div className="flex flex-col gap-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                                 {/* 페리 이름 */}
@@ -5860,7 +5874,7 @@ const App = () => {
 
                         {/* 🟩 하단 영수증 영역 (전체 너비 100%) */}
                         {p.type !== 'backup' && (
-                          <div className="w-full bg-slate-50/50" onClick={(e) => e.stopPropagation()}>
+                          <div className="mx-3 mb-3 mt-1.5 rounded-2xl overflow-hidden border border-slate-100/80" onClick={(e) => e.stopPropagation()}>
                             {isExpanded && (
                               <div className="px-5 py-4 animate-in slide-in-from-top-1 bg-white border-b border-slate-100 border-dashed">
                                 {p.types?.includes('ship') && (
@@ -5912,7 +5926,7 @@ const App = () => {
                             {/* ✅ 하단 통합 요금 정보 */}
                             <div
                               onClick={(e) => { e.stopPropagation(); toggleReceipt(p.id); }}
-                              className={`mt-auto px-5 py-3.5 flex items-center justify-between cursor-pointer transition-all ${isExpanded ? 'bg-blue-50/50 border-t border-blue-100/60' : 'bg-[#FAFBFC] border-t border-slate-50 hover:bg-slate-50/80'}`}
+                              className={`mt-auto px-5 py-3.5 flex items-center justify-between cursor-pointer transition-all ${isExpanded ? 'bg-blue-50/50 border-t border-blue-100/60' : 'bg-[#FAFBFC] hover:bg-slate-50/80'}`}
                             >
                               <div className="flex flex-col gap-0.5 text-left">
                                 <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-[0.15em] flex items-center gap-1.5">
@@ -6078,11 +6092,35 @@ const App = () => {
 
           {
             patchNotice && (
-              <div className="fixed top-4 right-4 z-[220] animate-in">
-                <div className="bg-white/95 backdrop-blur-xl border border-blue-100 shadow-[0_16px_32px_-16px_rgba(49,130,246,0.55)] rounded-xl px-3.5 py-2.5 min-w-[240px]">
-                  <p className="text-[10px] font-black text-[#3182F6] uppercase tracking-widest">Patch Status</p>
-                  <p className="text-[12px] font-black text-slate-700 mt-0.5">페이지 로딩 완료</p>
-                  <p className="text-[11px] font-bold text-slate-500 tabular-nums mt-0.5">적용 시각: {patchNotice.timeText}</p>
+              <div className="fixed top-4 right-4 z-[220] animate-in slide-in-from-right-4 fade-in duration-500">
+                <div className="bg-[#0d1117] border border-[#30363d] shadow-[0_24px_56px_-12px_rgba(0,0,0,0.75)] rounded-2xl overflow-hidden w-[340px]">
+                  {/* 터미널 상단 바 */}
+                  <div className="flex items-center gap-1.5 px-4 py-2.5 bg-[#161b22] border-b border-[#30363d]">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+                    <span className="ml-2 text-[10px] font-mono font-bold text-[#8b949e] tracking-wide">anti_planer — update.log</span>
+                  </div>
+                  {/* 로그 내용 */}
+                  <div className="px-4 py-3 flex flex-col gap-[5px]">
+                    <p className="text-[9px] font-mono text-[#6e7681] mb-1">$ git log --oneline --since="7 days ago"</p>
+                    {UPDATE_LOG.map((entry, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <span className="text-[9px] font-mono text-[#3fb950] shrink-0 tabular-nums">[{entry.date}]</span>
+                        <span className={`shrink-0 text-[8px] font-black font-mono px-1 py-px rounded leading-tight ${
+                          entry.tag === 'FIX'  ? 'bg-[#da3633]/25 text-[#f85149]' :
+                          entry.tag === 'FEAT' ? 'bg-[#1f6feb]/25 text-[#58a6ff]' :
+                                                 'bg-[#3fb950]/20 text-[#3fb950]'
+                        }`}>{entry.tag}</span>
+                        <span className="text-[10px] font-mono text-[#c9d1d9] leading-tight">{entry.msg}</span>
+                      </div>
+                    ))}
+                    <div className="mt-2 pt-2 border-t border-[#21262d] flex items-center gap-1.5">
+                      <span className="text-[9px] font-mono text-[#3fb950]">✓</span>
+                      <span className="text-[9px] font-mono text-[#8b949e]">빌드 성공 ·</span>
+                      <span className="text-[9px] font-mono text-[#6e7681] tabular-nums">{patchNotice.timeText}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )

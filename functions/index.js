@@ -60,13 +60,16 @@ const setCors = (req, res) => {
   const origin = req.headers.origin || '';
   if (ALLOWED_ORIGINS.includes(origin)) {
     res.set('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    res.set('Access-Control-Allow-Origin', '*');
   }
   res.set('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  res.set('Access-Control-Max-Age', '3600');
 };
 
 // ── /api/ai-key ─────────────────────────────────────────────────────────────
-exports.aiKey = onRequest(async (req, res) => {
+exports.aiKey = onRequest({ invoker: 'public' }, async (req, res) => {
   setCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).send('');
 
@@ -164,7 +167,7 @@ const getStoredUserApiKey = async (req) => {
   } catch { return ''; }
 };
 
-exports.groqAnalyze = onRequest(async (req, res) => {
+exports.groqAnalyze = onRequest({ invoker: 'public' }, async (req, res) => {
   setCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).send('');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

@@ -31,6 +31,9 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          VITE_AI_KEY_URL: https://aikey-ywislrhvla-du.a.run.app
+          VITE_GROQ_ANALYZE_URL: https://asia-northeast3-anti-planer.cloudfunctions.net/groqAnalyze
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

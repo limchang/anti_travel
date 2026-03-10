@@ -1272,6 +1272,7 @@ const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSe
     const endpoints = Array.from(new Set([
       proxyBase ? `${proxyBase}/api/groq-analyze` : '',
       envApiBase ? `${envApiBase}/api/groq-analyze` : '',
+      import.meta.env.VITE_GROQ_ANALYZE_URL || '',
       '/api/groq-analyze',
       proxyBase ? `${proxyBase}/api/grok-analyze` : '',
       envApiBase ? `${envApiBase}/api/grok-analyze` : '',
@@ -3241,7 +3242,8 @@ const App = () => {
     setServerAiKeyStatus((prev) => ({ ...prev, loading: true }));
     try {
       const token = await auth.currentUser.getIdToken();
-      const res = await fetch('/api/ai-key', {
+      const aiKeyUrl = import.meta.env.VITE_AI_KEY_URL || '/api/ai-key';
+      const res = await fetch(aiKeyUrl, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -3270,7 +3272,8 @@ const App = () => {
     }
     try {
       const token = await auth.currentUser.getIdToken();
-      const res = await fetch('/api/ai-key', {
+      const aiKeyUrl = import.meta.env.VITE_AI_KEY_URL || '/api/ai-key';
+      const res = await fetch(aiKeyUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3298,7 +3301,8 @@ const App = () => {
     }
     try {
       const token = await auth.currentUser.getIdToken();
-      const res = await fetch('/api/ai-key', {
+      const aiKeyUrl = import.meta.env.VITE_AI_KEY_URL || '/api/ai-key';
+      const res = await fetch(aiKeyUrl, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,

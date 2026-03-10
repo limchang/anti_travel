@@ -227,13 +227,15 @@ const WEEKDAY_OPTIONS = [
 ];
 const EMPTY_BUSINESS = { open: '', close: '', breakStart: '', breakEnd: '', lastOrder: '', entryClose: '', closedDays: [] };
 const UPDATE_LOG = [
+  { date: '03.10', time: '14:50', tag: 'FEAT', msg: '편집 모드 도입 — 안전한 페이지 탐색 기능' },
+  { date: '03.10', time: '14:50', tag: 'UX', msg: '플랜B 일정 상시 강조 (주황색 글로우)' },
+  { date: '03.10', time: '14:35', tag: 'FEAT', msg: '여분 시간 자동 보정 (시간 조율)' },
+  { date: '03.10', time: '14:35', tag: 'UX', msg: '컴팩트 플로팅 상단 바 디자인 개선' },
   { date: '03.09', time: '21:15', tag: 'UX', msg: '시간 셀 — 소요시간 시작·종료 사이 배치' },
   { date: '03.09', time: '20:40', tag: 'UX', msg: '업데이트 노트 — 사이트 UI 스타일 팝업' },
   { date: '03.09', time: '17:30', tag: 'UX', msg: '금액 요약 셀 — 카드 내 좌우 여백 추가' },
   { date: '03.09', time: '16:50', tag: 'FIX', msg: '내장소 수정 모달 터치 드래그 충돌 수정' },
   { date: '03.08', time: '19:10', tag: 'FEAT', msg: '영업 시간 에디터 통합 + 프리셋 버튼' },
-  { date: '03.08', time: '18:05', tag: 'FEAT', msg: '24:00 마감 시간 입력 지원' },
-  { date: '03.08', time: '14:20', tag: 'FIX', msg: '고정 일정 사이 소요시간 최소 30분 보장' },
 ];
 // 터치 시 나오는 시간 컨트롤러 프리셋 (필드별)
 const BUSINESS_PRESETS = {
@@ -1181,6 +1183,7 @@ const App = () => {
   const conflictAlertKeyRef = useRef('');
   const [lastAction, setLastAction] = useState("3일차 시작 일정이 수정되었습니다.");
   const [aiSuggestions, setAiSuggestions] = useState({});
+  const [isEditMode, setIsEditMode] = useState(false);
   const [activeDay, setActiveDay] = useState(1);
   const [activeItemId, setActiveItemId] = useState(null);
   const isNavScrolling = React.useRef(false);
@@ -1554,11 +1557,20 @@ const App = () => {
     void refreshPlanList(user.uid);
   }, [user, refreshPlanList]);
 
-  // patchNotice 자동 표시 — 비활성화
-  // useEffect(() => {
-  //   if (loading) return;
-  //   setPatchNotice({ timeText: ... });
-  // }, [loading]);
+  // patchNotice 자동 표시 (새로운 업데이트가 있을 때)
+  useEffect(() => {
+    if (loading || UPDATE_LOG.length === 0) return;
+    const latest = UPDATE_LOG[0];
+    const key = `patch_${latest.date}_${latest.time}`;
+    if (localStorage.getItem(key)) return;
+
+    setPatchNotice({ timeText: `${latest.date} ${latest.time}` });
+    localStorage.setItem(key, 'read');
+
+    // 6초 뒤 자동 닫기
+    const timer = setTimeout(() => setPatchNotice(null), 6000);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   useEffect(() => {
     if (!user || user.isGuest || loading || isSharedReadOnly) return;
@@ -2325,18 +2337,25 @@ const App = () => {
 
         if (diff !== 0 && lastMainItemIndex !== -1) {
           const prevItem = dayPlan[lastMainItemIndex];
-          // 페리는 duration 자동 조정 금지 (하선 시간 기준으로 고정)
-          // 고정 일정의 60분은 유지 (사용자 수동 리셋/고정 의도 우선)
-          if (!prevItem.types?.includes('ship') && !prevItem.isTimeFixed && !prevItem.isDurationFixed) {
-            const oldDuration = prevItem.duration || 0;
-            // 최소 30분 보장 — 고정 일정 사이에 끼어도 소요시간이 0이 되지 않게
-            const newDuration = Math.max(30, oldDuration + diff);
-            prevItem.duration = newDuration;
-            const actualDiff = newDuration - oldDuration;
-            currentEndMinutes += actualDiff;
+          if (diff > 0) {
+            // 여분 시간이 생김 -> 버퍼 타임으로 흡수 (이동칩 옆 보정 수치)
+            const oldBuffer = parseMinsLabel(currentItem.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+            const newBuffer = oldBuffer + diff;
+            currentItem.bufferTimeOverride = `${newBuffer}분`;
+            currentItem._isBufferCoordinated = true;
+            currentEndMinutes += diff; // 스케줄 동기화
           } else {
-            currentItem._timingConflict = true;
-            currentItem._timingConflictReason = '고정/잠금 조건으로 시간 보정 불가';
+            // 시간이 부족함 -> 기존처럼 이전 일정 소용시간 줄이거나(불가시 에러)
+            if (!prevItem.types?.includes('ship') && !prevItem.isTimeFixed && !prevItem.isDurationFixed) {
+              const oldDuration = prevItem.duration || 0;
+              const newDuration = Math.max(30, oldDuration + diff);
+              prevItem.duration = newDuration;
+              const actualDiff = newDuration - oldDuration;
+              currentEndMinutes += actualDiff;
+            } else {
+              currentItem._timingConflict = true;
+              currentItem._timingConflictReason = '고정/잠금 조건으로 시간 보정 불가';
+            }
           }
         }
       } else {
@@ -2495,6 +2514,7 @@ const App = () => {
       let minutes = parseMinsLabel(item.bufferTimeOverride, DEFAULT_BUFFER_MINS);
       minutes = Math.max(0, minutes + delta);
       item.bufferTimeOverride = `${minutes}분`;
+      item._isBufferCoordinated = false;
 
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       recalculateLodgeDurations(nextData.days);
@@ -3001,6 +3021,7 @@ const App = () => {
     if (!item) return;
     const total = (item.alternatives?.length || 0) + 1;
     const safePos = Math.max(0, Math.min(total - 1, Number(targetPos) || 0));
+    setHighlightedItemId(item.id); // 선택 시 해당 아이템 강조
     if (safePos === 0) {
       setViewingPlanIdx(prev => ({ ...prev, [item.id]: 0 }));
       setPlanVariantPicker(null);
@@ -4322,18 +4343,19 @@ const App = () => {
                       const openStatus = isOpenAt(place.business); // true=영업중, false=마감, null=정보없음
                       const baseDistance = placeDistanceMap[place.id];
 
-
                       return (
                         <div
                           key={place.id}
-                          draggable
+                          draggable={isEditMode}
                           onTouchStart={(e) => {
+                            if (!isEditMode) return;
                             const targetEl = e.target instanceof Element ? e.target : null;
                             if (targetEl?.closest('input,button,a,textarea,[contenteditable],[data-no-drag]')) return;
                             touchDragSourceRef.current = { kind: 'library', place, startX: e.touches[0].clientX, startY: e.touches[0].clientY };
                             isDraggingActiveRef.current = false;
                           }}
                           onDragStart={(e) => {
+                            if (!isEditMode) { e.preventDefault(); return; }
                             const copy = ctrlHeldRef.current;
                             const targetEl = e.target instanceof Element ? e.target : null;
                             const isInteractiveTarget = !!targetEl?.closest('input, button, a, textarea, [contenteditable="true"], [data-no-drag="true"]');
@@ -4364,9 +4386,7 @@ const App = () => {
                               setDraggingFromTimeline(null);
                             }
                           }}
-                          className={`relative w-full shrink-0 rounded-[20px] border bg-white cursor-grab active:cursor-grabbing select-none transition-all duration-300 group overflow-hidden hover:-translate-y-0.5
-                    ${draggingFromLibrary?.id === place.id ? 'pointer-events-none opacity-50' : ''}
-                    ${bizWarningNow ? 'border-orange-200 hover:shadow-[0_8px_24px_-4px_rgba(249,115,22,0.15)] ring-1 ring-orange-100' : openStatus === true ? 'border-[#3182F6]/30 shadow-[0_4px_16px_-4px_rgba(49,130,246,0.1)] hover:shadow-[0_8px_24px_-4px_rgba(49,130,246,0.15)] ring-1 ring-[#3182F6]/10' : 'border-slate-100 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.06)] hover:border-slate-200'}`}
+                          className={`group relative bg-white rounded-2xl border border-slate-100 p-3 shadow-[0_8px_20px_-12px_rgba(15,23,42,0.08)] transition-all duration-300 ${draggingFromLibrary?.id === place.id ? 'opacity-40 animate-pulse' : 'hover:shadow-[0_12px_24px_-12px_rgba(15,23,42,0.12)] hover:border-slate-200'} ${isPlaceExpanded ? 'scale-[1.01]' : ''} ${bizWarningNow ? 'border-orange-200 hover:shadow-[0_8px_24px_-4px_rgba(249,115,22,0.15)] ring-1 ring-orange-100' : openStatus === true ? 'border-[#3182F6]/30 shadow-[0_4px_16px_-4px_rgba(49,130,246,0.1)] hover:shadow-[0_8px_24px_-4px_rgba(49,130,246,0.15)] ring-1 ring-[#3182F6]/10' : 'border-slate-100 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.06)] hover:border-slate-200'}`}
                         >
                           <div className="p-4 flex flex-col gap-2.5">
                             <span className="text-[22px] font-black text-slate-800 leading-tight break-words whitespace-normal">{place.name}</span>
@@ -4850,63 +4870,57 @@ const App = () => {
                 {heroCollapsed && (
                   <div
                     className="fixed top-0 z-[190] pointer-events-none"
-                    style={{ left: isMobileLayout ? 12 : leftSidebarWidth, right: isMobileLayout ? 12 : (col2Collapsed ? 44 : 300) }}
+                    style={{ left: isMobileLayout ? 0 : leftSidebarWidth, right: isMobileLayout ? 0 : (col2Collapsed ? 44 : 300) }}
                   >
-                    <div className="w-full bg-white/96 backdrop-blur-2xl border-b border-slate-200/90 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.5)] pointer-events-auto min-h-[88px] px-4 py-2.5 flex flex-col justify-center gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
-                          <MapPin size={11} className="text-[#3182F6]" />
+                    <div className="w-full bg-white/98 backdrop-blur-2xl border-b border-slate-200/90 shadow-[0_4px_20px_-10px_rgba(15,23,42,0.15)] pointer-events-auto min-h-[56px] px-6 py-2 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-xl bg-[#3182F6] flex items-center justify-center shrink-0 shadow-sm">
+                          <MapPin size={13} className="text-white" />
                         </div>
-                        <span className="text-[13px] font-black text-slate-800 truncate flex-1">{tripRegion || '여행지'}</span>
-                        <div className="relative shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => setShowDatePicker(v => !v)}
-                            className="text-[11px] font-black text-slate-400 tabular-nums px-2 py-1 rounded-md hover:bg-slate-100 transition-colors"
-                            title="기간 설정"
-                          >
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[14px] font-black text-slate-900 truncate tracking-tight">{tripRegion || '여행지'}</span>
+                          <span className="text-[10px] font-bold text-slate-400 leading-none">
                             {(tripStartDate && tripEndDate)
                               ? `${tripStartDate.slice(5).replace('-', '.')}~${tripEndDate.slice(5).replace('-', '.')}`
                               : `${tripNights}박 ${tripDays}일`}
-                          </button>
-                          {showDatePicker && (
-                            <>
-                              <div className="fixed inset-0 z-[299]" onClick={() => setShowDatePicker(false)} />
-                              <div className="absolute top-full right-0 z-[300] mt-2">
-                                <DateRangePicker
-                                  startDate={tripStartDate}
-                                  endDate={tripEndDate}
-                                  onStartChange={setTripStartDate}
-                                  onEndChange={setTripEndDate}
-                                  onClose={() => setShowDatePicker(false)}
-                                />
-                              </div>
-                            </>
-                          )}
+                          </span>
                         </div>
-                        {canManagePlan && <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            onClick={() => setShowPlanOptions(true)}
-                            className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors flex items-center justify-center"
-                            title="일정 옵션"
-                          >
-                            <SlidersHorizontal size={13} />
-                          </button>
-                          <button
-                            onClick={() => setShowShareManager(true)}
-                            className="w-8 h-8 rounded-lg border border-blue-200 bg-blue-50 text-[#3182F6] hover:bg-blue-100 transition-colors flex items-center justify-center"
-                            title="공유 설정"
-                          >
-                            <Share2 size={13} />
-                          </button>
-                        </div>}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-[#3182F6] to-indigo-500 rounded-full" style={{ width: `${usedPct}%` }} />
+
+                      <div className="flex items-center gap-4 shrink-0">
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className="text-[14px] font-black text-[#3182F6] tabular-nums tracking-tight">₩{budgetSummary.remaining.toLocaleString()}</span>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                              <div className="h-full bg-[#3182F6] rounded-full transition-all duration-700" style={{ width: `${usedPct}%` }} />
+                            </div>
+                            <span className="text-[10px] font-black text-slate-400 tabular-nums">{usedPct}%</span>
+                          </div>
                         </div>
-                        <span className="text-[11px] font-black text-slate-500 tabular-nums shrink-0">{usedPct}%</span>
-                        <span className="text-[14px] font-black text-[#3182F6] tabular-nums tracking-tight shrink-0">₩{budgetSummary.remaining.toLocaleString()}</span>
+
+                        {canManagePlan && (
+                          <div className="flex items-center gap-1.5 border-l border-slate-100 pl-4">
+                            <button
+                              onClick={() => setIsEditMode(!isEditMode)}
+                              className={`w-8 h-8 rounded-xl border transition-all flex items-center justify-center shadow-sm ${isEditMode ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-white border-slate-100 text-slate-400'}`}
+                              title={isEditMode ? '편집 모드 종료' : '편집 모드 시작 (드래그 활성화)'}
+                            >
+                              {isEditMode ? <Edit3 size={13} /> : <Lock size={13} />}
+                            </button>
+                            <button
+                              onClick={() => setShowPlanOptions(true)}
+                              className="w-8 h-8 rounded-xl border border-slate-100 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-all flex items-center justify-center shadow-sm"
+                            >
+                              <SlidersHorizontal size={13} />
+                            </button>
+                            <button
+                              onClick={() => setShowShareManager(true)}
+                              className="w-8 h-8 rounded-xl border border-blue-100 bg-blue-50 text-[#3182F6] hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shadow-sm"
+                            >
+                              <Share2 size={13} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -4918,15 +4932,22 @@ const App = () => {
                     <div className="w-full relative overflow-hidden bg-transparent">
                       {canManagePlan && <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                         <button
+                          onClick={() => setIsEditMode(!isEditMode)}
+                          className={`w-10 h-10 rounded-xl border backdrop-blur transition-all flex items-center justify-center shadow-lg ${isEditMode ? 'bg-amber-400/90 border-amber-300 text-white font-black' : 'bg-white/85 border-white/40 text-slate-700'}`}
+                          title={isEditMode ? '편집 모드 종료' : '편집 모드 시작 (드래그 활성화)'}
+                        >
+                          {isEditMode ? <Edit3 size={18} /> : <Lock size={18} />}
+                        </button>
+                        <button
                           onClick={() => setShowPlanOptions(true)}
-                          className="w-10 h-10 rounded-xl border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center"
+                          className="w-10 h-10 rounded-xl border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg"
                           title="일정 옵션"
                         >
                           <SlidersHorizontal size={16} />
                         </button>
                         <button
                           onClick={() => setShowShareManager(true)}
-                          className="w-10 h-10 rounded-xl border border-blue-200 bg-blue-50/90 backdrop-blur text-[#3182F6] hover:bg-blue-100 transition-colors flex items-center justify-center"
+                          className="w-10 h-10 rounded-xl border border-blue-200 bg-blue-50/90 backdrop-blur text-[#3182F6] hover:bg-blue-100 transition-colors flex items-center justify-center shadow-lg"
                           title="공유 설정"
                         >
                           <Share2 size={16} />
@@ -5133,23 +5154,26 @@ const App = () => {
             <React.Fragment>
               {itinerary.days?.map((d, dIdx) => d.plan?.map((p, pIdx) => {
                 const isExpanded = expandedId === p.id;
+                const isLodge = isLodgeStay(p.types);
+                const isShip = p.types?.includes('ship');
+                const planBCount = p.alternatives?.length || 0;
+                const hasPlanB = planBCount > 0;
+                const planPos = viewingPlanIdx[p.id] ?? 0;
+                const isPlanBActive = planPos > 0;
+
                 let stateStyles;
-                if (isLodgeStay(p.types)) stateStyles = 'bg-white border-slate-300 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.08)]';
-                else if (p.types?.includes('ship')) stateStyles = 'bg-[#f4fafe] border-blue-200 shadow-[0_8px_24px_-8px_rgba(29,78,216,0.12)]';
+                if (isLodge) stateStyles = 'bg-white border-slate-300 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.08)]';
+                else if (isShip) stateStyles = 'bg-[#f4fafe] border-blue-200 shadow-[0_8px_24px_-8px_rgba(29,78,216,0.12)]';
+                else if (hasPlanB) stateStyles = 'bg-white border-amber-300 shadow-[0_10px_30px_-8px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/20';
                 else if (p.isTimeFixed) stateStyles = 'bg-white border-[#3182F6]/40 shadow-[0_10px_30px_-8px_rgba(49,130,246,0.12)] ring-1 ring-[#3182F6]/15';
                 else stateStyles = 'bg-white border-slate-200 shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)] hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)] hover:border-slate-300';
 
                 const chips = p.types ? p.types.map(t => getCategoryBadge(t)) : (p.type ? [getCategoryBadge(p.type)] : []);
-                const isLodge = isLodgeStay(p.types);
-                const isShip = p.types?.includes('ship');
                 const businessWarning = !isShip ? getBusinessWarning(p, dIdx) : '';
-                const planBCount = p.alternatives?.length || 0;
-                const hasPlanB = planBCount > 0;
                 // 스마트 락(숙소 자동 계산) 여부 확인
                 const isAutoLocked = p.isAutoDuration;
                 const isDurationLocked = !!p.isDurationFixed || isAutoLocked;
                 // Plan B 캐러셀 — 즉시 교체
-                const planPos = viewingPlanIdx[p.id] ?? 0; // 0-based 위치 표시용
                 const totalPlans = planBCount + 1;
                 const cyclePlan = (dir) => {
                   rotatePlan(dIdx, pIdx, dir);
@@ -5171,15 +5195,18 @@ const App = () => {
                       <div className="flex items-center justify-center py-3 w-full">
                         <div className="flex items-center bg-slate-50/95 px-3 py-1.5 rounded-full border border-slate-300 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.45)] gap-2">
                           {/* 이동 시간 */}
-                          <div className="flex items-center gap-1.5">
-                            <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
+                          <div className="flex flex-col items-center">
+                            {p._isBufferCoordinated && (
+                              <span className="text-[8px] font-black text-orange-400 absolute -top-4 whitespace-nowrap">시간 보정됨</span>
+                            )}
                             <span
-                              className={`min-w-[3rem] text-center tracking-tight text-xs font-black ${p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800'}`}
+                              className={`min-w-[3rem] text-center tracking-tight text-xs font-black transition-colors ${p._isBufferCoordinated ? 'text-orange-500' : (p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800')}`}
                               onClick={(e) => { e.stopPropagation(); if (p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto) resetTravelTime(dIdx, pIdx); }}
                               title={p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? '클릭하여 경로 계산 시간으로 초기화' : undefined}
                             >{p.travelTimeOverride || '15분'}</span>
-                            <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                           </div>
+                          <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
+
                           {/* 거리 */}
                           <button
                             type="button"
@@ -5206,15 +5233,20 @@ const App = () => {
                             <MapIcon size={11} />
                             <span>{formatDistanceText(p.distance)}</span>
                           </button>
+
                           {/* 자동경로 */}
                           {(() => {
-                            const rid = `${dIdx}_${pIdx}`; const busy = calculatingRouteId === rid; return (
+                            const rid = `${dIdx}_${pIdx}`; const busy = calculatingRouteId === rid;
+                            return (
                               <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }} disabled={!!calculatingRouteId} className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1 text-[10px] font-black ${busy ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
                                 <Sparkles size={10} /> {busy ? '계산중' : '자동경로'}
-                              </button>);
+                              </button>
+                            );
                           })()}
+
                           {/* 구분선 */}
                           <div className="w-px h-4 bg-slate-200 mx-0.5" />
+
                           {/* 여유 시간 */}
                           <div className="flex items-center gap-1.5">
                             <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
@@ -5227,8 +5259,9 @@ const App = () => {
 
                     <div
                       data-dropitem={`${dIdx}-${pIdx}`}
-                      draggable
+                      draggable={isEditMode}
                       onTouchStart={(e) => {
+                        if (!isEditMode) return;
                         const targetEl = e.target instanceof Element ? e.target : null;
                         if (targetEl?.closest('input,button,a,textarea,[contenteditable],[data-no-drag]')) return;
                         // 카드 드래그는 항상 현재 화면에 보이는(메인) 일정을 이동
@@ -5714,6 +5747,9 @@ const App = () => {
                                   >
                                     {chips}
                                   </div>
+                                  {hasPlanB && (
+                                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-200 leading-none shadow-sm animate-in fade-in zoom-in duration-300">PLAN B {isPlanBActive ? 'ACTIVE' : ''}</span>
+                                  )}
                                 </div>
 
                                 {tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx && (
@@ -5934,7 +5970,7 @@ const App = () => {
 
                     {/* 일차 마지막 아이템 아래 드롭 존 */}
                     {
-                      pIdx === d.plan.length - 1 && p.type !== 'backup' && (draggingFromLibrary || draggingFromTimeline !== null) && (() => {
+                      pIdx === d.plan.length - 1 && p.type !== 'backup' && (draggingFromLibrary || (draggingFromTimeline && draggingFromTimeline !== null)) && (() => {
                         const isDropHere = dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === pIdx;
                         const dropWarn = isDropHere && draggingFromLibrary ? getDropWarning(draggingFromLibrary, dIdx, pIdx) : '';
                         return (
@@ -6043,7 +6079,14 @@ const App = () => {
                                   <div className="w-px h-4 bg-slate-200 mx-0.5" />
                                   <div className="flex items-center gap-1.5">
                                     <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
-                                    <span className="min-w-[3rem] text-center tracking-tight text-xs font-black text-slate-500">{nextItem.bufferTimeOverride || '10분'}</span>
+                                    <div className="flex flex-col items-center">
+                                      {nextItem._isBufferCoordinated && (
+                                        <span className="text-[8px] font-black text-orange-400 absolute -top-4 whitespace-nowrap">시간 보정됨</span>
+                                      )}
+                                      <span className={`min-w-[3rem] text-center tracking-tight text-xs font-black transition-colors ${nextItem._isBufferCoordinated ? 'text-orange-500' : 'text-slate-500'}`}>
+                                        {nextItem.bufferTimeOverride || '10분'}
+                                      </span>
+                                    </div>
                                     <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                                   </div>
                                 </div>
@@ -6056,7 +6099,7 @@ const App = () => {
                 );
               }))}
             </React.Fragment>
-          </div>
+          </div >
 
           {/* 되돌리기 토스트 */}
           {
@@ -6095,8 +6138,8 @@ const App = () => {
                     {UPDATE_LOG.map((entry, i) => (
                       <div key={i} className="flex items-start gap-2">
                         <span className={`shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded-md leading-tight border ${entry.tag === 'FIX' ? 'bg-red-50 text-red-500 border-red-100' :
-                            entry.tag === 'FEAT' ? 'bg-blue-50 text-[#3182F6] border-blue-100' :
-                              'bg-emerald-50 text-emerald-600 border-emerald-100'
+                          entry.tag === 'FEAT' ? 'bg-blue-50 text-[#3182F6] border-blue-100' :
+                            'bg-emerald-50 text-emerald-600 border-emerald-100'
                           }`}>{entry.tag}</span>
                         <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                           <span className="text-[11px] font-bold text-slate-700 leading-tight">{entry.msg}</span>
@@ -6214,7 +6257,7 @@ const App = () => {
               </div>
             )
           }
-        </div>
+        </div >
 
         <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;900&display=swap');
@@ -6231,14 +6274,13 @@ const App = () => {
         }
       `}</style>
       </div>
-    </div>
-  );
+      );
 };
 
 const AppWithBoundary = () => (
-  <AppErrorBoundary>
-    <App />
-  </AppErrorBoundary>
-);
+      <AppErrorBoundary>
+        <App />
+      </AppErrorBoundary>
+      );
 
-export default AppWithBoundary;
+      export default AppWithBoundary;

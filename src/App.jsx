@@ -1118,6 +1118,7 @@ const getSmartFillErrorMessage = (error, aiEnabled = false) => {
   if (!message) {
     return aiEnabled ? 'Groq 스마트 붙여넣기에 실패했습니다.' : '스마트 붙여넣기에 실패했습니다.';
   }
+  if (/NAVER_URL_ONLY/i.test(message)) return '네이버 지도 URL만으로는 자동 채우기가 불가합니다. 네이버 지도 페이지에서 텍스트를 길게 눌러 전체 선택 후 복사해 다시 시도해 주세요.';
   if (/Image smart fill requires AI/i.test(message)) return '이미지 스마트 붙여넣기는 AI를 켠 상태에서만 사용할 수 있습니다.';
   if (/No clipboard payload provided/i.test(message)) return '클립보드에 텍스트나 이미지가 없습니다.';
   if (/notallowederror|denied|clipboard/i.test(message)) return '클립보드 접근 권한을 허용해 주세요.';
@@ -1272,9 +1273,9 @@ const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSe
           inputType,
         };
       }
-    } catch (error) {
-      if (!aiEnabled && inputType === 'text' && String(payload.text || '').trim() === mapUrl) {
-        throw error;
+    } catch {
+      if (inputType === 'text' && String(payload.text || '').trim() === mapUrl) {
+        throw new Error('NAVER_URL_ONLY');
       }
     }
   }

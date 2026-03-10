@@ -43,6 +43,14 @@
 
 > 새 작업은 위에 추가 — 최신순 정렬
 
+### #106 · 네이버 지도 URL 전용 클립보드 스마트 채우기 안내 메시지
+- [x] **요청 분석**: 네이버 지도 URL만 복사한 상태로 스마트 자동 채우기를 사용하면 scrape 서버가 없어 실패함. scrape는 Puppeteer 필요라 GitHub Pages에서 불가. 대신 페이지 텍스트 복사 안내로 UX 개선
+  > 🕐 시작: `2026-03-11 · Claude Sonnet 4.6` → 🕑 종료: 완료 | ✅ 기록 완료
+  > 📝 이해: api/scrape.js는 Puppeteer 기반으로 로컬 서버에서만 작동. GitHub Pages 배포 환경에서는 /api/scrape가 없으므로 URL만 있을 때 항상 실패함. 네이버 페이지 텍스트 복사는 parseNaverMapText로 잘 작동함
+- [x] **작업 계획**: analyzeClipboardSmartFill에서 URL만 있을 때 NAVER_URL_ONLY 에러 throw, getSmartFillErrorMessage에서 텍스트 복사 안내 문구로 변환 후 빌드 검증
+  > 🕐 시작: `2026-03-11 · Claude Sonnet 4.6` → 🕑 종료: 완료 | ✅ 완료
+  > 📝 수정: scrape catch 블록에서 URL만 있는 경우 NAVER_URL_ONLY 에러 throw. getSmartFillErrorMessage에 안내 문구 추가 — "네이버 지도 페이지에서 텍스트를 길게 눌러 전체 선택 후 복사해 다시 시도해 주세요."
+  > 📝 검증: npm run build 성공
 ### #105 · BusinessHoursEditor 2x2 카드를 페리 셀 비율로 축소
 - [x] **요청 분석**: 현재 2x2 운영정보 카드가 페리 하단 셀보다 크고 여백이 많음. 페리 셀처럼 min-h 없이 컨텐츠 기반 높이, text-[13px], px-2 py-2, gap-1 구조로 맞춰야 함
   > 🕐 시작: `2026-03-11 · Claude Sonnet 4.6` → 🕑 종료: 완료 | ✅ 기록 완료

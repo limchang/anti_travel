@@ -861,71 +861,105 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
       <div className="p-3 flex flex-col gap-2.5">
         <OrderedTagPicker value={newPlaceTypes} onChange={setNewPlaceTypes} title="태그" />
 
-        <div className="relative group/name-input">
-          <div className="flex items-center gap-2 bg-slate-50 border-2 border-slate-100 focus-within:border-[#3182F6] focus-within:bg-white transition-all rounded-2xl px-4 py-3 shadow-sm">
-            <input
-              autoFocus
-              value={newPlaceName}
-              onChange={(e) => {
-                const val = e.target.value;
-                const mapUrl = extractMapLink(val);
-                if (mapUrl) {
-                  void scrapePlaceFromMapLink(mapUrl);
-                } else {
-                  setNewPlaceName(val);
-                }
-              }}
-              onPaste={async (e) => {
-                const text = e.clipboardData.getData('text');
-                if (text && !extractMapLink(text) && text.length > 50) {
-                  const parsed = parseNaverMapText(text);
-                  if (parsed && (parsed.address || parsed.business || parsed.menus.length)) {
-                    e.preventDefault();
-                    if (parsed.name) setNewPlaceName(parsed.name);
-                    if (parsed.address) setAddress(parsed.address);
-                    if (parsed.business) setBusiness(parsed.business);
-                    if (parsed.menus.length) setMenus(parsed.menus);
-                    setAddressSearchNote('클립보드 내용을 분석하여 입력했습니다.');
-                  }
-                }
-              }}
-              onBlur={() => { void tryAutoFillAddress(false); }}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') onCancel();
-                if (e.key === 'Enter') {
+        <div className="flex items-center gap-2 text-slate-500 bg-slate-50 w-full px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm focus-within:border-[#3182F6]/50 focus-within:bg-white transition-all">
+          <input
+            autoFocus
+            value={newPlaceName}
+            onChange={(e) => {
+              const val = e.target.value;
+              const mapUrl = extractMapLink(val);
+              if (mapUrl) {
+                void scrapePlaceFromMapLink(mapUrl);
+              } else {
+                setNewPlaceName(val);
+              }
+            }}
+            onPaste={async (e) => {
+              const text = e.clipboardData.getData('text');
+              if (text && !extractMapLink(text) && text.length > 50) {
+                const parsed = parseNaverMapText(text);
+                if (parsed && (parsed.address || parsed.business || parsed.menus.length)) {
                   e.preventDefault();
-                  void tryAutoFillAddress(true);
+                  if (parsed.name) setNewPlaceName(parsed.name);
+                  if (parsed.address) setAddress(parsed.address);
+                  if (parsed.business) setBusiness(parsed.business);
+                  if (parsed.menus.length) setMenus(parsed.menus);
+                  setAddressSearchNote('클립보드 내용을 분석하여 입력했습니다.');
                 }
-              }}
-              placeholder="일정 이름 입력 (지도 링크 붙여넣기 가능)"
-              className="flex-1 bg-transparent text-[17px] font-black text-slate-800 leading-tight outline-none placeholder:text-slate-300"
-            />
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const text = await navigator.clipboard.readText();
-                  const parsed = parseNaverMapText(text);
-                  if (parsed) {
-                    if (parsed.name) setNewPlaceName(parsed.name);
-                    if (parsed.address) setAddress(parsed.address);
-                    if (parsed.business) setBusiness(parsed.business);
-                    if (parsed.menus.length) setMenus(parsed.menus);
-                    setAddressSearchNote('클립보드 내용을 분석하여 입력했습니다.');
-                  } else {
-                    setAddressSearchNote('분석할 수 없는 형식입니다.');
-                  }
-                } catch (err) {
-                  setAddressSearchNote('클립보드 접근 권한이 필요합니다.');
+              }
+            }}
+            onBlur={() => { void tryAutoFillAddress(false); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') onCancel();
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                void tryAutoFillAddress(true);
+              }
+            }}
+            placeholder="일정 이름 입력 (지도 링크 붙여넣기 가능)"
+            className="flex-1 bg-transparent text-[11px] font-bold text-slate-600 leading-tight outline-none placeholder:text-slate-400"
+          />
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const text = await navigator.clipboard.readText();
+                const parsed = parseNaverMapText(text);
+                if (parsed) {
+                  if (parsed.name) setNewPlaceName(parsed.name);
+                  if (parsed.address) setAddress(parsed.address);
+                  if (parsed.business) setBusiness(parsed.business);
+                  if (parsed.menus.length) setMenus(parsed.menus);
+                  setAddressSearchNote('클립보드 내용을 분석하여 입력했습니다.');
+                } else {
+                  setAddressSearchNote('분석할 수 없는 형식입니다.');
                 }
-              }}
-              className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-blue-50 border border-blue-100 text-[#3182F6] hover:bg-[#3182F6] hover:text-white transition-all active:scale-95"
-              title="스마트 붙여넣기"
-            >
-              <Sparkles size={14} />
-            </button>
-          </div>
+              } catch (err) {
+                setAddressSearchNote('클립보드 접근 권한이 필요합니다.');
+              }
+            }}
+            className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+            title="스마트 전체 붙여넣기"
+          >
+            <Sparkles size={9} />
+          </button>
         </div>
+
+        <div className="flex gap-1.5 -mt-1 mb-0.5">
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const text = await navigator.clipboard.readText();
+                const parsed = parseNaverMapText(text);
+                if (parsed?.business) {
+                  setBusiness(parsed.business);
+                  setAddressSearchNote('영업 정보를 스마트 입력했습니다.');
+                }
+              } catch (err) { /* silent */ }
+            }}
+            className="flex-1 py-1 rounded-lg border border-slate-100 bg-slate-50 text-[9px] font-black text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-all"
+          >
+            🕒 영업정보만 입력
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const text = await navigator.clipboard.readText();
+                const parsed = parseNaverMapText(text);
+                if (parsed?.menus?.length) {
+                  setMenus(parsed.menus);
+                  setAddressSearchNote('메뉴 정보를 스마트 입력했습니다.');
+                }
+              } catch (err) { /* silent */ }
+            }}
+            className="flex-1 py-1 rounded-lg border border-slate-100 bg-slate-50 text-[9px] font-black text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] hover:border-blue-200 transition-all"
+          >
+            📋 메뉴만 입력
+          </button>
+        </div>
+
 
 
         <div className="flex items-center gap-2 text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm">
@@ -3942,7 +3976,70 @@ const App = () => {
             </div>
             <div className="p-4 flex flex-col gap-3">
               <OrderedTagPicker title="태그" value={editPlaceDraft.types || ['place']} onChange={(tags) => setEditPlaceDraft(d => ({ ...d, types: tags }))} />
-              <input value={editPlaceDraft.name} onChange={(e) => setEditPlaceDraft(d => ({ ...d, name: e.target.value }))} placeholder="장소 이름" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[14px] font-black text-slate-800 outline-none focus:border-[#3182F6]" />
+              <div className="flex items-center gap-2 text-slate-500 bg-slate-50 w-full px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm focus-within:border-[#3182F6]/50 focus-within:bg-white transition-all">
+                <input
+                  value={editPlaceDraft.name}
+                  onChange={(e) => setEditPlaceDraft(d => ({ ...d, name: e.target.value }))}
+                  placeholder="장소 이름"
+                  className="flex-1 bg-transparent text-[11px] font-bold text-slate-600 outline-none focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const text = await navigator.clipboard.readText();
+                      const parsed = parseNaverMapText(text);
+                      if (parsed) {
+                        setEditPlaceDraft(d => ({
+                          ...d,
+                          name: parsed.name || d.name,
+                          address: parsed.address || d.address,
+                          business: parsed.business || d.business,
+                          receipt: { ...(d.receipt || {}), items: parsed.menus.length ? parsed.menus : (d.receipt?.items || []) }
+                        }));
+                      }
+                    } catch (err) { /* silent */ }
+                  }}
+                  className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                  title="스마트 전체 붙여넣기"
+                >
+                  <Sparkles size={9} />
+                </button>
+              </div>
+
+              <div className="flex gap-1.5 -mt-1 mb-0.5">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const text = await navigator.clipboard.readText();
+                      const parsed = parseNaverMapText(text);
+                      if (parsed?.business) {
+                        setEditPlaceDraft(d => ({ ...d, business: parsed.business }));
+                      }
+                    } catch (err) { /* silent */ }
+                  }}
+                  className="flex-1 py-1 rounded-lg border border-slate-100 bg-slate-50 text-[9px] font-black text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-all"
+                >
+                  🕒 영업정보만 입력
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const text = await navigator.clipboard.readText();
+                      const parsed = parseNaverMapText(text);
+                      if (parsed?.menus?.length) {
+                        setEditPlaceDraft(d => ({ ...d, receipt: { ...(d.receipt || {}), items: parsed.menus } }));
+                      }
+                    } catch (err) { /* silent */ }
+                  }}
+                  className="flex-1 py-1 rounded-lg border border-slate-100 bg-slate-50 text-[9px] font-black text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] hover:border-blue-200 transition-all"
+                >
+                  📋 메뉴만 입력
+                </button>
+              </div>
+
               <input value={editPlaceDraft.address || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, address: e.target.value }))} placeholder="주소" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-600 outline-none focus:border-[#3182F6]" />
               <input value={editPlaceDraft.memo || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, memo: e.target.value }))} placeholder="메모" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none focus:border-[#3182F6]" />
               <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
@@ -4386,7 +4483,7 @@ const App = () => {
                               setDraggingFromTimeline(null);
                             }
                           }}
-                          className={`group relative bg-white rounded-2xl border border-slate-100 p-3 shadow-[0_8px_20px_-12px_rgba(15,23,42,0.08)] transition-all duration-300 ${draggingFromLibrary?.id === place.id ? 'opacity-40 animate-pulse' : 'hover:shadow-[0_12px_24px_-12px_rgba(15,23,42,0.12)] hover:border-slate-200'} ${isPlaceExpanded ? 'scale-[1.01]' : ''} ${bizWarningNow ? 'border-orange-200 hover:shadow-[0_8px_24px_-4px_rgba(249,115,22,0.15)] ring-1 ring-orange-100' : openStatus === true ? 'border-[#3182F6]/30 shadow-[0_4px_16px_-4px_rgba(49,130,246,0.1)] hover:shadow-[0_8px_24px_-4px_rgba(49,130,246,0.15)] ring-1 ring-[#3182F6]/10' : 'border-slate-100 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.06)] hover:border-slate-200'}`}
+                          className={`group relative bg-white rounded-2xl border border-slate-100 p-3 shadow-[0_8px_20px_-12px_rgba(15,23,42,0.08)] transition-all duration-300 ${draggingFromLibrary?.id === place.id ? 'opacity-40 animate-pulse' : 'hover:shadow-[0_12px_24px_-12px_rgba(15,23,42,0.12)] hover:border-slate-200'} ${isPlaceExpanded ? 'scale-[1.01]' : ''} ${bizWarningNow ? 'border-orange-200 hover:shadow-[0_8px_24px_-4px_rgba(249,115,22,0.15)] ring-1 ring-orange-100' : (openStatus === true ? 'border-[#3182F6]/30 shadow-[0_4px_16px_-4px_rgba(49,130,246,0.1)] hover:shadow-[0_8px_24px_-4px_rgba(49,130,246,0.15)] ring-1 ring-[#3182F6]/10' : 'border-slate-100 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.06)] hover:border-slate-200')}`}
                         >
                           <div className="p-4 flex flex-col gap-2.5">
                             <span className="text-[22px] font-black text-slate-800 leading-tight break-words whitespace-normal">{place.name}</span>
@@ -5763,7 +5860,7 @@ const App = () => {
                                 )}
 
                                 {/* 2행: 이름 (수정 가능한 Input) */}
-                                <div className="w-full flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                <div className="w-full flex items-center gap-2 text-slate-500 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm transition-all focus-within:border-[#3182F6]/50" onClick={(e) => e.stopPropagation()}>
                                   <input
                                     value={p.activity}
                                     onChange={(e) => updateActivityName(dIdx, pIdx, e.target.value)}
@@ -5777,10 +5874,66 @@ const App = () => {
                                         else setLastAction('주소를 찾을 수 없습니다.');
                                       }
                                     }}
-                                    className="flex-1 bg-transparent text-xl font-black text-slate-800 truncate leading-tight focus:outline-none focus:border-b focus:border-slate-300 transition-colors min-w-0"
+                                    className="flex-1 bg-transparent text-[13px] font-black text-slate-800 truncate leading-tight focus:outline-none min-w-0"
                                     placeholder="일정 이름 입력 후 Enter"
                                   />
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      try {
+                                        const text = await navigator.clipboard.readText();
+                                        const parsed = parseNaverMapText(text);
+                                        if (parsed) {
+                                          if (parsed.name) updateActivityName(dIdx, pIdx, parsed.name);
+                                          if (parsed.address) updateAddress(dIdx, pIdx, parsed.address);
+                                          if (parsed.business) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = parsed.business; return d; });
+                                          if (parsed.menus.length) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: parsed.menus }; return d; });
+                                          setLastAction('스마트 전체 붙여넣기 완료');
+                                        }
+                                      } catch (err) { /* silent */ }
+                                    }}
+                                    className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                    title="스마트 전체 붙여넣기"
+                                  >
+                                    <Sparkles size={9} />
+                                  </button>
                                 </div>
+
+                                <div className="flex gap-1.5 -mt-1 mb-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      try {
+                                        const text = await navigator.clipboard.readText();
+                                        const parsed = parseNaverMapText(text);
+                                        if (parsed?.business) {
+                                          setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = parsed.business; return d; });
+                                          setLastAction('영업 정보만 스마트 입력 완료');
+                                        }
+                                      } catch (err) { /* silent */ }
+                                    }}
+                                    className="flex-1 py-1 rounded-lg border border-slate-100 bg-slate-50 text-[9px] font-black text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-all"
+                                  >
+                                    🕒 영업정보만
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      try {
+                                        const text = await navigator.clipboard.readText();
+                                        const parsed = parseNaverMapText(text);
+                                        if (parsed?.menus?.length) {
+                                          setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: parsed.menus }; return d; });
+                                          setLastAction('메뉴 정보만 스마트 입력 완료');
+                                        }
+                                      } catch (err) { /* silent */ }
+                                    }}
+                                    className="flex-1 py-1 rounded-lg border border-slate-100 bg-slate-50 text-[9px] font-black text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] hover:border-blue-200 transition-all"
+                                  >
+                                    📋 메뉴만
+                                  </button>
+                                </div>
+
 
                                 {/* 3행: 주소 박스 (수정 + 자동검색) */}
                                 {(() => {
@@ -6099,7 +6252,7 @@ const App = () => {
                 );
               }))}
             </React.Fragment>
-          </div >
+          </div>
 
           {/* 되돌리기 토스트 */}
           {
@@ -6274,13 +6427,14 @@ const App = () => {
         }
       `}</style>
       </div>
-      );
+    </div>
+  );
 };
 
 const AppWithBoundary = () => (
-      <AppErrorBoundary>
-        <App />
-      </AppErrorBoundary>
-      );
+  <AppErrorBoundary>
+    <App />
+  </AppErrorBoundary>
+);
 
-      export default AppWithBoundary;
+export default AppWithBoundary;

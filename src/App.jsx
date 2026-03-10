@@ -9,7 +9,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal
+  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move
 } from 'lucide-react';
 
 const APP_VERSION = '1.0.0.0';
@@ -131,9 +131,14 @@ const normalizeTagOrder = (input) => {
   const list = Array.isArray(input) ? input : [];
   const modifiers = [...new Set(list.filter(t => MODIFIER_TAGS.has(t)))];
   const catTags = list.filter(t => !MODIFIER_TAGS.has(t) && TAG_VALUES.has(t));
+  const customTags = list
+    .filter(t => !MODIFIER_TAGS.has(t) && !TAG_VALUES.has(t))
+    .map(t => String(t || '').trim())
+    .filter(Boolean);
   const unique = [...new Set(catTags)].slice(0, 2);
-  if (unique.length === 0 && modifiers.length === 0) return ['place'];
-  return [...unique, ...modifiers];
+  const uniqueCustom = [...new Set(customTags)];
+  if (unique.length === 0 && uniqueCustom.length === 0 && modifiers.length === 0) return ['place'];
+  return [...unique, ...modifiers, ...uniqueCustom];
 };
 const toggleTagSelection = (current, tagValue) => {
   const normalized = normalizeTagOrder(current);
@@ -182,7 +187,8 @@ const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', class
   };
 
   const predefinedValues = new Set(TAG_OPTIONS.map(v => v.value));
-  const customTags = selected.filter(v => !predefinedValues.has(v) && v !== 'place');
+  const activeTags = selected.filter(v => v !== 'place');
+  const customTags = activeTags.filter(v => !predefinedValues.has(v));
 
   return (
     <div className={className}>
@@ -200,22 +206,596 @@ const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', class
         {customTags.map(t => (
           <button key={t} type="button" onClick={() => onChange(normalizeTagOrder(selected.filter(v => v !== t)))}
             className="px-2 py-0.5 rounded-lg text-[10px] font-black border transition-colors text-slate-600 bg-slate-100 border-slate-300 hover:bg-slate-200">
-            {t} <span className="text-slate-400 ml-0.5">✕</span>
+            {t}
           </button>
         ))}
+      </div>
+      <div className="mt-2 flex items-center gap-1.5">
         <input
           type="text"
           value={customInput}
           onChange={e => setCustomInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustom(); } }}
-          onBlur={handleAddCustom}
           placeholder="+ 직접 입력"
-          className="ml-1 w-20 px-2 py-0.5 rounded-lg text-[10px] font-black border border-slate-200 bg-white placeholder:text-slate-300 outline-none focus:border-[#3182F6]"
+          className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg text-[10px] font-black border border-slate-200 bg-white placeholder:text-slate-300 outline-none focus:border-[#3182F6]"
         />
+        <button
+          type="button"
+          onClick={handleAddCustom}
+          className="shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-black border border-slate-200 bg-slate-50 text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] hover:bg-blue-50 transition-colors"
+        >
+          추가
+        </button>
       </div>
     </div>
   );
 };
+const getCustomTagLabel = (tag) => String(tag || '').trim();
+const ACTION_SLOT_CLASS = 'shrink-0 flex items-center justify-end gap-1 min-w-[3.25rem]';
+
+const SharedNameRow = ({
+  value,
+  onChange,
+  onFocus,
+  onKeyDown,
+  onPaste,
+  autoFocus = false,
+  placeholder,
+  actionButton = null,
+  readOnly = false,
+  onContainerClick,
+}) => (
+  <div className="w-full flex items-center gap-2 text-slate-500 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm transition-all focus-within:border-[#3182F6]/50" onClick={onContainerClick}>
+    <input
+      value={value}
+      onChange={onChange}
+      onFocus={onFocus}
+      onKeyDown={onKeyDown}
+      onPaste={onPaste}
+      autoFocus={autoFocus}
+      readOnly={readOnly}
+      className="flex-1 bg-transparent text-[13px] font-black text-slate-800 truncate leading-tight focus:outline-none min-w-0"
+      placeholder={placeholder}
+    />
+    {actionButton ? <div className={ACTION_SLOT_CLASS}>{actionButton}</div> : null}
+  </div>
+);
+const SharedAddressRow = ({
+  value,
+  onChange,
+  placeholder = '주소 정보 없음',
+  leading = null,
+  actions = null,
+  onContainerClick,
+}) => (
+  <div className="flex items-center gap-2 text-slate-500 bg-white w-full px-2 py-1 rounded-lg border border-slate-200 shadow-sm" onClick={onContainerClick}>
+    {leading}
+    <input
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-bold text-slate-600 placeholder:text-slate-300"
+    />
+    {actions ? <div className={ACTION_SLOT_CLASS}>{actions}</div> : null}
+  </div>
+);
+const SharedBusinessRow = ({
+  summary,
+  placeholder = '영업 정보 (선택)',
+  onToggle,
+  actionButton = null,
+  expanded = null,
+  onContainerClick,
+}) => (
+  <div className="w-full bg-slate-50/60 border border-slate-200 rounded-lg py-1.5 px-2.5" onClick={onContainerClick}>
+    <div className="w-full flex items-center gap-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex-1 flex items-center gap-2 text-left min-w-0"
+      >
+        {summary === '미설정' || !summary ? (
+          <span className="text-[10px] font-bold text-slate-400">{placeholder}</span>
+        ) : (
+          <span className="text-[10px] font-bold text-slate-600 truncate flex-1">{summary}</span>
+        )}
+      </button>
+      {actionButton ? <div className={ACTION_SLOT_CLASS}>{actionButton}</div> : null}
+    </div>
+    {expanded}
+  </div>
+);
+const SharedMemoRow = ({ value, onChange, placeholder = '메모를 입력하세요...', onContainerClick, readOnly = false }) => (
+  <div onClick={onContainerClick}>
+    <input
+      value={value}
+      onChange={onChange}
+      readOnly={readOnly}
+      className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-1.5 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
+      placeholder={placeholder}
+    />
+  </div>
+);
+const MenuPriceInput = ({ value = 0, onCommit, className = '', onClick = null }) => {
+  const normalizedValue = Number(value) || 0;
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [draftValue, setDraftValue] = React.useState('');
+
+  React.useEffect(() => {
+    if (!isEditing) {
+      setDraftValue(String(normalizedValue || ''));
+    }
+  }, [normalizedValue, isEditing]);
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={isEditing ? draftValue : String(normalizedValue || '')}
+      placeholder={isEditing ? String(normalizedValue || 0) : ''}
+      onFocus={(e) => {
+        setIsEditing(true);
+        setDraftValue('');
+        requestAnimationFrame(() => e.target.select());
+      }}
+      onChange={(e) => setDraftValue(e.target.value.replace(/[^\d]/g, ''))}
+      onBlur={() => {
+        if (draftValue.trim() !== '') {
+          onCommit(Number(draftValue) || 0);
+        }
+        setIsEditing(false);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur();
+        if (e.key === 'Escape') {
+          setDraftValue(String(normalizedValue || ''));
+          setIsEditing(false);
+          e.currentTarget.blur();
+        }
+      }}
+      onClick={onClick}
+      className={className}
+    />
+  );
+};
+const SharedTotalFooter = ({ expanded, onToggle, total }) => (
+  <div
+    onClick={onToggle}
+    className={`mt-auto px-5 py-3.5 flex items-center justify-between cursor-pointer transition-all ${expanded ? 'bg-blue-50/50 border-t border-blue-100/60' : 'bg-[#FAFBFC] hover:bg-slate-50/80'}`}
+  >
+    <div className="flex flex-col gap-0.5 text-left">
+      <span className="text-[10px] text-slate-400 font-extrabold tracking-[0.15em] flex items-center gap-1.5">
+        TOTAL <ChevronDown size={12} className={`transition-transform duration-300 ${expanded ? 'rotate-180 text-[#3182F6]' : ''}`} />
+      </span>
+    </div>
+    <div className="flex items-center gap-2">
+      <span className={`text-[21px] font-black tabular-nums transition-colors ${expanded ? 'text-[#3182F6]' : 'text-slate-800'}`}>
+        ₩{Number(total || 0).toLocaleString()}
+      </span>
+    </div>
+  </div>
+);
+const createPlaceEditorDraft = (place = {}, overrides = {}) => {
+  const business = normalizeBusiness(place.business || {});
+  const cloneValue = (value) => JSON.parse(JSON.stringify(value));
+  const receipt = cloneValue(place.receipt || { address: place.address || '', items: [] });
+  if (!Array.isArray(receipt.items)) receipt.items = [];
+  receipt.items = receipt.items
+    .filter(Boolean)
+    .map((item) => ({
+      name: String(item?.name || '').trim(),
+      price: Number(item?.price) || 0,
+      qty: Math.max(1, Number(item?.qty) || 1),
+      selected: item?.selected !== false,
+    }));
+
+  return {
+    ...place,
+    ...overrides,
+    name: overrides.name ?? place.name ?? '',
+    address: overrides.address ?? place.address ?? place.receipt?.address ?? '',
+    memo: overrides.memo ?? place.memo ?? '',
+    types: normalizeTagOrder(Array.isArray(overrides.types ?? place.types) && (overrides.types ?? place.types).length ? (overrides.types ?? place.types) : ['place']),
+    business,
+    receipt: {
+      ...receipt,
+      address: overrides.address ?? place.address ?? place.receipt?.address ?? receipt.address ?? '',
+      items: overrides.receipt?.items ?? receipt.items,
+    },
+    showBusinessEditor: overrides.showBusinessEditor ?? !!(business.open || business.close || business.breakStart || business.breakEnd || business.lastOrder || business.entryClose || business.closedDays?.length),
+  };
+};
+const PlaceEditorCard = ({
+  className = '',
+  title,
+  draft,
+  onDraftChange,
+  onSubmit,
+  onCancel,
+  submitLabel,
+  cancelLabel = '취소',
+  regionHint = '',
+  autoFocusName = false,
+  forceReceiptExpanded = false,
+  addressSearchNote = '',
+  setAddressSearchNote = null,
+  onSmartPasteAll,
+  onSmartPasteBusiness,
+  onSmartPasteMenus,
+  onNameInput = null,
+  onNamePaste = null,
+}) => {
+  const [isSearchingAddress, setIsSearchingAddress] = React.useState(false);
+  const [receiptExpanded, setReceiptExpanded] = React.useState(forceReceiptExpanded);
+  const [pendingMenuFocusIdx, setPendingMenuFocusIdx] = React.useState(null);
+
+  React.useEffect(() => {
+    if (forceReceiptExpanded) setReceiptExpanded(true);
+  }, [forceReceiptExpanded]);
+
+  const safeDraft = createPlaceEditorDraft(draft);
+  React.useEffect(() => {
+    if (pendingMenuFocusIdx === null) return;
+    const target = document.querySelector(`[data-draft-menu-name="${pendingMenuFocusIdx}"]`);
+    if (target instanceof HTMLInputElement) {
+      target.focus();
+      target.select();
+    }
+    setPendingMenuFocusIdx(null);
+  }, [pendingMenuFocusIdx, safeDraft.receipt.items.length]);
+
+  const getQty = (item) => Math.max(1, Number(item?.qty) || 1);
+  const getLineTotal = (item) => (Number(item?.price) || 0) * getQty(item);
+  const total = safeDraft.receipt.items.reduce((sum, item) => sum + (item.selected === false ? 0 : getLineTotal(item)), 0);
+  const businessSummary = (() => {
+    const business = normalizeBusiness(safeDraft.business || {});
+    const parts = [];
+    if (business.open && business.close) parts.push(`영업 ${business.open}~${business.close}`);
+    if (business.breakStart && business.breakEnd) parts.push(`휴게 ${business.breakStart}~${business.breakEnd}`);
+    if (business.lastOrder) parts.push(`라스트 ${business.lastOrder}`);
+    if (business.entryClose) parts.push(`입장마감 ${business.entryClose}`);
+    if (Array.isArray(business.closedDays) && business.closedDays.length) parts.push(`휴무 ${business.closedDays.join(', ')}`);
+    return parts.length ? parts.join(' · ') : '미설정';
+  })();
+
+  const updateDraft = (updater) => {
+    const next = typeof updater === 'function' ? updater(safeDraft) : updater;
+    onDraftChange(createPlaceEditorDraft(next));
+  };
+
+  const tryAutoFillAddress = async (force = false) => {
+    if (isSearchingAddress) return;
+    if (!safeDraft.name.trim()) return;
+    if (safeDraft.address.trim() && !force) return;
+
+    setIsSearchingAddress(true);
+    setAddressSearchNote?.('주소 검색 중...');
+    try {
+      const foundAddress = await searchAddressFromPlaceName(safeDraft.name, regionHint);
+      if (!foundAddress?.address) {
+        setAddressSearchNote?.('검색 결과가 없습니다.');
+        return;
+      }
+      updateDraft((current) => ({ ...current, address: foundAddress.address }));
+      setAddressSearchNote?.('주소가 자동 입력되었습니다.');
+    } catch {
+      setAddressSearchNote?.('자동 입력에 실패했습니다.');
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  };
+
+  return (
+    <div className={`w-full rounded-[24px] border border-slate-200 bg-white shadow-[0_12px_30px_-18px_rgba(15,23,42,0.25)] overflow-hidden ${className}`.trim()}>
+      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
+        <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.18em]">{title}</p>
+        <button type="button" onClick={onCancel} className="p-1 rounded-md text-slate-300 hover:text-slate-500 hover:bg-white transition-colors">
+          <X size={14} />
+        </button>
+      </div>
+
+      <div className="p-4 flex flex-col gap-3">
+        <OrderedTagPicker title="태그" value={safeDraft.types} onChange={(tags) => updateDraft((current) => ({ ...current, types: tags }))} />
+
+        <SharedNameRow
+          value={safeDraft.name}
+          onChange={(e) => {
+            const nextValue = e.target.value;
+            if (onNameInput) onNameInput(nextValue);
+            else updateDraft((current) => ({ ...current, name: nextValue }));
+          }}
+          onPaste={onNamePaste}
+          autoFocus={autoFocusName}
+          placeholder="장소 이름 입력"
+          onFocus={(e) => autoFocusName && e.target.select()}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') onCancel();
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              void tryAutoFillAddress(true);
+            }
+          }}
+          actionButton={
+            <button
+              type="button"
+              onClick={onSmartPasteAll}
+              className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+              title="스마트 전체 붙여넣기"
+            >
+              <Sparkles size={9} />
+            </button>
+          }
+        />
+
+        <SharedAddressRow
+          value={safeDraft.address}
+          onChange={(e) => updateDraft((current) => ({ ...current, address: e.target.value }))}
+          placeholder="주소를 입력하세요"
+          leading={<MapPin size={12} className="text-[#3182F6] shrink-0" />}
+          actions={
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  const query = `${String(safeDraft.name || '').trim()} ${String(safeDraft.address || '').trim()}`.trim();
+                  if (!query) return;
+                  window.open(`https://map.naver.com/v5/search/${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
+                }}
+                title="네이버 지도에서 장소 검색"
+                className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+              >
+                <MapIcon size={9} />
+              </button>
+              <button
+                type="button"
+                onClick={() => { void tryAutoFillAddress(true); }}
+                disabled={isSearchingAddress || !safeDraft.name.trim()}
+                title="장소 이름으로 주소 자동 입력"
+                className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 disabled:opacity-50 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+              >
+                <Sparkles size={9} />
+              </button>
+            </>
+          }
+        />
+        <SharedBusinessRow
+          summary={businessSummary}
+          onToggle={() => updateDraft((current) => ({ ...current, showBusinessEditor: !current.showBusinessEditor }))}
+          actionButton={
+            <button
+              type="button"
+              onClick={onSmartPasteBusiness}
+              className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors"
+              title="영업정보만 스마트 붙여넣기"
+            >
+              <Sparkles size={9} />
+            </button>
+          }
+          expanded={safeDraft.showBusinessEditor ? (
+            <div className="mt-2">
+              <BusinessHoursEditor
+                business={safeDraft.business}
+                onChange={(business) => updateDraft((current) => ({ ...current, business: normalizeBusiness(business || {}) }))}
+              />
+            </div>
+          ) : null}
+        />
+
+        <SharedMemoRow
+          value={safeDraft.memo}
+          onChange={(e) => updateDraft((current) => ({ ...current, memo: e.target.value }))}
+        />
+      </div>
+
+      <div className="mx-4 mb-4 rounded-2xl overflow-hidden border border-slate-100/80">
+        {receiptExpanded && (
+          <div className="px-5 py-4 bg-white border-b border-slate-100 border-dashed">
+            <div className="space-y-3 mb-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] text-slate-400 font-semibold">메뉴명/수량/가격을 수정하면 총액이 자동 계산됩니다.</p>
+                <button
+                  type="button"
+                  onClick={onSmartPasteMenus}
+                  className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] hover:border-blue-200 transition-colors"
+                  title="메뉴만 스마트 붙여넣기"
+                >
+                  <Sparkles size={9} />
+                </button>
+              </div>
+              {safeDraft.receipt.items.map((item, idx) => (
+                <div key={`draft-menu-${idx}`} className="flex justify-between items-center text-xs group/item">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="cursor-pointer text-slate-300 hover:text-[#3182F6]" onClick={() => updateDraft((current) => {
+                      const items = [...current.receipt.items];
+                      items[idx] = { ...items[idx], selected: items[idx].selected === false };
+                      return { ...current, receipt: { ...current.receipt, items } };
+                    })}>
+                      {item.selected === false ? <Square size={14} /> : <CheckSquare size={14} className="text-[#3182F6]" />}
+                    </div>
+                    <input
+                      data-draft-menu-name={idx}
+                      value={item.name}
+                      onChange={(e) => updateDraft((current) => {
+                        const items = [...current.receipt.items];
+                        items[idx] = { ...items[idx], name: e.target.value };
+                        return { ...current, receipt: { ...current.receipt, items } };
+                      })}
+                      className="bg-transparent border-none outline-none text-slate-700 font-bold w-full"
+                      placeholder="메뉴명"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MenuPriceInput
+                      value={item.price}
+                      onCommit={(nextPrice) => updateDraft((current) => {
+                        const items = [...current.receipt.items];
+                        items[idx] = { ...items[idx], price: nextPrice };
+                        return { ...current, receipt: { ...current.receipt, items } };
+                      })}
+                      className="w-16 text-right font-bold text-slate-500 bg-transparent border-none outline-none placeholder:text-slate-300 focus:border-b focus:border-slate-300"
+                    />
+                    <div className="flex items-center gap-1 bg-white border border-slate-200 rounded p-0.5 shadow-sm">
+                      <button type="button" onClick={() => updateDraft((current) => {
+                        const items = [...current.receipt.items];
+                        items[idx] = { ...items[idx], qty: Math.max(1, getQty(items[idx]) - 1) };
+                        return { ...current, receipt: { ...current.receipt, items } };
+                      })}><Minus size={10} /></button>
+                      <span className="w-4 text-center text-[10px]">{getQty(item)}</span>
+                      <button type="button" onClick={() => updateDraft((current) => {
+                        const items = [...current.receipt.items];
+                        items[idx] = { ...items[idx], qty: getQty(items[idx]) + 1 };
+                        return { ...current, receipt: { ...current.receipt, items } };
+                      })}><Plus size={10} /></button>
+                    </div>
+                    <span className="w-20 text-right font-black text-[#3182F6]">₩{getLineTotal(item).toLocaleString()}</span>
+                    <button type="button" onClick={() => updateDraft((current) => {
+                      const items = [...current.receipt.items];
+                      items.splice(idx, 1);
+                      return { ...current, receipt: { ...current.receipt, items } };
+                    })} className="text-slate-300 hover:text-red-500"><Trash2 size={12} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setPendingMenuFocusIdx(safeDraft.receipt.items.length);
+                updateDraft((current) => ({ ...current, receipt: { ...current.receipt, items: [...current.receipt.items, { name: '', price: 0, qty: 1, selected: true }] } }));
+              }}
+              className="w-full py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-[#3182F6] hover:bg-white transition-all"
+            >
+              + 메뉴 추가
+            </button>
+          </div>
+        )}
+
+        <SharedTotalFooter
+          expanded={receiptExpanded}
+          total={total}
+          onToggle={() => setReceiptExpanded((prev) => forceReceiptExpanded ? true : !prev)}
+        />
+      </div>
+
+      <div className="px-4 pb-4 flex gap-2">
+        <button onClick={() => onSubmit(createPlaceEditorDraft({ ...safeDraft, price: total }))} className="flex-1 py-3 bg-[#3182F6] text-white text-[13px] font-black rounded-xl shadow-[0_8px_16px_-6px_rgba(49,130,246,0.35)] hover:bg-blue-600 transition-all active:scale-[0.98]">
+          {submitLabel}
+        </button>
+        <button onClick={onCancel} className="px-5 py-3 bg-white border border-slate-200 text-slate-500 text-[13px] font-black rounded-xl hover:bg-slate-50 transition-all">
+          {cancelLabel}
+        </button>
+      </div>
+    </div>
+  );
+};
+const PlaceLibraryCard = ({
+  cardProps = {},
+  place,
+  chips,
+  baseDistance = null,
+  statusChip = null,
+  businessSummary = '미설정',
+  isExpanded = false,
+  onEdit,
+  onOpenMap,
+  onBusinessEdit,
+  onToggleExpand,
+  onDelete,
+  getMenuQtyValue,
+  getMenuLineTotalValue,
+}) => (
+  <div
+    {...cardProps}
+    className={`w-full group relative overflow-hidden rounded-[24px] border border-[#3182F6]/15 bg-white shadow-[0_10px_28px_-14px_rgba(49,130,246,0.18)] ring-1 ring-[#3182F6]/6 transition-all duration-300 ${cardProps.className || ''}`.trim()}
+  >
+    <div className="p-4 flex flex-col gap-2.5">
+      <div className="flex items-center gap-1.5 flex-wrap pr-12 cursor-pointer" data-no-drag="true" onClick={onEdit}>
+        {chips}
+        {baseDistance != null && (
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-200 bg-blue-50 text-blue-600">
+            {baseDistance}km
+          </span>
+        )}
+        {statusChip}
+      </div>
+      <SharedNameRow
+        value={place.name || ''}
+        readOnly
+        placeholder="장소 이름"
+        onContainerClick={(e) => e.stopPropagation()}
+        actionButton={
+          <button
+            type="button"
+            onClick={onEdit}
+            className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+            title="장소 수정"
+          >
+            <Pencil size={9} />
+          </button>
+        }
+      />
+      <SharedAddressRow
+        value={place.address || place.receipt?.address || ''}
+        onChange={() => {}}
+        onContainerClick={(e) => e.stopPropagation()}
+        leading={<MapPin size={11} className="text-[#3182F6] shrink-0" />}
+        actions={
+          <button
+            type="button"
+            onClick={onOpenMap}
+            className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+            title="네이버 지도에서 장소 검색"
+          >
+            <MapIcon size={9} />
+          </button>
+        }
+      />
+      <SharedBusinessRow
+        summary={businessSummary}
+        placeholder="영업 정보 (선택)"
+        onContainerClick={(e) => e.stopPropagation()}
+        onToggle={onBusinessEdit}
+      />
+      <SharedMemoRow
+        value={place.memo || ''}
+        onChange={() => {}}
+        readOnly
+        onContainerClick={(e) => e.stopPropagation()}
+      />
+    </div>
+    {isExpanded && (
+      <div className="px-5 py-4 animate-in slide-in-from-top-1 bg-white border-b border-slate-100 border-dashed">
+        <div className="space-y-1.5">
+          {(place.receipt?.items || []).filter(Boolean).map((menu, idx) => (
+            <div key={`${menu?.name || 'menu'}-${idx}`} className="flex items-center justify-between text-[10px]">
+              <span className="text-slate-600 font-bold truncate">{menu?.name || '-'}</span>
+              <span className="text-slate-400 font-bold">x{getMenuQtyValue(menu)}</span>
+              <span className="text-[#3182F6] font-black">₩{getMenuLineTotalValue(menu).toLocaleString()}</span>
+            </div>
+          ))}
+          {(place.receipt?.items || []).length === 0 && (
+            <p className="text-[10px] text-slate-400 font-semibold">등록된 메뉴가 없습니다.</p>
+          )}
+        </div>
+      </div>
+    )}
+    <SharedTotalFooter
+      expanded={isExpanded}
+      total={place.price}
+      onToggle={onToggleExpand}
+    />
+    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+      <button
+        onClick={onEdit}
+        className="p-1.5 hover:text-[#3182F6] hover:bg-blue-50 text-slate-300 rounded-md transition-all"
+      ><Pencil size={11} /></button>
+      <button
+        onClick={onDelete}
+        className="p-1.5 hover:text-red-500 hover:bg-red-50 text-slate-300 rounded-md transition-all"
+      ><Trash2 size={11} /></button>
+    </div>
+  </div>
+);
 const WEEKDAY_OPTIONS = [
   { label: '월', value: 'mon' },
   { label: '화', value: 'tue' },
@@ -370,6 +950,83 @@ const parseBusinessHoursText = (text = '') => {
   return { ...parsed, closedDays: [...new Set(parsed.closedDays)] };
 };
 
+const NAVER_PARSE_STOP_WORDS = new Set([
+  '업체', '알림받기', '출발', '도착', '저장', '거리뷰', '공유', '홈', '소식', '메뉴', '리뷰', '사진', '정보',
+  '저장 폴더', '펼쳐보기', '주소', '찾아가는길', '영업시간', '접기', '영업시간 수정 제안하기', '전화번호', '편의',
+  '대표', '페이지 닫기',
+]);
+
+const isLikelyParsedAddress = (line = '') => /(제주|서울|부산|인천|대구|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남)/.test(line) && /(로|길|대로|번길|읍|면|동|리)\s*\d/.test(line);
+const isLikelyMenuPriceLine = (line = '') => /^[0-9][0-9,]*원$/.test(line) || /변동/.test(line);
+const isLikelyMenuNameLine = (line = '') => {
+  const trimmed = String(line || '').trim();
+  if (!trimmed || NAVER_PARSE_STOP_WORDS.has(trimmed)) return false;
+  if (isLikelyMenuPriceLine(trimmed)) return false;
+  if (isLikelyParsedAddress(trimmed)) return false;
+  if (/^https?:\/\//i.test(trimmed)) return false;
+  if (/(라스트오더|브레이크타임|영업\s*중|방문자\s*리뷰|블로그\s*리뷰|별점|내용\s*더보기|이미지\s*갯수|안내복사)/.test(trimmed)) return false;
+  if (trimmed.length > 40) return false;
+  return /[가-힣A-Za-z0-9]/.test(trimmed);
+};
+
+const extractPlaceNameFromLines = (lines = []) => {
+  for (const raw of lines) {
+    const line = String(raw || '').trim();
+    if (!line || NAVER_PARSE_STOP_WORDS.has(line)) continue;
+    if (/^https?:\/\//i.test(line)) continue;
+    if (isLikelyParsedAddress(line)) continue;
+    if (/(방문자\s*리뷰|블로그\s*리뷰|별점|라스트오더|브레이크타임|영업\s*중|이미지\s*갯수|육류,고기요리)/.test(line)) {
+      const cleaned = line
+        .replace(/별점.*$/g, '')
+        .replace(/방문자\s*리뷰.*$/g, '')
+        .replace(/블로그\s*리뷰.*$/g, '')
+        .replace(/(육류,고기요리)\s*$/g, '')
+        .trim();
+      if (cleaned && cleaned !== line && isLikelyMenuNameLine(cleaned)) return cleaned;
+      continue;
+    }
+    if (isLikelyMenuNameLine(line)) return line;
+  }
+  return '';
+};
+
+const extractMenusFromNaverLines = (lines = []) => {
+  const menus = [];
+  let block = [];
+
+  const flushBlock = () => {
+    if (block.length === 0) return;
+    const priceLine = block.find((line) => isLikelyMenuPriceLine(line));
+    const fixedPrice = priceLine && /^[0-9][0-9,]*원$/.test(priceLine)
+      ? Number(priceLine.replace(/[^0-9]/g, '')) || 0
+      : 0;
+    const name = block.find((line) => isLikelyMenuNameLine(line));
+    if (name && fixedPrice > 0 && !menus.find((item) => item.name === name)) {
+      menus.push({ name, price: fixedPrice });
+    }
+    block = [];
+  };
+
+  lines.forEach((raw) => {
+    const line = String(raw || '').trim();
+    if (!line) return;
+    if (isLikelyMenuPriceLine(line)) {
+      block.push(line);
+      flushBlock();
+      return;
+    }
+    if (NAVER_PARSE_STOP_WORDS.has(line) || /^(주소|영업시간|전화번호|편의|저장 폴더)$/.test(line)) {
+      flushBlock();
+      return;
+    }
+    block.push(line);
+    if (block.length > 4) block = block.slice(-4);
+  });
+
+  flushBlock();
+  return menus;
+};
+
 const parseNaverMapText = (text = '') => {
   const lines = String(text).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   if (lines.length === 0) return null;
@@ -381,8 +1038,7 @@ const parseNaverMapText = (text = '') => {
     menus: []
   };
 
-  // 상호명: 보통 첫 줄
-  res.name = lines[0];
+  res.name = extractPlaceNameFromLines(lines);
 
   // 주소: '주소' 키워드 다음 줄
   const addrIdx = lines.findIndex(l => l === '주소');
@@ -403,19 +1059,267 @@ const parseNaverMapText = (text = '') => {
   if (priceIdx !== -1) {
     const endIdx = lines.findIndex((l, i) => i > priceIdx && (l === '가격표 이미지로 보기' || l === '블로그' || l === '편의' || l === '리뷰'));
     const menuLines = lines.slice(priceIdx + 1, endIdx !== -1 ? endIdx : undefined);
-    for (let i = 0; i < menuLines.length; i++) {
-      const line = menuLines[i];
-      if (line.includes('원') && i > 0) {
-        const price = parseInt(line.replace(/[^0-9]/g, ''), 10);
-        const name = menuLines[i - 1];
-        if (name && !name.includes('원')) {
-          res.menus.push({ name, price });
-        }
-      }
-    }
+    res.menus = extractMenusFromNaverLines(menuLines);
+  } else {
+    res.menus = extractMenusFromNaverLines(lines);
   }
 
   return res;
+};
+
+const normalizeSmartFillResult = (raw = {}) => {
+  const menus = Array.isArray(raw?.menus)
+    ? raw.menus
+      .filter(Boolean)
+      .map((item) => ({
+        name: String(item?.name || '').trim(),
+        price: Number(item?.price) || 0,
+      }))
+      .filter((item) => item.name)
+    : [];
+
+  return {
+    name: String(raw?.name || '').trim(),
+    address: String(raw?.address || '').trim(),
+    business: raw?.business ? normalizeBusiness(raw.business) : null,
+    menus,
+  };
+};
+
+const DEFAULT_AI_SMART_FILL_CONFIG = {
+  apiKey: '',
+  apiBaseUrl: 'https://api.groq.com/openai/v1',
+  model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+  proxyBaseUrl: '',
+};
+
+const normalizeAiSmartFillConfig = (raw = {}) => ({
+  apiKey: String(raw?.apiKey || '').trim(),
+  apiBaseUrl: String(raw?.apiBaseUrl || 'https://api.groq.com/openai/v1').trim() || 'https://api.groq.com/openai/v1',
+  model: String(raw?.model || 'meta-llama/llama-4-scout-17b-16e-instruct').trim() || 'meta-llama/llama-4-scout-17b-16e-instruct',
+  proxyBaseUrl: String(raw?.proxyBaseUrl || '').trim(),
+});
+
+const sanitizeAiSmartFillConfigForStorage = (raw = {}) => {
+  const normalized = normalizeAiSmartFillConfig(raw);
+  return { ...normalized, apiKey: '' };
+};
+
+const getSmartFillErrorMessage = (error, aiEnabled = false) => {
+  const message = String(error?.message || '').trim();
+  if (!message) {
+    return aiEnabled ? 'Groq 스마트 붙여넣기에 실패했습니다.' : '스마트 붙여넣기에 실패했습니다.';
+  }
+  if (/Image smart fill requires AI/i.test(message)) return '이미지 스마트 붙여넣기는 AI를 켠 상태에서만 사용할 수 있습니다.';
+  if (/No clipboard payload provided/i.test(message)) return '클립보드에 텍스트나 이미지가 없습니다.';
+  if (/notallowederror|denied|clipboard/i.test(message)) return '클립보드 접근 권한을 허용해 주세요.';
+  if (/GROQ_API_KEY is not configured/i.test(message)) return 'Groq 설정이 비어 있습니다. AI 설정에서 API 키 또는 프록시를 확인해 주세요.';
+  if (/did not contain valid JSON/i.test(message)) return 'Groq 응답 형식을 해석하지 못했습니다. 다시 시도해 주세요.';
+  if (/HTTP 4\d\d/i.test(message)) return `Groq 요청이 거부되었습니다. ${message}`;
+  if (/HTTP 5\d\d/i.test(message)) return `Groq 서버 응답에 실패했습니다. ${message}`;
+  return aiEnabled ? `Groq 스마트 붙여넣기 실패: ${message}` : `스마트 붙여넣기 실패: ${message}`;
+};
+
+const shouldUseReasoningEffort = (model = '') => /qwen\/qwen3|gpt-oss/i.test(String(model || ''));
+
+const extractJsonPayload = (text = '') => {
+  const raw = String(text || '').trim();
+  if (!raw) return null;
+  const fenced = raw.match(/```json\s*([\s\S]*?)```/i) || raw.match(/```\s*([\s\S]*?)```/i);
+  const candidate = fenced?.[1] || raw;
+  const start = candidate.indexOf('{');
+  const end = candidate.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) return null;
+  try {
+    return JSON.parse(candidate.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+};
+
+const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onloadend = () => resolve(String(reader.result || ''));
+  reader.onerror = reject;
+  reader.readAsDataURL(blob);
+});
+
+const readClipboardPayload = async () => {
+  let text = '';
+  let imageDataUrl = '';
+  let lastClipboardError = null;
+
+  if (navigator?.clipboard?.read) {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        if (!text && item.types.includes('text/plain')) {
+          const textBlob = await item.getType('text/plain');
+          text = await textBlob.text();
+        }
+        const imageType = item.types.find((type) => type.startsWith('image/'));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          imageDataUrl = await blobToDataUrl(blob);
+          if (text) break;
+        }
+      }
+    } catch (error) {
+      lastClipboardError = error;
+    }
+  }
+
+  if (navigator?.clipboard?.readText) {
+    try {
+      text = text || await navigator.clipboard.readText();
+    } catch (error) {
+      lastClipboardError = lastClipboardError || error;
+    }
+  }
+
+  if (!text && !imageDataUrl && lastClipboardError) {
+    throw lastClipboardError;
+  }
+
+  return { text: String(text || ''), imageDataUrl: String(imageDataUrl || '') };
+};
+
+const getCurrentUserBearerToken = async () => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser || currentUser.isGuest) return '';
+    return await currentUser.getIdToken();
+  } catch {
+    return '';
+  }
+};
+
+const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSettings = DEFAULT_AI_SMART_FILL_CONFIG } = {}) => {
+  const payload = await readClipboardPayload();
+  const inputType = payload.text && payload.imageDataUrl ? 'mixed' : payload.imageDataUrl ? 'image' : payload.text ? 'text' : 'empty';
+  if (!payload.text && !payload.imageDataUrl) return null;
+  if (inputType === 'image' && !aiEnabled) {
+    throw new Error('Image smart fill requires AI');
+  }
+
+  if (aiEnabled) {
+    const normalizedSettings = normalizeAiSmartFillConfig(aiSettings);
+    const directApiKey = normalizedSettings.apiKey;
+    const bearerToken = await getCurrentUserBearerToken();
+    let lastError = null;
+
+    if (directApiKey) {
+      try {
+        const requestBody = {
+          model: normalizedSettings.model,
+          temperature: 1,
+          max_completion_tokens: 1024,
+          top_p: 1,
+          response_format: { type: 'json_object' },
+          messages: [
+            {
+              role: 'system',
+              content: [
+                'You extract Korean place information for a travel planner.',
+                'Return strict JSON only.',
+                `Current extraction mode: ${mode}.`,
+                'Schema: {"name":"","address":"","business":{"open":"","close":"","breakStart":"","breakEnd":"","lastOrder":"","entryClose":"","closedDays":[]},"menus":[{"name":"","price":0}]}',
+              ].join('\n'),
+            },
+            {
+              role: 'user',
+              content: [
+                payload.text ? { type: 'text', text: `Clipboard text:\n${payload.text}` } : null,
+                payload.imageDataUrl ? { type: 'image_url', image_url: { url: payload.imageDataUrl } } : null,
+                { type: 'text', text: 'Respond with JSON only.' },
+              ].filter(Boolean),
+            },
+          ],
+        };
+        if (shouldUseReasoningEffort(normalizedSettings.model)) {
+          requestBody.reasoning_effort = 'default';
+        }
+        const response = await fetch(`${normalizedSettings.apiBaseUrl.replace(/\/$/, '')}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${directApiKey}`,
+          },
+          body: JSON.stringify(requestBody),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data?.error?.message || data?.error || `HTTP ${response.status}`);
+        }
+        const rawContent = data?.choices?.[0]?.message?.content || '';
+        const parsedJson = extractJsonPayload(typeof rawContent === 'string' ? rawContent : Array.isArray(rawContent) ? rawContent.map((part) => part?.text || '').join('\n') : '');
+        if (parsedJson) {
+          return {
+            parsed: normalizeSmartFillResult(parsedJson),
+            source: 'ai',
+            usedImage: !!payload.imageDataUrl,
+            inputType,
+          };
+        }
+        throw new Error('AI response did not contain valid JSON');
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    const envApiBase = (import.meta.env.VITE_AI_ANALYZE_API_BASE || '').replace(/\/$/, '');
+    const proxyBase = normalizedSettings.proxyBaseUrl.replace(/\/$/, '');
+    const endpoints = Array.from(new Set([
+      proxyBase ? `${proxyBase}/api/groq-analyze` : '',
+      envApiBase ? `${envApiBase}/api/groq-analyze` : '',
+      '/api/groq-analyze',
+      proxyBase ? `${proxyBase}/api/grok-analyze` : '',
+      envApiBase ? `${envApiBase}/api/grok-analyze` : '',
+      '/api/grok-analyze',
+    ].filter(Boolean)));
+    for (const endpoint of endpoints) {
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}),
+          },
+          body: JSON.stringify({
+            mode,
+            text: payload.text,
+            imageDataUrl: payload.imageDataUrl,
+            apiKey: directApiKey,
+            apiBaseUrl: normalizedSettings.apiBaseUrl,
+            model: normalizedSettings.model,
+          }),
+        });
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody?.details || errBody?.error || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        return {
+          parsed: normalizeSmartFillResult(data?.result || data),
+          source: 'ai',
+          usedImage: !!payload.imageDataUrl,
+          inputType,
+        };
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    if (lastError && !payload.text) throw lastError;
+  }
+
+  const parsed = parseNaverMapText(payload.text);
+  if (!parsed) return null;
+  return {
+    parsed: normalizeSmartFillResult(parsed),
+    source: 'text',
+    usedImage: false,
+    inputType,
+  };
 };
 
 // 24시간 형식 시간 입력 컴포넌트 (오전/오후 없음, 24:00 지원)
@@ -474,22 +1378,6 @@ const BusinessHoursEditor = ({ business = {}, onChange }) => {
     >
       <div className="flex items-center justify-between mb-2">
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">상세 영업 설정</p>
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              const text = await navigator.clipboard.readText();
-              const parsed = parseBusinessHoursText(text);
-              if (parsed.open || parsed.close || parsed.breakStart || parsed.breakEnd || parsed.lastOrder || parsed.entryClose) {
-                setMulti(parsed);
-              }
-            } catch (err) { /* silent */ }
-          }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#3182F6] shadow-[0_8px_16px_-6px_rgba(49,130,246,0.3)] text-[10px] font-black text-white hover:bg-blue-600 transition-all active:scale-95"
-        >
-          <Sparkles size={11} />
-          영업정보 자동 붙여넣기
-        </button>
       </div>
       <div className="grid grid-cols-2 gap-1.5 mb-1.5">
         {FIELDS.map(field => (
@@ -731,52 +1619,39 @@ const DateRangePicker = ({ startDate, endDate, onStartChange, onEndChange, onClo
   );
 };
 
-const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlaceTypes, regionHint, onAdd, onCancel }) => {
-  const [business, setBusiness] = React.useState(EMPTY_BUSINESS);
-  const [menus, setMenus] = React.useState([]);
-  const [menuInput, setMenuInput] = React.useState({ name: '', price: '' });
-  const [address, setAddress] = React.useState('');
-  const [memo, setMemo] = React.useState('');
-  const [isSearchingAddress, setIsSearchingAddress] = React.useState(false);
+const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlaceTypes, regionHint, onAdd, onCancel, aiEnabled = false, aiSettings = DEFAULT_AI_SMART_FILL_CONFIG, onNotify = null }) => {
+  const [draft, setDraft] = React.useState(() => createPlaceEditorDraft({
+    name: newPlaceName,
+    types: Array.isArray(newPlaceTypes) && newPlaceTypes.length ? newPlaceTypes : ['place'],
+    business: EMPTY_BUSINESS,
+    receipt: { address: '', items: [] },
+  }, { showBusinessEditor: false }));
   const [addressSearchNote, setAddressSearchNote] = React.useState('');
   const lastScrapedUrlRef = React.useRef('');
+
+  React.useEffect(() => {
+    setDraft((current) => createPlaceEditorDraft({
+      ...current,
+      name: newPlaceName,
+      types: Array.isArray(newPlaceTypes) && newPlaceTypes.length ? newPlaceTypes : current.types,
+    }));
+  }, [newPlaceName, newPlaceTypes]);
+
   const extractMapLink = (raw = '') => {
     const m = String(raw || '').match(/https?:\/\/(?:naver\.me|map\.naver\.com|pcmap\.place\.naver\.com|m\.place\.naver\.com)\/[^\s)>\]"']+/i);
     if (!m?.[0]) return '';
     return m[0].replace(/[),.;]+$/, '');
   };
 
-  const addMenu = () => {
-    if (!menuInput.name.trim()) return;
-    setMenus(prev => [...prev, { name: menuInput.name.trim(), price: Number(menuInput.price) || 0 }]);
-    setMenuInput({ name: '', price: '' });
-  };
-
   const handleAdd = () => {
-    onAdd({ types: normalizeTagOrder(newPlaceTypes), menus, address, memo, business: normalizeBusiness(business) });
-  };
-
-  const tryAutoFillAddress = async (force = false) => {
-    if (isSearchingAddress) return;
-    if (!newPlaceName.trim()) return;
-    if (address.trim() && !force) return;
-
-    setIsSearchingAddress(true);
-    setAddressSearchNote('주소 검색 중...');
-
-    try {
-      const foundAddress = await searchAddressFromPlaceName(newPlaceName, regionHint);
-      if (!foundAddress?.address) {
-        setAddressSearchNote('검색 결과가 없습니다.');
-        return;
-      }
-      setAddress(foundAddress.address);
-      setAddressSearchNote('주소가 자동 입력되었습니다.');
-    } catch {
-      setAddressSearchNote('자동 입력에 실패했습니다.');
-    } finally {
-      setIsSearchingAddress(false);
-    }
+    const safeDraft = createPlaceEditorDraft(draft);
+    onAdd({
+      types: safeDraft.types,
+      menus: safeDraft.receipt.items,
+      address: safeDraft.address,
+      memo: safeDraft.memo,
+      business: safeDraft.business,
+    });
   };
 
   const scrapePlaceFromMapLink = async (url) => {
@@ -785,8 +1660,7 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
     if (lastScrapedUrlRef.current === cleanUrl) return;
     lastScrapedUrlRef.current = cleanUrl;
 
-    setIsSearchingAddress(true);
-    setAddressSearchNote('지도 링크 분석 중...');
+    onNotify?.('지도 링크 분석 중...');
     try {
       const apiBase = (import.meta.env.VITE_SCRAPER_API_BASE || '').replace(/\/$/, '');
       const candidates = Array.from(new Set([
@@ -820,11 +1694,13 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
       }
 
       if (data?.title) setNewPlaceName(String(data.title).trim());
-      if (data?.address) setAddress(String(data.address).trim());
+      if (data?.address) {
+        setDraft((current) => createPlaceEditorDraft({ ...current, address: String(data.address).trim() }));
+      }
 
       const parsed = parseBusinessHoursText(String(data?.hours || ''));
       if (parsed.open || parsed.close || parsed.breakStart || parsed.breakEnd || parsed.lastOrder || parsed.entryClose) {
-        setBusiness(prev => ({ ...prev, ...parsed }));
+        setDraft((current) => createPlaceEditorDraft({ ...current, business: { ...current.business, ...parsed } }));
       }
 
       if (Array.isArray(data?.menus) && data.menus.length > 0) {
@@ -837,209 +1713,145 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
             if (/(이전\s*페이지|다음\s*페이지|닫기|펼치기|이미지\s*개수|translateX|translateY)/i.test(m.name)) return false;
             return true;
           });
-        if (normalizedMenus.length) setMenus(normalizedMenus.slice(0, 5));
+        if (normalizedMenus.length) {
+          setDraft((current) => createPlaceEditorDraft({
+            ...current,
+            receipt: {
+              ...(current.receipt || {}),
+              items: normalizedMenus.slice(0, 5).map((item) => ({ ...item, qty: 1, selected: true })),
+            },
+          }));
+        }
       }
 
-      setAddressSearchNote('지도 링크에서 장소 정보를 불러왔습니다.');
+      onNotify?.('지도 링크에서 장소 정보를 불러왔습니다.');
       if (!data?.address && data?.title) {
         const foundAddress = await searchAddressFromPlaceName(String(data.title), regionHint);
-        if (foundAddress?.address) setAddress(foundAddress.address);
+        if (foundAddress?.address) {
+          setDraft((current) => createPlaceEditorDraft({ ...current, address: foundAddress.address }));
+        }
       }
     } catch (e) {
-      setAddressSearchNote(`지도 자동 추출 실패: ${e?.message || '알 수 없는 오류'}`);
+      onNotify?.(`지도 자동 추출 실패: ${e?.message || '알 수 없는 오류'}`);
     } finally {
-      setIsSearchingAddress(false);
+      lastScrapedUrlRef.current = cleanUrl;
     }
   };
 
   return (
-    <div className="mb-4 w-full shrink-0 rounded-[20px] border border-slate-100 bg-white shadow-[0_4px_16px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100/60 bg-slate-50/50 flex items-center justify-between">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">새 장소 등록</p>
-      </div>
-
-      <div className="p-3 flex flex-col gap-2.5">
-        <OrderedTagPicker value={newPlaceTypes} onChange={setNewPlaceTypes} title="태그" />
-
-        <div className="flex items-center gap-2 text-slate-500 bg-slate-50 w-full px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm focus-within:border-[#3182F6]/50 focus-within:bg-white transition-all">
-          <input
-            autoFocus
-            value={newPlaceName}
-            onChange={(e) => {
-              const val = e.target.value;
-              const mapUrl = extractMapLink(val);
-              if (mapUrl) {
-                void scrapePlaceFromMapLink(mapUrl);
-              } else {
-                setNewPlaceName(val);
-              }
-            }}
-            onPaste={async (e) => {
-              const text = e.clipboardData.getData('text');
-              if (text && !extractMapLink(text) && text.length > 50) {
-                const parsed = parseNaverMapText(text);
-                if (parsed && (parsed.address || parsed.business || parsed.menus.length)) {
-                  e.preventDefault();
-                  if (parsed.name) setNewPlaceName(parsed.name);
-                  if (parsed.address) setAddress(parsed.address);
-                  if (parsed.business) setBusiness(parsed.business);
-                  if (parsed.menus.length) setMenus(parsed.menus);
-                  setAddressSearchNote('클립보드 내용을 분석하여 입력했습니다.');
-                }
-              }
-            }}
-            onBlur={() => { void tryAutoFillAddress(false); }}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') onCancel();
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                void tryAutoFillAddress(true);
-              }
-            }}
-            placeholder="일정 이름 입력 (지도 링크 붙여넣기 가능)"
-            className="flex-1 bg-transparent text-[11px] font-bold text-slate-600 leading-tight outline-none placeholder:text-slate-400"
-          />
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                const text = await navigator.clipboard.readText();
-                const parsed = parseNaverMapText(text);
-                if (parsed) {
-                  if (parsed.name) setNewPlaceName(parsed.name);
-                  if (parsed.address) setAddress(parsed.address);
-                  if (parsed.business) setBusiness(parsed.business);
-                  if (parsed.menus.length) setMenus(parsed.menus);
-                  setAddressSearchNote('클립보드 내용을 분석하여 입력했습니다.');
-                } else {
-                  setAddressSearchNote('분석할 수 없는 형식입니다.');
-                }
-              } catch (err) {
-                setAddressSearchNote('클립보드 접근 권한이 필요합니다.');
-              }
-            }}
-            className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-            title="스마트 전체 붙여넣기"
-          >
-            <Sparkles size={9} />
-          </button>
-        </div>
-
-        <div className="flex gap-1.5 -mt-1 mb-0.5">
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                const text = await navigator.clipboard.readText();
-                const parsed = parseNaverMapText(text);
-                if (parsed?.business) {
-                  setBusiness(parsed.business);
-                  setAddressSearchNote('영업 정보를 스마트 입력했습니다.');
-                }
-              } catch (err) { /* silent */ }
-            }}
-            className="flex-1 py-1 rounded-lg border border-slate-100 bg-slate-50 text-[9px] font-black text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-all"
-          >
-            🕒 영업정보만 입력
-          </button>
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                const text = await navigator.clipboard.readText();
-                const parsed = parseNaverMapText(text);
-                if (parsed?.menus?.length) {
-                  setMenus(parsed.menus);
-                  setAddressSearchNote('메뉴 정보를 스마트 입력했습니다.');
-                }
-              } catch (err) { /* silent */ }
-            }}
-            className="flex-1 py-1 rounded-lg border border-slate-100 bg-slate-50 text-[9px] font-black text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] hover:border-blue-200 transition-all"
-          >
-            📋 메뉴만 입력
-          </button>
-        </div>
-
-
-
-        <div className="flex items-center gap-2 text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm">
-          <MapPin size={12} className="text-[#3182F6]" />
-          <input
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="주소를 입력하세요"
-            className="bg-transparent border-none outline-none text-[11px] font-bold w-full text-slate-600 placeholder:text-slate-400"
-          />
-          <button
-            type="button"
-            onClick={() => { void tryAutoFillAddress(true); }}
-            disabled={isSearchingAddress || !newPlaceName.trim()}
-            className="shrink-0 px-1.5 py-1 rounded-md text-[9px] font-black border border-slate-200 bg-white text-slate-500 disabled:opacity-50 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-            title="일정 이름으로 주소 자동 입력"
-          >
-            <Sparkles size={9} />
-          </button>
-        </div>
-        {addressSearchNote && (
-          <p className={`text-[9px] font-bold -mt-1 ${addressSearchNote.includes('실패') || addressSearchNote.includes('없습니다') ? 'text-amber-500' : 'text-slate-400'}`}>
-            {addressSearchNote}
-          </p>
-        )}
-
-        <input
-          value={memo}
-          onChange={(e) => setMemo(e.target.value)}
-          placeholder="메모를 입력하세요..."
-          className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none focus:border-slate-300 focus:bg-white transition-all"
-        />
-
-        <div className="bg-slate-50/50 border border-slate-200 rounded-xl p-2.5">
-          <BusinessHoursEditor business={business} onChange={(b) => setBusiness(b)} />
-        </div>
-
-        <div className="bg-slate-50/50 border border-dashed border-slate-200 rounded-xl p-2">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1.5">대표 메뉴</p>
-          {menus.length === 0 && (
-            <p className="text-[10px] text-slate-400 font-semibold mb-2">메뉴를 추가하면 일정 셀 하단 영수증과 동일하게 반영됩니다.</p>
-          )}
-          {menus.map((m, i) => (
-            <div key={i} className="flex items-center gap-1.5 mb-1.5 text-[10px] font-bold text-slate-600 bg-white border border-slate-200 rounded-lg px-2 py-1">
-              <span className="flex-1 truncate">{m.name}</span>
-              <span className="text-slate-400">₩{m.price.toLocaleString()}</span>
-              <button onClick={() => setMenus(prev => prev.filter((_, j) => j !== i))} className="text-slate-300 hover:text-red-400 ml-1">✕</button>
-            </div>
-          ))}
-          <div className="grid grid-cols-[minmax(0,1fr)_4.25rem_auto] gap-1">
-            <input
-              value={menuInput.name}
-              onChange={(e) => setMenuInput(p => ({ ...p, name: e.target.value }))}
-              onKeyDown={(e) => { if (e.key === 'Enter') addMenu(); }}
-              placeholder="메뉴 이름"
-              className="min-w-0 text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6]"
-            />
-            <input
-              value={menuInput.price}
-              onChange={(e) => setMenuInput(p => ({ ...p, price: e.target.value }))}
-              onKeyDown={(e) => { if (e.key === 'Enter') addMenu(); }}
-              placeholder="가격"
-              type="number"
-              className="w-[4.25rem] text-[10px] font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#3182F6] [appearance:textfield]"
-            />
-            <button onClick={addMenu} className="px-2 py-1 bg-slate-100 rounded-lg text-[10px] font-black text-slate-500 hover:bg-slate-200 whitespace-nowrap">+</button>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-2 bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold text-blue-900/60 uppercase tracking-widest leading-none">Estimated Total</span>
-          <span className="text-[19px] font-black text-[#3182F6] leading-none">₩{menus.reduce((sum, m) => sum + (Number(m.price) || 0), 0).toLocaleString()}</span>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={handleAdd} className="flex-1 py-3 bg-[#3182F6] text-white text-[13px] font-black rounded-xl shadow-[0_8px_16px_-6px_rgba(49,130,246,0.35)] hover:bg-blue-600 transition-all active:scale-[0.98]">일정 추가하기</button>
-          <button onClick={onCancel} className="px-5 py-3 bg-white border border-slate-200 text-slate-500 text-[13px] font-black rounded-xl hover:bg-slate-50 transition-all">취소</button>
-        </div>
-      </div>
+    <div className="mb-4 w-full shrink-0">
+      <PlaceEditorCard
+        className="w-[min(440px,calc(100vw-24px))] mx-auto"
+        title="새 장소 등록"
+        draft={draft}
+        onDraftChange={(nextDraft) => {
+          setDraft(nextDraft);
+          setNewPlaceName(nextDraft.name || '');
+          setNewPlaceTypes(nextDraft.types || ['place']);
+        }}
+        onSubmit={handleAdd}
+        onCancel={onCancel}
+        submitLabel="장소 추가하기"
+        regionHint={regionHint}
+        autoFocusName
+        forceReceiptExpanded
+        onNameInput={(value) => {
+          const mapUrl = extractMapLink(value);
+          if (mapUrl) {
+            void scrapePlaceFromMapLink(mapUrl);
+            return;
+          }
+          setNewPlaceName(value);
+          setDraft((current) => createPlaceEditorDraft({ ...current, name: value }));
+        }}
+        onNamePaste={async (e) => {
+          const text = e.clipboardData.getData('text');
+          if (text && !extractMapLink(text) && text.length > 50) {
+            const parsed = normalizeSmartFillResult(parseNaverMapText(text));
+            if (parsed && (parsed.address || parsed.business || parsed.menus.length)) {
+              e.preventDefault();
+              const nextDraft = createPlaceEditorDraft({
+                ...draft,
+                name: parsed.name || draft.name,
+                address: parsed.address || draft.address,
+                business: parsed.business ? normalizeBusiness(parsed.business) : draft.business,
+                receipt: {
+                  ...(draft.receipt || { address: '', items: [] }),
+                  items: parsed.menus.length ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) : (draft.receipt?.items || []),
+                },
+              });
+              setDraft(nextDraft);
+              setNewPlaceName(nextDraft.name);
+              onNotify?.('클립보드 내용을 분석하여 입력했습니다.');
+            }
+          }
+        }}
+        onSmartPasteAll={async () => {
+          try {
+            const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled, aiSettings });
+            const parsed = result?.parsed;
+            if (parsed) {
+              const nextDraft = createPlaceEditorDraft({
+                ...draft,
+                name: parsed.name || draft.name,
+                address: parsed.address || draft.address,
+                business: parsed.business ? normalizeBusiness(parsed.business) : draft.business,
+                receipt: {
+                  ...(draft.receipt || { address: '', items: [] }),
+                  items: parsed.menus.length ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) : (draft.receipt?.items || []),
+                },
+              });
+              setDraft(nextDraft);
+              setNewPlaceName(nextDraft.name);
+              onNotify?.(result?.source === 'ai'
+                ? `AI가 클립보드${result?.usedImage ? ' 이미지와 ' : ' '}내용을 분석하여 입력했습니다.`
+                : '클립보드 내용을 분석하여 입력했습니다.');
+            } else {
+              onNotify?.(aiEnabled ? 'Groq가 해석할 수 있는 텍스트나 이미지가 클립보드에 없습니다.' : '분석할 수 없는 형식입니다.');
+            }
+          } catch (error) {
+            onNotify?.(getSmartFillErrorMessage(error, aiEnabled));
+          }
+        }}
+        onSmartPasteBusiness={async () => {
+          try {
+            const result = await analyzeClipboardSmartFill({ mode: 'business', aiEnabled, aiSettings });
+            const parsed = result?.parsed;
+            if (parsed?.business) {
+              setDraft((current) => createPlaceEditorDraft({ ...current, business: normalizeBusiness(parsed.business) }));
+              onNotify?.(result?.source === 'ai'
+                ? `AI가${result?.usedImage ? ' 이미지와 ' : ' '}영업 정보를 분석해 입력했습니다.`
+                : '영업 정보를 스마트 입력했습니다.');
+            } else {
+              onNotify?.(aiEnabled ? 'Groq가 영업 정보를 찾지 못했습니다.' : '영업 정보를 찾지 못했습니다.');
+            }
+          } catch (error) {
+            onNotify?.(getSmartFillErrorMessage(error, aiEnabled));
+          }
+        }}
+        onSmartPasteMenus={async () => {
+          try {
+            const result = await analyzeClipboardSmartFill({ mode: 'menus', aiEnabled, aiSettings });
+            const parsed = result?.parsed;
+            if (parsed?.menus?.length) {
+              setDraft((current) => createPlaceEditorDraft({
+                ...current,
+                receipt: {
+                  ...(current.receipt || { address: '', items: [] }),
+                  items: parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })),
+                },
+              }));
+              onNotify?.(result?.source === 'ai'
+                ? `AI가${result?.usedImage ? ' 이미지와 ' : ' '}메뉴를 분석해 입력했습니다.`
+                : '메뉴 정보를 스마트 입력했습니다.');
+            } else {
+              onNotify?.(aiEnabled ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.');
+            }
+          } catch (error) {
+            onNotify?.(getSmartFillErrorMessage(error, aiEnabled));
+          }
+        }}
+      />
     </div>
   );
 };
@@ -1155,6 +1967,7 @@ const App = () => {
   const [newPlanRegion, setNewPlanRegion] = useState('');
   const [newPlanTitle, setNewPlanTitle] = useState('');
   const [showShareManager, setShowShareManager] = useState(false);
+  const [showAiSettings, setShowAiSettings] = useState(false);
   const [showUpdateNotes, setShowUpdateNotes] = useState(false);
   const [showPlanOptions, setShowPlanOptions] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -1165,6 +1978,7 @@ const App = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [draggingFromLibrary, setDraggingFromLibrary] = useState(null);
   const [placeFilterTags, setPlaceFilterTags] = useState([]); // 내 장소 필터링 태그
+  const [showPlaceCategoryManager, setShowPlaceCategoryManager] = useState(false);
   const [draggingFromTimeline, setDraggingFromTimeline] = useState(null);
   const [isDroppingOnDeleteZone, setIsDroppingOnDeleteZone] = useState(false);
   const [dragBottomTarget, setDragBottomTarget] = useState('');
@@ -1179,6 +1993,17 @@ const App = () => {
   const [newPlaceTypes, setNewPlaceTypes] = useState(['food']);
   const [editingPlaceId, setEditingPlaceId] = useState(null);
   const [editPlaceDraft, setEditPlaceDraft] = useState(null);
+  const [useAiSmartFill, setUseAiSmartFill] = useState(() => safeLocalStorageGet('use_ai_smart_fill', 'true') === 'true');
+  const [aiSmartFillConfig, setAiSmartFillConfig] = useState(() => {
+    const raw = safeLocalStorageGet('ai_smart_fill_config', '');
+    if (!raw) return DEFAULT_AI_SMART_FILL_CONFIG;
+    try {
+      return normalizeAiSmartFillConfig({ ...JSON.parse(raw), apiKey: '' });
+    } catch {
+      return DEFAULT_AI_SMART_FILL_CONFIG;
+    }
+  });
+  const [serverAiKeyStatus, setServerAiKeyStatus] = useState({ hasStoredKey: false, updatedAt: null, loading: false });
   const [tripRegion, setTripRegion] = useState(() => safeLocalStorageGet('trip_region_hint', '제주시'));
   const [tripStartDate, setTripStartDate] = useState(() => safeLocalStorageGet('trip_start_date', ''));
   const [tripEndDate, setTripEndDate] = useState(() => safeLocalStorageGet('trip_end_date', ''));
@@ -1188,13 +2013,27 @@ const App = () => {
   const [planOptionBudget, setPlanOptionBudget] = useState('0');
   // 초기 상태 안전하게 설정
   const [itinerary, setItinerary] = useState({ days: [], places: [] });
+  const customPlaceCategories = useMemo(() => {
+    const collected = new Set();
+    (itinerary.places || []).forEach((place) => {
+      (Array.isArray(place?.types) ? place.types : []).forEach((tag) => {
+        const normalized = String(tag || '').trim();
+        if (!normalized || TAG_VALUES.has(normalized)) return;
+        collected.add(normalized);
+      });
+    });
+    return [...collected].sort((a, b) => a.localeCompare(b, 'ko'));
+  }, [itinerary.places]);
   const [history, setHistory] = useState([]);
   const [pendingAutoRouteJobs, setPendingAutoRouteJobs] = useState([]);
   const [undoToast, setUndoToast] = useState(false);
   const [undoMessage, setUndoMessage] = useState("");
+  const [infoToast, setInfoToast] = useState('');
   const undoToastTimerRef = React.useRef(null);
+  const infoToastTimerRef = React.useRef(null);
   const [expandedId, setExpandedId] = useState(null);
   const [expandedPlaceId, setExpandedPlaceId] = useState(null);
+  const [pendingPlanMenuFocus, setPendingPlanMenuFocus] = useState(null); // { dayIdx, pIdx, menuIdx }
   // durationControllerTarget 제거됨 — 시간 셀 확장으로 통합
   const [timeControllerTarget, setTimeControllerTarget] = useState(null); // { dayIdx, pIdx }
 
@@ -1213,6 +2052,25 @@ const App = () => {
     return () => document.removeEventListener('mousedown', handleOutside);
   }, [timeControllerTarget]);
 
+  useEffect(() => {
+    if (!pendingPlanMenuFocus) return;
+    const { dayIdx, pIdx, menuIdx } = pendingPlanMenuFocus;
+    const target = document.querySelector(`[data-plan-menu-name="${dayIdx}-${pIdx}-${menuIdx}"]`);
+    if (target instanceof HTMLInputElement) {
+      target.focus();
+      target.select();
+    }
+    setPendingPlanMenuFocus(null);
+  }, [pendingPlanMenuFocus, itinerary.days]);
+
+  useEffect(() => {
+    safeLocalStorageSet('use_ai_smart_fill', useAiSmartFill ? 'true' : 'false');
+  }, [useAiSmartFill]);
+
+  useEffect(() => {
+    safeLocalStorageSet('ai_smart_fill_config', JSON.stringify(sanitizeAiSmartFillConfigForStorage(aiSmartFillConfig)));
+  }, [aiSmartFillConfig]);
+
   const [planVariantPicker, setPlanVariantPicker] = useState(null); // { dayIdx, pIdx, left, top }
   const conflictAlertKeyRef = useRef('');
   const [lastAction, setLastAction] = useState("3일차 시작 일정이 수정되었습니다.");
@@ -1230,7 +2088,7 @@ const App = () => {
   const touchLockStateRef = useRef({ overflow: '', touchAction: '' });
   const touchDragSourceRef = useRef(null); // { kind, place?, payload?, startX, startY }
   const executeTouchDropRef = useRef(null);
-  const handleNavClick = (dayNum, itemId = null) => {
+  const handleNavClick = (dayNum, itemId = null, scrollTargetId = null) => {
     isNavScrolling.current = true;
     if (navScrollTimeout.current) clearTimeout(navScrollTimeout.current);
 
@@ -1266,6 +2124,11 @@ const App = () => {
     }
 
     const resolveTargetElement = () => {
+      if (scrollTargetId) {
+        const byScrollTarget = document.getElementById(scrollTargetId);
+        if (byScrollTarget) return byScrollTarget;
+      }
+
       // 1) 일반 일정 카드 id
       if (targetItemId) {
         const byItemId = document.getElementById(targetItemId);
@@ -1289,7 +2152,7 @@ const App = () => {
       if (!el) return false;
       el.scrollIntoView({
         behavior: 'smooth',
-        block: targetItemId ? 'center' : 'start'
+        block: targetItemId || scrollTargetId ? 'center' : 'start'
       });
       return true;
     };
@@ -1305,6 +2168,85 @@ const App = () => {
     navScrollTimeout.current = setTimeout(() => {
       isNavScrolling.current = false;
     }, 1500);
+  };
+  const parseInsertDropTargetValue = (rawValue = '') => {
+    const value = String(rawValue || '').trim();
+    if (!value) return null;
+    const pipeMatch = value.match(/^(-?\d+)\|(-?\d+)$/);
+    if (pipeMatch) {
+      return { dayIdx: Number(pipeMatch[1]), insertAfterPIdx: Number(pipeMatch[2]) };
+    }
+    const dashParts = value.split('-').map(Number);
+    if (dashParts.length === 2 && dashParts.every((part) => Number.isFinite(part))) {
+      return { dayIdx: dashParts[0], insertAfterPIdx: dashParts[1] };
+    }
+    return null;
+  };
+  const applyInsertAtDropTarget = (targetDayIdx, insertAfterPIdx, source) => {
+    if (source?.kind === 'library') {
+      const place = source.place;
+      if (!place) return false;
+      if (insertAfterPIdx < 0) addInitialItem(targetDayIdx, place);
+      else addNewItem(targetDayIdx, insertAfterPIdx, place.types, place);
+      if (!source.isCopy) removePlace(place.id);
+      return true;
+    }
+    if (source?.kind === 'timeline') {
+      const payload = source.payload;
+      if (!payload) return false;
+      if (payload.altIdx !== undefined) {
+        if (insertAfterPIdx < 0) {
+          const altItem = itinerary.days?.[payload.dayIdx]?.plan?.[payload.pIdx]?.alternatives?.[payload.altIdx];
+          if (!altItem) return false;
+          addInitialItem(targetDayIdx, {
+            ...normalizeAlternative(altItem),
+            name: altItem.activity,
+            address: altItem.receipt?.address || '',
+          });
+          removeAlternative(payload.dayIdx, payload.pIdx, payload.altIdx);
+          return true;
+        }
+        insertAlternativeToTimeline(targetDayIdx, insertAfterPIdx, payload.dayIdx, payload.pIdx, payload.altIdx);
+        return true;
+      }
+      moveTimelineItem(targetDayIdx, insertAfterPIdx, payload.dayIdx, payload.pIdx, !!source.isCopy, payload.planPos);
+      return true;
+    }
+    return false;
+  };
+  const getActiveTimelineDragPayload = () => {
+    if (draggingFromTimeline) return draggingFromTimeline;
+    if (desktopDragRef.current?.kind === 'timeline') return desktopDragRef.current.payload || null;
+    if (touchDragSourceRef.current?.kind === 'timeline') return touchDragSourceRef.current.payload || null;
+    return null;
+  };
+  const applyTimelineBottomAction = (action, payload) => {
+    if (!payload || !action) return false;
+    if (action === 'move_to_library') {
+      if (payload.altIdx !== undefined) {
+        dropAltOnLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
+      } else {
+        const item = itinerary.days?.[payload.dayIdx]?.plan?.[payload.pIdx];
+        dropTimelineItemOnLibrary(payload.dayIdx, payload.pIdx, askPlanBMoveMode(item));
+      }
+      return true;
+    }
+    if (action === 'delete') {
+      if (payload.altIdx === undefined) {
+        deletePlanItem(payload.dayIdx, payload.pIdx);
+        return true;
+      }
+      return false;
+    }
+    if (action === 'copy_to_library') {
+      if (payload.altIdx !== undefined) {
+        copyAlternativeToLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
+      } else {
+        copyTimelineItemToLibrary(payload.dayIdx, payload.pIdx);
+      }
+      return true;
+    }
+    return false;
   };
   const [basePlanRef, setBasePlanRef] = useState(null); // { dayIdx, pIdx, id, name, address }
   const [placeDistanceMap, setPlaceDistanceMap] = useState({});
@@ -1525,11 +2467,31 @@ const App = () => {
   }, [showPlanOptions, tripRegion, tripStartDate, tripEndDate, itinerary?.maxBudget]);
 
   useEffect(() => {
-    const onKeyDown = (e) => { if (e.key === 'Control') ctrlHeldRef.current = true; };
+    const isEditableElement = (el) => {
+      if (!(el instanceof HTMLElement)) return false;
+      if (el.isContentEditable) return true;
+      const tagName = el.tagName;
+      if (tagName === 'TEXTAREA') return true;
+      if (tagName !== 'INPUT') return false;
+      const type = (el.getAttribute('type') || 'text').toLowerCase();
+      return !['button', 'checkbox', 'radio', 'range', 'submit', 'reset', 'file', 'color'].includes(type);
+    };
+    const onKeyDown = (e) => {
+      if (e.key === 'Control') ctrlHeldRef.current = true;
+      if (e.key === 'Backspace' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const target = e.target instanceof HTMLElement ? e.target : document.activeElement;
+        if (!isEditableElement(target)) {
+          e.preventDefault();
+        }
+      }
+    };
     const onKeyUp = (e) => { if (e.key === 'Control') ctrlHeldRef.current = false; };
-    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', onKeyDown, true);
     window.addEventListener('keyup', onKeyUp);
-    return () => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); };
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true);
+      window.removeEventListener('keyup', onKeyUp);
+    };
   }, []);
 
   useEffect(() => {
@@ -1656,25 +2618,37 @@ const App = () => {
         else setDraggingFromTimeline(src.payload);
         document.body.style.overflow = 'hidden';
         document.body.style.touchAction = 'none';
+        startAutoScroll();
       }
       if (isDraggingActiveRef.current) {
         e.preventDefault();
+        lastTouchYRef.current = t.clientY;
         setDragCoord({ x: t.clientX, y: t.clientY });
         const el = document.elementFromPoint(t.clientX, t.clientY);
         const droptargetEl = el?.closest('[data-droptarget]');
         const dropitemEl = el?.closest('[data-dropitem]');
         const dropdelEl = el?.closest('[data-deletezone]');
+        const dropActionEl = el?.closest('[data-drag-action]');
         if (droptargetEl) {
-          const [dIdx, pIdx] = droptargetEl.dataset.droptarget.split('-').map(Number);
-          setDropTarget({ dayIdx: dIdx, insertAfterPIdx: pIdx });
-          setDropOnItem(null);
+          const parsedTarget = parseInsertDropTargetValue(droptargetEl.dataset.droptarget);
+          if (parsedTarget) {
+            setDropTarget(parsedTarget);
+            setDropOnItem(null);
+            setDragBottomTarget('');
+          }
         } else if (dropitemEl) {
           const [dIdx, pIdx] = dropitemEl.dataset.dropitem.split('-').map(Number);
           setDropOnItem({ dayIdx: dIdx, pIdx });
           setDropTarget(null);
+          setDragBottomTarget('');
+        } else if (dropActionEl) {
+          setDragBottomTarget(dropActionEl.getAttribute('data-drag-action') || '');
+          setDropTarget(null);
+          setDropOnItem(null);
         } else {
           setDropTarget(null);
           setDropOnItem(null);
+          setDragBottomTarget('');
         }
         setIsDroppingOnDeleteZone(!!dropdelEl);
       }
@@ -1688,6 +2662,7 @@ const App = () => {
         document.body.style.touchAction = '';
         executeTouchDropRef.current?.(t.clientX, t.clientY);
       }
+      stopAutoScroll();
       touchDragSourceRef.current = null;
       isDraggingActiveRef.current = false;
       setDraggingFromLibrary(null);
@@ -1695,6 +2670,7 @@ const App = () => {
       setDropTarget(null);
       setDropOnItem(null);
       setIsDroppingOnDeleteZone(false);
+      setDragBottomTarget('');
     };
     window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('touchend', onTouchEnd, { passive: true });
@@ -1704,7 +2680,7 @@ const App = () => {
       window.removeEventListener('touchend', onTouchEnd);
       window.removeEventListener('touchcancel', onTouchEnd);
     };
-  }, []); // refs + stable setters only
+  }, [startAutoScroll, stopAutoScroll]); // refs + stable setters only
 
   const endTouchDragLock = () => { };
 
@@ -1883,6 +2859,7 @@ const App = () => {
   const DEFAULT_TRAVEL_MINS = 15;
   const DEFAULT_BUFFER_MINS = 10;
   const BUFFER_STEP = 1;
+  const SHOW_HERO_COMPACT_BAR = true;
   const getMenuQty = (menu) => {
     const parsed = Number(menu?.qty);
     if (!Number.isFinite(parsed) || parsed <= 0) return 1;
@@ -2247,6 +3224,103 @@ const App = () => {
     undoToastTimerRef.current = setTimeout(() => setUndoToast(false), 3000);
   };
 
+  const showInfoToast = (msg = '') => {
+    const next = String(msg || '').trim();
+    if (!next) return;
+    setLastAction(next);
+    setInfoToast(next);
+    if (infoToastTimerRef.current) clearTimeout(infoToastTimerRef.current);
+    infoToastTimerRef.current = setTimeout(() => setInfoToast(''), 2600);
+  };
+
+  const fetchServerAiKeyStatus = useCallback(async () => {
+    if (!auth.currentUser || auth.currentUser.isGuest) {
+      setServerAiKeyStatus({ hasStoredKey: false, updatedAt: null, loading: false });
+      return;
+    }
+    setServerAiKeyStatus((prev) => ({ ...prev, loading: true }));
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch('/api/ai-key', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setServerAiKeyStatus({ hasStoredKey: !!data?.hasStoredKey, updatedAt: data?.updatedAt || null, loading: false });
+    } catch (error) {
+      setServerAiKeyStatus((prev) => ({ ...prev, loading: false }));
+      showInfoToast(`AI 키 상태 확인 실패: ${error?.message || '알 수 없는 오류'}`);
+    }
+  }, []);
+
+  const saveServerAiKey = useCallback(async () => {
+    const nextKey = String(aiSmartFillConfig.apiKey || '').trim();
+    if (!nextKey) {
+      showInfoToast('저장할 Groq API Key를 먼저 입력해 주세요.');
+      return;
+    }
+    if (!auth.currentUser || auth.currentUser.isGuest) {
+      showInfoToast('로그인한 계정에서만 암호화 저장을 사용할 수 있습니다.');
+      return;
+    }
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch('/api/ai-key', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ apiKey: nextKey }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setAiSmartFillConfig((prev) => ({ ...prev, apiKey: '' }));
+      setServerAiKeyStatus({ hasStoredKey: true, updatedAt: null, loading: false });
+      showInfoToast('Groq API Key를 계정별 암호화 저장소에 저장했습니다.');
+      void fetchServerAiKeyStatus();
+    } catch (error) {
+      showInfoToast(`AI 키 저장 실패: ${error?.message || '알 수 없는 오류'}`);
+    }
+  }, [aiSmartFillConfig.apiKey, fetchServerAiKeyStatus]);
+
+  const deleteServerAiKey = useCallback(async () => {
+    if (!auth.currentUser || auth.currentUser.isGuest) {
+      showInfoToast('로그인한 계정에서만 저장된 키를 삭제할 수 있습니다.');
+      return;
+    }
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch('/api/ai-key', {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setServerAiKeyStatus({ hasStoredKey: false, updatedAt: null, loading: false });
+      showInfoToast('저장된 Groq API Key를 삭제했습니다.');
+    } catch (error) {
+      showInfoToast(`저장된 AI 키 삭제 실패: ${error?.message || '알 수 없는 오류'}`);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showAiSettings) {
+      void fetchServerAiKeyStatus();
+    }
+  }, [showAiSettings, fetchServerAiKeyStatus]);
+
   const handleUndo = () => {
     if (history.length === 0) {
       setLastAction("되돌릴 작업이 없습니다.");
@@ -2273,14 +3347,28 @@ const App = () => {
       if (!nextMain.length) continue;
       const nextFirst = nextMain[0];
       const checkinMins = timeToMinutes(lastMain.time || '00:00');
-      const checkoutMins = timeToMinutes(nextFirst.time)
+      const derivedCheckoutMins = timeToMinutes(nextFirst.time)
         - parseMinsLabel(nextFirst.travelTimeOverride, DEFAULT_TRAVEL_MINS)
         - parseMinsLabel(nextFirst.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+      const checkoutMins = lastMain.lodgeCheckoutFixed && lastMain.lodgeCheckoutTime
+        ? timeToMinutes(lastMain.lodgeCheckoutTime)
+        : derivedCheckoutMins;
+      if (lastMain.lodgeCheckoutFixed && lastMain.lodgeCheckoutTime) {
+        const nextStart = checkoutMins
+          + parseMinsLabel(nextFirst.travelTimeOverride, DEFAULT_TRAVEL_MINS)
+          + parseMinsLabel(nextFirst.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+        nextFirst.time = minutesToTime(nextStart);
+      } else if (lastMain.lodgeCheckoutTime) {
+        lastMain.lodgeCheckoutTime = minutesToTime(derivedCheckoutMins);
+      }
       // 숙소는 항상 다음 날 체크아웃이므로 +1440(24h) 보정
       const actualCheckout = checkoutMins <= checkinMins ? checkoutMins + 1440 : checkoutMins;
       const duration = Math.max(30, actualCheckout - checkinMins);
       const lodgeItem = day.plan.find(p => p.id === lastMain.id);
-      if (lodgeItem) lodgeItem.duration = duration;
+      if (lodgeItem) {
+        lodgeItem.duration = duration;
+        if (!lodgeItem.lodgeCheckoutTime) lodgeItem.lodgeCheckoutTime = minutesToTime(derivedCheckoutMins);
+      }
     }
     return days;
   };
@@ -2357,7 +3445,14 @@ const App = () => {
       }
 
       const travelMinutes = parseMinsLabel(currentItem.travelTimeOverride, DEFAULT_TRAVEL_MINS);
-      const bufferMinutes = parseMinsLabel(currentItem.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+      const manualBufferLabel = currentItem._manualBufferTimeOverride
+        || (!currentItem._isBufferCoordinated ? currentItem.bufferTimeOverride : null)
+        || `${DEFAULT_BUFFER_MINS}분`;
+      const baseBufferMinutes = parseMinsLabel(manualBufferLabel, DEFAULT_BUFFER_MINS);
+      currentItem._manualBufferTimeOverride = `${baseBufferMinutes}분`;
+      currentItem.bufferTimeOverride = `${baseBufferMinutes}분`;
+      currentItem._isBufferCoordinated = false;
+      const bufferMinutes = baseBufferMinutes;
       const waiting = currentItem.waitingTime || 0;
 
       const naturalArrivalMinutes = currentEndMinutes + travelMinutes + bufferMinutes;
@@ -2373,8 +3468,7 @@ const App = () => {
           const prevItem = dayPlan[lastMainItemIndex];
           if (diff > 0) {
             // 여분 시간이 생김 -> 버퍼 타임으로 흡수 (이동칩 옆 보정 수치)
-            const oldBuffer = parseMinsLabel(currentItem.bufferTimeOverride, DEFAULT_BUFFER_MINS);
-            const newBuffer = oldBuffer + diff;
+            const newBuffer = baseBufferMinutes + diff;
             currentItem.bufferTimeOverride = `${newBuffer}분`;
             currentItem._isBufferCoordinated = true;
             currentEndMinutes += diff; // 스케줄 동기화
@@ -2456,6 +3550,57 @@ const App = () => {
 
   const updateStartMinute = (dayIdx, pIdx, deltaMinute) => {
     updateStartTime(dayIdx, pIdx, deltaMinute);
+  };
+
+  const updateLodgeCheckoutTime = (dayIdx, pIdx, delta) => {
+    saveHistory();
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
+      const nextDayPlan = nextData.days?.[dayIdx + 1]?.plan || [];
+      const nextFirstIdx = nextDayPlan.findIndex(candidate => candidate?.type !== 'backup');
+      if (!item || nextFirstIdx < 0) return prev;
+
+      const nextFirst = nextDayPlan[nextFirstIdx];
+      const baseCheckout = item.lodgeCheckoutTime
+        ? timeToMinutes(item.lodgeCheckoutTime)
+        : timeToMinutes(nextFirst.time)
+          - parseMinsLabel(nextFirst.travelTimeOverride, DEFAULT_TRAVEL_MINS)
+          - parseMinsLabel(nextFirst.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+      const nextCheckout = baseCheckout + delta;
+
+      item.lodgeCheckoutTime = minutesToTime(nextCheckout);
+      item.lodgeCheckoutFixed = true;
+      nextFirst.time = minutesToTime(
+        nextCheckout
+        + parseMinsLabel(nextFirst.travelTimeOverride, DEFAULT_TRAVEL_MINS)
+        + parseMinsLabel(nextFirst.bufferTimeOverride, DEFAULT_BUFFER_MINS)
+      );
+
+      nextData.days[dayIdx + 1].plan = recalculateSchedule(nextDayPlan);
+      recalculateLodgeDurations(nextData.days);
+      return nextData;
+    });
+    setLastAction('숙소 체크아웃 시간을 조정했습니다.');
+  };
+
+  const toggleLodgeCheckoutFix = (dayIdx, pIdx) => {
+    let fixed = false;
+    saveHistory();
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
+      if (!item) return prev;
+      item.lodgeCheckoutFixed = !item.lodgeCheckoutFixed;
+      fixed = !!item.lodgeCheckoutFixed;
+      if (!item.lodgeCheckoutFixed) delete item.lodgeCheckoutTime;
+      nextData.days.forEach(day => {
+        day.plan = recalculateSchedule(day.plan || []);
+      });
+      recalculateLodgeDurations(nextData.days);
+      return nextData;
+    });
+    setLastAction(fixed ? '숙소 체크아웃 시간이 고정되었습니다.' : '숙소 체크아웃 시간 고정이 해제되었습니다.');
   };
 
   const updateDuration = (dayIdx, pIdx, delta) => {
@@ -2548,6 +3693,7 @@ const App = () => {
       let minutes = parseMinsLabel(item.bufferTimeOverride, DEFAULT_BUFFER_MINS);
       minutes = Math.max(0, minutes + delta);
       item.bufferTimeOverride = `${minutes}분`;
+      item._manualBufferTimeOverride = `${minutes}분`;
       item._isBufferCoordinated = false;
 
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
@@ -2555,6 +3701,30 @@ const App = () => {
       return nextData;
     });
     setLastAction("버퍼 시간을 조정했습니다.");
+  };
+
+  const resetBufferTimeById = (dayIdx, itemId, minutes = DEFAULT_BUFFER_MINS) => {
+    const nextMinutes = Math.max(0, Number(minutes) || 0);
+    saveHistory();
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const dayPlan = nextData.days[dayIdx]?.plan || [];
+      const item = dayPlan.find((entry) => entry?.id === itemId);
+      if (!item) return prev;
+      const wasBufferCoordinated = !!item._isBufferCoordinated;
+
+      item.bufferTimeOverride = `${nextMinutes}분`;
+      item._manualBufferTimeOverride = `${nextMinutes}분`;
+      item._isBufferCoordinated = false;
+      if (wasBufferCoordinated && item.isTimeFixed) {
+        item.isTimeFixed = false;
+      }
+
+      nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      recalculateLodgeDurations(nextData.days);
+      return nextData;
+    });
+    setLastAction(`보정 시간을 ${nextMinutes}분으로 초기화하고 주변 일정을 다시 계산했습니다.`);
   };
 
   const resetTravelTime = (dayIdx, pIdx) => {
@@ -2590,6 +3760,70 @@ const App = () => {
     setLastAction(nextAction);
   };
 
+  const getTimingConflictRecommendation = (dayIdx, pIdx) => {
+    const dayPlan = itinerary.days?.[dayIdx]?.plan || [];
+    const item = dayPlan[pIdx];
+    if (!item?._timingConflict) return null;
+
+    let prevMainItem = null;
+    for (let i = pIdx - 1; i >= 0; i--) {
+      const candidate = dayPlan[i];
+      if (candidate && candidate.type !== 'backup') {
+        prevMainItem = candidate;
+        break;
+      }
+    }
+
+    if (item.isTimeFixed) {
+      return { label: '시간고정 해제', action: 'unlock_time_fix' };
+    }
+    if (prevMainItem?.isDurationFixed) {
+      return { label: '이전 소요잠금 해제', action: 'unlock_prev_duration' };
+    }
+    return { label: '충돌 위치 보기', action: 'focus_conflict' };
+  };
+
+  const applyTimingConflictRecommendation = (dayIdx, pIdx) => {
+    const recommendation = getTimingConflictRecommendation(dayIdx, pIdx);
+    if (!recommendation) return;
+    if (recommendation.action === 'focus_conflict') {
+      const itemId = itinerary.days?.[dayIdx]?.plan?.[pIdx]?.id;
+      handleNavClick(itinerary.days?.[dayIdx]?.day, itemId);
+      setLastAction('자동으로 풀 수 없는 충돌입니다. 고정 조건을 직접 조정해 주세요.');
+      return;
+    }
+
+    saveHistory();
+    let nextAction = '시간 충돌 개선을 적용했습니다.';
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const dayPlan = nextData.days?.[dayIdx]?.plan || [];
+      const item = dayPlan[pIdx];
+      if (!item) return prev;
+
+      let prevMainIndex = -1;
+      for (let i = pIdx - 1; i >= 0; i--) {
+        if (dayPlan[i] && dayPlan[i].type !== 'backup') {
+          prevMainIndex = i;
+          break;
+        }
+      }
+
+      if (recommendation.action === 'unlock_time_fix' && item.isTimeFixed) {
+        item.isTimeFixed = false;
+        nextAction = '추천 개선: 시작 시간 고정을 해제하고 다시 계산했습니다.';
+      } else if (recommendation.action === 'unlock_prev_duration' && prevMainIndex !== -1) {
+        dayPlan[prevMainIndex].isDurationFixed = false;
+        nextAction = '추천 개선: 이전 일정의 소요시간 잠금을 해제하고 다시 계산했습니다.';
+      }
+
+      nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      recalculateLodgeDurations(nextData.days);
+      return nextData;
+    });
+    setLastAction(nextAction);
+  };
+
   const budgetSummary = useMemo(() => {
     let totalSpent = 0;
     if (!itinerary || !itinerary.days) return { total: 0, remaining: MAX_BUDGET };
@@ -2605,7 +3839,7 @@ const App = () => {
   }, [itinerary]);
 
   const distanceSortedPlaces = useMemo(() => {
-    const list = [...(itinerary.places || [])];
+    const list = [...(itinerary.places || [])].filter(Boolean);
     if (!basePlanRef?.id) {
       // 가나다 순(알파벳) 정렬
       return list.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
@@ -2701,6 +3935,36 @@ const App = () => {
     setLastAction("태그를 업데이트했습니다.");
   };
 
+  const removeCustomCategoryEverywhere = (tagValue) => {
+    const targetTag = String(tagValue || '').trim();
+    if (!targetTag) return;
+    saveHistory();
+    setItinerary((prev) => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      nextData.places = (nextData.places || []).map((place) => ({
+        ...place,
+        types: normalizeTagOrder((Array.isArray(place?.types) ? place.types : []).filter((tag) => tag !== targetTag)),
+      }));
+      nextData.days = (nextData.days || []).map((day) => ({
+        ...day,
+        plan: (day.plan || []).map((item) => ({
+          ...item,
+          types: normalizeTagOrder((Array.isArray(item?.types) ? item.types : []).filter((tag) => tag !== targetTag)),
+          alternatives: Array.isArray(item?.alternatives)
+            ? item.alternatives.map((alt) => ({
+              ...alt,
+              types: normalizeTagOrder((Array.isArray(alt?.types) ? alt.types : []).filter((tag) => tag !== targetTag)),
+            }))
+            : item?.alternatives,
+        })),
+      }));
+      return nextData;
+    });
+    setPlaceFilterTags((prev) => prev.filter((tag) => tag !== targetTag));
+    setLastAction(`'${targetTag}' 카테고리를 전체 데이터에서 제거했습니다.`);
+    showInfoToast(`'${targetTag}' 카테고리를 삭제했습니다.`);
+  };
+
   const updateMenuData = (dayIdx, pIdx, menuIdx, field, value) => {
     saveHistory();
     setItinerary(prev => {
@@ -2733,9 +3997,10 @@ const App = () => {
       const planItem = nextData.days[dayIdx].plan[pIdx];
       if (!planItem.receipt) planItem.receipt = { address: '', items: [] };
       if (!planItem.receipt.items) planItem.receipt.items = [];
-      planItem.receipt.items.push({ name: "새 메뉴", price: 0, qty: 1, selected: true });
+      planItem.receipt.items.push({ name: "", price: 0, qty: 1, selected: true });
       return nextData;
     });
+    setPendingPlanMenuFocus({ dayIdx, pIdx, menuIdx: (itinerary.days?.[dayIdx]?.plan?.[pIdx]?.receipt?.items || []).length });
   };
 
   const deleteMenuItem = (dayIdx, pIdx, menuIdx) => {
@@ -3154,13 +4419,20 @@ const App = () => {
       case 'new': return <span key="new" className={style + ' text-emerald-600 bg-emerald-50 border-emerald-200'}>신규</span>;
       case 'revisit': return <span key="revisit" className={style + ' text-blue-600 bg-blue-50 border-blue-200'}>재방문</span>;
       case 'place': return <div key={type} className={`${style} text-slate-500 bg-slate-100 border-slate-200`}><MapIcon size={10} /> 장소</div>;
-      default: return <div key={type} className={`${style} text-slate-500 bg-slate-100 border-slate-200`}># {type}</div>;
+      default: return <div key={type} className={`${style} text-slate-500 bg-slate-100 border-slate-200`}>{getCustomTagLabel(type)}</div>;
     }
   };
 
   const addPlace = (formData) => {
     if (!newPlaceName.trim()) return;
     const { types = ['place'], menus = [], address = '', memo = '', revisit = false, business = EMPTY_BUSINESS } = formData || {};
+    const normalizedMenus = (Array.isArray(menus) ? menus : []).filter(Boolean).map((menu) => ({
+      ...menu,
+      name: String(menu?.name || '').trim(),
+      price: Number(menu?.price) || 0,
+      qty: Math.max(1, Number(menu?.qty) || 1),
+      selected: menu?.selected !== false,
+    }));
     setItinerary(prev => ({
       ...prev,
       places: [...(prev.places || []), {
@@ -3170,9 +4442,9 @@ const App = () => {
         revisit: !!revisit,
         business: normalizeBusiness(business),
         address: address.trim(),
-        price: menus.reduce((sum, m) => sum + (Number(m.price) || 0), 0),
+        price: normalizedMenus.reduce((sum, m) => sum + (m.selected === false ? 0 : getMenuLineTotal(m)), 0),
         memo: memo.trim(),
-        receipt: { address: address.trim(), items: menus.map(m => ({ ...m, qty: 1, selected: true })) }
+        receipt: { address: address.trim(), items: normalizedMenus }
       }]
     }));
     setNewPlaceName('');
@@ -3197,24 +4469,35 @@ const App = () => {
     }));
   };
 
+  const toLibraryPlaceFromPlanItem = (item) => {
+    if (!item) return null;
+    const receipt = deepClone(item.receipt || { address: '', items: [] });
+    if (!Array.isArray(receipt.items)) receipt.items = [];
+    const resolvedAddress = item.receipt?.address || item.address || getRouteAddress(item, 'to') || '';
+    receipt.address = receipt.address || resolvedAddress;
+    return {
+      id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name: item.activity || item.name || '장소',
+      types: normalizeTagOrder(item.types || ['place']),
+      revisit: typeof item.revisit === 'boolean' ? item.revisit : isRevisitCourse(item),
+      business: normalizeBusiness(item.business || {}),
+      address: resolvedAddress,
+      price: Number(item.price) || 0,
+      memo: item.memo || '',
+      receipt,
+    };
+  };
+
   const copyTimelineItemToLibrary = (dayIdx, pIdx) => {
     const item = itinerary.days?.[dayIdx]?.plan?.[pIdx];
     if (!item) return;
+    const libraryPlace = toLibraryPlaceFromPlanItem(item);
+    if (!libraryPlace) return;
     saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       if (!nextData.places) nextData.places = [];
-      nextData.places.push({
-        id: `place_${Date.now()}`,
-        name: item.activity,
-        types: item.types || ['place'],
-        revisit: typeof item.revisit === 'boolean' ? item.revisit : isRevisitCourse(item),
-        business: normalizeBusiness(item.business || {}),
-        address: item.receipt?.address || '',
-        price: item.price || 0,
-        memo: item.memo || '',
-        receipt: deepClone(item.receipt || { items: [] })
-      });
+      nextData.places.push(libraryPlace);
       return nextData;
     });
     setLastAction(`'${item.activity}' 일정을 내 장소로 복제했습니다.`);
@@ -3223,21 +4506,17 @@ const App = () => {
   const copyAlternativeToLibrary = (dayIdx, pIdx, altIdx) => {
     const alt = normalizeAlternative(itinerary.days?.[dayIdx]?.plan?.[pIdx]?.alternatives?.[altIdx]);
     if (!alt) return;
+    const libraryPlace = toLibraryPlaceFromPlanItem({
+      ...alt,
+      activity: alt.activity,
+      receipt: alt.receipt || { address: alt.receipt?.address || '', items: [] },
+    });
+    if (!libraryPlace) return;
     saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       if (!nextData.places) nextData.places = [];
-      nextData.places.push({
-        id: `place_${Date.now()}`,
-        name: alt.activity,
-        types: alt.types || ['place'],
-        revisit: typeof alt.revisit === 'boolean' ? alt.revisit : false,
-        business: normalizeBusiness(alt.business || {}),
-        address: alt.receipt?.address || '',
-        price: alt.price || 0,
-        memo: alt.memo || '',
-        receipt: deepClone(alt.receipt || { address: '', items: [] })
-      });
+      nextData.places.push(libraryPlace);
       return nextData;
     });
     setLastAction(`'${alt.activity}' 플랜 B를 내 장소로 복제했습니다.`);
@@ -3246,23 +4525,15 @@ const App = () => {
   const dropTimelineItemOnLibrary = (dayIdx, pIdx) => {
     const item = itinerary.days?.[dayIdx]?.plan?.[pIdx];
     if (!item) return;
+    const libraryPlace = toLibraryPlaceFromPlanItem(item);
+    if (!libraryPlace) return;
     saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       nextData.days[dayIdx].plan.splice(pIdx, 1);
       nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
       if (!nextData.places) nextData.places = [];
-      nextData.places.push({
-        id: `place_${Date.now()}`,
-        name: item.activity,
-        types: item.types || ['place'],
-        revisit: typeof item.revisit === 'boolean' ? item.revisit : isRevisitCourse(item),
-        business: normalizeBusiness(item.business || {}),
-        address: item.receipt?.address || '',
-        price: item.price || 0,
-        memo: item.memo || '',
-        receipt: deepClone(item.receipt || { address: '', items: [] })
-      });
+      nextData.places.push(libraryPlace);
       return nextData;
     });
     setLastAction(`'${item.activity}' 일정이 내 장소로 이동되었습니다.`);
@@ -3295,7 +4566,7 @@ const App = () => {
         revisit: typeof placeData?.revisit === 'boolean' ? placeData.revisit : false,
         business: normalizeBusiness(placeData?.business || {}),
         price: placeData ? (priceFromReceipt || placeData.price || 0) : 0,
-        duration: 60,
+        duration: Number(placeData?.duration || 60),
         state: 'unconfirmed',
         travelTimeOverride: '15분',
         bufferTimeOverride: '10분',
@@ -3895,10 +5166,10 @@ const App = () => {
     if (src.kind === 'library') {
       const p = src.place;
       if (droptargetEl) {
-        const [dIdx, pIdx] = droptargetEl.dataset.droptarget.split('-').map(Number);
-        addNewItem(dIdx, pIdx, p.types, p);
-        removePlace(p.id);
-        changedByDrag = true;
+        const parsedTarget = parseInsertDropTargetValue(droptargetEl.dataset.droptarget);
+        if (parsedTarget) {
+          changedByDrag = applyInsertAtDropTarget(parsedTarget.dayIdx, parsedTarget.insertAfterPIdx, { kind: 'library', place: p, isCopy: false }) || changedByDrag;
+        }
       } else if (dropitemEl) {
         const [dIdx, pIdx] = dropitemEl.dataset.dropitem.split('-').map(Number);
         addPlaceAsPlanB(dIdx, pIdx, p);
@@ -3909,26 +5180,7 @@ const App = () => {
       const payload = src.payload;
       if (dropActionEl) {
         const action = dropActionEl.getAttribute('data-drag-action');
-        if (action === 'move_to_library') {
-          if (payload.altIdx !== undefined) {
-            dropAltOnLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
-          } else {
-            dropTimelineItemOnLibrary(payload.dayIdx, payload.pIdx);
-          }
-          changedByDrag = true;
-        } else if (action === 'delete') {
-          if (payload.altIdx === undefined) {
-            deletePlanItem(payload.dayIdx, payload.pIdx);
-            changedByDrag = true;
-          }
-        } else if (action === 'copy_to_library') {
-          if (payload.altIdx !== undefined) {
-            copyAlternativeToLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
-          } else {
-            copyTimelineItemToLibrary(payload.dayIdx, payload.pIdx);
-          }
-          changedByDrag = true;
-        }
+        changedByDrag = applyTimelineBottomAction(action, payload) || changedByDrag;
       } else if (droplibEl) {
         if (payload.altIdx !== undefined) {
           dropAltOnLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
@@ -3942,13 +5194,9 @@ const App = () => {
         deletePlanItem(payload.dayIdx, payload.pIdx);
         changedByDrag = true;
       } else if (droptargetEl) {
-        const [dIdx, pIdx] = droptargetEl.dataset.droptarget.split('-').map(Number);
-        if (payload.altIdx !== undefined) {
-          insertAlternativeToTimeline(dIdx, pIdx, payload.dayIdx, payload.pIdx, payload.altIdx);
-          changedByDrag = true;
-        } else {
-          moveTimelineItem(dIdx, pIdx, payload.dayIdx, payload.pIdx, false, payload.planPos);
-          changedByDrag = true;
+        const parsedTarget = parseInsertDropTargetValue(droptargetEl.dataset.droptarget);
+        if (parsedTarget) {
+          changedByDrag = applyInsertAtDropTarget(parsedTarget.dayIdx, parsedTarget.insertAfterPIdx, { kind: 'timeline', payload, isCopy: false }) || changedByDrag;
         }
       } else if (dropitemEl && payload.altIdx === undefined) {
         const [dIdx, pIdx] = dropitemEl.dataset.dropitem.split('-').map(Number);
@@ -3963,116 +5211,147 @@ const App = () => {
     if (changedByDrag) triggerUndoToast();
   };
 
+  const renderNavInsertTarget = (dayIdx, insertAfterPIdx, key, warnText = '') => {
+    if (!(draggingFromLibrary || draggingFromTimeline)) return null;
+    const isDropHere = dropTarget?.dayIdx === dayIdx && dropTarget?.insertAfterPIdx === insertAfterPIdx;
+    const activeText = warnText || '여기에 일정 넣기';
+    return (
+      <div
+        key={key}
+        className="px-1.5 py-1"
+        data-droptarget={`${dayIdx}|${insertAfterPIdx}`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setDropTarget({ dayIdx, insertAfterPIdx });
+          setDropOnItem(null);
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget)) {
+            setDropTarget(null);
+          }
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const changed = draggingFromLibrary
+            ? applyInsertAtDropTarget(dayIdx, insertAfterPIdx, { kind: 'library', place: draggingFromLibrary, isCopy: isDragCopy })
+            : applyInsertAtDropTarget(dayIdx, insertAfterPIdx, { kind: 'timeline', payload: draggingFromTimeline, isCopy: isDragCopy });
+          if (changed) triggerUndoToast();
+          setDraggingFromLibrary(null);
+          setDraggingFromTimeline(null);
+          setDropTarget(null);
+          setDropOnItem(null);
+          setIsDragCopy(false);
+        }}
+      >
+        <div className={`relative h-5 transition-all duration-150 ${isDropHere ? 'opacity-100' : 'opacity-75'}`}>
+          <div className={`absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-full transition-all duration-150 ${isDropHere ? (warnText ? 'h-[3px] bg-orange-400 shadow-[0_0_0_4px_rgba(251,146,60,0.14)]' : 'h-[3px] bg-[#3182F6] shadow-[0_0_0_4px_rgba(49,130,246,0.14)]') : 'h-px bg-slate-200'}`} />
+          <div className={`absolute right-0 top-1/2 -translate-y-1/2 rounded-full border px-2 py-0.5 text-[8px] font-black leading-none transition-all duration-150 ${isDropHere ? (warnText ? 'border-orange-200 bg-orange-50 text-orange-500' : 'border-blue-200 bg-blue-50 text-[#3182F6]') : 'border-slate-200 bg-white text-slate-300'}`}>
+            {isDropHere ? activeText : '삽입'}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#F2F4F6] text-[#191F28] font-sans flex overflow-x-hidden font-bold flex-row relative">
       {/* ── 장소 수정 모달 ── */}
       {editingPlaceId && editPlaceDraft && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }}>
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-[440px] max-h-[85vh] overflow-y-auto no-scrollbar" onClick={(e) => e.stopPropagation()}>
-            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
-              <p className="text-[12px] font-black text-slate-600">장소 수정</p>
-              <button onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }} className="text-slate-300 hover:text-slate-500 p-1">✕</button>
-            </div>
-            <div className="p-4 flex flex-col gap-3">
-              <OrderedTagPicker title="태그" value={editPlaceDraft.types || ['place']} onChange={(tags) => setEditPlaceDraft(d => ({ ...d, types: tags }))} />
-              <div className="flex items-center gap-2 text-slate-500 bg-slate-50 w-full px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm focus-within:border-[#3182F6]/50 focus-within:bg-white transition-all">
-                <input
-                  value={editPlaceDraft.name}
-                  onChange={(e) => setEditPlaceDraft(d => ({ ...d, name: e.target.value }))}
-                  placeholder="장소 이름"
-                  className="flex-1 bg-transparent text-[11px] font-bold text-slate-600 outline-none focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      const text = await navigator.clipboard.readText();
-                      const parsed = parseNaverMapText(text);
-                      if (parsed) {
-                        setEditPlaceDraft(d => ({
-                          ...d,
-                          name: parsed.name || d.name,
-                          address: parsed.address || d.address,
-                          business: parsed.business || d.business,
-                          receipt: { ...(d.receipt || {}), items: parsed.menus.length ? parsed.menus : (d.receipt?.items || []) }
-                        }));
-                      }
-                    } catch (err) { /* silent */ }
-                  }}
-                  className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                  title="스마트 전체 붙여넣기"
-                >
-                  <Sparkles size={9} />
-                </button>
-              </div>
-
-              <div className="flex gap-1.5 -mt-1 mb-0.5">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      const text = await navigator.clipboard.readText();
-                      const parsed = parseNaverMapText(text);
-                      if (parsed?.business) {
-                        setEditPlaceDraft(d => ({ ...d, business: parsed.business }));
-                      }
-                    } catch (err) { /* silent */ }
-                  }}
-                  className="flex-1 py-1 rounded-lg border border-slate-100 bg-slate-50 text-[9px] font-black text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-all"
-                >
-                  🕒 영업정보만 입력
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      const text = await navigator.clipboard.readText();
-                      const parsed = parseNaverMapText(text);
-                      if (parsed?.menus?.length) {
-                        setEditPlaceDraft(d => ({ ...d, receipt: { ...(d.receipt || {}), items: parsed.menus } }));
-                      }
-                    } catch (err) { /* silent */ }
-                  }}
-                  className="flex-1 py-1 rounded-lg border border-slate-100 bg-slate-50 text-[9px] font-black text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] hover:border-blue-200 transition-all"
-                >
-                  📋 메뉴만 입력
-                </button>
-              </div>
-
-              <input value={editPlaceDraft.address || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, address: e.target.value }))} placeholder="주소" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-600 outline-none focus:border-[#3182F6]" />
-              <input value={editPlaceDraft.memo || ''} onChange={(e) => setEditPlaceDraft(d => ({ ...d, memo: e.target.value }))} placeholder="메모" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none focus:border-[#3182F6]" />
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">메뉴 / 금액</p>
-                {(editPlaceDraft.receipt?.items || []).map((m, idx) => (
-                  <div key={idx} className="flex items-center gap-1.5 mb-1.5">
-                    <input value={m.name || ''} onChange={(e) => setEditPlaceDraft(d => { const items = [...(d.receipt?.items || [])]; items[idx] = { ...items[idx], name: e.target.value }; return { ...d, receipt: { ...(d.receipt || {}), items } }; })} placeholder="메뉴명" className="flex-1 min-w-0 text-[11px] font-bold bg-white border border-slate-200 rounded px-2 py-1.5 outline-none focus:border-[#3182F6]" />
-                    <input type="number" value={m.price || 0} onChange={(e) => setEditPlaceDraft(d => { const items = [...(d.receipt?.items || [])]; items[idx] = { ...items[idx], price: Number(e.target.value) || 0 }; return { ...d, receipt: { ...(d.receipt || {}), items } }; })} placeholder="가격" className="w-20 text-[11px] font-bold bg-white border border-slate-200 rounded px-2 py-1.5 outline-none focus:border-[#3182F6] [appearance:textfield]" />
-                    <input type="number" value={getMenuQty(m)} onChange={(e) => setEditPlaceDraft(d => { const items = [...(d.receipt?.items || [])]; items[idx] = { ...items[idx], qty: Math.max(1, Number(e.target.value) || 1) }; return { ...d, receipt: { ...(d.receipt || {}), items } }; })} placeholder="수량" className="w-12 text-[11px] font-bold bg-white border border-slate-200 rounded px-2 py-1.5 outline-none focus:border-[#3182F6] [appearance:textfield]" />
-                    <button type="button" onClick={() => setEditPlaceDraft(d => { const items = [...(d.receipt?.items || [])]; items.splice(idx, 1); return { ...d, receipt: { ...(d.receipt || {}), items } }; })} className="text-slate-300 hover:text-red-500 px-1">✕</button>
-                  </div>
-                ))}
-                <button type="button" onClick={() => setEditPlaceDraft(d => ({ ...d, receipt: { ...(d.receipt || {}), items: [...(d.receipt?.items || []), { name: '', price: 0, qty: 1, selected: true }] } }))} className="w-full py-1.5 border border-dashed border-slate-300 rounded text-[11px] font-bold text-slate-400 hover:text-[#3182F6] hover:bg-white mt-1">+ 메뉴 추가</button>
-              </div>
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                <button type="button" onClick={() => setEditPlaceDraft(d => ({ ...d, showBusinessEditor: !d.showBusinessEditor }))} className="w-full flex items-center justify-between text-left mb-0.5">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">영업 정보</span>
-                  {!editPlaceDraft.showBusinessEditor && <span className="text-[10px] font-bold text-slate-500 truncate ml-2">{formatBusinessSummary(editPlaceDraft.business)}</span>}
-                </button>
-                {editPlaceDraft.showBusinessEditor && (
-                  <div className="mt-2">
-                    <BusinessHoursEditor
-                      business={editPlaceDraft.business || {}}
-                      onChange={(b) => setEditPlaceDraft(d => ({ ...d, business: b }))}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="px-4 pb-4 flex gap-2 sticky bottom-0 bg-white pt-2 border-t border-slate-100">
-              <button onClick={() => { const receipt = deepClone(editPlaceDraft.receipt || { address: editPlaceDraft.address || '', items: [] }); if (!Array.isArray(receipt.items)) receipt.items = []; receipt.address = editPlaceDraft.address || receipt.address || ''; const price = receipt.items.reduce((sum, m) => sum + (m.selected === false ? 0 : getMenuLineTotal(m)), 0); updatePlace(editPlaceDraft.id, { ...editPlaceDraft, business: normalizeBusiness(editPlaceDraft.business || {}), receipt, price }); setEditingPlaceId(null); setEditPlaceDraft(null); }} className="flex-1 py-2 bg-[#3182F6] text-white text-[12px] font-black rounded-xl">저장</button>
-              <button onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }} className="flex-1 py-2 bg-slate-100 text-slate-500 text-[12px] font-black rounded-xl">취소</button>
-            </div>
+          <div className="relative max-h-[85vh] overflow-y-auto no-scrollbar px-3" onClick={(e) => e.stopPropagation()}>
+            <PlaceEditorCard
+              className="w-[min(440px,calc(100vw-24px))] mx-auto"
+              title="장소 수정"
+              draft={editPlaceDraft}
+              onDraftChange={setEditPlaceDraft}
+              onSubmit={(nextDraft) => {
+                const receipt = deepClone(nextDraft.receipt || { address: nextDraft.address || '', items: [] });
+                if (!Array.isArray(receipt.items)) receipt.items = [];
+                receipt.address = nextDraft.address || receipt.address || '';
+                const price = receipt.items.reduce((sum, item) => sum + (item.selected === false ? 0 : getMenuLineTotal(item)), 0);
+                updatePlace(nextDraft.id, { ...nextDraft, business: normalizeBusiness(nextDraft.business || {}), receipt, price });
+                setEditingPlaceId(null);
+                setEditPlaceDraft(null);
+              }}
+              onCancel={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }}
+              submitLabel="저장"
+              cancelLabel="취소"
+              regionHint={tripRegion}
+              forceReceiptExpanded
+              onSmartPasteAll={async () => {
+                try {
+                  const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                  const parsed = result?.parsed;
+                  if (parsed) {
+                    setEditPlaceDraft((current) => createPlaceEditorDraft({
+                      ...current,
+                      name: parsed.name || current.name,
+                      address: parsed.address || current.address,
+                      business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
+                      receipt: { ...(current.receipt || {}), items: parsed.menus.length ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) : (current.receipt?.items || []) },
+                    }));
+                    showInfoToast(result?.source === 'ai' ? 'Groq 스마트 전체 붙여넣기 완료' : '스마트 전체 붙여넣기 완료');
+                  } else {
+                    showInfoToast(useAiSmartFill ? 'Groq가 붙여넣을 내용을 찾지 못했습니다.' : '붙여넣을 내용을 찾지 못했습니다.');
+                  }
+                } catch (error) {
+                  showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));
+                }
+              }}
+              onSmartPasteBusiness={async () => {
+                try {
+                  const result = await analyzeClipboardSmartFill({ mode: 'business', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                  const parsed = result?.parsed;
+                  if (parsed?.business) {
+                    setEditPlaceDraft((current) => createPlaceEditorDraft({ ...current, business: normalizeBusiness(parsed.business) }));
+                    showInfoToast(result?.source === 'ai' ? 'Groq 영업정보 스마트 입력 완료' : '영업 정보만 스마트 입력 완료');
+                  } else {
+                    showInfoToast(useAiSmartFill ? 'Groq가 영업 정보를 찾지 못했습니다.' : '영업 정보를 찾지 못했습니다.');
+                  }
+                } catch (error) {
+                  showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));
+                }
+              }}
+              onSmartPasteMenus={async () => {
+                try {
+                  const result = await analyzeClipboardSmartFill({ mode: 'menus', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                  const parsed = result?.parsed;
+                  if (parsed?.menus?.length) {
+                    setEditPlaceDraft((current) => createPlaceEditorDraft({
+                      ...current,
+                      receipt: { ...(current.receipt || {}), items: parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) },
+                    }));
+                    showInfoToast(result?.source === 'ai' ? 'Groq 메뉴 스마트 입력 완료' : '메뉴 정보만 스마트 입력 완료');
+                  } else {
+                    showInfoToast(useAiSmartFill ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.');
+                  }
+                } catch (error) {
+                  showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));
+                }
+              }}
+            />
+          </div>
+        </div>
+      )}
+      {isAddingPlace && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => { setIsAddingPlace(false); }}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="relative max-h-[85vh] overflow-y-auto no-scrollbar px-3" onClick={(e) => e.stopPropagation()}>
+            <PlaceAddForm
+              newPlaceName={newPlaceName}
+              setNewPlaceName={setNewPlaceName}
+              newPlaceTypes={newPlaceTypes}
+              setNewPlaceTypes={setNewPlaceTypes}
+              regionHint={tripRegion}
+              onAdd={addPlace}
+              onCancel={() => setIsAddingPlace(false)}
+              aiEnabled={useAiSmartFill}
+              aiSettings={aiSmartFillConfig}
+              onNotify={showInfoToast}
+            />
           </div>
         </div>
       )}
@@ -4127,93 +5406,137 @@ const App = () => {
                   <MapIcon size={14} className="text-[#3182F6]" />
                 </div>
                 <h2 className="text-[14px] font-black text-slate-800 tracking-tight flex-1">일정 안내</h2>
-                <button
-                  onClick={autoCalculateAllRoutes}
-                  disabled={isCalculatingAllRoutes}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#3182F6] text-[11px] font-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Navigation size={11} />
-                  {isCalculatingAllRoutes ? `탐색 ${routeCalcProgress}%` : '전체경로'}
-                </button>
               </div>
             </div>
             {/* ── 스크롤 컨텐츠 ── */}
             <div className="flex-1 overflow-y-auto overscroll-none no-scrollbar py-6 px-5 flex flex-col">
-              <nav className="flex flex-col gap-6 relative -ml-2">
+              <nav className="relative -ml-1.5 flex flex-col gap-5">
                 {itinerary.days?.map((d, dNavIdx) => (
-                  <div key={d.day} className={`rounded-2xl border p-2.5 transition-all ${activeDay === d.day ? 'border-blue-200 bg-blue-50/40' : 'border-slate-100 bg-white'}`}>
-                    <div className={`rounded-xl border px-2.5 py-2 mb-2 ${activeDay === d.day ? 'border-blue-200 bg-white' : 'border-slate-100 bg-slate-50/70'}`}>
-                      <div className={`rounded-lg border px-2 py-1.5 ${activeDay === d.day ? 'border-blue-200 bg-blue-50/50' : 'border-slate-100 bg-white/80'}`}>
-                        <div className="flex items-start gap-2">
+                  <div key={d.day} className={`rounded-[24px] border px-2.5 py-2.5 transition-all ${activeDay === d.day ? 'border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.88),rgba(255,255,255,0.98))] shadow-[0_18px_40px_-28px_rgba(49,130,246,0.45)]' : 'border-slate-200/80 bg-white shadow-[0_10px_24px_-20px_rgba(15,23,42,0.16)]'}`}>
+                    <div className={`mb-2 rounded-[18px] border px-2.5 py-2 ${activeDay === d.day ? 'border-blue-200/90 bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]' : 'border-slate-200 bg-slate-50/80'}`}>
+                      <div className={`rounded-[14px] border px-2.5 py-2 ${activeDay === d.day ? 'border-blue-200 bg-blue-50/60' : 'border-slate-200 bg-white/90'}`}>
+                        <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleNavClick(d.day)}
                             className={`text-[14px] tracking-tight transition-colors duration-300 whitespace-nowrap ${activeDay === d.day ? 'text-[#3182F6] font-black' : 'text-slate-700 font-black hover:text-slate-900'}`}
                           >
                             {getNavDateLabelForDay(d.day).primary}
                           </button>
-                          <span className={`text-[10px] font-black rounded-md px-1.5 py-0.5 leading-none ${activeDay === d.day ? 'text-[#3182F6] bg-white border border-blue-200' : 'text-slate-400 bg-slate-50 border border-slate-200'}`}>
+                          <span className={`inline-flex h-5 items-center justify-center text-[10px] font-black rounded-md px-1.5 leading-none ${activeDay === d.day ? 'text-[#3182F6] bg-white border border-blue-200 shadow-sm' : 'text-slate-400 bg-slate-50 border border-slate-200'}`}>
                             {getNavDateLabelForDay(d.day).secondary || '요일'}
                           </span>
                         </div>
                       </div>
                     </div>
-                    <div className="mb-1.5" />
-                    <div className="flex flex-col gap-0.5">
-                      {(d.plan || []).filter(p => p.type !== 'backup').map((p, pIdx, arr) => {
-                        const isActive = activeItemId === p.id;
-                        const navBizWarn = !p.types?.includes('ship') ? getBusinessWarning(p, dNavIdx) : '';
+                    <div className="mb-1" />
+                    <div className="flex flex-col gap-1">
+                      {(() => {
+                        const navPlanItems = (d.plan || []).filter(p => p.type !== 'backup');
+                        if (navPlanItems.length === 0) {
+                          return renderNavInsertTarget(dNavIdx, -1, `nav-insert-empty-${d.day}`);
+                        }
                         return (
-                          <button
-                            key={p.id}
-                            onClick={() => handleNavClick(d.day, p.id)}
-                            className={`grid grid-cols-[2.2rem_1fr_auto] items-center gap-1 px-1.5 py-1 rounded-lg text-left transition-all ${isActive ? 'bg-blue-50' : 'hover:bg-slate-50'}`}
-                          >
-                            <span className={`text-[10px] tabular-nums leading-none ${isActive ? 'font-black text-[#3182F6]' : 'font-bold text-slate-400'}`}>{p.time || '--:--'}</span>
-                            <div className="min-w-0 flex items-center gap-1.5">
-                              <div className={`shrink-0 scale-90 origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-60'}`}>{getCategoryBadge((p.types?.[0]) || p.type || 'place')}</div>
-                              <span className={`text-[10px] truncate leading-none ${isActive ? 'font-black text-[#3182F6]' : 'font-bold text-slate-500'}`}>{p.activity}</span>
-                              {(p.alternatives?.length || 0) > 0 && (
-                                <span className={`shrink-0 text-[8px] leading-none px-1.5 py-0.5 rounded border ${isActive ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-amber-500 bg-amber-50/70 border-amber-200/80'}`}>
-                                  B {p.alternatives.length}
-                                </span>
-                              )}
-                            </div>
-                            {!p.types?.includes('ship') && (() => {
-                              const isLastLodge = isLodgeStay(p.types) && pIdx === arr.length - 1;
-                              let dispDur = p.duration;
-                              if (isLastLodge) {
-                                const nextDay = itinerary.days[dNavIdx + 1];
-                                const nextMain = (nextDay?.plan || []).filter(x => x.type !== 'backup');
-                                if (nextMain.length) {
-                                  const nf = nextMain[0];
-                                  const cin = timeToMinutes(p.time || '00:00');
-                                  const cout = timeToMinutes(nf.time)
-                                    - parseMinsLabel(nf.travelTimeOverride, DEFAULT_TRAVEL_MINS)
-                                    - parseMinsLabel(nf.bufferTimeOverride, DEFAULT_BUFFER_MINS);
-                                  dispDur = Math.max(30, (cout <= cin ? cout + 1440 : cout) - cin);
+                          <>
+                            {renderNavInsertTarget(dNavIdx, -1, `nav-insert-start-${d.day}`)}
+                            {navPlanItems.map((p, pIdx, arr) => {
+                        const isActive = activeItemId === p.id;
+                        const isFixedTimeNav = !!p.isTimeFixed || p.types?.includes('ship');
+                        const navConflictRecommendation = getTimingConflictRecommendation(dNavIdx, pIdx);
+                        const navBizWarn = !p.types?.includes('ship') ? getBusinessWarning(p, dNavIdx) : '';
+                        const nextNavItem = arr[pIdx + 1];
+                        const showBufferConnector = !!nextNavItem?._isBufferCoordinated;
+                        const navDropWarn = draggingFromLibrary ? getDropWarning(draggingFromLibrary, dNavIdx, pIdx) : '';
+                        return (
+                          <React.Fragment key={p.id}>
+                            <button
+                              onClick={() => handleNavClick(d.day, p.id)}
+                              className={`grid grid-cols-[2.45rem_1fr_auto] items-center gap-1.5 rounded-[14px] border px-2 py-1.5 text-left transition-all ${p._timingConflict ? 'border-red-200 bg-red-50/85 shadow-[0_8px_18px_-16px_rgba(239,68,68,0.55)] hover:bg-red-100/80' : isActive ? 'border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-18px_rgba(49,130,246,0.42)]' : 'border-transparent bg-white hover:border-slate-200 hover:bg-slate-50/90'}`}
+                            >
+                              <span className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6]' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}>{p.time || '--:--'}</span>
+                              <div className="min-w-0 flex items-center gap-1.5 overflow-hidden">
+                                <div className={`shrink-0 scale-[0.88] origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-70'}`}>{getCategoryBadge((p.types?.[0]) || p.type || 'place')}</div>
+                                <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-600' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-500'}`}>{p.activity}</span>
+                                {(p.alternatives?.length || 0) > 0 && (
+                                  <span className={`shrink-0 text-[8px] leading-none px-1.5 py-0.5 rounded border ${isActive ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-amber-500 bg-amber-50/70 border-amber-200/80'}`}>
+                                    B {p.alternatives.length}
+                                  </span>
+                                )}
+                              </div>
+                              {!p.types?.includes('ship') && (() => {
+                                const isLastLodge = isLodgeStay(p.types) && pIdx === arr.length - 1;
+                                let dispDur = p.duration;
+                                if (isLastLodge) {
+                                  const nextDay = itinerary.days[dNavIdx + 1];
+                                  const nextMain = (nextDay?.plan || []).filter(x => x.type !== 'backup');
+                                  if (nextMain.length) {
+                                    const nf = nextMain[0];
+                                    const cin = timeToMinutes(p.time || '00:00');
+                                    const cout = timeToMinutes(nf.time)
+                                      - parseMinsLabel(nf.travelTimeOverride, DEFAULT_TRAVEL_MINS)
+                                      - parseMinsLabel(nf.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+                                    dispDur = Math.max(30, (cout <= cin ? cout + 1440 : cout) - cin);
+                                  }
                                 }
-                              }
-                              if (!(dispDur > 0)) return null;
-                              return (
-                                <div className="shrink-0 flex items-center gap-1">
-                                  {navBizWarn && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={navBizWarn} />}
+                                if (!(dispDur > 0)) return null;
+                                return (
+                                  <div className="shrink-0 flex items-center gap-1">
+                                    {navBizWarn && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={navBizWarn} />}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openNaverPlaceSearch(p.activity, p.receipt?.address || p.address || '');
+                                      }}
+                                      className={`text-[8px] font-black rounded-md px-1.5 py-0.5 leading-none whitespace-nowrap transition-colors ${dispDur >= 120 ? 'text-orange-500 bg-orange-50 border border-orange-200 hover:bg-orange-100' : isActive ? 'text-slate-400 bg-slate-100 border border-slate-200 hover:text-[#3182F6]' : 'text-slate-300 hover:text-[#3182F6]'}`}
+                                      title="네이버 지도에서 장소 검색"
+                                    >
+                                      {fmtDur(dispDur)}
+                                    </button>
+                                  </div>
+                                );
+                              })()}
+                            </button>
+                            {p._timingConflict && navConflictRecommendation && (
+                              <div className="grid grid-cols-[2.45rem_1fr_auto] items-center gap-1.5 px-1 py-0.5">
+                                <span />
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    applyTimingConflictRecommendation(dNavIdx, pIdx);
+                                  }}
+                                  className="col-span-2 flex w-full items-center justify-center rounded-[12px] border border-red-200 bg-red-50 px-2 py-1 text-[9px] font-black leading-none text-red-600 hover:bg-red-100"
+                                  title={p._timingConflictReason || '시간 충돌 추천 개선 적용'}
+                                >
+                                  추천개선 · {navConflictRecommendation.label}
+                                </button>
+                              </div>
+                            )}
+                            {showBufferConnector && (
+                              <div className="grid grid-cols-[2.45rem_1fr_auto] items-center gap-1.5 px-1 py-0.5">
+                                <span />
+                                <div className="col-span-2 min-w-0">
                                   <button
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      openNaverPlaceSearch(p.activity, p.receipt?.address || p.address || '');
+                                      handleNavClick(d.day, nextNavItem.id, `travel-chip-${dNavIdx}-${pIdx}`);
                                     }}
-                                    className={`text-[8px] font-black rounded px-1 py-px leading-none whitespace-nowrap ${dispDur >= 120 ? 'text-orange-400 bg-orange-50 border border-orange-200 hover:bg-orange-100' : 'text-slate-300 hover:text-[#3182F6]'}`}
-                                    title="네이버 지도에서 장소 검색"
+                                    className="flex w-full items-center justify-center rounded-[12px] border border-orange-200 bg-[linear-gradient(180deg,rgba(255,247,237,0.95),rgba(255,251,235,0.98))] px-2 py-1.5 text-[9px] font-black leading-none text-orange-500 shadow-[0_10px_18px_-18px_rgba(249,115,22,0.7)] hover:bg-orange-50"
+                                    title={`${nextNavItem.activity || '다음 일정'} 진입 전 이동칩 위치로 이동`}
                                   >
-                                    {fmtDur(dispDur)}
+                                    {nextNavItem.bufferTimeOverride || `${DEFAULT_BUFFER_MINS}분`}
                                   </button>
                                 </div>
-                              );
-                            })()}
-                          </button>
+                              </div>
+                            )}
+                            {renderNavInsertTarget(dNavIdx, pIdx, `nav-insert-${p.id}`, navDropWarn)}
+                          </React.Fragment>
                         );
-                      })}
+                            })}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 ))}
@@ -4223,7 +5546,7 @@ const App = () => {
             {/* ── 하단 고정: 사용자 정보 & 로그아웃 버튼 ── */}
             <div className="p-4 border-t border-slate-100 bg-white shrink-0 mt-auto">
               {canManagePlan && (
-                <div className="grid grid-cols-2 gap-1.5 mb-2">
+                <div className="grid grid-cols-3 gap-1.5 mb-2">
                   <button
                     onClick={() => setShowPlanManager(true)}
                     className="px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
@@ -4231,10 +5554,17 @@ const App = () => {
                     목록보기
                   </button>
                   <button
-                    onClick={() => setShowShareManager(true)}
-                    className="px-2 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-[10px] font-black text-[#3182F6] hover:bg-blue-100 transition-colors"
+                    onClick={() => setShowAiSettings(true)}
+                    className="px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
                   >
-                    공유하기
+                    AI 설정
+                  </button>
+                  <button
+                    onClick={() => setUseAiSmartFill((prev) => !prev)}
+                    className={`px-2 py-1.5 rounded-lg border text-[10px] font-black transition-colors ${useAiSmartFill ? 'border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100' : 'border-slate-200 bg-white text-slate-400 hover:border-indigo-200 hover:text-indigo-500'}`}
+                    title="AI 사용하기"
+                  >
+                    {useAiSmartFill ? 'AI ON' : 'AI OFF'}
                   </button>
                 </div>
               )}
@@ -4337,20 +5667,6 @@ const App = () => {
                 }
               }}
             >
-
-              {/* 장소 추가 폼 */}
-              {isAddingPlace && (
-                <PlaceAddForm
-                  newPlaceName={newPlaceName}
-                  setNewPlaceName={setNewPlaceName}
-                  newPlaceTypes={newPlaceTypes}
-                  setNewPlaceTypes={setNewPlaceTypes}
-                  regionHint={tripRegion}
-                  onAdd={addPlace}
-                  onCancel={() => setIsAddingPlace(false)}
-                />
-              )}
-
               {/* 장소 목록 */}
               {(() => {
                 // 활성 일정의 시간 기준으로 영업 여부 판단
@@ -4366,7 +5682,7 @@ const App = () => {
                   return activeTimeMins >= openMins && activeTimeMins < closeMins;
                 };
                 // 필터링 적용: 기준 일정이 있으면 영업 상태와 무관하게 거리순 유지
-                let visiblePlaces = [...distanceSortedPlaces];
+                let visiblePlaces = [...distanceSortedPlaces].filter(Boolean);
 
                 if (placeFilterTags.length > 0) {
                   visiblePlaces = visiblePlaces.filter(p => {
@@ -4381,21 +5697,53 @@ const App = () => {
                   });
                   return acc;
                 }, {});
+                const filterTagOptions = [
+                  ...TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map((tag) => ({ ...tag, isCustom: false })),
+                  ...customPlaceCategories.map((tag) => ({ value: tag, label: getCustomTagLabel(tag), isCustom: true })),
+                ];
                 return (
-                  <div className="w-full flex flex-col gap-1.5 items-center">
+                  <div className="w-full flex flex-col gap-1.5 items-stretch">
+                    {draggingFromTimeline && (
+                      <div
+                        className={`w-full mb-2 rounded-[20px] border-2 border-dashed px-4 py-4 flex items-center justify-center gap-3 text-center transition-all ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6] shadow-[0_12px_26px_-18px_rgba(49,130,246,0.45)]' : 'border-slate-200 bg-white/90 text-slate-500'}`}
+                        data-drag-action="move_to_library"
+                        onDragOver={(e) => { e.preventDefault(); setDragBottomTarget('move_to_library'); }}
+                        onDragLeave={() => setDragBottomTarget(prev => (prev === 'move_to_library' ? '' : prev))}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const payload = draggingFromTimeline;
+                          if (!payload) return;
+                          if (payload.altIdx !== undefined) {
+                            dropAltOnLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
+                          } else {
+                            dropTimelineItemOnLibrary(payload.dayIdx, payload.pIdx);
+                          }
+                          triggerUndoToast("내 장소로 이동되었습니다.");
+                          setDragBottomTarget('');
+                          setDraggingFromTimeline(null);
+                        }}
+                      >
+                        <Package size={18} />
+                        <div className="flex flex-col items-start">
+                          <span className="text-[12px] font-black">여기에 드래그해서 내 장소로 이동</span>
+                          <span className="text-[10px] font-bold opacity-70">일정 카드나 플랜 B를 놓으면 오른쪽 목록으로 옮깁니다.</span>
+                        </div>
+                      </div>
+                    )}
                     {/* 필터 및 정렬 상태 표시기 */}
                     <div className="w-full flex flex-col gap-1 mb-2">
-                      <div className="flex flex-wrap gap-1 px-1">
-                        {TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map(t => {
+                      <div className="flex items-start gap-1 px-1">
+                        <div className="flex flex-1 flex-wrap gap-1">
+                        {filterTagOptions.map(t => {
                           const active = placeFilterTags.includes(t.value);
                           return (
                             <button
                               key={t.value}
                               onClick={() => setPlaceFilterTags(prev => active ? prev.filter(v => v !== t.value) : [...prev, t.value])}
-                              className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${active ? 'bg-[#3182F6] text-white border-[#3182F6] shadow-sm' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
+                              className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${active ? 'bg-[#3182F6] text-white border-[#3182F6] shadow-sm' : t.isCustom ? 'bg-slate-50 text-slate-600 border-slate-300 hover:border-slate-400' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
                             >
                               <span>{t.label}</span>
-                              <span className={`ml-1 px-1 rounded text-[8px] font-black ${active ? 'bg-white/30 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                              <span className={`ml-1 px-1 rounded text-[8px] font-black ${active ? 'bg-white/30 text-white' : t.isCustom ? 'bg-white text-slate-500 border border-slate-200' : 'bg-slate-100 text-slate-500'}`}>
                                 {categoryCounts[t.value] || 0}
                               </span>
                             </button>
@@ -4409,7 +5757,41 @@ const App = () => {
                             초기화 ✕
                           </button>
                         )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowPlaceCategoryManager((prev) => !prev)}
+                          className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-lg border transition-colors ${showPlaceCategoryManager ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600'}`}
+                          title="카테고리 관리"
+                        >
+                          <SlidersHorizontal size={12} />
+                        </button>
                       </div>
+
+                      {showPlaceCategoryManager && (
+                        <div className="mx-1 rounded-[14px] border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                          <p className="text-[10px] font-black text-slate-600">카테고리 관리</p>
+                          <p className="mt-0.5 text-[9px] font-bold text-slate-400">직접 추가한 카테고리를 전체 데이터에서 제거합니다.</p>
+                          {customPlaceCategories.length === 0 ? (
+                            <p className="mt-2 text-[10px] font-bold text-slate-400">삭제 가능한 사용자 카테고리가 없습니다.</p>
+                          ) : (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {customPlaceCategories.map((tag) => (
+                                <button
+                                  key={`manager-${tag}`}
+                                  type="button"
+                                  onClick={() => removeCustomCategoryEverywhere(tag)}
+                                  className="flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-500 transition-colors"
+                                  title={`'${tag}' 카테고리 삭제`}
+                                >
+                                  <span>{getCustomTagLabel(tag)}</span>
+                                  <Trash2 size={10} />
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {basePlanRef?.id && (
                         <div
@@ -4430,152 +5812,91 @@ const App = () => {
                         + 버튼으로 장소를 추가하고<br />타임라인으로 드래그하세요
                       </p>
                     )}
-                    {visiblePlaces.map(place => {
+                    {visiblePlaces.filter(place => place && (place.id || place.name)).map(place => {
                       const chips = place.types ? place.types.map(t => getCategoryBadge(t)) : [getCategoryBadge('place')];
-                      const isEditing = editingPlaceId === place.id;
                       const isPlaceExpanded = expandedPlaceId === place.id;
                       const bizWarningNow = getBusinessWarningNow(place.business);
                       const bizSummary = formatBusinessSummary(place.business);
                       const hasBizSummary = bizSummary !== '미설정';
                       const openStatus = isOpenAt(place.business); // true=영업중, false=마감, null=정보없음
                       const baseDistance = placeDistanceMap[place.id];
+                      const placeCardClass = `${draggingFromLibrary?.id === place.id ? 'opacity-40 animate-pulse' : 'hover:shadow-[0_14px_32px_-14px_rgba(49,130,246,0.22)] hover:border-[#3182F6]/25'} ${isPlaceExpanded ? 'scale-[1.01]' : ''}`.trim();
+                      const statusChip = bizWarningNow
+                        ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-orange-200 bg-orange-50 text-orange-600">영업 주의</span>
+                        : openStatus === true
+                          ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-[#3182F6]/20 bg-blue-50 text-[#3182F6]">영업중</span>
+                          : null;
 
                       return (
-                        <div
+                        <PlaceLibraryCard
                           key={place.id}
-                          draggable={isEditMode}
-                          onTouchStart={(e) => {
-                            if (!isEditMode) return;
-                            const targetEl = e.target instanceof Element ? e.target : null;
-                            if (targetEl?.closest('input,button,a,textarea,[contenteditable],[data-no-drag]')) return;
-                            touchDragSourceRef.current = { kind: 'library', place, startX: e.touches[0].clientX, startY: e.touches[0].clientY };
-                            isDraggingActiveRef.current = false;
-                          }}
-                          onDragStart={(e) => {
-                            if (!isEditMode) { e.preventDefault(); return; }
-                            const copy = ctrlHeldRef.current;
-                            const targetEl = e.target instanceof Element ? e.target : null;
-                            const isInteractiveTarget = !!targetEl?.closest('input, button, a, textarea, [contenteditable="true"], [data-no-drag="true"]');
-                            if (isInteractiveTarget) { e.preventDefault(); return; }
-                            desktopDragRef.current = { kind: 'library', place, copy };
-                            e.dataTransfer.effectAllowed = copy ? 'copy' : 'move';
-                            try {
-                              e.dataTransfer.setData('text/plain', `library:${place.id || place.name || 'item'}`);
-                            } catch (_) { /* noop */ }
-                            requestAnimationFrame(() => {
-                              setDraggingFromLibrary(place);
-                              setIsDragCopy(copy);
-                            });
-                          }}
-                          onDragEnd={() => { desktopDragRef.current = null; setDraggingFromLibrary(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false); }}
-                          onDragOver={(e) => {
-                            if (draggingFromTimeline) { e.preventDefault(); e.stopPropagation(); }
-                          }}
-                          onDrop={(e) => {
-                            if (draggingFromTimeline) {
-                              e.preventDefault(); e.stopPropagation();
-                              if (draggingFromTimeline.altIdx !== undefined) {
-                                dropAltOnLibrary(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
-                              } else {
-                                const src = itinerary.days?.[draggingFromTimeline.dayIdx]?.plan?.[draggingFromTimeline.pIdx];
-                                dropTimelineItemOnLibrary(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, askPlanBMoveMode(src));
+                          cardProps={{
+                            draggable: isEditMode,
+                            onTouchStart: (e) => {
+                              if (!isEditMode) return;
+                              const targetEl = e.target instanceof Element ? e.target : null;
+                              if (targetEl?.closest('input,button,a,textarea,[contenteditable],[data-no-drag]')) return;
+                              touchDragSourceRef.current = { kind: 'library', place, startX: e.touches[0].clientX, startY: e.touches[0].clientY };
+                              isDraggingActiveRef.current = false;
+                            },
+                            onDragStart: (e) => {
+                              if (!isEditMode) { e.preventDefault(); return; }
+                              const copy = ctrlHeldRef.current;
+                              const targetEl = e.target instanceof Element ? e.target : null;
+                              const isInteractiveTarget = !!targetEl?.closest('input, button, a, textarea, [contenteditable="true"], [data-no-drag="true"]');
+                              if (isInteractiveTarget) { e.preventDefault(); return; }
+                              desktopDragRef.current = { kind: 'library', place, copy };
+                              e.dataTransfer.effectAllowed = copy ? 'copy' : 'move';
+                              try {
+                                e.dataTransfer.setData('text/plain', `library:${place.id || place.name || 'item'}`);
+                              } catch (_) { /* noop */ }
+                              requestAnimationFrame(() => {
+                                setDraggingFromLibrary(place);
+                                setIsDragCopy(copy);
+                              });
+                            },
+                            onDragEnd: () => { desktopDragRef.current = null; setDraggingFromLibrary(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false); },
+                            onDragOver: (e) => {
+                              if (draggingFromTimeline) { e.preventDefault(); e.stopPropagation(); }
+                            },
+                            onDrop: (e) => {
+                              if (draggingFromTimeline) {
+                                e.preventDefault(); e.stopPropagation();
+                                if (draggingFromTimeline.altIdx !== undefined) {
+                                  dropAltOnLibrary(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
+                                } else {
+                                  const src = itinerary.days?.[draggingFromTimeline.dayIdx]?.plan?.[draggingFromTimeline.pIdx];
+                                  dropTimelineItemOnLibrary(draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, askPlanBMoveMode(src));
+                                }
+                                setDraggingFromTimeline(null);
                               }
-                              setDraggingFromTimeline(null);
-                            }
+                            },
+                            className: placeCardClass,
                           }}
-                          className={`group relative bg-white rounded-2xl border border-slate-100 p-3 shadow-[0_8px_20px_-12px_rgba(15,23,42,0.08)] transition-all duration-300 ${draggingFromLibrary?.id === place.id ? 'opacity-40 animate-pulse' : 'hover:shadow-[0_12px_24px_-12px_rgba(15,23,42,0.12)] hover:border-slate-200'} ${isPlaceExpanded ? 'scale-[1.01]' : ''} ${bizWarningNow ? 'border-orange-200 hover:shadow-[0_8px_24px_-4px_rgba(249,115,22,0.15)] ring-1 ring-orange-100' : (openStatus === true ? 'border-[#3182F6]/30 shadow-[0_4px_16px_-4px_rgba(49,130,246,0.1)] hover:shadow-[0_8px_24px_-4px_rgba(49,130,246,0.15)] ring-1 ring-[#3182F6]/10' : 'border-slate-100 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.06)] hover:border-slate-200')}`}
-                        >
-                          <div className="p-4 flex flex-col gap-2.5">
-                            <span className="text-[22px] font-black text-slate-800 leading-tight break-words whitespace-normal">{place.name}</span>
-                            <div className="flex items-center gap-1.5 flex-wrap pr-12 cursor-pointer" data-no-drag="true" onClick={(e) => { e.stopPropagation(); setEditingPlaceId(place.id); setEditPlaceDraft({ ...place, address: place.address || place.receipt?.address || '', business: normalizeBusiness(place.business || {}), receipt: deepClone(place.receipt || { address: place.address || '', items: [] }), showBusinessEditor: !!(place.business?.open || place.business?.close || place.business?.breakStart || place.business?.breakEnd || place.business?.lastOrder || place.business?.entryClose || place.business?.closedDays?.length) }); }}>
-                              {chips}
-                              {baseDistance != null && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-200 bg-blue-50 text-blue-600">
-                                  {baseDistance}km
-                                </span>
-                              )}
-                            </div>
-                            {place.address && (
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); openNaverPlaceSearch(place.name, place.address); }}
-                                className="flex items-center gap-2 text-slate-500 bg-slate-50 w-full px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm hover:border-[#3182F6]/50 hover:bg-blue-50/40 transition-colors text-left"
-                                title="네이버 지도에서 장소 검색"
-                              >
-                                <MapPin size={11} className="text-[#3182F6] shrink-0" />
-                                <span className="text-[10px] font-bold break-words whitespace-normal">{place.address}</span>
-                              </button>
-                            )}
-                            <div
-                              className={`w-full px-2.5 py-1 rounded-lg border text-[10px] font-bold break-words whitespace-normal cursor-pointer transition-all hover:shadow-sm ${bizWarningNow ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-[#3182F6]/40 hover:bg-blue-50/40 hover:text-[#3182F6]'}`}
-                              data-no-drag="true"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const hasBiz = place.business?.open || place.business?.close || place.business?.breakStart || place.business?.breakEnd || place.business?.lastOrder || place.business?.entryClose || place.business?.closedDays?.length;
-                                const bizDefaults = hasBiz ? normalizeBusiness(place.business || {}) : { ...DEFAULT_BUSINESS };
-                                setEditingPlaceId(place.id);
-                                setEditPlaceDraft({ ...place, address: place.address || place.receipt?.address || '', business: bizDefaults, receipt: deepClone(place.receipt || { address: place.address || '', items: [] }), showBusinessEditor: true });
-                              }}
-                            >
-                              {bizWarningNow
-                                ? `주의 · ${hasBizSummary ? bizSummary : '영업 정보 미설정'}`
-                                : (hasBizSummary ? bizSummary : '영업 정보 미설정')}
-                            </div>
-                            {place.memo && (
-                              <div className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[10px] font-medium text-slate-600 break-words whitespace-normal">
-                                {place.memo}
-                              </div>
-                            )}
-                          </div>
-                          {
-                            isPlaceExpanded && (
-                              <div className="px-3 py-2 border-t border-slate-100 bg-white">
-                                <div className="space-y-1.5">
-                                  {(place.receipt?.items || []).map((m, idx) => (
-                                    <div key={idx} className="flex items-center justify-between text-[10px]">
-                                      <span className="text-slate-600 font-bold truncate">{m.name || '-'}</span>
-                                      <span className="text-slate-400 font-bold">x{getMenuQty(m)}</span>
-                                      <span className="text-[#3182F6] font-black">₩{getMenuLineTotal(m).toLocaleString()}</span>
-                                    </div>
-                                  ))}
-                                  {(place.receipt?.items || []).length === 0 && (
-                                    <p className="text-[10px] text-slate-400 font-semibold">등록된 메뉴가 없습니다.</p>
-                                  )}
-                                </div>
-                              </div>
-                            )
-                          }
-                          <div
-                            className="px-3 py-2 border-t border-slate-100 flex items-center justify-between bg-white cursor-pointer hover:bg-slate-50/70"
-                            onClick={(e) => { e.stopPropagation(); setExpandedPlaceId(prev => (prev === place.id ? null : place.id)); }}
-                          >
-                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                              Total <ChevronDown size={12} className={`transition-transform ${isPlaceExpanded ? 'rotate-180' : ''}`} />
-                            </span>
-                            <span className="text-[14px] font-black text-[#3182F6]">₩{Number(place.price || 0).toLocaleString()}</span>
-                          </div>
-                          {/* 호버 버튼: 수정 + 삭제 */}
-                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingPlaceId(place.id);
-                                setEditPlaceDraft({
-                                  ...place,
-                                  address: place.address || place.receipt?.address || '',
-                                  business: normalizeBusiness(place.business || {}),
-                                  receipt: deepClone(place.receipt || { address: place.address || '', items: [] }),
-                                  showBusinessEditor: !!(place.business?.open || place.business?.close || place.business?.breakStart || place.business?.breakEnd || place.business?.lastOrder || place.business?.entryClose || place.business?.closedDays?.length)
-                                });
-                              }}
-                              className="p-1.5 hover:text-[#3182F6] hover:bg-blue-50 text-slate-300 rounded-md transition-all"
-                            ><Pencil size={11} /></button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); removePlace(place.id); }}
-                              className="p-1.5 hover:text-red-500 hover:bg-red-50 text-slate-300 rounded-md transition-all"
-                            ><Trash2 size={11} /></button>
-                          </div>
-                        </div>
+                          place={place}
+                          chips={chips}
+                          baseDistance={baseDistance}
+                          statusChip={statusChip}
+                          businessSummary={bizWarningNow ? `주의 · ${hasBizSummary ? bizSummary : '영업 정보 미설정'}` : (hasBizSummary ? bizSummary : '미설정')}
+                          isExpanded={isPlaceExpanded}
+                          onEdit={(e) => {
+                            e?.stopPropagation?.();
+                            setEditingPlaceId(place.id);
+                            setEditPlaceDraft(createPlaceEditorDraft(place));
+                          }}
+                          onOpenMap={(e) => { e.stopPropagation(); openNaverPlaceSearch(place.name, place.address || place.receipt?.address || ''); }}
+                          onBusinessEdit={(e) => {
+                            e.stopPropagation();
+                            const hasBiz = place.business?.open || place.business?.close || place.business?.breakStart || place.business?.breakEnd || place.business?.lastOrder || place.business?.entryClose || place.business?.closedDays?.length;
+                            const bizDefaults = hasBiz ? normalizeBusiness(place.business || {}) : { ...DEFAULT_BUSINESS };
+                            setEditingPlaceId(place.id);
+                            setEditPlaceDraft(createPlaceEditorDraft(place, { business: bizDefaults, showBusinessEditor: true }));
+                          }}
+                          onToggleExpand={(e) => { e.stopPropagation(); setExpandedPlaceId(prev => (prev === place.id ? null : place.id)); }}
+                          onDelete={(e) => { e.stopPropagation(); removePlace(place.id); }}
+                          getMenuQtyValue={getMenuQty}
+                          getMenuLineTotalValue={getMenuLineTotal}
+                        />
                       );
                     })}
                   </div>
@@ -4662,6 +5983,45 @@ const App = () => {
               </div>
             </>
           )}
+
+          {/* ── 플랜B 변형 선택 팝업 (루트 레벨 fixed — overflow-hidden 카드 영향 없음) ── */}
+          {planVariantPicker && (() => {
+            const allDays = itinerary.days || [];
+            const day = allDays[planVariantPicker.dayIdx];
+            const item = day?.plan?.[planVariantPicker.pIdx];
+            if (!item) return null;
+            const variants = [item, ...(item.alternatives || [])];
+            const curPos = viewingPlanIdx[item.id] ?? 0;
+            return (
+              <>
+                <div className="fixed inset-0 z-[169]" onClick={() => setPlanVariantPicker(null)} />
+                <div
+                  data-plan-picker="true"
+                  className="fixed z-[170] w-[250px] rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_18px_36px_-18px_rgba(15,23,42,0.35)] p-2.5"
+                  style={{ left: planVariantPicker.left, top: planVariantPicker.top }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">플랜 목록 ({variants.length}개)</p>
+                  <div className="flex flex-col gap-1 max-h-[160px] overflow-y-auto no-scrollbar">
+                    {variants.map((v, idx) => {
+                      const active = idx === curPos;
+                      return (
+                        <button
+                          key={`${item.id}_variant_${idx}`}
+                          type="button"
+                          onClick={() => { selectPlanVariantAt(planVariantPicker.dayIdx, planVariantPicker.pIdx, idx); setPlanVariantPicker(null); }}
+                          className={`w-full text-left px-2.5 py-2 rounded-xl border transition-colors ${active ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-700 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+                        >
+                          <p className="text-[11px] font-black truncate">{v.activity || `플랜 ${idx + 1}`}</p>
+                          <p className="text-[10px] font-bold text-slate-400 truncate">{(v.receipt?.address || '').trim() || '주소 미정'}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
           {showEntryChooser && !user?.isGuest && !sharedSource?.ownerId && (
             <>
@@ -4912,6 +6272,87 @@ const App = () => {
             </>
           )}
 
+          {showAiSettings && (
+            <>
+              <div className="fixed inset-0 z-[260] bg-black/20" onClick={() => setShowAiSettings(false)} />
+              <div className="fixed z-[261] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(480px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-[14px] font-black text-slate-800">AI 스마트 채우기 설정</p>
+                    <p className="text-[10px] font-bold text-slate-400 mt-1">로그인 상태에서는 서버 암호화 저장을 우선 사용합니다.</p>
+                  </div>
+                  <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowAiSettings(false)}><X size={16} /></button>
+                </div>
+                <div className="space-y-3">
+                  <label className="block">
+                    <span className="text-[10px] font-black text-slate-500">Groq API Key</span>
+                    <input
+                      type="password"
+                      value={aiSmartFillConfig.apiKey}
+                      onChange={(e) => setAiSmartFillConfig((prev) => normalizeAiSmartFillConfig({ ...prev, apiKey: e.target.value }))}
+                      placeholder={serverAiKeyStatus.hasStoredKey ? '새 키로 교체하려면 다시 입력' : '암호화 저장할 API 키 입력'}
+                      className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                    />
+                  </label>
+                  <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-bold text-slate-500 leading-relaxed">
+                    {auth.currentUser && !auth.currentUser.isGuest ? (
+                      <>
+                        <div className="flex items-center justify-between gap-2">
+                          <span>{serverAiKeyStatus.loading ? '저장 상태 확인 중...' : serverAiKeyStatus.hasStoredKey ? '계정별 암호화 키 저장됨' : '계정별 저장된 키 없음'}</span>
+                          <button
+                            type="button"
+                            onClick={() => { void fetchServerAiKeyStatus(); }}
+                            className="text-[10px] font-black text-[#3182F6]"
+                          >
+                            새로고침
+                          </button>
+                        </div>
+                        {serverAiKeyStatus.updatedAt && (
+                          <div className="mt-1 text-[9px] text-slate-400">최근 저장: {new Date(serverAiKeyStatus.updatedAt).toLocaleString('ko-KR')}</div>
+                        )}
+                      </>
+                    ) : (
+                      <span>게스트/비로그인 상태에서는 현재 세션 동안만 메모리에 보관됩니다.</span>
+                    )}
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-500 leading-relaxed">
+                    로그인 상태에서는 서버가 키를 암호화해 Firestore에 저장하고, 실제 Groq 호출도 서버 복호화 경로를 사용합니다. 이 브라우저 localStorage에는 평문 키를 저장하지 않습니다.
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { void saveServerAiKey(); }}
+                    className="px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-[11px] font-black text-[#3182F6] hover:bg-blue-100"
+                  >
+                    키 저장
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { void deleteServerAiKey(); }}
+                    className="px-3 py-2 rounded-xl border border-slate-200 text-[11px] font-black text-slate-500 hover:border-slate-300"
+                  >
+                    저장 키 삭제
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAiSmartFillConfig((prev) => ({ ...DEFAULT_AI_SMART_FILL_CONFIG, apiKey: '' }))}
+                    className="px-3 py-2 rounded-xl border border-slate-200 text-[11px] font-black text-slate-500 hover:border-slate-300"
+                  >
+                    입력 초기화
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAiSettings(false)}
+                    className="px-4 py-2 rounded-xl bg-[#3182F6] text-white text-[11px] font-black"
+                  >
+                    닫기
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
           {/* ── 여행 헤더 카드 ── */}
           {(() => {
             const tripDays = (tripStartDate && tripEndDate)
@@ -4964,9 +6405,9 @@ const App = () => {
             return (
               <div className="mb-8 relative">
                 {/* 컴팩트 플로팅 바 (스크롤 시) */}
-                {heroCollapsed && (
+                {SHOW_HERO_COMPACT_BAR && heroCollapsed && (
                   <div
-                    className="fixed top-0 z-[190] pointer-events-none"
+                    className="fixed top-0 z-[120] pointer-events-none"
                     style={{ left: isMobileLayout ? 0 : leftSidebarWidth, right: isMobileLayout ? 0 : (col2Collapsed ? 44 : 300) }}
                   >
                     <div className="w-full bg-white/98 backdrop-blur-2xl border-b border-slate-200/90 shadow-[0_4px_20px_-10px_rgba(15,23,42,0.15)] pointer-events-auto min-h-[56px] px-6 py-2 flex items-center justify-between gap-4">
@@ -4998,11 +6439,20 @@ const App = () => {
                         {canManagePlan && (
                           <div className="flex items-center gap-1.5 border-l border-slate-100 pl-4">
                             <button
-                              onClick={() => setIsEditMode(!isEditMode)}
+                              onClick={(e) => { e.stopPropagation(); setIsEditMode(!isEditMode); }}
                               className={`w-8 h-8 rounded-xl border transition-all flex items-center justify-center shadow-sm ${isEditMode ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-white border-slate-100 text-slate-400'}`}
                               title={isEditMode ? '편집 모드 종료' : '편집 모드 시작 (드래그 활성화)'}
                             >
                               {isEditMode ? <Edit3 size={13} /> : <Lock size={13} />}
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); autoCalculateAllRoutes(); }}
+                              disabled={isCalculatingAllRoutes}
+                              className="min-w-[84px] h-8 px-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:border-[#3182F6]/40 hover:text-[#3182F6] hover:bg-white transition-all flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="전체 경로 다시 계산"
+                            >
+                              <Navigation size={12} />
+                              <span className="text-[10px] font-black">{isCalculatingAllRoutes ? `${routeCalcProgress}%` : '전체경로'}</span>
                             </button>
                             <button
                               onClick={() => setShowPlanOptions(true)}
@@ -5024,16 +6474,25 @@ const App = () => {
                 )}
 
                 {/* 풀 카드 (최상단) */}
-                {!heroCollapsed && (
+                {(!SHOW_HERO_COMPACT_BAR || !heroCollapsed) && (
                   <section className="mb-10 -mx-4 -mt-8">
                     <div className="w-full relative overflow-hidden bg-transparent">
                       {canManagePlan && <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                         <button
-                          onClick={() => setIsEditMode(!isEditMode)}
+                          onClick={(e) => { e.stopPropagation(); setIsEditMode(!isEditMode); }}
                           className={`w-10 h-10 rounded-xl border backdrop-blur transition-all flex items-center justify-center shadow-lg ${isEditMode ? 'bg-amber-400/90 border-amber-300 text-white font-black' : 'bg-white/85 border-white/40 text-slate-700'}`}
                           title={isEditMode ? '편집 모드 종료' : '편집 모드 시작 (드래그 활성화)'}
                         >
                           {isEditMode ? <Edit3 size={18} /> : <Lock size={18} />}
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); autoCalculateAllRoutes(); }}
+                          disabled={isCalculatingAllRoutes}
+                          className="h-10 px-3 rounded-xl border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center gap-1.5 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="전체 경로 다시 계산"
+                        >
+                          <Navigation size={16} />
+                          <span className="text-[11px] font-black">{isCalculatingAllRoutes ? `탐색 ${routeCalcProgress}%` : '전체경로'}</span>
                         </button>
                         <button
                           onClick={() => setShowPlanOptions(true)}
@@ -5044,7 +6503,7 @@ const App = () => {
                         </button>
                         <button
                           onClick={() => setShowShareManager(true)}
-                          className="w-10 h-10 rounded-xl border border-blue-200 bg-blue-50/90 backdrop-blur text-[#3182F6] hover:bg-blue-100 transition-colors flex items-center justify-center shadow-lg"
+                          className="w-10 h-10 rounded-xl border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg"
                           title="공유 설정"
                         >
                           <Share2 size={16} />
@@ -5110,7 +6569,7 @@ const App = () => {
                         </div>
 
                         {/* 🌟 2. 예산 현황 요약 (연결된 셀 스타일) */}
-                        <div className="flex flex-col gap-8">
+                        <div className="flex flex-col gap-8 px-3 sm:px-0">
                           <div className="w-full bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.04)] rounded-[32px] overflow-hidden flex flex-col pt-8 pb-7 px-8 items-center text-center">
                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Total Remaining Budget</p>
                             <p className="text-[48px] font-black text-[#3182F6] leading-none tabular-nums tracking-tighter mb-8">
@@ -5270,6 +6729,7 @@ const App = () => {
                 // 스마트 락(숙소 자동 계산) 여부 확인
                 const isAutoLocked = p.isAutoDuration;
                 const isDurationLocked = !!p.isDurationFixed || isAutoLocked;
+                const isDurationControlBlocked = isAutoLocked;
                 // Plan B 캐러셀 — 즉시 교체
                 const totalPlans = planBCount + 1;
                 const cyclePlan = (dir) => {
@@ -5293,9 +6753,6 @@ const App = () => {
                         <div className="flex items-center bg-slate-50/95 px-3 py-1.5 rounded-full border border-slate-300 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.45)] gap-2">
                           {/* 이동 시간 */}
                           <div className="flex flex-col items-center">
-                            {p._isBufferCoordinated && (
-                              <span className="text-[8px] font-black text-orange-400 absolute -top-4 whitespace-nowrap">시간 보정됨</span>
-                            )}
                             <span
                               className={`min-w-[3rem] text-center tracking-tight text-xs font-black transition-colors ${p._isBufferCoordinated ? 'text-orange-500' : (p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800')}`}
                               onClick={(e) => { e.stopPropagation(); if (p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto) resetTravelTime(dIdx, pIdx); }}
@@ -5335,8 +6792,8 @@ const App = () => {
                           {(() => {
                             const rid = `${dIdx}_${pIdx}`; const busy = calculatingRouteId === rid;
                             return (
-                              <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }} disabled={!!calculatingRouteId} className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1 text-[10px] font-black ${busy ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
-                                <Sparkles size={10} /> {busy ? '계산중' : '자동경로'}
+                              <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
+                                <Sparkles size={10} />
                               </button>
                             );
                           })()}
@@ -5426,8 +6883,13 @@ const App = () => {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const rect = e.currentTarget.getBoundingClientRect();
+                                // 이미 이 항목의 팝업이 열려 있으면 닫기
+                                if (planVariantPicker?.dayIdx === dIdx && planVariantPicker?.pIdx === pIdx) {
+                                  setPlanVariantPicker(null);
+                                  return;
+                                }
                                 const panelW = 250;
-                                const panelH = 180;
+                                const panelH = 200;
                                 const left = Math.max(12, Math.min(window.innerWidth - panelW - 12, rect.right - panelW));
                                 const top = Math.max(8, Math.min(window.innerHeight - panelH - 8, rect.bottom + 8));
                                 setPlanVariantPicker({ dayIdx: dIdx, pIdx, left, top });
@@ -5438,32 +6900,7 @@ const App = () => {
                             </button>
                           </div>
                         )}
-                        {hasPlanB && planVariantPicker?.dayIdx === dIdx && planVariantPicker?.pIdx === pIdx && (
-                          <div
-                            data-plan-picker="true"
-                            className="fixed z-[170] w-[250px] rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_18px_36px_-18px_rgba(15,23,42,0.35)] p-2.5"
-                            style={{ left: planVariantPicker.left, top: planVariantPicker.top }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">플랜 목록 ({totalPlans}개)</p>
-                            <div className="flex flex-col gap-1 max-h-[130px] overflow-y-auto no-scrollbar">
-                              {[p, ...(p.alternatives || [])].map((v, idx) => {
-                                const active = idx === planPos;
-                                return (
-                                  <button
-                                    key={`${p.id}_variant_${idx}`}
-                                    type="button"
-                                    onClick={() => selectPlanVariantAt(dIdx, pIdx, idx)}
-                                    className={`w-full text-left px-2.5 py-2 rounded-xl border transition-colors ${active ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-700 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
-                                  >
-                                    <p className="text-[11px] font-black truncate">{v.activity || `플랜 ${idx + 1}`}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 truncate">{(v.receipt?.address || '').trim() || '주소 미정'}</p>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
+                        {/* planVariantPicker 팝업은 overflow-hidden 카드 밖 루트 레벨에서 렌더링 */}
                         <div className="flex items-stretch border-b border-slate-100 border-dashed">
 
                           {!isShip && !isLodge && (
@@ -5519,9 +6956,9 @@ const App = () => {
                                             className={`flex items-center gap-0.5 px-2.5 py-1 rounded-full cursor-pointer transition-colors ${isAutoLocked ? 'bg-red-500' : isDurationLocked ? 'bg-orange-400' : 'bg-slate-200 hover:bg-slate-300'}`}
                                             onClick={(e) => { e.stopPropagation(); if (isAutoLocked) { setLastAction('자동 연동 일정은 소요시간을 조절할 수 없습니다.'); return; } setTimeControllerTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx) ? null : { dayIdx: dIdx, pIdx }); }}
                                           >
-                                            <button onClick={(e) => { e.stopPropagation(); if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; } updateDuration(dIdx, pIdx, -TIME_UNIT); }} className={`w-4 h-4 flex items-center justify-center transition-colors ${isDurationLocked ? 'text-white/60 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}><Minus size={9} strokeWidth={3} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); if (isDurationControlBlocked) { setLastAction('자동 연동 일정은 소요시간을 변경할 수 없습니다.'); return; } updateDuration(dIdx, pIdx, -TIME_UNIT); }} className={`w-4 h-4 flex items-center justify-center transition-colors ${isDurationLocked ? 'text-white/60 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}><Minus size={9} strokeWidth={3} /></button>
                                             <span className={`text-[11px] font-black tabular-nums px-1 ${isDurationLocked ? 'text-white' : 'text-slate-600'}`}>{fmtDur(p.duration)}</span>
-                                            <button onClick={(e) => { e.stopPropagation(); if (isDurationLocked) { setLastAction(isAutoLocked ? '자동 연동 일정은 소요시간을 변경할 수 없습니다.' : '소요시간 잠금이 켜져 있습니다.'); return; } updateDuration(dIdx, pIdx, TIME_UNIT); }} className={`w-4 h-4 flex items-center justify-center transition-colors ${isDurationLocked ? 'text-white/60 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}><Plus size={9} strokeWidth={3} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); if (isDurationControlBlocked) { setLastAction('자동 연동 일정은 소요시간을 변경할 수 없습니다.'); return; } updateDuration(dIdx, pIdx, TIME_UNIT); }} className={`w-4 h-4 flex items-center justify-center transition-colors ${isDurationLocked ? 'text-white/60 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}><Plus size={9} strokeWidth={3} /></button>
                                           </div>
                                           {/* 종료 시각 */}
                                           <span className={`text-[28px] font-black tabular-nums tracking-tight leading-none ${p.isTimeFixed ? 'text-blue-300' : 'text-slate-400'}`}>{String(ehh).padStart(2, '0')}:{String(emm).padStart(2, '0')}</span>
@@ -5567,15 +7004,15 @@ const App = () => {
                                           {/* 스피너 */}
                                           <div className="flex items-center gap-1">
                                             <div className="flex flex-col items-center">
-                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, 60); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${isDurationLocked ? 'text-orange-300 cursor-not-allowed' : 'text-slate-300 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronUp size={13} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationControlBlocked) updateDuration(dIdx, pIdx, 60); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${isDurationControlBlocked ? 'text-orange-300 cursor-not-allowed' : 'text-slate-300 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronUp size={13} /></button>
                                               <span className={`text-[30px] font-black tracking-tight tabular-nums leading-none w-[42px] text-center ${isDurationLocked ? 'text-orange-400' : 'text-slate-800'}`}>{String(Math.floor((p.duration || 0) / 60)).padStart(2, '0')}</span>
-                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, -60); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${isDurationLocked ? 'text-orange-300 cursor-not-allowed' : 'text-slate-300 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronDown size={13} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationControlBlocked) updateDuration(dIdx, pIdx, -60); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${isDurationControlBlocked ? 'text-orange-300 cursor-not-allowed' : 'text-slate-300 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronDown size={13} /></button>
                                             </div>
                                             <span className={`text-[20px] font-black pb-0.5 ${isDurationLocked ? 'text-orange-200' : 'text-slate-200'}`}>:</span>
                                             <div className="flex flex-col items-center">
-                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, mStep); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${isDurationLocked ? 'text-orange-300 cursor-not-allowed' : 'text-slate-300 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronUp size={13} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationControlBlocked) updateDuration(dIdx, pIdx, mStep); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${isDurationControlBlocked ? 'text-orange-300 cursor-not-allowed' : 'text-slate-300 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronUp size={13} /></button>
                                               <span className={`text-[30px] font-black tracking-tight tabular-nums leading-none w-[42px] text-center ${isDurationLocked ? 'text-orange-400' : 'text-slate-800'}`}>{String((p.duration || 0) % 60).padStart(2, '0')}</span>
-                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) updateDuration(dIdx, pIdx, -mStep); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${isDurationLocked ? 'text-orange-300 cursor-not-allowed' : 'text-slate-300 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronDown size={13} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); if (!isDurationControlBlocked) updateDuration(dIdx, pIdx, -mStep); }} className={`w-8 h-6 flex items-center justify-center rounded-md transition-colors ${isDurationControlBlocked ? 'text-orange-300 cursor-not-allowed' : 'text-slate-300 hover:text-[#3182F6] hover:bg-blue-50'}`}><ChevronDown size={13} /></button>
                                             </div>
                                           </div>
                                           {/* 잠금 + 프리셋 2x2 */}
@@ -5584,7 +7021,7 @@ const App = () => {
                                               <Timer size={9} /> {p.isDurationFixed ? '고정됨' : '고정'}
                                             </button>
                                             {[30, 60, 90, 120].map(v => (
-                                              <button key={v} onClick={(e) => { e.stopPropagation(); if (!isDurationLocked) setDurationValue(dIdx, pIdx, v); }} className="w-full py-1 rounded-lg text-[9px] font-black transition-all text-center bg-slate-50 text-slate-500 hover:bg-orange-400 hover:text-white">
+                                              <button key={v} onClick={(e) => { e.stopPropagation(); if (!isDurationControlBlocked) setDurationValue(dIdx, pIdx, v); }} className="w-full py-1 rounded-lg text-[9px] font-black transition-all text-center bg-slate-50 text-slate-500 hover:bg-orange-400 hover:text-white">
                                                 {v < 60 ? `${v}m` : v % 60 === 0 ? `${v / 60}h` : `1.5h`}
                                               </button>
                                             ))}
@@ -5635,9 +7072,9 @@ const App = () => {
                                       className="text-[9px] text-blue-200/80 bg-transparent outline-none w-24 focus:border-b focus:border-white/30 truncate cursor-pointer"
                                     />
                                   </div>
-                                  <div className="flex-1 flex flex-col items-center gap-0.5">
-                                    <div className="w-full border-t border-dashed border-white/30" />
-                                    <span className="text-[9px] text-white/60 font-bold">
+                                  <div className="relative flex-1 self-stretch">
+                                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-dashed border-white/30" />
+                                    <span className="absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md bg-blue-700/80 px-1.5 py-0.5 text-[9px] text-white/70 font-bold">
                                       {(() => { const s = p.sailDuration ?? 240; return `${Math.floor(s / 60)}h${s % 60 > 0 ? ` ${s % 60}m` : ''}`; })()}
                                     </span>
                                   </div>
@@ -5769,62 +7206,95 @@ const App = () => {
                                 </button>
                                 <div className="flex gap-2">
                                   {/* 체크인 셀 */}
-                                  <div className="relative overflow-hidden flex-1 bg-indigo-50/70 rounded-xl border border-indigo-100 p-3 flex flex-col items-center justify-center gap-1 min-h-[96px]">
+                                  {(() => {
+                                    const lodgeCheckoutKey = `${dIdx}-${pIdx}-lodge-out`;
+                                    const lodgeCheckinKey = `${dIdx}-${pIdx}-lodge-in`;
+                                    const checkoutTarget = timeControllerTarget?.key === lodgeCheckoutKey;
+                                    const checkinTarget = timeControllerTarget?.key === lodgeCheckinKey;
+                                    const lodgeStep = timeControllerTarget?.step || TIME_UNIT;
+                                    const nextDay = itinerary.days[dIdx + 1];
+                                    const nextItem = nextDay?.plan?.find(candidate => candidate?.type !== 'backup');
+                                    const rawCheckoutMins = p.lodgeCheckoutTime
+                                      ? timeToMinutes(p.lodgeCheckoutTime)
+                                      : nextItem
+                                        ? timeToMinutes(nextItem.time) - parseMinsLabel(nextItem.travelTimeOverride, DEFAULT_TRAVEL_MINS) - parseMinsLabel(nextItem.bufferTimeOverride, DEFAULT_BUFFER_MINS)
+                                        : timeToMinutes(p.time || '00:00') + (p.duration || 0);
+                                    const checkoutLabel = minutesToTime(rawCheckoutMins);
+                                    const [checkinHour = '00', checkinMinute = '00'] = String(p.time || '00:00').split(':');
+                                    const [checkoutHour = '00', checkoutMinute = '00'] = String(checkoutLabel).split(':');
+                                    const lodgeButtonTone = p.isTimeFixed ? 'bg-[#3182F6] text-white ring-2 ring-[#3182F6]/30 ring-offset-1' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50';
+                                    const lodgeCheckoutButtonTone = p.lodgeCheckoutFixed ? 'bg-violet-500 text-white ring-2 ring-violet-400/30 ring-offset-1' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50';
+
+                                    return (
+                                      <>
+                                  <div
+                                    className={`relative overflow-hidden flex-1 rounded-xl border p-3 flex flex-col items-center justify-center gap-2 min-h-[96px] cursor-pointer transition-colors ${checkinTarget ? 'bg-indigo-100/80 border-indigo-300' : 'bg-indigo-50/70 border-indigo-100'}`}
+                                    onClick={() => setTimeControllerTarget(prev => prev?.key === lodgeCheckinKey ? null : { key: lodgeCheckinKey, step: TIME_UNIT })}
+                                  >
+                                    {p.isTimeFixed && (
+                                      <span className="absolute top-2 right-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/90 border border-[#3182F6]/20 text-[#3182F6] z-10">
+                                        <Lock size={10} />
+                                      </span>
+                                    )}
                                     <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[56px] font-black tracking-[0.08em] text-indigo-200/55 select-none">IN</span>
-                                    <div className="flex items-center justify-center gap-1.5">
-                                      {(() => {
-                                        const [h = '00', m = '00'] = (p.time || '00:00').split(':');
-                                        const hour = parseInt(h, 10);
-                                        const minute = parseInt(m, 10);
-                                        return (
-                                          <>
-                                            <div className="flex flex-col items-center">
-                                              <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, 1); }} className="w-6 h-4 flex items-center justify-center rounded-lg text-indigo-300 hover:text-indigo-500 hover:bg-indigo-100/70 transition-colors"><ChevronUp size={11} /></button>
-                                              <span className="min-w-[2ch] text-[18px] text-center font-black tracking-tighter leading-none py-0.5 text-indigo-900">{String(isNaN(hour) ? 0 : hour).padStart(2, '0')}</span>
-                                              <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, -1); }} className="w-6 h-4 flex items-center justify-center rounded-lg text-indigo-300 hover:text-indigo-500 hover:bg-indigo-100/70 transition-colors"><ChevronDown size={11} /></button>
-                                            </div>
-                                            <span className="text-[16px] font-black text-indigo-900">:</span>
-                                            <div className="flex flex-col items-center">
-                                              <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, TIME_UNIT); }} className="w-6 h-4 flex items-center justify-center rounded-lg text-indigo-300 hover:text-indigo-500 hover:bg-indigo-100/70 transition-colors"><ChevronUp size={11} /></button>
-                                              <span className="min-w-[2ch] text-[18px] text-center font-black tracking-tighter leading-none py-0.5 text-indigo-900">{String(isNaN(minute) ? 0 : minute).padStart(2, '0')}</span>
-                                              <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, -TIME_UNIT); }} className="w-6 h-4 flex items-center justify-center rounded-lg text-indigo-300 hover:text-indigo-500 hover:bg-indigo-100/70 transition-colors"><ChevronDown size={11} /></button>
-                                            </div>
-                                          </>
-                                        );
-                                      })()}
+                                    <div className="flex flex-col items-center gap-1 relative z-10">
+                                      <span className="text-[8px] font-black tracking-[0.18em] text-indigo-400">CHECK-IN</span>
+                                      <span className={`text-[22px] font-black tabular-nums tracking-tight ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-indigo-900'}`}>{checkinHour}:{checkinMinute}</span>
                                     </div>
+                                    {checkinTarget && (
+                                      <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 w-full relative z-10">
+                                        <div className="flex flex-col items-center">
+                                          <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, 1); }} className="w-7 h-5 flex items-center justify-center rounded-md text-indigo-300 hover:text-indigo-600 hover:bg-white/80 transition-colors"><ChevronUp size={12} /></button>
+                                          <span className="text-[22px] font-black tracking-tight tabular-nums text-indigo-900 leading-none">{checkinHour}</span>
+                                          <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, -1); }} className="w-7 h-5 flex items-center justify-center rounded-md text-indigo-300 hover:text-indigo-600 hover:bg-white/80 transition-colors"><ChevronDown size={12} /></button>
+                                        </div>
+                                        <div className="flex flex-col items-center">
+                                          <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, lodgeStep); }} className="w-7 h-5 flex items-center justify-center rounded-md text-indigo-300 hover:text-indigo-600 hover:bg-white/80 transition-colors"><ChevronUp size={12} /></button>
+                                          <span className="text-[22px] font-black tracking-tight tabular-nums text-indigo-900 leading-none">{checkinMinute}</span>
+                                          <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, -lodgeStep); }} className="w-7 h-5 flex items-center justify-center rounded-md text-indigo-300 hover:text-indigo-600 hover:bg-white/80 transition-colors"><ChevronDown size={12} /></button>
+                                        </div>
+                                        <button onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`col-span-2 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${lodgeButtonTone}`}>
+                                          {p.isTimeFixed ? <Lock size={10} /> : <Unlock size={10} />} {p.isTimeFixed ? '고정됨' : '고정'}
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
                                   {/* 체크아웃 셀 */}
-                                  <div className="relative overflow-hidden flex-1 bg-violet-50/70 rounded-xl border border-violet-100 p-3 flex flex-col items-center justify-center gap-1 min-h-[96px]">
+                                  <div
+                                    className={`relative overflow-hidden flex-1 rounded-xl border p-3 flex flex-col items-center justify-center gap-2 min-h-[96px] cursor-pointer transition-colors ${checkoutTarget ? 'bg-violet-100/80 border-violet-300' : 'bg-violet-50/70 border-violet-100'}`}
+                                    onClick={() => setTimeControllerTarget(prev => prev?.key === lodgeCheckoutKey ? null : { key: lodgeCheckoutKey, step: TIME_UNIT })}
+                                  >
+                                    {p.lodgeCheckoutFixed && (
+                                      <span className="absolute top-2 right-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/90 border border-violet-200 text-violet-600 z-10">
+                                        <Lock size={10} />
+                                      </span>
+                                    )}
                                     <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[52px] font-black tracking-[0.06em] text-violet-200/55 select-none">OUT</span>
-                                    <div className="flex items-center justify-center gap-1.5">
-                                      {(() => {
-                                        const nextDay = itinerary.days[dIdx + 1];
-                                        const nextItem = nextDay?.plan?.[0];
-                                        const checkoutMins = nextItem && nextItem.type !== 'backup'
-                                          ? timeToMinutes(nextItem.time) - parseMinsLabel(nextItem.travelTimeOverride, DEFAULT_TRAVEL_MINS) - parseMinsLabel(nextItem.bufferTimeOverride, DEFAULT_BUFFER_MINS)
-                                          : timeToMinutes(p.time || '00:00') + (p.duration || 0);
-                                        const [h = '00', m = '00'] = minutesToTime(checkoutMins).split(':');
-                                        const hour = parseInt(h, 10);
-                                        const minute = parseInt(m, 10);
-                                        return (
-                                          <>
-                                            <div className="flex flex-col items-center">
-                                              <button onClick={(e) => { e.stopPropagation(); if (nextItem && nextItem.type !== 'backup') updateBufferTime(dIdx + 1, 0, -60); }} className="w-6 h-4 flex items-center justify-center rounded-lg text-violet-300 hover:text-violet-500 hover:bg-violet-100/70 transition-colors"><ChevronUp size={11} /></button>
-                                              <span className="min-w-[2ch] text-[18px] text-center font-black tracking-tighter leading-none py-0.5 text-violet-900">{String(isNaN(hour) ? 0 : hour).padStart(2, '0')}</span>
-                                              <button onClick={(e) => { e.stopPropagation(); if (nextItem && nextItem.type !== 'backup') updateBufferTime(dIdx + 1, 0, 60); }} className="w-6 h-4 flex items-center justify-center rounded-lg text-violet-300 hover:text-violet-500 hover:bg-violet-100/70 transition-colors"><ChevronDown size={11} /></button>
-                                            </div>
-                                            <span className="text-[16px] font-black text-violet-900">:</span>
-                                            <div className="flex flex-col items-center">
-                                              <button onClick={(e) => { e.stopPropagation(); if (nextItem && nextItem.type !== 'backup') updateBufferTime(dIdx + 1, 0, -TIME_UNIT); }} className="w-6 h-4 flex items-center justify-center rounded-lg text-violet-300 hover:text-violet-500 hover:bg-violet-100/70 transition-colors"><ChevronUp size={11} /></button>
-                                              <span className="min-w-[2ch] text-[18px] text-center font-black tracking-tighter leading-none py-0.5 text-violet-900">{String(isNaN(minute) ? 0 : minute).padStart(2, '0')}</span>
-                                              <button onClick={(e) => { e.stopPropagation(); if (nextItem && nextItem.type !== 'backup') updateBufferTime(dIdx + 1, 0, TIME_UNIT); }} className="w-6 h-4 flex items-center justify-center rounded-lg text-violet-300 hover:text-violet-500 hover:bg-violet-100/70 transition-colors"><ChevronDown size={11} /></button>
-                                            </div>
-                                          </>
-                                        );
-                                      })()}
+                                    <div className="flex flex-col items-center gap-1 relative z-10">
+                                      <span className="text-[8px] font-black tracking-[0.18em] text-violet-500">CHECK-OUT</span>
+                                      <span className={`text-[22px] font-black tabular-nums tracking-tight ${p.lodgeCheckoutFixed ? 'text-violet-600' : 'text-violet-900'}`}>{checkoutHour}:{checkoutMinute}</span>
                                     </div>
+                                    {checkoutTarget && (
+                                      <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 w-full relative z-10">
+                                        <div className="flex flex-col items-center">
+                                          <button onClick={(e) => { e.stopPropagation(); if (!nextItem) return; updateLodgeCheckoutTime(dIdx, pIdx, 60); }} className="w-7 h-5 flex items-center justify-center rounded-md text-violet-300 hover:text-violet-600 hover:bg-white/80 transition-colors disabled:opacity-40" disabled={!nextItem}><ChevronUp size={12} /></button>
+                                          <span className="text-[22px] font-black tracking-tight tabular-nums text-violet-900 leading-none">{checkoutHour}</span>
+                                          <button onClick={(e) => { e.stopPropagation(); if (!nextItem) return; updateLodgeCheckoutTime(dIdx, pIdx, -60); }} className="w-7 h-5 flex items-center justify-center rounded-md text-violet-300 hover:text-violet-600 hover:bg-white/80 transition-colors disabled:opacity-40" disabled={!nextItem}><ChevronDown size={12} /></button>
+                                        </div>
+                                        <div className="flex flex-col items-center">
+                                          <button onClick={(e) => { e.stopPropagation(); if (!nextItem) return; updateLodgeCheckoutTime(dIdx, pIdx, lodgeStep); }} className="w-7 h-5 flex items-center justify-center rounded-md text-violet-300 hover:text-violet-600 hover:bg-white/80 transition-colors disabled:opacity-40" disabled={!nextItem}><ChevronUp size={12} /></button>
+                                          <span className="text-[22px] font-black tracking-tight tabular-nums text-violet-900 leading-none">{checkoutMinute}</span>
+                                          <button onClick={(e) => { e.stopPropagation(); if (!nextItem) return; updateLodgeCheckoutTime(dIdx, pIdx, -lodgeStep); }} className="w-7 h-5 flex items-center justify-center rounded-md text-violet-300 hover:text-violet-600 hover:bg-white/80 transition-colors disabled:opacity-40" disabled={!nextItem}><ChevronDown size={12} /></button>
+                                        </div>
+                                        <button onClick={(e) => { e.stopPropagation(); if (!nextItem) return; toggleLodgeCheckoutFix(dIdx, pIdx); }} disabled={!nextItem} className={`col-span-2 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black transition-all disabled:opacity-40 ${lodgeCheckoutButtonTone}`}>
+                                          {p.lodgeCheckoutFixed ? <Lock size={10} /> : <Unlock size={10} />} {p.lodgeCheckoutFixed ? '고정됨' : '고정'}
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                                 <input
                                   value={p.memo || ''}
@@ -5860,80 +7330,46 @@ const App = () => {
                                 )}
 
                                 {/* 2행: 이름 (수정 가능한 Input) */}
-                                <div className="w-full flex items-center gap-2 text-slate-500 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm transition-all focus-within:border-[#3182F6]/50" onClick={(e) => e.stopPropagation()}>
-                                  <input
-                                    value={p.activity}
-                                    onChange={(e) => updateActivityName(dIdx, pIdx, e.target.value)}
-                                    onFocus={(e) => e.target.select()}
-                                    onKeyDown={async (e) => {
-                                      if (e.key === 'Enter' && p.activity.trim()) {
-                                        e.preventDefault();
-                                        setLastAction('주소 검색 중...');
-                                        const result = await searchAddressFromPlaceName(p.activity, tripRegion);
-                                        if (result?.address) { updateAddress(dIdx, pIdx, result.address); setLastAction(`주소 자동 입력: ${result.address}`); }
-                                        else setLastAction('주소를 찾을 수 없습니다.');
-                                      }
-                                    }}
-                                    className="flex-1 bg-transparent text-[13px] font-black text-slate-800 truncate leading-tight focus:outline-none min-w-0"
-                                    placeholder="일정 이름 입력 후 Enter"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      try {
-                                        const text = await navigator.clipboard.readText();
-                                        const parsed = parseNaverMapText(text);
-                                        if (parsed) {
-                                          if (parsed.name) updateActivityName(dIdx, pIdx, parsed.name);
-                                          if (parsed.address) updateAddress(dIdx, pIdx, parsed.address);
-                                          if (parsed.business) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = parsed.business; return d; });
-                                          if (parsed.menus.length) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: parsed.menus }; return d; });
-                                          setLastAction('스마트 전체 붙여넣기 완료');
-                                        }
-                                      } catch (err) { /* silent */ }
-                                    }}
-                                    className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                                    title="스마트 전체 붙여넣기"
-                                  >
-                                    <Sparkles size={9} />
-                                  </button>
-                                </div>
-
-                                <div className="flex gap-1.5 -mt-1 mb-0.5">
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      try {
-                                        const text = await navigator.clipboard.readText();
-                                        const parsed = parseNaverMapText(text);
-                                        if (parsed?.business) {
-                                          setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = parsed.business; return d; });
-                                          setLastAction('영업 정보만 스마트 입력 완료');
-                                        }
-                                      } catch (err) { /* silent */ }
-                                    }}
-                                    className="flex-1 py-1 rounded-lg border border-slate-100 bg-slate-50 text-[9px] font-black text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-all"
-                                  >
-                                    🕒 영업정보만
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      try {
-                                        const text = await navigator.clipboard.readText();
-                                        const parsed = parseNaverMapText(text);
-                                        if (parsed?.menus?.length) {
-                                          setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: parsed.menus }; return d; });
-                                          setLastAction('메뉴 정보만 스마트 입력 완료');
-                                        }
-                                      } catch (err) { /* silent */ }
-                                    }}
-                                    className="flex-1 py-1 rounded-lg border border-slate-100 bg-slate-50 text-[9px] font-black text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] hover:border-blue-200 transition-all"
-                                  >
-                                    📋 메뉴만
-                                  </button>
-                                </div>
-
+                                <SharedNameRow
+                                  value={p.activity}
+                                  onChange={(e) => updateActivityName(dIdx, pIdx, e.target.value)}
+                                  onFocus={(e) => e.target.select()}
+                                  onKeyDown={async (e) => {
+                                    if (e.key === 'Enter' && p.activity.trim()) {
+                                      e.preventDefault();
+                                      setLastAction('주소 검색 중...');
+                                      const result = await searchAddressFromPlaceName(p.activity, tripRegion);
+                                      if (result?.address) { updateAddress(dIdx, pIdx, result.address); setLastAction(`주소 자동 입력: ${result.address}`); }
+                                      else setLastAction('주소를 찾을 수 없습니다.');
+                                    }
+                                  }}
+                                  placeholder="일정 이름 입력 후 Enter"
+                                  onContainerClick={(e) => e.stopPropagation()}
+                                  actionButton={
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        try {
+                                          const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                                          const parsed = result?.parsed;
+                                          if (parsed) {
+                                            if (parsed.name) updateActivityName(dIdx, pIdx, parsed.name);
+                                            if (parsed.address) updateAddress(dIdx, pIdx, parsed.address);
+                                            if (parsed.business) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
+                                            if (parsed.menus.length) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: parsed.menus.filter(Boolean) }; return d; });
+                                            showInfoToast(result?.source === 'ai' ? `AI 스마트 전체 붙여넣기 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '스마트 전체 붙여넣기 완료');
+                                          } else {
+                                            showInfoToast(useAiSmartFill ? 'Groq가 붙여넣을 내용을 찾지 못했습니다.' : '붙여넣을 내용을 찾지 못했습니다.');
+                                          }
+                                        } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
+                                      }}
+                                      className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                      title="스마트 전체 붙여넣기"
+                                    >
+                                      <Sparkles size={9} />
+                                    </button>
+                                  }
+                                />
 
                                 {/* 3행: 주소 박스 (수정 + 자동검색) */}
                                 {(() => {
@@ -5948,45 +7384,48 @@ const App = () => {
                                     finally { isSearchingAddr = false; }
                                   };
                                   return (
-                                    <div className="flex items-center gap-2 text-slate-500 bg-white w-full px-2 py-1 rounded-lg border border-slate-200 shadow-sm" onClick={(e) => e.stopPropagation()}>
-                                      <button
-                                        type="button"
-                                        title="내 장소 정렬 기준 설정"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setBasePlanRef({ id: p.id, name: p.activity, address: p.receipt?.address || '' });
-                                          setLastAction(`'${p.activity}'을(를) 거리 계산 기준으로 설정했습니다.`);
-                                        }}
-                                        className="shrink-0 transition-colors hover:bg-amber-50 p-1 -ml-1 rounded-md"
-                                      >
-                                        <MapPin size={12} className={basePlanRef?.id === p.id ? "text-amber-500" : "text-[#3182F6]"} />
-                                      </button>
-                                      <input
-                                        value={p.receipt?.address || ''}
-                                        onChange={(e) => updateAddress(dIdx, pIdx, e.target.value)}
-                                        placeholder="주소 정보 없음"
-                                        className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-bold text-slate-600 placeholder:text-slate-300"
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          openNaverPlaceSearch(p.activity, p.receipt?.address || p.address || '');
-                                        }}
-                                        title="네이버 지도에서 장소 검색"
-                                        className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                                      >
-                                        <MapIcon size={9} />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => { e.stopPropagation(); void handleAutoAddr(); }}
-                                        title="일정 이름으로 주소 자동 검색"
-                                        className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                                      >
-                                        <Sparkles size={9} />
-                                      </button>
-                                    </div>
+                                    <SharedAddressRow
+                                      value={p.receipt?.address || ''}
+                                      onChange={(e) => updateAddress(dIdx, pIdx, e.target.value)}
+                                      onContainerClick={(e) => e.stopPropagation()}
+                                      leading={
+                                        <button
+                                          type="button"
+                                          title="내 장소 정렬 기준 설정"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setBasePlanRef({ id: p.id, name: p.activity, address: p.receipt?.address || '' });
+                                            setLastAction(`'${p.activity}'을(를) 거리 계산 기준으로 설정했습니다.`);
+                                          }}
+                                          className="shrink-0 transition-colors hover:bg-amber-50 p-1 -ml-1 rounded-md"
+                                        >
+                                          <MapPin size={12} className={basePlanRef?.id === p.id ? "text-amber-500" : "text-[#3182F6]"} />
+                                        </button>
+                                      }
+                                      actions={
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openNaverPlaceSearch(p.activity, p.receipt?.address || p.address || '');
+                                            }}
+                                            title="네이버 지도에서 장소 검색"
+                                            className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                          >
+                                            <MapIcon size={9} />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); void handleAutoAddr(); }}
+                                            title="일정 이름으로 주소 자동 검색"
+                                            className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                          >
+                                            <Sparkles size={9} />
+                                          </button>
+                                        </>
+                                      }
+                                    />
                                   );
                                 })()}
                                 {businessWarning && (
@@ -6012,19 +7451,32 @@ const App = () => {
                                     시간 충돌: 고정/잠금 조건으로 자동 계산 불가
                                   </div>
                                 )}
-                                <div className="w-full bg-slate-50/60 border border-slate-200 rounded-lg py-1.5 px-2.5" onClick={(e) => e.stopPropagation()}>
-                                  <button
-                                    type="button"
-                                    onClick={() => setBusinessEditorTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx }))}
-                                    className="w-full flex items-center gap-2 text-left"
-                                  >
-                                    {formatBusinessSummary(p.business) === '미설정' ? (
-                                      <span className="text-[10px] font-bold text-slate-400">영업 정보 (선택)</span>
-                                    ) : (
-                                      <span className="text-[10px] font-bold text-slate-600 truncate flex-1">{formatBusinessSummary(p.business)}</span>
-                                    )}
-                                  </button>
-                                  {businessEditorTarget?.dayIdx === dIdx && businessEditorTarget?.pIdx === pIdx && (
+                                <SharedBusinessRow
+                                  summary={formatBusinessSummary(p.business)}
+                                  onContainerClick={(e) => e.stopPropagation()}
+                                  onToggle={() => setBusinessEditorTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx }))}
+                                  actionButton={
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        try {
+                                          const result = await analyzeClipboardSmartFill({ mode: 'business', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                                          const parsed = result?.parsed;
+                                          if (parsed?.business) {
+                                            setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
+                                            showInfoToast(result?.source === 'ai' ? `AI 영업정보 스마트 입력 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '영업 정보만 스마트 입력 완료');
+                                          } else {
+                                            showInfoToast(useAiSmartFill ? 'Groq가 영업 정보를 찾지 못했습니다.' : '영업 정보를 찾지 못했습니다.');
+                                          }
+                                        } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
+                                      }}
+                                      className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors"
+                                      title="영업정보만 스마트 붙여넣기"
+                                    >
+                                      <Sparkles size={9} />
+                                    </button>
+                                  }
+                                  expanded={businessEditorTarget?.dayIdx === dIdx && businessEditorTarget?.pIdx === pIdx ? (
                                     <div className="mt-1.5">
                                       <p className="text-[9px] text-slate-400 font-semibold mb-1.5">현재 일정 시간과 충돌하면 위에 빨간 경고가 표시됩니다.</p>
                                       <BusinessHoursEditor
@@ -6032,18 +7484,15 @@ const App = () => {
                                         onChange={(b) => updatePlanBusiness(dIdx, pIdx, b)}
                                       />
                                     </div>
-                                  )}
-                                </div>
+                                  ) : null}
+                                />
 
                                 {/* 4행: 메모 입력란 */}
-                                <div onClick={(e) => e.stopPropagation()}>
-                                  <input
-                                    value={p.memo || ''}
-                                    onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
-                                    className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-1.5 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
-                                    placeholder="메모를 입력하세요..."
-                                  />
-                                </div>
+                                <SharedMemoRow
+                                  value={p.memo || ''}
+                                  onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
+                                  onContainerClick={(e) => e.stopPropagation()}
+                                />
                               </>
                             )}
                           </div>
@@ -6072,17 +7521,38 @@ const App = () => {
                                   </div>
                                 )}
                                 <div className="space-y-3 mb-3">
-                                  <p className="text-[10px] text-slate-400 font-semibold -mb-1">메뉴명/수량/가격을 직접 수정하면 총액이 자동 계산됩니다.</p>
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="text-[10px] text-slate-400 font-semibold">메뉴명/수량/가격을 직접 수정하면 총액이 자동 계산됩니다.</p>
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        try {
+                                          const result = await analyzeClipboardSmartFill({ mode: 'menus', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                                          const parsed = result?.parsed;
+                                          if (parsed?.menus?.length) {
+                                            setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: parsed.menus }; return d; });
+                                            showInfoToast(result?.source === 'ai' ? `AI 메뉴 스마트 입력 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '메뉴 정보만 스마트 입력 완료');
+                                          } else {
+                                            showInfoToast(useAiSmartFill ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.');
+                                          }
+                                        } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
+                                      }}
+                                      className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] hover:border-blue-200 transition-colors"
+                                      title="메뉴만 스마트 붙여넣기"
+                                    >
+                                      <Sparkles size={9} />
+                                    </button>
+                                  </div>
                                   {p.receipt?.items?.map((m, mIdx) => (
                                     <div key={mIdx} className="flex justify-between items-center text-xs group/item">
                                       <div className="flex items-center gap-2 flex-1">
                                         <div className="cursor-pointer text-slate-300 hover:text-[#3182F6]" onClick={(e) => { e.stopPropagation(); updateMenuData(dIdx, pIdx, mIdx, 'toggle'); }}>
                                           {m.selected ? <CheckSquare size={14} className="text-[#3182F6]" /> : <Square size={14} />}
                                         </div>
-                                        <input value={m.name} onChange={(e) => updateMenuData(dIdx, pIdx, mIdx, 'name', e.target.value)} onClick={(e) => e.stopPropagation()} className="bg-transparent border-none outline-none text-slate-700 font-bold w-full" />
+                                        <input data-plan-menu-name={`${dIdx}-${pIdx}-${mIdx}`} value={m.name} onChange={(e) => updateMenuData(dIdx, pIdx, mIdx, 'name', e.target.value)} onClick={(e) => e.stopPropagation()} className="bg-transparent border-none outline-none text-slate-700 font-bold w-full" />
                                       </div>
                                       <div className="flex items-center gap-2">
-                                        <input type="number" value={m.price} onChange={(e) => { e.stopPropagation(); updateMenuData(dIdx, pIdx, mIdx, 'price', e.target.value); }} onClick={(e) => e.stopPropagation()} className="w-16 text-right font-bold text-slate-500 bg-transparent border-none outline-none focus:border-b focus:border-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                        <MenuPriceInput value={m.price} onCommit={(nextPrice) => updateMenuData(dIdx, pIdx, mIdx, 'price', nextPrice)} onClick={(e) => e.stopPropagation()} className="w-16 text-right font-bold text-slate-500 bg-transparent border-none outline-none placeholder:text-slate-300 focus:border-b focus:border-slate-300" />
                                         <div className="flex items-center gap-1 bg-white border border-slate-200 rounded p-0.5 shadow-sm">
                                           <button onClick={(e) => { e.stopPropagation(); updateMenuData(dIdx, pIdx, mIdx, 'qty', -1); }}><Minus size={10} /></button>
                                           <span className="w-4 text-center text-[10px]">{getMenuQty(m)}</span>
@@ -6101,21 +7571,11 @@ const App = () => {
                             )}
 
                             {/* ✅ 하단 통합 요금 정보 */}
-                            <div
-                              onClick={(e) => { e.stopPropagation(); toggleReceipt(p.id); }}
-                              className={`mt-auto px-5 py-3.5 flex items-center justify-between cursor-pointer transition-all ${isExpanded ? 'bg-blue-50/50 border-t border-blue-100/60' : 'bg-[#FAFBFC] hover:bg-slate-50/80'}`}
-                            >
-                              <div className="flex flex-col gap-0.5 text-left">
-                                <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-[0.15em] flex items-center gap-1.5">
-                                  Total Estimated Cost <ChevronDown size={12} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180 text-[#3182F6]' : ''}`} />
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`text-[21px] font-black tabular-nums transition-colors ${isExpanded ? 'text-[#3182F6]' : 'text-slate-800'}`}>
-                                  ₩{Number(p.price || 0).toLocaleString()}
-                                </span>
-                              </div>
-                            </div>
+                            <SharedTotalFooter
+                              expanded={isExpanded}
+                              total={p.price}
+                              onToggle={(e) => { e.stopPropagation(); toggleReceipt(p.id); }}
+                            />
                           </div>
                         )}
                       </div>
@@ -6191,7 +7651,7 @@ const App = () => {
                             }
 
                             return (
-                              <div className="z-10 flex items-center justify-center w-full">
+                              <div id={`travel-chip-${dIdx}-${pIdx}`} className="z-10 flex items-center justify-center w-full">
                                 <div className="my-2 flex items-center bg-slate-50/95 px-3 py-1.5 rounded-full border border-slate-300 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.45)] gap-2">
                                   {/* 이동 시간 */}
                                   <div className="flex items-center gap-1.5">
@@ -6224,8 +7684,8 @@ const App = () => {
                                   {/* 자동경로 */}
                                   {(() => {
                                     const rid = `${dIdx}_${pIdx + 1}`; const busy = calculatingRouteId === rid; return (
-                                      <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1); }} disabled={!!calculatingRouteId} className={`flex items-center gap-1 transition-colors border rounded-lg px-2 py-1 text-[10px] font-black ${busy ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
-                                        <Sparkles size={10} /> {busy ? '계산중' : '자동경로'}
+                                      <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
+                                        <Sparkles size={10} />
                                       </button>);
                                   })()}
                                   {/* 구분선 */}
@@ -6233,10 +7693,14 @@ const App = () => {
                                   <div className="flex items-center gap-1.5">
                                     <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
                                     <div className="flex flex-col items-center">
-                                      {nextItem._isBufferCoordinated && (
-                                        <span className="text-[8px] font-black text-orange-400 absolute -top-4 whitespace-nowrap">시간 보정됨</span>
-                                      )}
-                                      <span className={`min-w-[3rem] text-center tracking-tight text-xs font-black transition-colors ${nextItem._isBufferCoordinated ? 'text-orange-500' : 'text-slate-500'}`}>
+                                      <span
+                                        className={`min-w-[3rem] cursor-pointer text-center tracking-tight text-xs font-black transition-colors ${nextItem._isBufferCoordinated ? 'text-orange-500 hover:text-orange-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          resetBufferTimeById(dIdx, nextItem.id, DEFAULT_BUFFER_MINS);
+                                        }}
+                                        title="클릭하여 보정 시간을 10분으로 초기화"
+                                      >
                                         {nextItem.bufferTimeOverride || '10분'}
                                       </span>
                                     </div>
@@ -6256,8 +7720,21 @@ const App = () => {
 
           {/* 되돌리기 토스트 */}
           {
+            infoToast && (
+              <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[320] animate-in">
+                <div className="flex items-center gap-3 bg-white/95 backdrop-blur-xl border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl shadow-[0_14px_30px_-16px_rgba(15,23,42,0.45)]">
+                  <span className="text-[12px] font-bold">{infoToast}</span>
+                  <button onClick={() => setInfoToast('')} className="text-slate-300 hover:text-slate-500 transition-colors ml-1">
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )
+          }
+
+          {
             undoToast && (
-              <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[150] animate-in">
+              <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[320] animate-in">
                 <div className="flex items-center gap-3 bg-white/95 backdrop-blur-xl border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl shadow-[0_14px_30px_-16px_rgba(15,23,42,0.45)]">
                   <span className="text-[12px] font-bold">{undoMessage || "변경 사항이 저장되었습니다"}</span>
                   <button
@@ -6320,22 +7797,19 @@ const App = () => {
                     onDragLeave={() => setDragBottomTarget(prev => (prev === 'move_to_library' ? '' : prev))}
                     onDrop={(e) => {
                       e.preventDefault();
-                      const payload = draggingFromTimeline;
+                      const payload = getActiveTimelineDragPayload();
                       if (!payload) return;
-                      if (payload.altIdx !== undefined) {
-                        dropAltOnLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
-                      } else {
-                        const item = itinerary.days?.[payload.dayIdx]?.plan?.[payload.pIdx];
-                        dropTimelineItemOnLibrary(payload.dayIdx, payload.pIdx, askPlanBMoveMode(item));
-                      }
-                      triggerUndoToast();
+                      const changed = applyTimelineBottomAction('move_to_library', payload);
+                      if (changed) triggerUndoToast();
                       setDragBottomTarget('');
                       setDraggingFromTimeline(null);
+                      desktopDragRef.current = null;
                     }}
-                    className={`h-12 rounded-2xl border-2 border-dashed flex items-center justify-center gap-1.5 text-[11px] font-black transition-all ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
+                    className={`h-16 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-[11px] font-black transition-all ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
                   >
                     <Package size={13} />
-                    내장소로 이동
+                    <span>내장소로 이동</span>
+                    <span className="text-[9px] font-bold opacity-70">여기에 드래그</span>
                   </div>
                   <div
                     data-drag-action="delete"
@@ -6343,19 +7817,19 @@ const App = () => {
                     onDragLeave={() => setDragBottomTarget(prev => (prev === 'delete' ? '' : prev))}
                     onDrop={(e) => {
                       e.preventDefault();
-                      const payload = draggingFromTimeline;
+                      const payload = getActiveTimelineDragPayload();
                       if (!payload) return;
-                      if (payload.altIdx === undefined) {
-                        deletePlanItem(payload.dayIdx, payload.pIdx);
-                        triggerUndoToast();
-                      }
+                      const changed = applyTimelineBottomAction('delete', payload);
+                      if (changed) triggerUndoToast();
                       setDragBottomTarget('');
                       setDraggingFromTimeline(null);
+                      desktopDragRef.current = null;
                     }}
-                    className={`h-12 rounded-2xl border-2 border-dashed flex items-center justify-center gap-1.5 text-[11px] font-black transition-all ${dragBottomTarget === 'delete' ? 'border-red-400 bg-red-50 text-red-500' : 'border-slate-200 bg-white text-slate-500'}`}
+                    className={`h-16 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-[11px] font-black transition-all ${dragBottomTarget === 'delete' ? 'border-red-400 bg-red-50 text-red-500' : 'border-slate-200 bg-white text-slate-500'}`}
                   >
                     <Trash2 size={13} />
-                    삭제
+                    <span>삭제</span>
+                    <span className="text-[9px] font-bold opacity-70">여기에 드래그</span>
                   </div>
                   <div
                     data-drag-action="copy_to_library"
@@ -6363,21 +7837,19 @@ const App = () => {
                     onDragLeave={() => setDragBottomTarget(prev => (prev === 'copy_to_library' ? '' : prev))}
                     onDrop={(e) => {
                       e.preventDefault();
-                      const payload = draggingFromTimeline;
+                      const payload = getActiveTimelineDragPayload();
                       if (!payload) return;
-                      if (payload.altIdx !== undefined) {
-                        copyAlternativeToLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
-                      } else {
-                        copyTimelineItemToLibrary(payload.dayIdx, payload.pIdx);
-                      }
-                      triggerUndoToast();
+                      const changed = applyTimelineBottomAction('copy_to_library', payload);
+                      if (changed) triggerUndoToast();
                       setDragBottomTarget('');
                       setDraggingFromTimeline(null);
+                      desktopDragRef.current = null;
                     }}
-                    className={`h-12 rounded-2xl border-2 border-dashed flex items-center justify-center gap-1.5 text-[11px] font-black transition-all ${dragBottomTarget === 'copy_to_library' ? 'border-emerald-400 bg-emerald-50 text-emerald-600' : 'border-slate-200 bg-white text-slate-500'}`}
+                    className={`h-16 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-[11px] font-black transition-all ${dragBottomTarget === 'copy_to_library' ? 'border-emerald-400 bg-emerald-50 text-emerald-600' : 'border-slate-200 bg-white text-slate-500'}`}
                   >
                     <PlusCircle size={13} />
-                    내장소로 복제
+                    <span>내장소로 복제</span>
+                    <span className="text-[9px] font-bold opacity-70">여기에 드래그</span>
                   </div>
                 </div>
               </div>
@@ -6389,24 +7861,20 @@ const App = () => {
             (draggingFromLibrary || draggingFromTimeline) && (
               <div
                 ref={dragGhostRef}
-                className="fixed pointer-events-none z-[9999] bg-white/95 backdrop-blur-xl border-2 border-[#3182F6] rounded-2xl px-5 py-3.5 shadow-[0_20px_50px_rgba(49,130,246,0.3)] flex items-center gap-4 animate-in fade-in zoom-in duration-200"
+                className="fixed pointer-events-none z-[9999] bg-white/96 backdrop-blur-xl border border-[#3182F6]/25 rounded-full px-3.5 py-2 shadow-[0_12px_28px_rgba(49,130,246,0.22)] flex items-center gap-2.5 animate-in fade-in zoom-in duration-150"
                 style={{
                   left: 0,
                   top: 0,
                   transform: `translate3d(${dragCoord.x}px, ${dragCoord.y}px, 0) translate(-50%, -120%)`,
-                  minWidth: '180px',
                   willChange: 'transform'
                 }}
               >
-                <div className="w-1.5 h-10 bg-gradient-to-b from-[#3182F6] to-indigo-500 rounded-full shrink-0" />
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[9px] font-black text-[#3182F6] uppercase tracking-[0.15em]">Dragging Object</span>
-                  <span className="text-[15px] font-black text-slate-800 truncate max-w-[140px]">
-                    {draggingFromLibrary?.name ||
-                      (itinerary.days?.[draggingFromTimeline?.dayIdx]?.plan?.[draggingFromTimeline?.pIdx]?.activity) ||
-                      '일정 이동 중'}
-                  </span>
-                </div>
+                <Move size={12} className="text-[#3182F6] shrink-0" />
+                <span className="text-[12px] font-black text-slate-800 truncate max-w-[180px]">
+                  {draggingFromLibrary?.name ||
+                    (itinerary.days?.[draggingFromTimeline?.dayIdx]?.plan?.[draggingFromTimeline?.pIdx]?.activity) ||
+                    '일정 이동 중'}
+                </span>
               </div>
             )
           }

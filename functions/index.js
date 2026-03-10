@@ -51,7 +51,7 @@ const verifyBearerToken = async (req) => {
 
 // ── CORS helper ─────────────────────────────────────────────────────────────
 const ALLOWED_ORIGINS = [
-  'https://haepada.github.io',
+  'https://limchang.github.io',
   'http://localhost:5173',
   'http://localhost:3000',
 ];

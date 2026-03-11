@@ -3069,9 +3069,7 @@ const App = () => {
       : ['lodge', 'rest'];
     return normalizeLibraryPlace({
       id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      name: segmentType === 'stay'
-        ? (place.name || place.activity || '숙소')
-        : `${place.name || place.activity || '숙소'} · ${segment.label || '내부 일정'}`,
+      name: `${place.name || place.activity || '숙소'} · ${segment.label || '내부 일정'}`,
       types: baseTypes,
       address: place.address || place.receipt?.address || '',
       memo: segment.note || '',
@@ -3804,6 +3802,7 @@ const App = () => {
     if (isStandaloneLodgeSegmentItem(item)) return 0;
     return Number(item?.price || 0);
   };
+  const getPlaceSearchName = (item = {}) => String(item?.sourceLodgeName || item?.activity || item?.name || '').trim();
   const isOvernightBusinessWindow = (business = {}) => {
     if (!business?.open || !business?.close) return false;
     return timeToMinutes(business.close) <= timeToMinutes(business.open);
@@ -6456,6 +6455,9 @@ const App = () => {
 
   const renderTimelineInsertGuide = (isDropHere, warnText = '') => {
     const activeText = warnText || '여기야 · 드래그해주세요.';
+    if (!isDropHere) {
+      return <div className="h-1.5 w-full" />;
+    }
     return (
       <div className="z-10 flex w-full items-center justify-center">
         <div
@@ -6814,8 +6816,25 @@ const App = () => {
                                 endTouchDragLock();
                               }}
                               onClick={() => handleNavClick(d.day, p.id)}
-                              className={`grid grid-cols-[2.45rem_1fr_auto] items-center gap-1.5 rounded-[14px] border px-2 py-1.5 text-left transition-all ${p._timingConflict ? 'border-red-200 bg-red-50/85 shadow-[0_8px_18px_-16px_rgba(239,68,68,0.55)] hover:bg-red-100/80' : isLastLodge ? 'mt-2 border-indigo-200 bg-[linear-gradient(180deg,rgba(238,242,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-20px_rgba(99,102,241,0.28)] hover:border-indigo-300 hover:bg-indigo-50/90' : isActive ? 'border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-18px_rgba(49,130,246,0.42)]' : 'border-transparent bg-white hover:border-slate-200 hover:bg-slate-50/90'}`}
+                              className={`${isLastLodge ? 'flex flex-col' : 'grid grid-cols-[2.45rem_1fr_auto]'} items-center gap-1.5 rounded-[14px] border px-2 py-1.5 text-left transition-all ${p._timingConflict ? 'border-red-200 bg-red-50/85 shadow-[0_8px_18px_-16px_rgba(239,68,68,0.55)] hover:bg-red-100/80' : isLastLodge ? 'mt-2 border-indigo-200 bg-[linear-gradient(180deg,rgba(238,242,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-20px_rgba(99,102,241,0.28)] hover:border-indigo-300 hover:bg-indigo-50/90' : isActive ? 'border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-18px_rgba(49,130,246,0.42)]' : 'border-transparent bg-white hover:border-slate-200 hover:bg-slate-50/90'}`}
                             >
+                              {isLastLodge ? (
+                                <div className="w-full min-w-0 flex flex-col gap-1">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <div className={`shrink-0 scale-[0.88] origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-70'}`}>{getCategoryBadge((p.types?.[0]) || p.type || 'place')}</div>
+                                    <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-600' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-500'}`}>{p.activity}</span>
+                                    {(p.alternatives?.length || 0) > 0 && (
+                                      <span className={`shrink-0 text-[8px] leading-none px-1.5 py-0.5 rounded border ${isActive ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-amber-500 bg-amber-50/70 border-amber-200/80'}`}>
+                                        B {p.alternatives.length}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="truncate pl-0.5 text-[9px] font-bold text-slate-400">
+                                    {p.receipt?.address || p.address || '주소 정보 없음'}
+                                  </span>
+                                </div>
+                              ) : (
+                                <>
                               <span className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6]' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}>{p.time || '--:--'}</span>
                               <div className="min-w-0 flex items-center gap-1.5 overflow-hidden">
                                 <div className={`shrink-0 scale-[0.88] origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-70'}`}>{getCategoryBadge((p.types?.[0]) || p.type || 'place')}</div>
@@ -6848,7 +6867,7 @@ const App = () => {
                                           type="button"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            openNaverPlaceSearch(p.activity, p.receipt?.address || p.address || '');
+                                            openNaverPlaceSearch(getPlaceSearchName(p), p.receipt?.address || p.address || '');
                                       }}
                                       data-no-drag="true"
                                       className={`text-[8px] font-black rounded-md px-1.5 py-0.5 leading-none whitespace-nowrap border transition-colors ${dispDur >= 120 ? 'text-orange-500 bg-orange-50 border-orange-200 hover:bg-orange-100' : isActive ? 'text-slate-500 bg-slate-100 border-slate-200 hover:text-[#3182F6]' : 'text-slate-400 bg-slate-50 border-slate-200 hover:text-[#3182F6] hover:bg-slate-100'}`}
@@ -6859,6 +6878,8 @@ const App = () => {
                                   </div>
                                 );
                               })()}
+                                </>
+                              )}
                             </button>
                             {p._timingConflict && navConflictRecommendation && (
                               <div className="grid grid-cols-[2.45rem_1fr_auto] items-center gap-1.5 px-1 py-0.5">
@@ -8818,7 +8839,7 @@ const App = () => {
                                 </div>
                                 <button
                                   type="button"
-                                  onClick={(e) => { e.stopPropagation(); openNaverPlaceSearch(p.activity, p.receipt?.address || p.address || ''); }}
+                                      onClick={(e) => { e.stopPropagation(); openNaverPlaceSearch(getPlaceSearchName(p), p.receipt?.address || p.address || ''); }}
                                   className="flex items-center gap-2 text-slate-500 bg-white w-fit max-w-full px-2 py-1 rounded-lg border border-slate-200 shadow-sm hover:border-[#3182F6]/50 hover:bg-blue-50/40 transition-colors text-left"
                                   title="네이버 지도에서 장소 검색"
                                 >
@@ -8973,7 +8994,7 @@ const App = () => {
                                     if (e.key === 'Enter' && p.activity.trim()) {
                                       e.preventDefault();
                                       setLastAction('주소 검색 중...');
-                                      const result = await searchAddressFromPlaceName(p.activity, tripRegion);
+                                      const result = await searchAddressFromPlaceName(getPlaceSearchName(p), tripRegion);
                                       if (result?.address) { updateAddress(dIdx, pIdx, result.address); setLastAction(`주소 자동 입력: ${result.address}`); }
                                       else setLastAction('주소를 찾을 수 없습니다.');
                                     }
@@ -9013,7 +9034,7 @@ const App = () => {
                                     if (isSearchingAddr || !p.activity?.trim()) return;
                                     isSearchingAddr = true;
                                     try {
-                                      const found = await searchAddressFromPlaceName(p.activity, tripRegion);
+                                      const found = await searchAddressFromPlaceName(getPlaceSearchName(p), tripRegion);
                                       if (found?.address) updateAddress(dIdx, pIdx, found.address);
                                     } catch (e) { /* silent */ }
                                     finally { isSearchingAddr = false; }
@@ -9043,7 +9064,7 @@ const App = () => {
                                             type="button"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              openNaverPlaceSearch(p.activity, p.receipt?.address || p.address || '');
+                                              openNaverPlaceSearch(getPlaceSearchName(p), p.receipt?.address || p.address || '');
                                             }}
                                             title="네이버 지도에서 장소 검색"
                                             className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"

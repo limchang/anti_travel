@@ -235,7 +235,7 @@ exports.groqAnalyze = onRequest({ invoker: 'public' }, async (req, res) => {
     'If mode is "address", prioritize address extraction and keep business/menus empty when uncertain.',
     'If mode is "business", prioritize business hours and keep menus empty when uncertain.',
     'If mode is "menus", prioritize menus and keep business empty when uncertain.',
-    'If mode is "all", fill every field you can infer.',
+    'If mode is "all", extract all available information (name, address, business hours, and menus) once from the source.',
     'For prices, return integers without currency symbols.',
     'For unknown fields, use empty strings, empty arrays, or null business.',
   ].join('\n');

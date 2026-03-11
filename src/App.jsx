@@ -625,19 +625,20 @@ const PlaceEditorCard = ({
                   disabled={smartPasteLoading}
                   title="클립보드 AI 주소 붙여넣기"
                   className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors disabled:opacity-50"
-                  style={{ color: '#3182F6' }}
+                  style={{ color: '#8B5CF6' }}
                 >
-                  <Sparkles size={9} />
+                  <Wand2 size={9} />
                 </button>
               )}
               <button
                 type="button"
                 onClick={() => { void tryAutoFillAddress(true); }}
                 disabled={isSearchingAddress || !safeDraft.name.trim()}
-                title="장소 이름으로 주소 자동 검색"
+                title="장소 이름으로 주소 자동 검색 (네이버 검색)"
                 className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 disabled:opacity-50 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                style={{ color: '#3182F6' }}
               >
-                <PlusCircle size={9} />
+                <Sparkles size={9} />
               </button>
             </div>
           }

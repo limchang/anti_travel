@@ -163,6 +163,8 @@ const getTagButtonClass = (value, active) => {
 const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', className = '' }) => {
   const selected = normalizeTagOrder(value);
   const [customInput, setCustomInput] = React.useState('');
+  const [isAddingCustom, setIsAddingCustom] = React.useState(false);
+  const inputRef = React.useRef(null);
 
   const handleAddCustom = () => {
     const val = customInput.trim();
@@ -170,16 +172,23 @@ const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', class
       onChange(normalizeTagOrder([...selected, val]));
     }
     setCustomInput('');
+    setIsAddingCustom(false);
   };
 
   const predefinedValues = new Set(TAG_OPTIONS.map(v => v.value));
   const activeTags = selected.filter(v => v !== 'place');
   const customTags = activeTags.filter(v => !predefinedValues.has(v));
 
+  React.useEffect(() => {
+    if (isAddingCustom && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isAddingCustom]);
+
   return (
     <div className={className}>
-      <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">{title}</p>
-      <div className="flex flex-wrap gap-1 items-center">
+      <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1.5">{title}</p>
+      <div className="flex flex-wrap gap-1.5 items-center">
         {TAG_OPTIONS.map(t => {
           const active = selected.includes(t.value);
           return (
@@ -195,23 +204,40 @@ const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', class
             {t}
           </button>
         ))}
-      </div>
-      <div className="mt-2 flex items-center gap-1.5">
-        <input
-          type="text"
-          value={customInput}
-          onChange={e => setCustomInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustom(); } }}
-          placeholder="+ 직접 입력"
-          className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg text-[10px] font-black border border-slate-200 bg-white placeholder:text-slate-300 outline-none focus:border-[#3182F6]"
-        />
-        <button
-          type="button"
-          onClick={handleAddCustom}
-          className="shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-black border border-slate-200 bg-slate-50 text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] hover:bg-blue-50 transition-colors"
-        >
-          추가
-        </button>
+
+        {!isAddingCustom ? (
+          <button
+            type="button"
+            onClick={() => setIsAddingCustom(true)}
+            className="w-6 h-6 flex items-center justify-center rounded-lg border border-dashed border-slate-300 text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] hover:bg-blue-50 transition-all"
+            title="커스텀 태그 추가"
+          >
+            <Plus size={12} />
+          </button>
+        ) : (
+          <div className="flex items-center gap-1 animate-in zoom-in-95 duration-200">
+            <input
+              ref={inputRef}
+              type="text"
+              value={customInput}
+              onChange={e => setCustomInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.preventDefault(); handleAddCustom(); }
+                if (e.key === 'Escape') { setIsAddingCustom(false); setCustomInput(''); }
+              }}
+              onBlur={() => { if (!customInput.trim()) setIsAddingCustom(false); }}
+              placeholder="태그 입력"
+              className="w-20 px-2 py-0.5 rounded-lg text-[10px] font-black border border-[#3182F6] bg-white outline-none"
+            />
+            <button
+              type="button"
+              onClick={handleAddCustom}
+              className="text-[10px] font-bold text-[#3182F6] px-1"
+            >
+              확인
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -432,6 +458,7 @@ const PlaceEditorCard = ({
   onSmartPasteAll,
   onSmartPasteBusiness,
   onSmartPasteMenus,
+  onSuperSmartPaste,
   onNameInput = null,
   onNamePaste = null,
 }) => {
@@ -520,6 +547,22 @@ const PlaceEditorCard = ({
       )}
 
       <div className="p-4 flex flex-col gap-3">
+        {onSuperSmartPaste && (
+          <button
+            type="button"
+            onClick={wrapSmartPaste(onSuperSmartPaste)}
+            disabled={smartPasteLoading}
+            className="w-full py-2.5 bg-gradient-to-r from-[#3182F6] to-indigo-500 rounded-xl text-white text-[12px] font-black flex items-center justify-center gap-2 shadow-[0_8px_16px_-6px_rgba(49,130,246,0.25)] hover:shadow-[0_12px_20px_-8px_rgba(49,130,246,0.35)] active:scale-[0.98] transition-all disabled:opacity-50"
+          >
+            {smartPasteLoading ? (
+              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+            ) : (
+              <Sparkles size={14} className="animate-pulse" />
+            )}
+            <span>✦ AI 슈퍼 자동 채우기 (전체 정보)</span>
+          </button>
+        )}
+
         <OrderedTagPicker title="태그" value={safeDraft.types} onChange={(tags) => updateDraft((current) => ({ ...current, types: tags }))} />
 
         <SharedNameRow
@@ -2381,6 +2424,43 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
 
               onNotify?.('클립보드 내용을 분석하여 입력했습니다.');
             }
+          }
+        }}
+        onSuperSmartPaste={async () => {
+          try {
+            const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled, aiSettings });
+            const parsed = result?.parsed;
+            if (parsed) {
+              setDraft((current) => createPlaceEditorDraft({
+                ...current,
+                name: parsed.name || current.name,
+                address: parsed.address || current.address,
+                business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
+                receipt: {
+                  ...current.receipt,
+                  items: parsed.menus?.length
+                    ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true }))
+                    : current.receipt.items
+                }
+              }));
+              if (parsed.name) setNewPlaceName(parsed.name);
+              onNotify?.(isAiSmartFillSource(result?.source)
+                ? `AI가${result?.usedImage ? ' 이미지와 ' : ' '}모든 정보를 분석해 입력했습니다.`
+                : '모든 정보를 스마트 입력했습니다.');
+
+              if (parsed) {
+                setAiLearningCapture?.({
+                  itemId: 'new',
+                  rawSource: result?.rawSource || '',
+                  aiResult: parsed,
+                  inputType: result?.usedImage ? 'image' : 'text'
+                });
+              }
+            } else {
+              onNotify?.(aiEnabled ? 'AI가 정보를 찾지 못했습니다.' : '정보를 찾지 못했습니다.');
+            }
+          } catch (error) {
+            onNotify?.(getSmartFillErrorMessage(error, aiEnabled));
           }
         }}
         onSmartPasteBusiness={async () => {
@@ -7020,6 +7100,26 @@ const App = () => {
                   showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));
                 }
               }}
+              onSuperSmartPaste={async () => {
+                try {
+                  const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                  const parsed = result?.parsed;
+                  if (parsed) {
+                    setEditPlaceDraft((current) => createPlaceEditorDraft({
+                      ...current,
+                      name: parsed.name || current.name,
+                      address: parsed.address || current.address,
+                      business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
+                      receipt: { ...(current.receipt || {}), items: parsed.menus?.length ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) : (current.receipt?.items || []) },
+                    }));
+                    showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 슈퍼 자동 채우기 완료' : '슈퍼 자동 채우기 완료');
+                  } else {
+                    showInfoToast(useAiSmartFill ? 'AI가 정보를 찾지 못했습니다.' : '정보를 찾지 못했습니다.');
+                  }
+                } catch (error) {
+                  showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));
+                }
+              }}
               onSmartPasteBusiness={async () => {
                 try {
                   const result = await analyzeClipboardSmartFill({ mode: 'business', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
@@ -7085,6 +7185,26 @@ const App = () => {
                     showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 스마트 전체 붙여넣기 완료' : '스마트 전체 붙여넣기 완료');
                   } else {
                     showInfoToast(useAiSmartFill ? 'Groq가 붙여넣을 내용을 찾지 못했습니다.' : '붙여넣을 내용을 찾지 못했습니다.');
+                  }
+                } catch (error) {
+                  showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));
+                }
+              }}
+              onSuperSmartPaste={async () => {
+                try {
+                  const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                  const parsed = result?.parsed;
+                  if (parsed) {
+                    setEditPlanDraft((current) => createPlaceEditorDraft({
+                      ...current,
+                      name: parsed.name || current.name,
+                      address: parsed.address || current.address,
+                      business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
+                      receipt: { ...(current.receipt || {}), items: parsed.menus?.length ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) : (current.receipt?.items || []) },
+                    }));
+                    showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 슈퍼 자동 채우기 완료' : '슈퍼 자동 채우기 완료');
+                  } else {
+                    showInfoToast(useAiSmartFill ? 'AI가 정보를 찾지 못했습니다.' : '정보를 찾지 못했습니다.');
                   }
                 } catch (error) {
                   showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));

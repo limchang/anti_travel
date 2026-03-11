@@ -1,0 +1,9 @@
+        ₩{Number(total || 0).toLocaleString()}
+                    <span className="w-20 text-right font-black text-[#3182F6]">₩{getLineTotal(item).toLocaleString()}</span>
+              <span className="text-[#3182F6] font-black">₩{getMenuLineTotalValue(menu).toLocaleString()}</span>
+                      <span>Case #{historyCases.length - i} · {new Date(c.timestamp).toLocaleString()}</span>
+                          <div className="mt-1 text-[9px] text-slate-400">최근 저장: {new Date(serverAiKeyStatus.updatedAt).toLocaleString('ko-KR')}</div>
+                          <span className="text-[14px] font-black text-[#3182F6] tabular-nums tracking-tight">₩{budgetSummary.remaining.toLocaleString()}</span>
+                                <p className="text-[11px] font-bold text-slate-500 tabular-nums">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
+                                            <span className="text-[10px] font-black text-[#3182F6] tabular-nums">₩{row.amount.toLocaleString()} · {row.pct}%</span>
+                                          <span className="w-20 text-right font-black text-[#3182F6]">₩{getMenuLineTotal(m).toLocaleString()}</span>

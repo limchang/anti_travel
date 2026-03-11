@@ -2,7 +2,7 @@
     "lastUpdates": [
         {
             "version": "1.3.2",
-            "timestamp": "2026-03-11T16:45:00+09:00",
+            "timestamp": "2026-03-11T15:50:00+09:00",
             "message": "fix: enhance smart fill defense for link-only inputs & update FAQ guide"
         },
         {

@@ -9,7 +9,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info
+  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -95,6 +95,7 @@ const TAG_OPTIONS = [
   { label: '카페', value: 'cafe' },
   { label: '관광', value: 'tour' },
   { label: '숙소', value: 'lodge' },
+  { label: '숙박', value: 'stay' },
   { label: '페리', value: 'ship' },
   { label: '휴식', value: 'rest' },
   { label: '픽업', value: 'pickup' },
@@ -3060,13 +3061,15 @@ const App = () => {
   const buildLibraryPayloadFromLodgeSegment = (place = {}, segment = {}) => {
     const segmentType = String(segment.type || 'rest').trim() || 'rest';
     const baseTypes = segmentType === 'stay'
-      ? ['lodge']
+      ? ['lodge', 'stay']
       : segmentType === 'swim'
       ? ['lodge', 'experience']
       : ['lodge', 'rest'];
     return normalizeLibraryPlace({
       id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      name: `${place.name || place.activity || '숙소'} · ${segment.label || '내부 일정'}`,
+      name: segmentType === 'stay'
+        ? (place.name || place.activity || '숙소')
+        : `${place.name || place.activity || '숙소'} · ${segment.label || '내부 일정'}`,
       types: baseTypes,
       address: place.address || place.receipt?.address || '',
       memo: segment.note || '',
@@ -3154,7 +3157,7 @@ const App = () => {
       types: normalizedTypes,
       revisit: typeof placeData?.revisit === 'boolean' ? placeData.revisit : false,
       business: normalizeBusiness(placeData?.business || {}),
-      price: placeData ? (priceFromReceipt || placeData.price || 0) : 0,
+      price: isStandaloneLodgeSegment ? 0 : (placeData ? (priceFromReceipt || placeData.price || 0) : 0),
       duration: Number(placeData?.duration || (isShip ? 330 : 60)),
       sailDuration: Number(placeData?.sailDuration || (isShip ? 240 : 0)) || undefined,
       startPoint: placeData?.startPoint,
@@ -3795,6 +3798,10 @@ const App = () => {
     && !!String(item?.segmentType || '').trim()
   );
   const isFullLodgeStayItem = (item = {}) => isLodgeStay(item?.types) && !isStandaloneLodgeSegmentItem(item);
+  const getEffectivePlanPrice = (item = {}) => {
+    if (isStandaloneLodgeSegmentItem(item)) return 0;
+    return Number(item?.price || 0);
+  };
   const isOvernightBusinessWindow = (business = {}) => {
     if (!business?.open || !business?.close) return false;
     return timeToMinutes(business.close) <= timeToMinutes(business.open);
@@ -4079,13 +4086,19 @@ const App = () => {
     return '';
   };
 
-  const formatBusinessSummary = (businessRaw) => {
+  const formatBusinessSummary = (businessRaw, context = null) => {
     const business = normalizeBusiness(businessRaw || {});
+    const normalizedTypes = Array.isArray(context?.types)
+      ? context.types
+      : Array.isArray(context)
+        ? context
+        : [];
+    const isLodgeContext = isLodgeStay(normalizedTypes);
     const segs = [];
-    if (business.open || business.close) segs.push(`운영 ${business.open || '--:--'} - ${business.close || '--:--'}`);
+    if (business.open || business.close) segs.push(`${isLodgeContext ? '체크인' : '운영'} ${business.open || '--:--'} - ${business.close || '--:--'}`);
     if (business.breakStart || business.breakEnd) segs.push(`휴식 ${business.breakStart || '--:--'} - ${business.breakEnd || '--:--'}`);
     if (business.lastOrder || business.entryClose) {
-      segs.push(`마감 ${business.lastOrder || business.entryClose || '--:--'}`);
+      segs.push(`${isLodgeContext ? '체크아웃' : '마감'} ${business.lastOrder || business.entryClose || '--:--'}`);
     }
     if (business.closedDays.length) {
       segs.push(`휴무 : ${formatClosedDaysSummary(business.closedDays)}`);
@@ -4770,7 +4783,7 @@ const App = () => {
     itinerary.days.forEach(day => {
       day.plan?.forEach(p => {
         if (p.type !== 'backup') {
-          totalSpent += Number(p.price || 0);
+          totalSpent += getEffectivePlanPrice(p);
           if (p.distance) totalSpent += calculateFuelCost(p.distance);
         }
       });
@@ -5401,6 +5414,7 @@ const App = () => {
       case 'cafe': return <div key={type} className={`${style} text-amber-600 bg-amber-50 border-amber-100`}><Coffee size={10} /> 카페</div>;
       case 'tour': return <div key={type} className={`${style} text-purple-600 bg-purple-50 border-purple-100`}><Camera size={10} /> 관광</div>;
       case 'lodge': return <div key={type} className={`${style} text-indigo-600 bg-indigo-50 border-indigo-100`}><Bed size={10} /> 숙소</div>;
+      case 'stay': return <div key={type} className={`${style} text-violet-600 bg-violet-50 border-violet-100`}><MoonStar size={10} /> 숙박</div>;
       case 'rest': return <div key={type} className={`${style} text-cyan-600 bg-cyan-50 border-cyan-100`}><Hourglass size={10} /> 휴식</div>;
       case 'ship': return <div key={type} className={`${style} text-blue-600 bg-blue-50 border-blue-100`}><Anchor size={10} /> 페리</div>;
       case 'openrun': return <div key={type} className={`${style} text-red-500 bg-red-50 border-red-100`}><Timer size={10} /> 오픈런</div>;
@@ -5501,7 +5515,7 @@ const App = () => {
       : minutesToTime(timeToMinutes(item.time || '00:00') + (item.duration || 0));
     const dayLabel = `${day?.day || dayIdx + 1}일차`;
     const dateInfo = getNavDateLabelForDay(day?.day || dayIdx + 1);
-    const currentBusinessSummary = formatBusinessSummary(item.business || {});
+    const currentBusinessSummary = formatBusinessSummary(item.business || {}, item);
 
     setPerplexityNearbyModal({
       open: true,
@@ -7069,7 +7083,7 @@ const App = () => {
                       const chips = place.types ? place.types.map(t => getCategoryBadge(t)) : [getCategoryBadge('place')];
                       const isPlaceExpanded = expandedPlaceId === place.id;
                       const bizWarningNow = getBusinessWarningNow(place.business);
-                      const bizSummary = formatBusinessSummary(place.business);
+                      const bizSummary = formatBusinessSummary(place.business, place);
                       const hasBizSummary = bizSummary !== '미설정';
                       const openStatus = isOpenAt(place.business); // true=영업중, false=마감, null=정보없음
                       const baseDistance = placeDistanceMap[place.id];
@@ -7812,7 +7826,7 @@ const App = () => {
             const categorySpendMap = allBudgetItems.reduce((acc, item) => {
               const types = Array.isArray(item.types) ? item.types : [];
               const baseType = types.find((t) => !MODIFIER_TAGS.has(t) && t !== 'place') || types.find((t) => !MODIFIER_TAGS.has(t)) || 'place';
-              const itemPrice = Number(item.price) || 0;
+              const itemPrice = getEffectivePlanPrice(item);
               acc[baseType] = (acc[baseType] || 0) + itemPrice;
               if (item.distance) {
                 acc.transport = (acc.transport || 0) + calculateFuelCost(item.distance);
@@ -8943,7 +8957,7 @@ const App = () => {
                                   </div>
                                 )}
                                 <SharedBusinessRow
-                                  summary={formatBusinessSummary(p.business)}
+                                  summary={formatBusinessSummary(p.business, p)}
                                   onContainerClick={(e) => e.stopPropagation()}
                                   quickEditSegments={buildBusinessQuickEditSegments(p.business || {})}
                                   onQuickEdit={(fieldKey) => setBusinessEditorTarget({ dayIdx: dIdx, pIdx, fieldKey })}

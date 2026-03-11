@@ -9,7 +9,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle
+  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -2739,6 +2739,7 @@ const App = () => {
   const routeRetryCooldownMs = 45000;
   const autoRouteQueuedRef = useRef(new Set());
   const [dashboardHeight, setDashboardHeight] = useState(200);
+  const [showTravelIntensityInfo, setShowTravelIntensityInfo] = useState(false);
   const dashboardRef = useRef(null);
   const heroTriggerRef = useRef(null);
   const [heroCollapsed, setHeroCollapsed] = useState(false);
@@ -7642,6 +7643,9 @@ const App = () => {
                 : intensityScore >= 1
                   ? { label: '보통', note: '무난한 이동 밀도' }
                   : { label: '널널함', note: '여유 있는 흐름' };
+            const averageTravelHoursLabel = averageTravelMinutes >= 60
+              ? `${(averageTravelMinutes / 60).toFixed(1)}시간`
+              : `${Math.round(averageTravelMinutes)}분`;
             return (
               <div className="mb-8 relative">
                 {/* 컴팩트 플로팅 바 (스크롤 시) */}
@@ -7811,31 +7815,46 @@ const App = () => {
                         {/* 🌟 2. 여행 한눈에 보기 */}
                         <div className="flex flex-col gap-8 px-3 sm:px-0">
                           <div className="w-full bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.04)] rounded-[32px] overflow-hidden flex flex-col pt-8 pb-7 px-8 items-center text-center">
-                            <div className="w-full grid grid-cols-1 sm:grid-cols-3 bg-white/50 rounded-2xl border border-white/20 overflow-hidden min-h-[96px]">
+                            <div className="relative w-full grid grid-cols-1 sm:grid-cols-3 bg-white/50 rounded-2xl border border-white/20 overflow-visible min-h-[108px]">
                               <div className="p-4 flex flex-col items-center justify-center gap-1 border-b sm:border-b-0 sm:border-r border-slate-100">
                                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">예산 사용</p>
-                                <p className="text-[14px] font-black text-slate-700 tabular-nums">₩{budgetSummary.total.toLocaleString()} / ₩{MAX_BUDGET.toLocaleString()}</p>
-                                <p className="text-[11px] font-bold text-[#3182F6] tabular-nums">{usedPct}% 사용</p>
+                                <p className="text-[28px] leading-none font-black text-[#3182F6] tabular-nums">{usedPct}%</p>
+                                <p className="text-[11px] font-bold text-slate-500 tabular-nums">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
                               </div>
-                              <div className="p-4 flex flex-col items-center justify-center gap-1 border-b sm:border-b-0 sm:border-r border-slate-100">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">여행 강도</p>
-                                <p className="text-[16px] font-black text-slate-700 text-center">{travelIntensity.label}</p>
+                              <div className="relative p-4 flex flex-col items-center justify-center gap-1 border-b sm:border-b-0 sm:border-r border-slate-100">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">여행 강도</p>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowTravelIntensityInfo((prev) => !prev);
+                                    }}
+                                    className="w-4 h-4 rounded-full border border-slate-300 text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6]/40 transition-colors flex items-center justify-center"
+                                    title="여행 강도 계산식 보기"
+                                  >
+                                    <Info size={10} />
+                                  </button>
+                                </div>
+                                <p className="text-[24px] leading-none font-black text-slate-700 text-center">{travelIntensity.label}</p>
                                 <p className="text-[11px] font-bold text-slate-500 text-center">{travelIntensity.note}</p>
+                                {showTravelIntensityInfo && (
+                                  <div className="absolute left-1/2 top-full z-20 mt-3 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
+                                    <p className="mt-2 text-[11px] font-bold text-slate-600">일평균 일정 수: {dailyPlanAverage.toFixed(1)}개</p>
+                                    <p className="mt-1 text-[11px] font-bold text-slate-600">하루 활동 시간: 평균 {averageSpanHours.toFixed(1)}시간</p>
+                                    <p className="mt-1 text-[11px] font-bold text-slate-600">하루 이동 시간: 평균 {averageTravelHoursLabel}</p>
+                                    <p className="mt-2 text-[10px] font-bold text-slate-400">각 항목이 높을수록 점수가 올라가며, 합계로 `널널함 → 매우 빠듯함`을 판단합니다.</p>
+                                  </div>
+                                )}
                               </div>
                               <div className="p-4 flex flex-col items-center justify-center gap-1">
                                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
                                   일정 갯수
                                 </p>
-                                <p className="text-[16px] font-black text-slate-700 text-center tabular-nums">총 {totalPlanCount}개</p>
-                                <p className="text-[11px] font-bold text-slate-500 text-center">{dailyPlanAverage.toFixed(1)}개/일 · {perDayPlanSummary}</p>
+                                <p className="text-[28px] leading-none font-black text-slate-700 text-center tabular-nums">{totalPlanCount}개</p>
+                                <p className="text-[11px] font-bold text-slate-500 text-center">하루 평균 {dailyPlanAverage.toFixed(1)}개</p>
                               </div>
-                            </div>
-
-                            <div className="w-full flex items-center gap-3 mt-8">
-                              <div className="flex-1 h-3 bg-slate-100/50 rounded-full overflow-hidden flex items-center shadow-inner">
-                                <div className="h-full bg-gradient-to-r from-[#3182F6] via-indigo-500 to-purple-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_12px_rgba(49,130,246,0.3)]" style={{ width: `${usedPct}%` }} />
-                              </div>
-                              <span className="text-[11px] font-black text-[#3182F6] tabular-nums whitespace-nowrap">{usedPct}%</span>
                             </div>
 
                             <button

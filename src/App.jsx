@@ -282,7 +282,10 @@ const SharedBusinessRow = ({
     <div className="w-full flex items-center gap-2">
       <button
         type="button"
-        onClick={onToggle}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle?.(e);
+        }}
         className="flex-1 flex items-center gap-2 text-left min-w-0"
       >
         {summary === '미설정' || !summary ? (
@@ -411,7 +414,7 @@ const createPlaceEditorDraft = (place = {}, overrides = {}) => {
       address: overrides.address ?? place.address ?? place.receipt?.address ?? receipt.address ?? '',
       items: overrides.receipt?.items ?? receipt.items,
     },
-    showBusinessEditor: overrides.showBusinessEditor ?? !!(business.open || business.close || business.breakStart || business.breakEnd || business.lastOrder || business.entryClose || business.closedDays?.length),
+    showBusinessEditor: overrides.showBusinessEditor ?? true,
     businessFocusField: overrides.businessFocusField ?? null,
   };
 };
@@ -572,7 +575,8 @@ const PlaceEditorCard = ({
         />
         <SharedBusinessRow
           summary={businessSummary}
-          onToggle={() => updateDraft((current) => ({ ...current, showBusinessEditor: !current.showBusinessEditor }))}
+          onContainerClick={() => updateDraft((current) => ({ ...current, showBusinessEditor: true }))}
+          onToggle={() => updateDraft((current) => ({ ...current, showBusinessEditor: true }))}
           quickEditSegments={businessQuickEditSegments}
           onQuickEdit={(fieldKey) => updateDraft((current) => ({ ...current, showBusinessEditor: true, businessFocusField: fieldKey }))}
           actionButton={
@@ -2069,7 +2073,7 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
     types: Array.isArray(newPlaceTypes) && newPlaceTypes.length ? newPlaceTypes : ['place'],
     business: EMPTY_BUSINESS,
     receipt: { address: '', items: [] },
-  }, { showBusinessEditor: false }));
+  }));
   const [addressSearchNote, setAddressSearchNote] = React.useState('');
   const lastScrapedUrlRef = React.useRef('');
 

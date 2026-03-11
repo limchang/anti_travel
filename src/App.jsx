@@ -106,6 +106,7 @@ const TAG_OPTIONS = [
   { label: '신규', value: 'new' },
   { label: '재방문', value: 'revisit' },
 ];
+
 const TAG_VALUES = new Set(TAG_OPTIONS.map(t => t.value));
 const MODIFIER_TAGS = new Set(['revisit', 'new']);
 const normalizeTagOrder = (input) => {
@@ -6446,9 +6447,13 @@ const App = () => {
           <>
             {/* ── 고정 헤더 ── */}
             <div className="px-5 pt-5 pb-3 border-b border-slate-100 bg-white shrink-0">
-              <div className="flex items-center justify-start mb-1">
+              <div className="flex items-center gap-2.5 mb-1">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
                   <MapIcon size={14} className="text-[#3182F6]" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-[13px] font-black tracking-[0.18em] text-slate-800 uppercase leading-none">Anti Planer</h2>
+                  <p className="mt-1 text-[10px] font-bold text-slate-400 leading-none">Navigation</p>
                 </div>
               </div>
             </div>
@@ -6575,7 +6580,7 @@ const App = () => {
                                             openNaverPlaceSearch(p.activity, p.receipt?.address || p.address || '');
                                       }}
                                       data-no-drag="true"
-                                      className={`text-[8px] font-black rounded-md px-1.5 py-0.5 leading-none whitespace-nowrap transition-colors ${dispDur >= 120 ? 'text-orange-500 bg-orange-50 border border-orange-200 hover:bg-orange-100' : isActive ? 'text-slate-400 bg-slate-100 border border-slate-200 hover:text-[#3182F6]' : 'text-slate-300 hover:text-[#3182F6]'}`}
+                                      className={`text-[8px] font-black rounded-md px-1.5 py-0.5 leading-none whitespace-nowrap border transition-colors ${dispDur >= 120 ? 'text-orange-500 bg-orange-50 border-orange-200 hover:bg-orange-100' : isActive ? 'text-slate-500 bg-slate-100 border-slate-200 hover:text-[#3182F6]' : 'text-slate-400 bg-slate-50 border-slate-200 hover:text-[#3182F6] hover:bg-slate-100'}`}
                                       title="네이버 지도에서 장소 검색"
                                     >
                                       {fmtDur(dispDur)}
@@ -7748,9 +7753,6 @@ const App = () => {
                   <section className="mb-10 -mx-4 -mt-8">
                     <div className="w-full relative overflow-hidden bg-transparent">
                       {canManagePlan && <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-                        <div className="h-10 px-3 rounded-xl border border-white/35 bg-slate-900/40 backdrop-blur text-white shadow-lg flex items-center">
-                          <span className="text-[11px] font-black tracking-[0.18em] uppercase whitespace-nowrap">Anti Planer</span>
-                        </div>
                         <button
                           onClick={(e) => { e.stopPropagation(); setIsEditMode(!isEditMode); }}
                           className={`w-10 h-10 rounded-xl border backdrop-blur transition-all flex items-center justify-center shadow-lg ${isEditMode ? 'bg-amber-400/90 border-amber-300 text-white font-black' : 'bg-white/85 border-white/40 text-slate-700'}`}

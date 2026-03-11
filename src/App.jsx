@@ -5865,11 +5865,6 @@ const App = () => {
       const getCoords = async (addr, name = '') => {
         const candidates = [
           String(addr || '').trim(),
-          String(addr || '').split(/[,\(]/)[0].trim(),
-          String(addr || '').replace(/제주특별자치도/g, '제주').trim(),
-          String(addr || '').replace(/특별자치도/g, '').trim(),
-          `${tripRegion} ${String(name || '').trim()}`.trim(),
-          String(name || '').trim(),
         ].filter(Boolean);
         for (const raw of candidates) {
           const q = raw.split(/\s+/).slice(0, 8).join(' ');
@@ -7133,16 +7128,20 @@ const App = () => {
                                   const isSelected = editingLodgeSegmentTarget?.placeId === place.id && editingLodgeSegmentTarget?.segmentId === segment.id;
                                   const isSystemSegment = segment.type === 'checkin' || segment.type === 'checkout';
                                   return (
-                                    <button
+                                    <div
                                       key={segment.id}
-                                      type="button"
+                                      role="button"
+                                      tabIndex={0}
                                       draggable
                                       data-no-drag="true"
+                                      onMouseDown={(e) => e.stopPropagation()}
                                       onTouchStart={(e) => {
+                                        e.stopPropagation();
                                         touchDragSourceRef.current = { kind: 'library', place: segmentPayload, startX: e.touches[0].clientX, startY: e.touches[0].clientY };
                                         isDraggingActiveRef.current = false;
                                       }}
                                       onDragStart={(e) => {
+                                        e.stopPropagation();
                                         const copy = true;
                                         desktopDragRef.current = { kind: 'library', place: segmentPayload, copy };
                                         e.dataTransfer.effectAllowed = 'copy';
@@ -7163,13 +7162,23 @@ const App = () => {
                                             : { placeId: place.id, segmentId: segment.id }
                                         ));
                                       }}
-                                      className={`inline-flex items-center gap-1.5 rounded-xl border px-2 py-1 text-[10px] font-black transition-colors ${segment.type === 'stay' ? 'border-violet-200 bg-violet-50 text-violet-600' : isSelected ? 'border-indigo-300 bg-indigo-100 text-indigo-700' : 'border-slate-200 bg-white text-slate-500 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600'}`}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          e.preventDefault();
+                                          if (isSystemSegment) return;
+                                          setEditingLodgeSegmentTarget((prev) => (
+                                            prev?.placeId === place.id && prev?.segmentId === segment.id
+                                              ? null
+                                              : { placeId: place.id, segmentId: segment.id }
+                                          ));
+                                        }
+                                      }}
+                                      className={`inline-flex items-center gap-1.5 rounded-xl border px-2 py-1 text-[10px] font-black transition-colors cursor-grab active:cursor-grabbing select-none ${segment.type === 'stay' ? 'border-violet-200 bg-violet-50 text-violet-600' : isSelected ? 'border-indigo-300 bg-indigo-100 text-indigo-700' : 'border-slate-200 bg-white text-slate-500 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600'}`}
                                       title="클릭하여 수정, 드래그하여 일정에 복제"
                                     >
                                       <GripVertical size={10} className="shrink-0" />
                                       <span>{segment.label}</span>
-                                      <span className="tabular-nums opacity-70">{segment.time}</span>
-                                    </button>
+                                    </div>
                                   );
                                 })}
                               </div>

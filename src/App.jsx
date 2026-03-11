@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars, react-hooks/exhaustive-deps, no-useless-escape */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { db, auth } from './firebase';
+import updateLog from './update-log.json';
 import { collection, doc, getDoc, getDocs, setDoc, query, limit } from 'firebase/firestore';
 import { onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import {
@@ -2427,8 +2428,9 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
     </div>
   );
 };
-const APP_VERSION = '1.2.9';
-const LAST_PUSH_TIME = '2026-03-11T15:53:00+09:00';
+const latestUpdate = updateLog.lastUpdates[0] || { version: '0.0.0', timestamp: new Date().toISOString() };
+const APP_VERSION = latestUpdate.version;
+const LAST_PUSH_TIME = latestUpdate.timestamp;
 
 // ── AI 자동입력 학습 지침 모달 ───────────────────────────────────────────────
 const GUIDE_DOC_PATH = 'meta/smartFillGuide';

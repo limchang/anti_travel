@@ -7622,35 +7622,46 @@ const App = () => {
                 return { key, label, amount, pct };
               })
               .sort((a, b) => b.amount - a.amount);
-            const planCountsByDay = (itinerary.days || []).map((day) => (day.plan || []).filter((item) => item && item.type !== 'backup').length);
-            const totalPlanCount = planCountsByDay.reduce((sum, count) => sum + count, 0);
-            const activeDayCount = planCountsByDay.filter((count) => count > 0).length || (itinerary.days?.length || 1);
-            const dailyPlanAverage = totalPlanCount > 0 ? (totalPlanCount / activeDayCount) : 0;
-            const perDayPlanSummary = planCountsByDay.length
-              ? planCountsByDay.map((count, index) => `${index + 1}일차 ${count}`).join(' · ')
-              : '일정 데이터 없음';
-            const dayIntensityStats = (itinerary.days || []).map((day) => {
-              const plan = (day.plan || []).filter((item) => item && item.type !== 'backup');
-              if (!plan.length) return { count: 0, spanHours: 0, travelMinutes: 0 };
-              const startMinutes = timeToMinutes(plan[0]?.time || '00:00');
-              const endItem = plan[plan.length - 1];
-              const endMinutes = endItem?.types?.includes('ship')
-                ? getShipTimeline(endItem).disembarkMinutes
-                : timeToMinutes(endItem?.time || '00:00') + (Number(endItem?.duration) || 0);
-              const spanHours = Math.max(0, endMinutes - startMinutes) / 60;
-              const travelMinutes = plan.reduce((sum, item) => sum + (Number(item.travelTimeValue) || 0), 0);
-              return { count: plan.length, spanHours, travelMinutes };
+            const totalPlanCount = (itinerary.days || []).reduce((sum, day) => (
+              sum + ((day.plan || []).filter((item) => item && item.type !== 'backup').length)
+            ), 0);
+            const visitItemsByDay = (itinerary.days || []).map((day) => (
+              (day.plan || []).filter((item) => {
+                if (!item || item.type === 'backup') return false;
+                const types = Array.isArray(item.types) ? item.types : [];
+                return !types.includes('lodge') && !types.includes('rest') && !types.includes('ship');
+              })
+            ));
+            const visitPlanCount = visitItemsByDay.reduce((sum, dayItems) => sum + dayItems.length, 0);
+            const visitDayStats = visitItemsByDay.map((dayItems) => {
+              if (!dayItems.length) return { count: 0, spanHours: 0, travelMinutes: 0 };
+              const startMinutes = timeToMinutes(dayItems[0]?.time || '00:00');
+              const endItem = dayItems[dayItems.length - 1];
+              const endMinutes = timeToMinutes(endItem?.time || '00:00') + (Number(endItem?.duration) || 0);
+              const spanHours = Math.max(0.5, Math.max(0, endMinutes - startMinutes) / 60);
+              const travelMinutes = dayItems.reduce((sum, item) => sum + parseMinsLabel(item.travelTimeOverride || item.travelTimeAuto, 0), 0);
+              return { count: dayItems.length, spanHours, travelMinutes };
             });
-            const averageSpanHours = dayIntensityStats.length
-              ? dayIntensityStats.reduce((sum, stat) => sum + stat.spanHours, 0) / dayIntensityStats.length
+            const activeVisitDayCount = visitDayStats.filter((stat) => stat.count > 0).length || 1;
+            const totalVisitSpanHours = visitDayStats.reduce((sum, stat) => sum + stat.spanHours, 0);
+            const visitPerHour = totalVisitSpanHours > 0 ? (visitPlanCount / totalVisitSpanHours) : 0;
+            const averageTravelMinutes = activeVisitDayCount > 0
+              ? visitDayStats.reduce((sum, stat) => sum + stat.travelMinutes, 0) / activeVisitDayCount
               : 0;
-            const averageTravelMinutes = dayIntensityStats.length
-              ? dayIntensityStats.reduce((sum, stat) => sum + stat.travelMinutes, 0) / dayIntensityStats.length
+            const lodgingConstraintCount = (itinerary.days || []).reduce((sum, day) => sum + ((day.plan || []).reduce((daySum, item) => {
+              if (!item || item.type === 'backup' || !isLodgeStay(item.types)) return daySum;
+              return daySum
+                + (item.isTimeFixed ? 1 : 0)
+                + (item.lodgeCheckoutFixed && item.lodgeCheckoutTime ? 1 : 0);
+            }, 0)), 0);
+            const averageSpanHours = activeVisitDayCount > 0
+              ? visitDayStats.reduce((sum, stat) => sum + stat.spanHours, 0) / activeVisitDayCount
               : 0;
             const intensityScore = [
-              dailyPlanAverage >= 8 ? 2 : dailyPlanAverage >= 6 ? 1 : 0,
+              visitPerHour >= 0.95 ? 2 : visitPerHour >= 0.7 ? 1 : 0,
               averageSpanHours >= 11 ? 2 : averageSpanHours >= 8.5 ? 1 : 0,
               averageTravelMinutes >= 120 ? 2 : averageTravelMinutes >= 70 ? 1 : 0,
+              lodgingConstraintCount >= 3 ? 2 : lodgingConstraintCount >= 1 ? 1 : 0,
             ].reduce((sum, value) => sum + value, 0);
             const travelIntensity = intensityScore >= 5
               ? { label: '매우 빠듯함', note: '이동/체류 여유 적음' }
@@ -7857,19 +7868,20 @@ const App = () => {
                                 {showTravelIntensityInfo && (
                                   <div className="absolute left-1/2 top-full z-20 mt-3 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
-                                    <p className="mt-2 text-[11px] font-bold text-slate-600">일평균 일정 수: {dailyPlanAverage.toFixed(1)}개</p>
+                                    <p className="mt-2 text-[11px] font-bold text-slate-600">시간당 방문 수: {visitPerHour.toFixed(2)}개</p>
                                     <p className="mt-1 text-[11px] font-bold text-slate-600">하루 활동 시간: 평균 {averageSpanHours.toFixed(1)}시간</p>
                                     <p className="mt-1 text-[11px] font-bold text-slate-600">하루 이동 시간: 평균 {averageTravelHoursLabel}</p>
-                                    <p className="mt-2 text-[10px] font-bold text-slate-400">각 항목이 높을수록 점수가 올라가며, 합계로 `널널함 → 매우 빠듯함`을 판단합니다.</p>
+                                    <p className="mt-1 text-[11px] font-bold text-slate-600">숙소 고정 제약: {lodgingConstraintCount}개</p>
+                                    <p className="mt-2 text-[10px] font-bold text-slate-400">방문 수는 `숙소/휴식/페리`를 제외한 일정만 세며, 숙소의 고정 체크인/체크아웃도 강도 점수에 반영합니다.</p>
                                   </div>
                                 )}
                               </div>
                               <div className="p-4 flex flex-col items-center justify-center gap-1">
                                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                  일정 갯수
+                                  방문 밀도
                                 </p>
-                                <p className="text-[28px] leading-none font-black text-slate-700 text-center tabular-nums">{totalPlanCount}개</p>
-                                <p className="text-[11px] font-bold text-slate-500 text-center">하루 평균 {dailyPlanAverage.toFixed(1)}개</p>
+                                <p className="text-[28px] leading-none font-black text-slate-700 text-center tabular-nums">{visitPerHour.toFixed(1)}개/h</p>
+                                <p className="text-[11px] font-bold text-slate-500 text-center">방문 일정 {visitPlanCount}개 기준</p>
                               </div>
                             </div>
 

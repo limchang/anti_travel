@@ -1,10 +1,19 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import puppeteer from 'puppeteer';
+import groqAnalyzeHandler from './api/grok-analyze.js';
+import aiKeyHandler from './api/ai-key.js';
+import geminiLinkAnalyzeHandler from './api/gemini-link-analyze.js';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+app.all('/api/groq-analyze', (req, res) => groqAnalyzeHandler(req, res));
+app.all('/api/grok-analyze', (req, res) => groqAnalyzeHandler(req, res));
+app.all('/api/ai-key', (req, res) => aiKeyHandler(req, res));
+app.all('/api/gemini-link-analyze', (req, res) => geminiLinkAnalyzeHandler(req, res));
 
 app.post('/api/scrape', async (req, res) => {
     const { url } = req.body;

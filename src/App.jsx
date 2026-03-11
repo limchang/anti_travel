@@ -18,7 +18,7 @@ const UPDATE_NOTES = [
     version: '1.0.0.0',
     date: '2026-03-10',
     timeline: [
-      { time: '23:50', emoji: '⛴️', title: '선적 종료 시간 직접 편집 가능', desc: '선박 카드에서 선적 종료 시간을 탭·드래그로 바로 수정할 수 있어요.' },
+      { time: '23:50', emoji: '⛴️', title: '선적 종료 시간 직접 편집 가능', desc: '선박 카드에서 선적 종료 시간을 클릭해 바로 수정할 수 있어요.' },
       { time: '23:20', emoji: '⏱️', title: '이동 단위 공유', desc: '시작 시각 이동 단위(1/5/15/30분)를 선택하면 소요시간 스피너도 같은 단위로 맞춰져요.' },
       { time: '23:05', emoji: '🔒', title: '잠금 버튼 테두리 강조', desc: '시간 셀 확장 시 잠금 상태일 때 색상 ring이 추가되어 한눈에 확인할 수 있어요.' },
       { time: '22:40', emoji: '📱', title: '모바일 초기 사이드바 접힘', desc: '모바일 환경에서 앱 시작 시 양쪽 사이드바가 자동으로 닫혀 있어요.' },
@@ -102,6 +102,7 @@ const PLACE_TYPES = [
   { label: '카페', types: ['cafe'], Icon: Coffee, className: 'text-amber-600 bg-amber-50 border-amber-200 hover:bg-amber-100' },
   { label: '관광', types: ['tour'], Icon: Camera, className: 'text-purple-600 bg-purple-50 border-purple-200 hover:bg-purple-100' },
   { label: '숙소', types: ['lodge'], Icon: Bed, className: 'text-indigo-600 bg-indigo-50 border-indigo-200 hover:bg-indigo-100' },
+  { label: '페리', types: ['ship'], Icon: Anchor, className: 'text-blue-600 bg-blue-50 border-blue-200 hover:bg-blue-100' },
   { label: '휴식', types: ['rest'], Icon: Hourglass, className: 'text-cyan-600 bg-cyan-50 border-cyan-200 hover:bg-cyan-100' },
   { label: '뷰맛집', types: ['view'], Icon: Eye, className: 'text-sky-600 bg-sky-50 border-sky-200 hover:bg-sky-100' },
   { label: '체험', types: ['experience'], Icon: Star, className: 'text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100' },
@@ -115,6 +116,7 @@ const TAG_OPTIONS = [
   { label: '카페', value: 'cafe' },
   { label: '관광', value: 'tour' },
   { label: '숙소', value: 'lodge' },
+  { label: '페리', value: 'ship' },
   { label: '휴식', value: 'rest' },
   { label: '픽업', value: 'pickup' },
   { label: '오픈런', value: 'openrun' },
@@ -164,6 +166,7 @@ const getTagButtonClass = (value, active) => {
   if (value === 'cafe') return 'text-amber-600 bg-amber-50 border-amber-200';
   if (value === 'tour') return 'text-purple-600 bg-purple-50 border-purple-200';
   if (value === 'lodge') return 'text-indigo-600 bg-indigo-50 border-indigo-200';
+  if (value === 'ship') return 'text-blue-600 bg-blue-50 border-blue-200';
   if (value === 'rest') return 'text-cyan-600 bg-cyan-50 border-cyan-200';
   if (value === 'pickup') return 'text-orange-500 bg-orange-50 border-orange-200';
   if (value === 'openrun') return 'text-red-500 bg-red-50 border-red-100';
@@ -286,6 +289,8 @@ const SharedBusinessRow = ({
   actionButton = null,
   expanded = null,
   onContainerClick,
+  quickEditSegments = null,
+  onQuickEdit = null,
 }) => (
   <div className="w-full bg-slate-50/60 border border-slate-200 rounded-lg py-1.5 px-2.5" onClick={onContainerClick}>
     <div className="w-full flex items-center gap-2">
@@ -296,6 +301,24 @@ const SharedBusinessRow = ({
       >
         {summary === '미설정' || !summary ? (
           <span className="text-[10px] font-bold text-slate-400">{placeholder}</span>
+        ) : quickEditSegments?.length && onQuickEdit ? (
+          <span className="text-[10px] font-bold text-slate-600 truncate flex-1 flex items-center gap-1 flex-wrap">
+            {quickEditSegments.map((segment, idx) => (
+              <React.Fragment key={`${segment.fieldKey}-${idx}`}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onQuickEdit(segment.fieldKey);
+                  }}
+                  className="hover:text-[#3182F6] transition-colors"
+                >
+                  {segment.label}
+                </button>
+                {idx < quickEditSegments.length - 1 && <span className="text-slate-300">·</span>}
+              </React.Fragment>
+            ))}
+          </span>
         ) : (
           <span className="text-[10px] font-bold text-slate-600 truncate flex-1">{summary}</span>
         )}
@@ -403,6 +426,7 @@ const createPlaceEditorDraft = (place = {}, overrides = {}) => {
       items: overrides.receipt?.items ?? receipt.items,
     },
     showBusinessEditor: overrides.showBusinessEditor ?? !!(business.open || business.close || business.breakStart || business.breakEnd || business.lastOrder || business.entryClose || business.closedDays?.length),
+    businessFocusField: overrides.businessFocusField ?? null,
   };
 };
 const PlaceEditorCard = ({
@@ -458,6 +482,7 @@ const PlaceEditorCard = ({
     if (Array.isArray(business.closedDays) && business.closedDays.length) parts.push(`휴무 : ${formatClosedDaysSummary(business.closedDays)}`);
     return parts.length ? parts.join(' · ') : '미설정';
   })();
+  const businessQuickEditSegments = buildBusinessQuickEditSegments(safeDraft.business || {});
 
   const updateDraft = (updater) => {
     const next = typeof updater === 'function' ? updater(safeDraft) : updater;
@@ -562,6 +587,8 @@ const PlaceEditorCard = ({
         <SharedBusinessRow
           summary={businessSummary}
           onToggle={() => updateDraft((current) => ({ ...current, showBusinessEditor: !current.showBusinessEditor }))}
+          quickEditSegments={businessQuickEditSegments}
+          onQuickEdit={(fieldKey) => updateDraft((current) => ({ ...current, showBusinessEditor: true, businessFocusField: fieldKey }))}
           actionButton={
             <button
               type="button"
@@ -576,7 +603,8 @@ const PlaceEditorCard = ({
             <div className="mt-2">
               <BusinessHoursEditor
                 business={safeDraft.business}
-                onChange={(business) => updateDraft((current) => ({ ...current, business: normalizeBusiness(business || {}) }))}
+                focusField={safeDraft.businessFocusField}
+                onChange={(business) => updateDraft((current) => ({ ...current, business: normalizeBusiness(business || {}), businessFocusField: null }))}
               />
             </div>
           ) : null}
@@ -700,6 +728,7 @@ const PlaceLibraryCard = ({
   onEdit,
   onOpenMap,
   onBusinessEdit,
+  onBusinessQuickEdit,
   onToggleExpand,
   onDelete,
   getMenuQtyValue,
@@ -756,6 +785,8 @@ const PlaceLibraryCard = ({
         placeholder="영업 정보 (선택)"
         onContainerClick={(e) => e.stopPropagation()}
         onToggle={onBusinessEdit}
+        quickEditSegments={buildBusinessQuickEditSegments(place.business || {})}
+        onQuickEdit={(fieldKey) => onBusinessQuickEdit?.(fieldKey)}
       />
       <SharedMemoRow
         value={place.memo || ''}
@@ -1096,13 +1127,18 @@ const normalizeSmartFillResult = (raw = {}) => {
 
 const DEFAULT_AI_SMART_FILL_CONFIG = {
   apiKey: '',
+  geminiApiKey: '',
   apiBaseUrl: 'https://api.groq.com/openai/v1',
   model: 'meta-llama/llama-4-scout-17b-16e-instruct',
   proxyBaseUrl: '',
 };
 
+const GEMINI_LINK_MODEL = 'gemini-2.5-flash';
+const GEMINI_LINK_SYSTEM_PROMPT = '너는 장소 정보를 추출하는 전문가야. 제공된 URL이나 텍스트에서 상호명, 주소, 영업시간, 휴일, 라스트 오더 정보를 찾아서 JSON 형식으로만 응답해줘.';
+
 const normalizeAiSmartFillConfig = (raw = {}) => ({
   apiKey: String(raw?.apiKey || '').trim(),
+  geminiApiKey: String(raw?.geminiApiKey || '').trim(),
   apiBaseUrl: String(raw?.apiBaseUrl || 'https://api.groq.com/openai/v1').trim() || 'https://api.groq.com/openai/v1',
   model: String(raw?.model || 'meta-llama/llama-4-scout-17b-16e-instruct').trim() || 'meta-llama/llama-4-scout-17b-16e-instruct',
   proxyBaseUrl: String(raw?.proxyBaseUrl || '').trim(),
@@ -1110,7 +1146,7 @@ const normalizeAiSmartFillConfig = (raw = {}) => ({
 
 const sanitizeAiSmartFillConfigForStorage = (raw = {}) => {
   const normalized = normalizeAiSmartFillConfig(raw);
-  return { ...normalized, apiKey: '' };
+  return { ...normalized, apiKey: '', geminiApiKey: '' };
 };
 
 const getSmartFillErrorMessage = (error, aiEnabled = false) => {
@@ -1122,6 +1158,9 @@ const getSmartFillErrorMessage = (error, aiEnabled = false) => {
   if (/Image smart fill requires AI/i.test(message)) return '이미지 스마트 붙여넣기는 AI를 켠 상태에서만 사용할 수 있습니다.';
   if (/No clipboard payload provided/i.test(message)) return '클립보드에 텍스트나 이미지가 없습니다.';
   if (/notallowederror|denied|clipboard/i.test(message)) return '클립보드 접근 권한을 허용해 주세요.';
+  if (/GEMINI_API_KEY is not configured/i.test(message)) return 'Gemini 링크 분석용 API 키를 AI 설정에서 먼저 입력해 주세요.';
+  if (/Gemini response did not contain valid JSON/i.test(message)) return 'Gemini 링크 분석 응답을 해석하지 못했습니다. 다시 시도해 주세요.';
+  if (/Gemini/i.test(message)) return `Gemini 링크 분석 실패: ${message}`;
   if (/GROQ_API_KEY is not configured/i.test(message)) return 'Groq 설정이 비어 있습니다. AI 설정에서 API 키 또는 프록시를 확인해 주세요.';
   if (/did not contain valid JSON/i.test(message)) return 'Groq 응답 형식을 해석하지 못했습니다. 다시 시도해 주세요.';
   if (/HTTP 4\d\d/i.test(message)) return `Groq 요청이 거부되었습니다. ${message}`;
@@ -1129,11 +1168,108 @@ const getSmartFillErrorMessage = (error, aiEnabled = false) => {
   return aiEnabled ? `Groq 스마트 붙여넣기 실패: ${message}` : `스마트 붙여넣기 실패: ${message}`;
 };
 
+const isAiSmartFillSource = (source = '') => ['ai', 'gemini'].includes(String(source || '').trim());
+
 const shouldUseReasoningEffort = (model = '') => /qwen\/qwen3|gpt-oss/i.test(String(model || ''));
 const extractNaverMapLink = (raw = '') => {
   const m = String(raw || '').match(/https?:\/\/(?:naver\.me|map\.naver\.com|pcmap\.place\.naver\.com|m\.place\.naver\.com)\/[^\s)>\]"']+/i);
   if (!m?.[0]) return '';
   return m[0].replace(/[),.;]+$/, '');
+};
+
+const normalizeClosedDaysInput = (rawClosedDays = []) => {
+  const weekdayMap = { 월: 'mon', 화: 'tue', 수: 'wed', 목: 'thu', 금: 'fri', 토: 'sat', 일: 'sun', mon: 'mon', tue: 'tue', wed: 'wed', thu: 'thu', fri: 'fri', sat: 'sat', sun: 'sun' };
+  return Array.isArray(rawClosedDays)
+    ? [...new Set(rawClosedDays.map((day) => weekdayMap[String(day || '').trim().slice(0, 3)] || weekdayMap[String(day || '').trim()] || '').filter(Boolean))]
+    : [];
+};
+
+const normalizeGeminiLinkResult = (raw = {}) => normalizeSmartFillResult({
+  name: String(raw?.name || '').trim(),
+  address: String(raw?.address || '').trim(),
+  business: {
+    open: String(raw?.business?.open || '').trim(),
+    close: String(raw?.business?.close || '').trim(),
+    breakStart: String(raw?.business?.breakStart || '').trim(),
+    breakEnd: String(raw?.business?.breakEnd || '').trim(),
+    lastOrder: String(raw?.business?.lastOrder || '').trim(),
+    entryClose: String(raw?.business?.entryClose || '').trim(),
+    closedDays: normalizeClosedDaysInput(raw?.business?.closedDays),
+  },
+  menus: Array.isArray(raw?.menus) ? raw.menus : [],
+});
+
+const fetchGeminiPlaceInfoFromMapLink = async ({ url, geminiApiKey, bearerToken = '' }) => {
+  const cleanUrl = String(url || '').trim();
+  const cleanKey = String(geminiApiKey || '').trim();
+  if (!cleanUrl) return null;
+  const envApiBase = (import.meta.env.VITE_AI_ANALYZE_API_BASE || '').replace(/\/$/, '');
+  const endpointCandidates = Array.from(new Set([
+    envApiBase ? `${envApiBase}/api/gemini-link-analyze` : '',
+    '/api/gemini-link-analyze',
+  ].filter(Boolean)));
+
+  let lastError = null;
+  for (const endpoint of endpointCandidates) {
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}),
+        },
+        body: JSON.stringify({
+          url: cleanUrl,
+          geminiApiKey: cleanKey,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.details || data?.error || `HTTP ${response.status}`);
+      }
+      return normalizeGeminiLinkResult(data?.result || data);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (!cleanKey) throw lastError || new Error('GEMINI_API_KEY is not configured');
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_LINK_MODEL}:generateContent`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': cleanKey,
+    },
+    body: JSON.stringify({
+      system_instruction: {
+        parts: [{ text: GEMINI_LINK_SYSTEM_PROMPT }],
+      },
+      tools: [{ url_context: {} }, { google_search: {} }],
+      generationConfig: {
+        temperature: 0.2,
+        responseMimeType: 'application/json',
+      },
+      contents: [{
+        role: 'user',
+        parts: [{
+          text: [
+            `이 링크 정보 좀 분석해서 정리해줘: ${cleanUrl}`,
+            '아래 JSON 형식으로만 응답해줘.',
+            '{"name":"","address":"","business":{"open":"","close":"","breakStart":"","breakEnd":"","lastOrder":"","entryClose":"","closedDays":[]},"menus":[]}',
+          ].join('\n'),
+        }],
+      }],
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error?.message || data?.error?.status || data?.error || `Gemini HTTP ${response.status}`);
+  }
+  const rawText = data?.candidates?.[0]?.content?.parts?.map((part) => part?.text || '').join('\n') || '';
+  const parsed = extractJsonPayload(rawText);
+  if (!parsed) throw new Error('Gemini response did not contain valid JSON');
+  return normalizeGeminiLinkResult(parsed);
 };
 
 const scrapePlaceFromMapLinkUrl = async (url) => {
@@ -1253,6 +1389,118 @@ const getCurrentUserBearerToken = async () => {
   }
 };
 
+const runGroqSmartFill = async ({ mode = 'all', text = '', imageDataUrl = '', aiSettings = DEFAULT_AI_SMART_FILL_CONFIG, inputType = 'text' } = {}) => {
+  const normalizedSettings = normalizeAiSmartFillConfig(aiSettings);
+  const directApiKey = normalizedSettings.apiKey;
+  const bearerToken = await getCurrentUserBearerToken();
+  let lastError = null;
+
+  if (directApiKey) {
+    try {
+      const requestBody = {
+        model: normalizedSettings.model,
+        temperature: 1,
+        max_completion_tokens: 1024,
+        top_p: 1,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: [
+              'You extract Korean place information for a travel planner.',
+              'Return strict JSON only.',
+              `Current extraction mode: ${mode}.`,
+              'Schema: {"name":"","address":"","business":{"open":"","close":"","breakStart":"","breakEnd":"","lastOrder":"","entryClose":"","closedDays":[]},"menus":[{"name":"","price":0}]}',
+            ].join('\n'),
+          },
+          {
+            role: 'user',
+            content: [
+              text ? { type: 'text', text: `Clipboard text:\n${text}` } : null,
+              imageDataUrl ? { type: 'image_url', image_url: { url: imageDataUrl } } : null,
+              { type: 'text', text: 'Respond with JSON only.' },
+            ].filter(Boolean),
+          },
+        ],
+      };
+      if (shouldUseReasoningEffort(normalizedSettings.model)) {
+        requestBody.reasoning_effort = 'default';
+      }
+      const response = await fetch(`${normalizedSettings.apiBaseUrl.replace(/\/$/, '')}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${directApiKey}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.error?.message || data?.error || `HTTP ${response.status}`);
+      }
+      const rawContent = data?.choices?.[0]?.message?.content || '';
+      const parsedJson = extractJsonPayload(typeof rawContent === 'string' ? rawContent : Array.isArray(rawContent) ? rawContent.map((part) => part?.text || '').join('\n') : '');
+      if (parsedJson) {
+        return {
+          parsed: normalizeSmartFillResult(parsedJson),
+          source: 'ai',
+          usedImage: !!imageDataUrl,
+          inputType,
+        };
+      }
+      throw new Error('AI response did not contain valid JSON');
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  const envApiBase = (import.meta.env.VITE_AI_ANALYZE_API_BASE || '').replace(/\/$/, '');
+  const proxyBase = normalizedSettings.proxyBaseUrl.replace(/\/$/, '');
+  const endpoints = Array.from(new Set([
+    proxyBase ? `${proxyBase}/api/groq-analyze` : '',
+    envApiBase ? `${envApiBase}/api/groq-analyze` : '',
+    import.meta.env.VITE_GROQ_ANALYZE_URL || '',
+    '/api/groq-analyze',
+    proxyBase ? `${proxyBase}/api/grok-analyze` : '',
+    envApiBase ? `${envApiBase}/api/grok-analyze` : '',
+    '/api/grok-analyze',
+  ].filter(Boolean)));
+  for (const endpoint of endpoints) {
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}),
+        },
+        body: JSON.stringify({
+          mode,
+          text,
+          imageDataUrl,
+          apiKey: directApiKey,
+          apiBaseUrl: normalizedSettings.apiBaseUrl,
+          model: normalizedSettings.model,
+        }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody?.details || errBody?.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      return {
+        parsed: normalizeSmartFillResult(data?.result || data),
+        source: 'ai',
+        usedImage: !!imageDataUrl,
+        inputType,
+      };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error('GROQ_API_KEY is not configured');
+};
+
 const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSettings = DEFAULT_AI_SMART_FILL_CONFIG } = {}) => {
   const payload = await readClipboardPayload();
   const inputType = payload.text && payload.imageDataUrl ? 'mixed' : payload.imageDataUrl ? 'image' : payload.text ? 'text' : 'empty';
@@ -1261,8 +1509,46 @@ const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSe
     throw new Error('Image smart fill requires AI');
   }
 
+  const normalizedSettings = normalizeAiSmartFillConfig(aiSettings);
   const mapUrl = extractNaverMapLink(payload.text);
   if (mapUrl) {
+    const bearerToken = await getCurrentUserBearerToken();
+    let geminiError = null;
+    if (normalizedSettings.geminiApiKey || bearerToken) {
+      try {
+        const geminiParsed = await fetchGeminiPlaceInfoFromMapLink({ url: mapUrl, geminiApiKey: normalizedSettings.geminiApiKey, bearerToken });
+        if (aiEnabled) {
+          try {
+            return await runGroqSmartFill({
+              mode,
+              text: [
+                'Gemini extracted the following place information from a Naver Map URL.',
+                `Source URL: ${mapUrl}`,
+                JSON.stringify(geminiParsed, null, 2),
+              ].join('\n\n'),
+              imageDataUrl: '',
+              aiSettings: normalizedSettings,
+              inputType: 'text',
+            });
+          } catch {
+            return {
+              parsed: geminiParsed,
+              source: 'gemini',
+              usedImage: false,
+              inputType,
+            };
+          }
+        }
+        return {
+          parsed: geminiParsed,
+          source: 'gemini',
+          usedImage: false,
+          inputType,
+        };
+      } catch (error) {
+        geminiError = error;
+      }
+    }
     try {
       const parsed = await scrapePlaceFromMapLinkUrl(mapUrl);
       if (parsed?.name || parsed?.address || parsed?.business || parsed?.menus?.length) {
@@ -1273,7 +1559,10 @@ const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSe
           inputType,
         };
       }
-    } catch {
+    } catch (scrapeError) {
+      if (geminiError) {
+        throw geminiError;
+      }
       if (inputType === 'text' && String(payload.text || '').trim() === mapUrl) {
         throw new Error('NAVER_URL_ONLY');
       }
@@ -1281,114 +1570,17 @@ const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSe
   }
 
   if (aiEnabled) {
-    const normalizedSettings = normalizeAiSmartFillConfig(aiSettings);
-    const directApiKey = normalizedSettings.apiKey;
-    const bearerToken = await getCurrentUserBearerToken();
-    let lastError = null;
-
-    if (directApiKey) {
-      try {
-        const requestBody = {
-          model: normalizedSettings.model,
-          temperature: 1,
-          max_completion_tokens: 1024,
-          top_p: 1,
-          response_format: { type: 'json_object' },
-          messages: [
-            {
-              role: 'system',
-              content: [
-                'You extract Korean place information for a travel planner.',
-                'Return strict JSON only.',
-                `Current extraction mode: ${mode}.`,
-                'Schema: {"name":"","address":"","business":{"open":"","close":"","breakStart":"","breakEnd":"","lastOrder":"","entryClose":"","closedDays":[]},"menus":[{"name":"","price":0}]}',
-              ].join('\n'),
-            },
-            {
-              role: 'user',
-              content: [
-                payload.text ? { type: 'text', text: `Clipboard text:\n${payload.text}` } : null,
-                payload.imageDataUrl ? { type: 'image_url', image_url: { url: payload.imageDataUrl } } : null,
-                { type: 'text', text: 'Respond with JSON only.' },
-              ].filter(Boolean),
-            },
-          ],
-        };
-        if (shouldUseReasoningEffort(normalizedSettings.model)) {
-          requestBody.reasoning_effort = 'default';
-        }
-        const response = await fetch(`${normalizedSettings.apiBaseUrl.replace(/\/$/, '')}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${directApiKey}`,
-          },
-          body: JSON.stringify(requestBody),
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(data?.error?.message || data?.error || `HTTP ${response.status}`);
-        }
-        const rawContent = data?.choices?.[0]?.message?.content || '';
-        const parsedJson = extractJsonPayload(typeof rawContent === 'string' ? rawContent : Array.isArray(rawContent) ? rawContent.map((part) => part?.text || '').join('\n') : '');
-        if (parsedJson) {
-          return {
-            parsed: normalizeSmartFillResult(parsedJson),
-            source: 'ai',
-            usedImage: !!payload.imageDataUrl,
-            inputType,
-          };
-        }
-        throw new Error('AI response did not contain valid JSON');
-      } catch (error) {
-        lastError = error;
-      }
+    try {
+      return await runGroqSmartFill({
+        mode,
+        text: payload.text,
+        imageDataUrl: payload.imageDataUrl,
+        aiSettings: normalizedSettings,
+        inputType,
+      });
+    } catch (lastError) {
+      if (!payload.text) throw lastError;
     }
-
-    const envApiBase = (import.meta.env.VITE_AI_ANALYZE_API_BASE || '').replace(/\/$/, '');
-    const proxyBase = normalizedSettings.proxyBaseUrl.replace(/\/$/, '');
-    const endpoints = Array.from(new Set([
-      proxyBase ? `${proxyBase}/api/groq-analyze` : '',
-      envApiBase ? `${envApiBase}/api/groq-analyze` : '',
-      import.meta.env.VITE_GROQ_ANALYZE_URL || '',
-      '/api/groq-analyze',
-      proxyBase ? `${proxyBase}/api/grok-analyze` : '',
-      envApiBase ? `${envApiBase}/api/grok-analyze` : '',
-      '/api/grok-analyze',
-    ].filter(Boolean)));
-    for (const endpoint of endpoints) {
-      try {
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}),
-          },
-          body: JSON.stringify({
-            mode,
-            text: payload.text,
-            imageDataUrl: payload.imageDataUrl,
-            apiKey: directApiKey,
-            apiBaseUrl: normalizedSettings.apiBaseUrl,
-            model: normalizedSettings.model,
-          }),
-        });
-        if (!res.ok) {
-          const errBody = await res.json().catch(() => ({}));
-          throw new Error(errBody?.details || errBody?.error || `HTTP ${res.status}`);
-        }
-        const data = await res.json();
-        return {
-          parsed: normalizeSmartFillResult(data?.result || data),
-          source: 'ai',
-          usedImage: !!payload.imageDataUrl,
-          inputType,
-        };
-      } catch (error) {
-        lastError = error;
-      }
-    }
-    if (lastError && !payload.text) throw lastError;
   }
 
   const parsed = parseNaverMapText(payload.text);
@@ -1436,8 +1628,17 @@ const TimeInput = ({ value, onChange, onFocus, onBlurExtra, className = '', titl
     />
   );
 };
+const buildBusinessQuickEditSegments = (businessRaw = {}) => {
+  const business = normalizeBusiness(businessRaw || {});
+  const segments = [];
+  if (business.open || business.close) segments.push({ fieldKey: 'open', label: `운영 ${business.open || '--:--'} - ${business.close || '--:--'}` });
+  if (business.breakStart || business.breakEnd) segments.push({ fieldKey: 'breakStart', label: `휴식 ${business.breakStart || '--:--'} - ${business.breakEnd || '--:--'}` });
+  if (business.lastOrder || business.entryClose) segments.push({ fieldKey: business.lastOrder ? 'lastOrder' : 'entryClose', label: `마감 ${business.lastOrder || business.entryClose || '--:--'}` });
+  if (business.closedDays?.length) segments.push({ fieldKey: 'closedDays', label: `휴무 : ${formatClosedDaysSummary(business.closedDays)}` });
+  return segments;
+};
 // 영업 정보 공통 에디터 (내장소 수정 모달 / 일정 카드 / 새 장소 추가 공통)
-const BusinessHoursEditor = ({ business = {}, onChange }) => {
+const BusinessHoursEditor = ({ business = {}, onChange, focusField = null }) => {
   const [activeField, setActiveField] = React.useState(null);
   const inputRefs = React.useRef({});
   const biz = normalizeBusiness(business);
@@ -1478,6 +1679,10 @@ const BusinessHoursEditor = ({ business = {}, onChange }) => {
     node.focus();
     node.select?.();
   }, [activeField]);
+
+  React.useEffect(() => {
+    if (focusField) setActiveField(focusField);
+  }, [focusField]);
 
   const cardCls = 'rounded-xl border px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]';
   const activeCardCls = 'ring-1 ring-[#3182F6]/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_12px_30px_-24px_rgba(49,130,246,0.35)]';
@@ -1610,6 +1815,64 @@ const normalizeBusiness = (business = {}) => ({
   entryClose: String(business.entryClose || ''),
   closedDays: Array.isArray(business.closedDays) ? [...new Set(business.closedDays)] : [],
 });
+
+function timeToMinutes(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') return 0;
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return 0;
+  const hrs = parseInt(parts[0], 10);
+  const mins = parseInt(parts[1], 10);
+  if (hrs === 24 && mins === 0) return 1440;
+  return (isNaN(hrs) ? 0 : hrs) * 60 + (isNaN(mins) ? 0 : mins);
+}
+
+function minutesToTime(minutes) {
+  if (typeof minutes !== 'number' || isNaN(minutes)) return "00:00";
+  if (minutes === 1440) return "24:00";
+  let h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h >= 24) h = h % 24;
+  if (h < 0) h = 24 + (h % 24);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+const getShipLoadingRange = (item = {}) => {
+  const times = extractTimesFromText(String(item?.receipt?.shipDetails?.loading || ''));
+  return {
+    start: times[0] || '',
+    end: times[1] || '',
+  };
+};
+
+const getShipBoardTimeValue = (item = {}) => String(item?.boardTime || item?.receipt?.shipDetails?.depart || '').trim();
+const getShipLoadEndTimeValue = (item = {}) => String(item?.loadEndTime || getShipLoadingRange(item).end || getShipBoardTimeValue(item) || '').trim();
+const getShipLoadStartTimeValue = (item = {}) => String(item?.time || getShipLoadingRange(item).start || '').trim();
+const resolveShipAbsoluteMinutes = (baseClock, minAbsolute = 0) => {
+  let absolute = timeToMinutes(baseClock || '00:00');
+  while (absolute < minAbsolute) absolute += 1440;
+  return absolute;
+};
+const getShipTimeline = (item = {}) => {
+  const loadStartLabel = getShipLoadStartTimeValue(item) || '00:00';
+  const loadStart = timeToMinutes(loadStartLabel);
+  const loadEndLabel = getShipLoadEndTimeValue(item) || loadStartLabel;
+  const loadEnd = resolveShipAbsoluteMinutes(loadEndLabel, loadStart);
+  const boardLabel = getShipBoardTimeValue(item) || loadEndLabel || loadStartLabel;
+  const board = resolveShipAbsoluteMinutes(boardLabel, loadEnd);
+  const sailDuration = Math.max(30, Number(item?.sailDuration) || 240);
+  const disembark = board + sailDuration;
+  return {
+    loadStart,
+    loadEnd,
+    board,
+    disembark,
+    sailDuration,
+    loadStartLabel: minutesToTime(loadStart),
+    loadEndLabel: minutesToTime(loadEnd),
+    boardLabel: minutesToTime(board),
+    disembarkLabel: minutesToTime(disembark),
+  };
+};
 
 
 const KAKAO_API_KEY = 'b312628369f47e04894f338b7fc0b318';
@@ -1814,6 +2077,7 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
   const handleAdd = () => {
     const safeDraft = createPlaceEditorDraft(draft);
     onAdd({
+      name: safeDraft.name,
       types: safeDraft.types,
       menus: safeDraft.receipt.items,
       address: safeDraft.address,
@@ -1830,6 +2094,44 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
 
     onNotify?.('지도 링크 분석 중...');
     try {
+      const normalizedSettings = normalizeAiSmartFillConfig(aiSettings);
+      const bearerToken = await getCurrentUserBearerToken();
+      if (normalizedSettings.geminiApiKey || bearerToken) {
+        try {
+          const geminiParsed = await fetchGeminiPlaceInfoFromMapLink({ url: cleanUrl, geminiApiKey: normalizedSettings.geminiApiKey, bearerToken });
+          let finalParsed = geminiParsed;
+          if (aiEnabled) {
+            try {
+              const refined = await runGroqSmartFill({
+                mode: 'all',
+                text: [
+                  'Gemini extracted the following place information from a Naver Map URL.',
+                  `Source URL: ${cleanUrl}`,
+                  JSON.stringify(geminiParsed, null, 2),
+                ].join('\n\n'),
+                imageDataUrl: '',
+                aiSettings: normalizedSettings,
+                inputType: 'text',
+              });
+              if (refined?.parsed) finalParsed = refined.parsed;
+            } catch {
+              // Groq 후처리 실패 시 Gemini 결과 그대로 적용
+            }
+          }
+          if (finalParsed?.name) setNewPlaceName(String(finalParsed.name).trim());
+          if (finalParsed?.address) {
+            setDraft((current) => createPlaceEditorDraft({ ...current, address: String(finalParsed.address).trim() }));
+          }
+          if (finalParsed?.business) {
+            setDraft((current) => createPlaceEditorDraft({ ...current, business: normalizeBusiness({ ...current.business, ...finalParsed.business }) }));
+          }
+          onNotify?.(aiEnabled ? 'Gemini 링크 분석 후 AI 후처리까지 적용했습니다.' : 'Gemini가 지도 링크 정보를 분석했습니다.');
+          return;
+        } catch {
+          // Gemini 링크 분석 실패 시 기존 scrape fallback 유지
+        }
+      }
+
       const apiBase = (import.meta.env.VITE_SCRAPER_API_BASE || '').replace(/\/$/, '');
       const candidates = Array.from(new Set([
         apiBase ? `${apiBase}/api/scrape` : '',
@@ -1971,7 +2273,7 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
               });
               setDraft(nextDraft);
               setNewPlaceName(nextDraft.name);
-              onNotify?.(result?.source === 'ai'
+              onNotify?.(isAiSmartFillSource(result?.source)
                 ? `AI가 클립보드${result?.usedImage ? ' 이미지와 ' : ' '}내용을 분석하여 입력했습니다.`
                 : '클립보드 내용을 분석하여 입력했습니다.');
             } else {
@@ -1987,7 +2289,7 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
             const parsed = result?.parsed;
             if (parsed?.business) {
               setDraft((current) => createPlaceEditorDraft({ ...current, business: normalizeBusiness(parsed.business) }));
-              onNotify?.(result?.source === 'ai'
+              onNotify?.(isAiSmartFillSource(result?.source)
                 ? `AI가${result?.usedImage ? ' 이미지와 ' : ' '}영업 정보를 분석해 입력했습니다.`
                 : '영업 정보를 스마트 입력했습니다.');
             } else {
@@ -2009,7 +2311,7 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
                   items: parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })),
                 },
               }));
-              onNotify?.(result?.source === 'ai'
+              onNotify?.(isAiSmartFillSource(result?.source)
                 ? `AI가${result?.usedImage ? ' 이미지와 ' : ' '}메뉴를 분석해 입력했습니다.`
                 : '메뉴 정보를 스마트 입력했습니다.');
             } else {
@@ -2130,6 +2432,7 @@ const App = () => {
   const [patchNotice, setPatchNotice] = useState(null); // { timeText }
   const [currentPlanId, setCurrentPlanId] = useState('main');
   const [planList, setPlanList] = useState([]);
+  const emptyPlanRecoveryKeyRef = useRef('');
   const [showPlanManager, setShowPlanManager] = useState(false);
   const [showEntryChooser, setShowEntryChooser] = useState(false);
   const [newPlanRegion, setNewPlanRegion] = useState('');
@@ -2172,7 +2475,7 @@ const App = () => {
       return DEFAULT_AI_SMART_FILL_CONFIG;
     }
   });
-  const [serverAiKeyStatus, setServerAiKeyStatus] = useState({ hasStoredKey: false, updatedAt: null, loading: false });
+  const [serverAiKeyStatus, setServerAiKeyStatus] = useState({ hasStoredKey: false, hasStoredGroqKey: false, hasStoredGeminiKey: false, updatedAt: null, loading: false });
   const [tripRegion, setTripRegion] = useState(() => safeLocalStorageGet('trip_region_hint', '제주시'));
   const [tripStartDate, setTripStartDate] = useState(() => safeLocalStorageGet('trip_start_date', ''));
   const [tripEndDate, setTripEndDate] = useState(() => safeLocalStorageGet('trip_end_date', ''));
@@ -2438,8 +2741,8 @@ const App = () => {
   const [heroSummaryExpanded, setHeroSummaryExpanded] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
   const isMobileLayout = viewportWidth < 1100;
-  const leftExpandedWidth = isMobileLayout ? Math.min(340, Math.round(viewportWidth * 0.82)) : 260;
   const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 310;
+  const leftExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : rightExpandedWidth;
   const leftCollapsedWidth = isMobileLayout ? 0 : 44;
   const rightCollapsedWidth = isMobileLayout ? 0 : 44;
   const leftSidebarWidth = col1Collapsed ? leftCollapsedWidth : leftExpandedWidth;
@@ -2564,6 +2867,210 @@ const App = () => {
     share: { visibility: 'private', permission: 'viewer' },
     updatedAt: Date.now(),
   });
+
+  const createDefaultJejuPlanData = () => ({
+    days: [
+      {
+        day: 1,
+        plan: [
+          { id: 'd1_s1', time: '22:30', loadEndTime: '00:00', boardTime: '01:00', activity: '퀸 제누비아 2호', types: ['ship'], startPoint: '목포항', endPoint: '제주항', price: 310000, duration: 390, sailDuration: 240, state: 'confirmed', isTimeFixed: true, receipt: { address: '전남 목포시 해안로 148', shipDetails: { depart: '01:00', loading: '22:30 ~ 00:00' }, items: [{ name: '차량 선적', price: 160000, qty: 1, selected: true }, { name: '주니어룸 (3인)', price: 150000, qty: 1, selected: true }] } },
+          { id: 'd1_p1', time: '06:30', activity: '진아떡집', types: ['food', 'pickup'], price: 24000, duration: 15, state: 'confirmed', distance: 2, travelTimeOverride: '5분', receipt: { address: '제주 제주시 동문로4길 7-1', items: [{ name: '오메기떡 8알팩', price: 12000, qty: 2, selected: true }] }, memo: '오메기떡 픽업 필수!' },
+          { id: 'd1_c1', time: '06:50', activity: '카페 듀포레', types: ['cafe', 'view'], price: 38500, duration: 145, state: 'confirmed', distance: 8, receipt: { address: '제주시 서해안로 579', items: [{ name: '아메리카노', price: 6500, qty: 2, selected: true }, { name: '비행기 팡도르', price: 12500, qty: 1, selected: true }, { name: '크로와상', price: 13000, qty: 1, selected: true }] }, memo: '비행기 이착륙 뷰 맛집' },
+          { id: 'd1_f1', time: '09:30', activity: '말고기연구소', types: ['food', 'openrun'], price: 36000, duration: 60, state: 'confirmed', distance: 3, isTimeFixed: true, receipt: { address: '제주시 북성로 43', items: [{ name: '말육회 부각초밥', price: 12000, qty: 3, selected: true }] }, memo: '10:00 영업 시작' },
+          { id: 'd1_c2', time: '12:30', activity: '만다리노카페 & 승마', types: ['cafe', 'experience'], price: 26000, duration: 120, state: 'confirmed', distance: 18, receipt: { address: '조천읍 함와로 585', items: [{ name: '만다리노 라떼', price: 8000, qty: 2, selected: true }, { name: '승마 체험', price: 10000, qty: 1, selected: true }, { name: '귤 따기 체험', price: 10000, qty: 1, selected: false }] }, memo: '승마 및 귤 체험 가능' },
+          { id: 'd1_t1', time: '15:00', activity: '함덕잠수함', types: ['tour'], price: 79000, duration: 90, state: 'confirmed', distance: 10, receipt: { address: '조천읍 조함해안로 378', items: [{ name: '입장권', price: 28000, qty: 2, selected: true }] }, memo: '사전 예약 확인 필요' },
+          { id: 'd1_f2', time: '18:30', activity: '존맛식당', types: ['food'], price: 69000, duration: 90, state: 'confirmed', distance: 2, receipt: { address: '제주시 조천읍 신북로 493', items: [{ name: '문어철판볶음', price: 39000, qty: 1, selected: true }] }, memo: '저녁 웨이팅 있을 수 있음' },
+        ],
+      },
+      {
+        day: 2,
+        plan: [
+          { id: 'd2_c1', time: '09:00', activity: '델문도', types: ['cafe', 'view'], price: 42500, duration: 60, state: 'confirmed', distance: 2, receipt: { address: '함덕 조함해안로 519-10', items: [{ name: '문도샌드', price: 12000, qty: 1, selected: true }] } },
+          { id: 'd2_f1', time: '11:00', activity: '존맛식당', types: ['food'], price: 69000, duration: 90, state: 'confirmed', distance: 1, receipt: { address: '조천읍 신북로 493', items: [{ name: '재방문', price: 69000, qty: 1, selected: true }] } },
+          { id: 'd2_l1', time: '20:00', activity: '통나무파크', types: ['lodge'], price: 100000, duration: 600, state: 'confirmed', distance: 45, receipt: { address: '애월읍 도치돌길 303', items: [{ name: '숙박비', price: 100000, qty: 1, selected: true }] } },
+        ],
+      },
+      {
+        day: 3,
+        plan: [
+          { id: 'd3_t1', time: '09:00', activity: '도치돌알파카', types: ['tour', 'experience'], price: 21000, duration: 120, state: 'confirmed', distance: 0, travelTimeOverride: '30분', receipt: { address: '애월읍 도치돌길 303', items: [{ name: '입장권', price: 7000, qty: 3, selected: true }] } },
+          { id: 'd3_s1', time: '15:15', loadEndTime: '15:45', activity: '퀸 제누비아 2호', types: ['ship'], startPoint: '제주항', endPoint: '목포항', price: 260000, duration: 330, sailDuration: 240, state: 'confirmed', distance: 25, isTimeFixed: true, receipt: { address: '제주항', shipDetails: { depart: '16:45', loading: '14:45 ~ 15:45' }, items: [{ name: '차량 선적', price: 160000, qty: 1, selected: true }, { name: '이코노미 인원권', price: 100000, qty: 1, selected: true }] }, memo: '동승자 하차 후 차량 선적 (셔틀 이동) / 16:45 출항' },
+        ],
+      },
+    ],
+    places: [],
+    maxBudget: 1500000,
+    tripRegion: '제주',
+    tripStartDate: '2026-03-26',
+    tripEndDate: '2026-03-28',
+    planTitle: '제주 여행',
+    planCode: makePlanCode('제주', '2026-03-26'),
+    share: { visibility: 'private', permission: 'viewer' },
+    updatedAt: Date.now(),
+  });
+
+  const hasNoItineraryContent = (data = {}) => {
+    const days = Array.isArray(data?.days) ? data.days : [];
+    const places = Array.isArray(data?.places) ? data.places : [];
+    const totalItems = days.reduce((sum, day) => sum + ((day?.plan || []).filter(Boolean).length), 0);
+    return days.length > 0 && totalItems === 0 && places.length === 0;
+  };
+
+  const isJejuRecoveryContext = (data = {}) => {
+    const region = String(data?.tripRegion || tripRegion || '').trim();
+    const startDate = String(data?.tripStartDate || tripStartDate || '').trim();
+    const endDate = String(data?.tripEndDate || tripEndDate || '').trim();
+    const days = Array.isArray(data?.days) ? data.days : [];
+    const expectedDays = (startDate && endDate)
+      ? Math.max(1, Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1)
+      : days.length;
+    return /제주/.test(region) && (expectedDays === 3 || days.length === 3);
+  };
+
+  const isRecoverableEmptyJejuMainPlan = (data = {}) => (
+    currentPlanId === 'main'
+    && hasNoItineraryContent(data)
+    && isJejuRecoveryContext(data)
+  );
+
+  const buildRecoveredJejuPlanState = () => {
+    const recovered = createDefaultJejuPlanData();
+    const calculatedDays = recovered.days.map((day) => ({
+      ...day,
+      plan: recalculateSchedule(day.plan),
+    }));
+    return {
+      recovered,
+      nextState: {
+        days: calculatedDays,
+        places: recovered.places || [],
+        maxBudget: recovered.maxBudget || 1500000,
+        share: normalizeShare(recovered.share || {}),
+        planTitle: recovered.planTitle || `${recovered.tripRegion || '여행'} 일정`,
+        planCode: recovered.planCode || makePlanCode(recovered.tripRegion || '여행', recovered.tripStartDate || ''),
+      },
+      calculatedDays,
+    };
+  };
+
+  const ensureShipItemDefaults = (item, dayNumber = 1) => {
+    if (!item || !Array.isArray(item.types) || !item.types.includes('ship')) return item;
+    const isOutbound = Number(dayNumber || 1) === 1;
+    const defaultLoadStart = isOutbound ? '22:30' : '14:45';
+    item.activity = String(item.activity || '').trim() || '새 페리 일정';
+    item.startPoint = item.startPoint || (isOutbound ? '목포항' : '제주항');
+    item.endPoint = item.endPoint || (isOutbound ? '제주항' : '목포항');
+    item.time = String(item.time || defaultLoadStart).trim() || defaultLoadStart;
+    item.loadEndTime = String(item.loadEndTime || minutesToTime(timeToMinutes(item.time) + 90)).trim() || minutesToTime(timeToMinutes(item.time) + 90);
+    item.boardTime = String(getShipBoardTimeValue(item) || minutesToTime(timeToMinutes(item.loadEndTime) + 60)).trim() || minutesToTime(timeToMinutes(item.loadEndTime) + 60);
+    item.sailDuration = Math.max(30, Number(item.sailDuration) || 240);
+    item.isTimeFixed = true;
+    item.travelTimeOverride = item.travelTimeOverride || '15분';
+    item.bufferTimeOverride = item.bufferTimeOverride || '10분';
+    if (!item.receipt) item.receipt = { address: '', items: [] };
+    if (!Array.isArray(item.receipt.items)) item.receipt.items = [];
+    item.receipt.address = item.receipt.address || item.startPoint;
+    item.receipt.shipDetails = {
+      ...(item.receipt.shipDetails || {}),
+      depart: item.boardTime,
+      loading: `${item.time} ~ ${item.loadEndTime}`,
+    };
+    const shipTimeline = getShipTimeline(item);
+    item.time = shipTimeline.loadStartLabel;
+    item.loadEndTime = shipTimeline.loadEndLabel;
+    item.boardTime = shipTimeline.boardLabel;
+    item.sailDuration = shipTimeline.sailDuration;
+    item.duration = Math.max(0, shipTimeline.board - shipTimeline.loadStart) + shipTimeline.sailDuration;
+    if (item.receipt?.shipDetails) {
+      item.receipt.shipDetails.depart = shipTimeline.boardLabel;
+      item.receipt.shipDetails.loading = `${shipTimeline.loadStartLabel} ~ ${shipTimeline.loadEndLabel}`;
+    }
+    if (Array.isArray(item.receipt?.items)) {
+      item.price = item.receipt.items.reduce((sum, menu) => sum + (menu?.selected === false ? 0 : getMenuLineTotal(menu)), 0);
+    }
+    return item;
+  };
+
+  const normalizeLibraryPlace = (place, dayNumber = 1) => {
+    if (!place) return place;
+    place.types = normalizeTagOrder(Array.isArray(place.types) && place.types.length ? place.types : ['place']);
+    place.business = normalizeBusiness(place.business || {});
+    if (!place.receipt) place.receipt = { address: place.address || '', items: [] };
+    if (!Array.isArray(place.receipt.items)) place.receipt.items = [];
+    place.receipt.items = place.receipt.items
+      .filter(Boolean)
+      .map((item) => ({
+        ...item,
+        name: String(item?.name || '').trim(),
+        price: Number(item?.price) || 0,
+        qty: Math.max(1, Number(item?.qty) || 1),
+        selected: item?.selected !== false,
+      }));
+
+    if (place.types.includes('ship')) {
+      const shipItem = ensureShipItemDefaults({
+        ...place,
+        activity: place.name || place.activity || '',
+        receipt: deepClone(place.receipt),
+      }, dayNumber);
+      place.name = shipItem.activity;
+      place.time = shipItem.time;
+      place.loadEndTime = shipItem.loadEndTime;
+      place.boardTime = shipItem.boardTime;
+      place.sailDuration = shipItem.sailDuration;
+      place.duration = shipItem.duration;
+      place.startPoint = shipItem.startPoint;
+      place.endPoint = shipItem.endPoint;
+      place.endAddress = shipItem.endAddress || place.endAddress || '';
+      place.isTimeFixed = true;
+      place.travelTimeOverride = shipItem.travelTimeOverride;
+      place.bufferTimeOverride = shipItem.bufferTimeOverride;
+      place.receipt = shipItem.receipt;
+      place.address = shipItem.receipt?.address || place.address || shipItem.startPoint || '';
+      place.price = Number(shipItem.price) || 0;
+      return place;
+    }
+
+    place.name = String(place.name || place.activity || '').trim();
+    place.address = String(place.address || place.receipt.address || '').trim();
+    place.receipt.address = place.address || place.receipt.address || '';
+    place.price = place.receipt.items.reduce((sum, item) => sum + (item.selected === false ? 0 : getMenuLineTotal(item)), 0);
+    return place;
+  };
+
+  const createTimelineItem = ({ dayNumber = 1, baseTime = '09:00', types = ['place'], placeData = null, fallbackLabel = '장소' }) => {
+    const normalizedTypes = normalizeTagOrder(placeData?.types || types);
+    const receiptPayload = placeData?.receipt
+      ? deepClone(placeData.receipt)
+      : { address: placeData?.address || '', items: [] };
+    const priceFromReceipt = Array.isArray(receiptPayload.items)
+      ? receiptPayload.items.reduce((sum, menu) => sum + (menu?.selected === false ? 0 : getMenuLineTotal(menu)), 0)
+      : 0;
+    const isShip = normalizedTypes.includes('ship');
+    const nextItem = {
+      id: `item_${Date.now()}`,
+      time: placeData?.time || baseTime,
+      loadEndTime: placeData?.loadEndTime,
+      boardTime: placeData?.boardTime,
+      activity: placeData?.name || placeData?.activity || (isShip ? '새 페리 일정' : `새 ${fallbackLabel}`),
+      types: normalizedTypes,
+      revisit: typeof placeData?.revisit === 'boolean' ? placeData.revisit : false,
+      business: normalizeBusiness(placeData?.business || {}),
+      price: placeData ? (priceFromReceipt || placeData.price || 0) : 0,
+      duration: Number(placeData?.duration || (isShip ? 330 : 60)),
+      sailDuration: Number(placeData?.sailDuration || (isShip ? 240 : 0)) || undefined,
+      startPoint: placeData?.startPoint,
+      endPoint: placeData?.endPoint,
+      state: placeData?.state || 'unconfirmed',
+      travelTimeOverride: placeData?.travelTimeOverride || '15분',
+      bufferTimeOverride: placeData?.bufferTimeOverride || '10분',
+      receipt: receiptPayload,
+      memo: placeData?.memo || '',
+      isTimeFixed: isShip ? true : !!placeData?.isTimeFixed,
+    };
+    if (isShip) ensureShipItemDefaults(nextItem, dayNumber);
+    return nextItem;
+  };
 
   const refreshPlanList = useCallback(async (uid) => {
     if (!uid) return;
@@ -2934,6 +3441,28 @@ const App = () => {
   }, [tripStartDate, tripEndDate]);
 
   useEffect(() => {
+    if (loading || !user || user.isGuest || isSharedReadOnly) return;
+    const currentData = { ...itinerary, tripRegion, tripStartDate, tripEndDate };
+    if (!isRecoverableEmptyJejuMainPlan(currentData)) return;
+    const recoveryKey = `${user.uid}:${currentPlanId}:${tripStartDate}:${tripEndDate}`;
+    if (emptyPlanRecoveryKeyRef.current === recoveryKey) return;
+    emptyPlanRecoveryKeyRef.current = recoveryKey;
+
+    const { recovered, nextState, calculatedDays } = buildRecoveredJejuPlanState();
+    setItinerary(nextState);
+    setTripRegion(recovered.tripRegion || '제주');
+    setTripStartDate(recovered.tripStartDate || '');
+    setTripEndDate(recovered.tripEndDate || '');
+    setLastAction('비어 있던 제주 기본 일정 셸을 샘플 일정으로 복구했습니다.');
+
+    setDoc(doc(db, 'users', user.uid, 'itinerary', currentPlanId || 'main'), {
+      ...recovered,
+      days: calculatedDays,
+      updatedAt: Date.now(),
+    }).catch((e) => console.error('빈 일정 자동 복구 저장 실패:', e));
+  }, [loading, user, isSharedReadOnly, itinerary, tripRegion, tripStartDate, tripEndDate, currentPlanId]);
+
+  useEffect(() => {
     let aborted = false;
     const run = async () => {
       if (!basePlanRef?.address) {
@@ -3244,24 +3773,6 @@ const App = () => {
 
   const calculateFuelCost = (km) => Math.round((km / CAR_EFFICIENCY) * FUEL_PRICE_PER_LITER);
 
-  const timeToMinutes = (timeStr) => {
-    if (!timeStr || typeof timeStr !== 'string') return 0;
-    const parts = timeStr.split(':');
-    if (parts.length < 2) return 0;
-    const hrs = parseInt(parts[0], 10);
-    const mins = parseInt(parts[1], 10);
-    if (hrs === 24 && mins === 0) return 1440; // 24:00 = 자정 마감 (하루 끝)
-    return (isNaN(hrs) ? 0 : hrs) * 60 + (isNaN(mins) ? 0 : mins);
-  };
-
-  const minutesToTime = (minutes) => {
-    if (typeof minutes !== 'number' || isNaN(minutes)) return "00:00";
-    let h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    if (h >= 24) h = h % 24;
-    if (h < 0) h = 24 + (h % 24);
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-  };
   const getWeekdayForDayIndex = (dayIdx) => {
     if (!tripStartDate) return null;
     const date = new Date(tripStartDate);
@@ -3446,7 +3957,7 @@ const App = () => {
 
   const fetchServerAiKeyStatus = useCallback(async () => {
     if (!auth.currentUser || auth.currentUser.isGuest) {
-      setServerAiKeyStatus({ hasStoredKey: false, updatedAt: null, loading: false });
+      setServerAiKeyStatus({ hasStoredKey: false, hasStoredGroqKey: false, hasStoredGeminiKey: false, updatedAt: null, loading: false });
       return;
     }
     setServerAiKeyStatus((prev) => ({ ...prev, loading: true }));
@@ -3463,7 +3974,13 @@ const App = () => {
       if (!res.ok) {
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
-      setServerAiKeyStatus({ hasStoredKey: !!data?.hasStoredKey, updatedAt: data?.updatedAt || null, loading: false });
+      setServerAiKeyStatus({
+        hasStoredKey: !!data?.hasStoredKey,
+        hasStoredGroqKey: !!data?.hasStoredGroqKey,
+        hasStoredGeminiKey: !!data?.hasStoredGeminiKey,
+        updatedAt: data?.updatedAt || null,
+        loading: false,
+      });
     } catch (error) {
       setServerAiKeyStatus((prev) => ({ ...prev, loading: false }));
       showInfoToast(`AI 키 상태 확인 실패: ${error?.message || '알 수 없는 오류'}`);
@@ -3471,9 +3988,10 @@ const App = () => {
   }, []);
 
   const saveServerAiKey = useCallback(async () => {
-    const nextKey = String(aiSmartFillConfig.apiKey || '').trim();
-    if (!nextKey) {
-      showInfoToast('저장할 Groq API Key를 먼저 입력해 주세요.');
+    const nextGroqKey = String(aiSmartFillConfig.apiKey || '').trim();
+    const nextGeminiKey = String(aiSmartFillConfig.geminiApiKey || '').trim();
+    if (!nextGroqKey && !nextGeminiKey) {
+      showInfoToast('저장할 Groq 또는 Gemini API Key를 먼저 입력해 주세요.');
       return;
     }
     if (!auth.currentUser || auth.currentUser.isGuest) {
@@ -3489,20 +4007,30 @@ const App = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ apiKey: nextKey }),
+        body: JSON.stringify({ groqApiKey: nextGroqKey, geminiApiKey: nextGeminiKey }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
-      setAiSmartFillConfig((prev) => ({ ...prev, apiKey: '' }));
-      setServerAiKeyStatus({ hasStoredKey: true, updatedAt: null, loading: false });
-      showInfoToast('Groq API Key를 계정별 암호화 저장소에 저장했습니다.');
+      setAiSmartFillConfig((prev) => ({ ...prev, apiKey: '', geminiApiKey: '' }));
+      setServerAiKeyStatus((prev) => ({
+        ...prev,
+        hasStoredKey: true,
+        hasStoredGroqKey: prev.hasStoredGroqKey || !!nextGroqKey,
+        hasStoredGeminiKey: prev.hasStoredGeminiKey || !!nextGeminiKey,
+        updatedAt: null,
+        loading: false,
+      }));
+      showInfoToast([
+        nextGroqKey ? 'Groq API Key 저장 완료' : '',
+        nextGeminiKey ? 'Gemini API Key 저장 완료' : '',
+      ].filter(Boolean).join(' / '));
       void fetchServerAiKeyStatus();
     } catch (error) {
       showInfoToast(`AI 키 저장 실패: ${error?.message || '알 수 없는 오류'}`);
     }
-  }, [aiSmartFillConfig.apiKey, fetchServerAiKeyStatus]);
+  }, [aiSmartFillConfig.apiKey, aiSmartFillConfig.geminiApiKey, fetchServerAiKeyStatus]);
 
   const deleteServerAiKey = useCallback(async () => {
     if (!auth.currentUser || auth.currentUser.isGuest) {
@@ -3522,8 +4050,8 @@ const App = () => {
       if (!res.ok) {
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
-      setServerAiKeyStatus({ hasStoredKey: false, updatedAt: null, loading: false });
-      showInfoToast('저장된 Groq API Key를 삭제했습니다.');
+      setServerAiKeyStatus({ hasStoredKey: false, hasStoredGroqKey: false, hasStoredGeminiKey: false, updatedAt: null, loading: false });
+      showInfoToast('저장된 Groq / Gemini API Key를 삭제했습니다.');
     } catch (error) {
       showInfoToast(`저장된 AI 키 삭제 실패: ${error?.message || '알 수 없는 오류'}`);
     }
@@ -3649,8 +4177,9 @@ const App = () => {
 
       if (lastMainItemIndex === -1) {
         const waiting = currentItem.waitingTime || 0;
-        if (currentItem.types?.includes('ship') && currentItem.boardTime && currentItem.sailDuration != null) {
-          currentEndMinutes = timeToMinutes(currentItem.boardTime) + currentItem.sailDuration;
+        if (currentItem.types?.includes('ship')) {
+          const shipTimeline = getShipTimeline(currentItem);
+          currentEndMinutes = shipTimeline.disembark;
         } else {
           currentEndMinutes = timeToMinutes(currentItem.time) + waiting + (currentItem.duration || 0);
         }
@@ -3659,10 +4188,14 @@ const App = () => {
       }
 
       const travelMinutes = parseMinsLabel(currentItem.travelTimeOverride, DEFAULT_TRAVEL_MINS);
+      const displayedBufferMinutes = parseMinsLabel(currentItem.bufferTimeOverride, DEFAULT_BUFFER_MINS);
       const manualBufferLabel = currentItem._manualBufferTimeOverride
         || (!currentItem._isBufferCoordinated ? currentItem.bufferTimeOverride : null)
         || `${DEFAULT_BUFFER_MINS}분`;
       const baseBufferMinutes = parseMinsLabel(manualBufferLabel, DEFAULT_BUFFER_MINS);
+      const coordinatedExtraMinutes = currentItem._isBufferCoordinated
+        ? Math.max(0, displayedBufferMinutes - baseBufferMinutes)
+        : 0;
       currentItem._manualBufferTimeOverride = `${baseBufferMinutes}분`;
       currentItem.bufferTimeOverride = `${baseBufferMinutes}분`;
       currentItem._isBufferCoordinated = false;
@@ -3687,14 +4220,23 @@ const App = () => {
             currentItem._isBufferCoordinated = true;
             currentEndMinutes += diff; // 스케줄 동기화
           } else {
-            // 시간이 부족함 -> 기존처럼 이전 일정 소용시간 줄이거나(불가시 에러)
-            if (!prevItem.types?.includes('ship') && !prevItem.isTimeFixed && !prevItem.isDurationFixed) {
+            // 시간이 부족함 -> 1순위로 주황 보정 버퍼를 먼저 소진하고, 남으면 이전 일정 소요시간 축소
+            let remainingShortage = Math.abs(diff);
+            if (coordinatedExtraMinutes > 0) {
+              const consumed = Math.min(coordinatedExtraMinutes, remainingShortage);
+              const nextBuffer = displayedBufferMinutes - consumed;
+              currentItem.bufferTimeOverride = `${Math.max(baseBufferMinutes, nextBuffer)}분`;
+              currentItem._isBufferCoordinated = nextBuffer > baseBufferMinutes;
+              remainingShortage -= consumed;
+            }
+
+            if (remainingShortage > 0 && !prevItem.types?.includes('ship') && !prevItem.isTimeFixed && !prevItem.isDurationFixed) {
               const oldDuration = prevItem.duration || 0;
-              const newDuration = Math.max(30, oldDuration + diff);
+              const newDuration = Math.max(30, oldDuration - remainingShortage);
               prevItem.duration = newDuration;
               const actualDiff = newDuration - oldDuration;
               currentEndMinutes += actualDiff;
-            } else {
+            } else if (remainingShortage > 0) {
               currentItem._timingConflict = true;
               currentItem._timingConflictReason = '고정/잠금 조건으로 시간 보정 불가';
             }
@@ -3707,9 +4249,9 @@ const App = () => {
 
       const currentStartMinutes = timeToMinutes(currentItem.time);
       const currentWaiting = currentItem.waitingTime || 0;
-      if (currentItem.types?.includes('ship') && currentItem.boardTime && currentItem.sailDuration != null) {
-        // 페리: 하선 시간(출항 + 소요) 기준으로 다음 일정 계산
-        currentEndMinutes = timeToMinutes(currentItem.boardTime) + currentItem.sailDuration;
+      if (currentItem.types?.includes('ship')) {
+        const shipTimeline = getShipTimeline(currentItem);
+        currentEndMinutes = shipTimeline.disembark;
       } else {
         currentEndMinutes = currentStartMinutes + currentWaiting + (currentItem.duration || 0);
       }
@@ -3747,9 +4289,27 @@ const App = () => {
       const dayPlan = nextData.days[dayIdx].plan;
       const item = dayPlan[pIdx];
 
-      const currentMinutes = timeToMinutes(item.time);
-      item.time = minutesToTime(currentMinutes + delta);
-      item.isTimeFixed = true;
+      if (item.types?.includes('ship')) {
+        const shipTimeline = getShipTimeline(item);
+        const nextLoadStart = shipTimeline.loadStart + delta;
+        const loadGap = Math.max(0, shipTimeline.loadEnd - shipTimeline.loadStart);
+        const boardAbsolute = shipTimeline.board;
+        const nextLoadEnd = Math.min(boardAbsolute, Math.max(nextLoadStart, nextLoadStart + loadGap));
+        item.time = minutesToTime(nextLoadStart);
+        item.loadEndTime = minutesToTime(nextLoadEnd);
+        item.boardTime = minutesToTime(boardAbsolute);
+        item.sailDuration = shipTimeline.sailDuration;
+        item.duration = Math.max(0, boardAbsolute - nextLoadStart) + item.sailDuration;
+        item.isTimeFixed = true;
+        if (item.receipt?.shipDetails) {
+          item.receipt.shipDetails.depart = item.boardTime;
+          item.receipt.shipDetails.loading = `${item.time} ~ ${item.loadEndTime}`;
+        }
+      } else {
+        const currentMinutes = timeToMinutes(item.time);
+        item.time = minutesToTime(currentMinutes + delta);
+        item.isTimeFixed = true;
+      }
 
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       recalculateLodgeDurations(nextData.days);
@@ -4144,6 +4704,10 @@ const App = () => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const item = nextData.days[dayIdx].plan[pIdx];
       item.types = normalizeTagOrder(tags);
+      if (item.types.includes('ship')) {
+        ensureShipItemDefaults(item, nextData.days[dayIdx]?.day || dayIdx + 1);
+      }
+      nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
       return nextData;
     });
     setLastAction("태그를 업데이트했습니다.");
@@ -4242,12 +4806,33 @@ const App = () => {
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const item = nextData.days[dayIdx].plan[pIdx];
-      const loadMins = timeToMinutes(item.time || '00:00');
-      const currentBoard = timeToMinutes(item.boardTime || minutesToTime(loadMins + 60));
-      const newBoard = Math.max(loadMins, currentBoard + deltaMinutes);
+      const shipTimeline = getShipTimeline(item);
+      const newBoard = Math.max(shipTimeline.loadEnd, shipTimeline.board + deltaMinutes);
       item.boardTime = minutesToTime(newBoard);
-      const sailDur = item.sailDuration ?? 240;
-      item.duration = (newBoard - loadMins) + sailDur;
+      item.sailDuration = shipTimeline.sailDuration;
+      item.duration = Math.max(0, newBoard - shipTimeline.loadStart) + item.sailDuration;
+      item.isTimeFixed = true;
+      if (item.receipt?.shipDetails) {
+        item.receipt.shipDetails.depart = item.boardTime;
+        item.receipt.shipDetails.loading = `${item.time || '00:00'} ~ ${item.loadEndTime || item.boardTime}`;
+      }
+      nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
+      return nextData;
+    });
+  };
+
+  const updateFerryLoadEndTime = (dayIdx, pIdx, deltaMinutes) => {
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const item = nextData.days[dayIdx].plan[pIdx];
+      const shipTimeline = getShipTimeline(item);
+      const newLoadEnd = Math.min(shipTimeline.board, Math.max(shipTimeline.loadStart, shipTimeline.loadEnd + deltaMinutes));
+      item.loadEndTime = minutesToTime(newLoadEnd);
+      item.duration = Math.max(0, shipTimeline.board - shipTimeline.loadStart) + shipTimeline.sailDuration;
+      item.isTimeFixed = true;
+      if (item.receipt?.shipDetails) {
+        item.receipt.shipDetails.loading = `${item.time || '00:00'} ~ ${item.loadEndTime}`;
+      }
       nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
       return nextData;
     });
@@ -4257,11 +4842,10 @@ const App = () => {
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const item = nextData.days[dayIdx].plan[pIdx];
-      const loadMins = timeToMinutes(item.time || '00:00');
-      const boardMins = timeToMinutes(item.boardTime || minutesToTime(loadMins + 60));
+      const shipTimeline = getShipTimeline(item);
       const newSail = Math.max(30, (item.sailDuration ?? 240) + deltaMinutes);
       item.sailDuration = newSail;
-      item.duration = (boardMins - loadMins) + newSail;
+      item.duration = Math.max(0, shipTimeline.board - shipTimeline.loadStart) + newSail;
       nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
       return nextData;
     });
@@ -4273,8 +4857,9 @@ const App = () => {
     let h, m;
     if (digits.length <= 2) { h = parseInt(digits); m = 0; }
     else { h = parseInt(digits.slice(0, digits.length - 2)); m = parseInt(digits.slice(-2)); }
-    h = Math.min(23, Math.max(0, h));
-    m = Math.min(59, Math.max(0, m));
+    h = Math.max(0, h);
+    m = Math.max(0, m);
+    if (h > 24 || m > 59 || (h === 24 && m > 0)) return null;
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   };
 
@@ -4284,10 +4869,9 @@ const App = () => {
       setItinerary(prev => {
         const nextData = JSON.parse(JSON.stringify(prev));
         const item = nextData.days[dayIdx].plan[pIdx];
-        const loadMins = timeToMinutes(item.time || '00:00');
-        const boardMins = timeToMinutes(item.boardTime || minutesToTime(loadMins + 60));
+        const shipTimeline = getShipTimeline(item);
         item.sailDuration = mins;
-        item.duration = Math.max(0, boardMins - loadMins) + mins;
+        item.duration = Math.max(0, shipTimeline.board - shipTimeline.loadStart) + mins;
         nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
         return nextData;
       });
@@ -4299,20 +4883,32 @@ const App = () => {
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const item = nextData.days[dayIdx].plan[pIdx];
+      const shipTimeline = getShipTimeline(item);
       if (field === 'load') {
         item.time = time;
         item.isTimeFixed = true;
+        const nextLoadStart = resolveShipAbsoluteMinutes(time, 0);
+        const nextLoadEnd = Math.min(shipTimeline.board, Math.max(nextLoadStart, shipTimeline.loadEnd));
+        item.loadEndTime = minutesToTime(nextLoadEnd);
       } else if (field === 'depart' || field === 'loadEnd') {
-        item.boardTime = time;
-        const loadMins = timeToMinutes(item.time || '00:00');
-        const boardMins = timeToMinutes(time);
-        item.duration = Math.max(0, boardMins - loadMins) + (item.sailDuration ?? 240);
+        if (field === 'loadEnd') {
+          const nextLoadEnd = resolveShipAbsoluteMinutes(time, shipTimeline.loadStart);
+          const clampedLoadEnd = Math.min(shipTimeline.board, Math.max(shipTimeline.loadStart, nextLoadEnd));
+          item.loadEndTime = minutesToTime(clampedLoadEnd);
+        } else {
+          const nextBoard = resolveShipAbsoluteMinutes(time, shipTimeline.loadEnd);
+          item.boardTime = minutesToTime(nextBoard);
+        }
+        item.isTimeFixed = true;
       } else if (field === 'disembark') {
-        const boardMins = timeToMinutes(item.boardTime || minutesToTime(timeToMinutes(item.time || '00:00') + 60));
-        const disMins = timeToMinutes(time);
-        item.sailDuration = Math.max(30, disMins - boardMins);
-        const loadMins = timeToMinutes(item.time || '00:00');
-        item.duration = Math.max(0, boardMins - loadMins) + item.sailDuration;
+        const disMins = resolveShipAbsoluteMinutes(time, shipTimeline.board);
+        item.sailDuration = Math.max(30, disMins - shipTimeline.board);
+      }
+      const refreshedTimeline = getShipTimeline({ ...item, sailDuration: item.sailDuration });
+      item.duration = Math.max(0, refreshedTimeline.board - refreshedTimeline.loadStart) + refreshedTimeline.sailDuration;
+      if (item.receipt?.shipDetails) {
+        item.receipt.shipDetails.depart = item.boardTime || item.receipt.shipDetails.depart;
+        item.receipt.shipDetails.loading = `${item.time || '00:00'} ~ ${item.loadEndTime || item.boardTime || '00:00'}`;
       }
       nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
       return nextData;
@@ -4624,7 +5220,7 @@ const App = () => {
       case 'tour': return <div key={type} className={`${style} text-purple-600 bg-purple-50 border-purple-100`}><Camera size={10} /> 관광</div>;
       case 'lodge': return <div key={type} className={`${style} text-indigo-600 bg-indigo-50 border-indigo-100`}><Bed size={10} /> 숙소</div>;
       case 'rest': return <div key={type} className={`${style} text-cyan-600 bg-cyan-50 border-cyan-100`}><Hourglass size={10} /> 휴식</div>;
-      case 'ship': return <div key={type} className={`${style} text-blue-600 bg-blue-50 border-blue-100`}><Anchor size={10} /> 선박</div>;
+      case 'ship': return <div key={type} className={`${style} text-blue-600 bg-blue-50 border-blue-100`}><Anchor size={10} /> 페리</div>;
       case 'openrun': return <div key={type} className={`${style} text-red-500 bg-red-50 border-red-100`}><Timer size={10} /> 오픈런</div>;
       case 'view': return <div key={type} className={`${style} text-sky-600 bg-sky-50 border-sky-100`}><Eye size={10} /> 뷰맛집</div>;
       case 'experience': return <div key={type} className={`${style} text-emerald-600 bg-emerald-50 border-emerald-100`}><Star size={10} /> 체험</div>;
@@ -4638,8 +5234,9 @@ const App = () => {
   };
 
   const addPlace = (formData) => {
-    if (!newPlaceName.trim()) return;
-    const { types = ['place'], menus = [], address = '', memo = '', revisit = false, business = EMPTY_BUSINESS } = formData || {};
+    const { name = '', types = ['place'], menus = [], address = '', memo = '', revisit = false, business = EMPTY_BUSINESS } = formData || {};
+    const resolvedName = String(name || newPlaceName || '').trim();
+    if (!resolvedName) return;
     const normalizedMenus = (Array.isArray(menus) ? menus : []).filter(Boolean).map((menu) => ({
       ...menu,
       name: String(menu?.name || '').trim(),
@@ -4647,24 +5244,24 @@ const App = () => {
       qty: Math.max(1, Number(menu?.qty) || 1),
       selected: menu?.selected !== false,
     }));
+    const nextPlace = normalizeLibraryPlace({
+      id: `place_${Date.now()}`,
+      name: resolvedName,
+      types: normalizeTagOrder(types),
+      revisit: !!revisit,
+      business: normalizeBusiness(business),
+      address: address.trim(),
+      memo: memo.trim(),
+      receipt: { address: address.trim(), items: normalizedMenus },
+    });
     setItinerary(prev => ({
       ...prev,
-      places: [...(prev.places || []), {
-        id: `place_${Date.now()}`,
-        name: newPlaceName.trim(),
-        types: normalizeTagOrder(types),
-        revisit: !!revisit,
-        business: normalizeBusiness(business),
-        address: address.trim(),
-        price: normalizedMenus.reduce((sum, m) => sum + (m.selected === false ? 0 : getMenuLineTotal(m)), 0),
-        memo: memo.trim(),
-        receipt: { address: address.trim(), items: normalizedMenus }
-      }]
+      places: [...(prev.places || []), nextPlace]
     }));
     setNewPlaceName('');
     setNewPlaceTypes(['food']);
     setIsAddingPlace(false);
-    setLastAction(`'${newPlaceName.trim()}'이(가) 장소 목록에 추가되었습니다.`);
+    setLastAction(`'${resolvedName}'이(가) 장소 목록에 추가되었습니다.`);
   };
 
   const removePlace = (placeId) => {
@@ -4679,7 +5276,10 @@ const App = () => {
   const updatePlace = (placeId, data) => {
     setItinerary(prev => ({
       ...prev,
-      places: (prev.places || []).map(p => p.id === placeId ? { ...p, ...data } : p)
+      places: (prev.places || []).map((p) => {
+        if (p.id !== placeId) return p;
+        return normalizeLibraryPlace({ ...p, ...data });
+      })
     }));
   };
 
@@ -4689,7 +5289,7 @@ const App = () => {
     if (!Array.isArray(receipt.items)) receipt.items = [];
     const resolvedAddress = item.receipt?.address || item.address || getRouteAddress(item, 'to') || '';
     receipt.address = receipt.address || resolvedAddress;
-    return {
+    return normalizeLibraryPlace({
       id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: item.activity || item.name || '장소',
       types: normalizeTagOrder(item.types || ['place']),
@@ -4699,7 +5299,18 @@ const App = () => {
       price: Number(item.price) || 0,
       memo: item.memo || '',
       receipt,
-    };
+      startPoint: item.startPoint,
+      endPoint: item.endPoint,
+      endAddress: item.endAddress,
+      time: item.time,
+      loadEndTime: item.loadEndTime,
+      boardTime: item.boardTime,
+      sailDuration: item.sailDuration,
+      duration: item.duration,
+      isTimeFixed: item.isTimeFixed,
+      travelTimeOverride: item.travelTimeOverride,
+      bufferTimeOverride: item.bufferTimeOverride,
+    });
   };
 
   const copyTimelineItemToLibrary = (dayIdx, pIdx) => {
@@ -4797,27 +5408,13 @@ const App = () => {
       if (!Array.isArray(nextData.days[dayIdx].plan)) {
         nextData.days[dayIdx].plan = [];
       }
-      const receiptPayload = placeData?.receipt
-        ? deepClone(placeData.receipt)
-        : { address: placeData?.address || '', items: [] };
-      const priceFromReceipt = Array.isArray(receiptPayload.items)
-        ? receiptPayload.items.reduce((sum, m) => sum + (m.selected === false ? 0 : getMenuLineTotal(m)), 0)
-        : 0;
-      nextData.days[dayIdx].plan.push({
-        id: `item_${Date.now()}`,
-        time: '09:00',
-        activity: placeData?.name || '새 일정',
+      nextData.days[dayIdx].plan.push(createTimelineItem({
+        dayNumber: nextData.days[dayIdx]?.day || dayIdx + 1,
+        baseTime: '09:00',
         types: placeData?.types || ['place'],
-        revisit: typeof placeData?.revisit === 'boolean' ? placeData.revisit : false,
-        business: normalizeBusiness(placeData?.business || {}),
-        price: placeData ? (priceFromReceipt || placeData.price || 0) : 0,
-        duration: Number(placeData?.duration || 60),
-        state: 'unconfirmed',
-        travelTimeOverride: '15분',
-        bufferTimeOverride: '10분',
-        receipt: receiptPayload,
-        memo: placeData?.memo || ''
-      });
+        placeData,
+        fallbackLabel: '일정',
+      }));
       nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
       return nextData;
     });
@@ -4837,28 +5434,13 @@ const App = () => {
       const newTime = minutesToTime(prevEnd + travelMins + bufferMins);
 
       const label = PLACE_TYPES.find(t => t.types[0] === (placeData?.types?.[0] || types[0]))?.label || '장소';
-      const receiptPayload = placeData?.receipt
-        ? deepClone(placeData.receipt)
-        : { address: placeData?.address || '주소 미정', items: [] };
-      const priceFromReceipt = Array.isArray(receiptPayload.items)
-        ? receiptPayload.items.reduce((sum, m) => sum + (m.selected === false ? 0 : getMenuLineTotal(m)), 0)
-        : 0;
-
-      dayPlan.splice(insertIndex + 1, 0, {
-        id: `item_${Date.now()}`,
-        time: newTime,
-        activity: placeData?.name || `새 ${label}`,
+      dayPlan.splice(insertIndex + 1, 0, createTimelineItem({
+        dayNumber: nextData.days[dayIdx]?.day || dayIdx + 1,
+        baseTime: newTime,
         types: placeData?.types || types,
-        revisit: typeof placeData?.revisit === 'boolean' ? placeData.revisit : false,
-        business: normalizeBusiness(placeData?.business || {}),
-        price: placeData ? (priceFromReceipt || placeData.price || 0) : 0,
-        duration: 60,
-        state: 'unconfirmed',
-        travelTimeOverride: '15분',
-        bufferTimeOverride: '10분',
-        receipt: receiptPayload,
-        memo: placeData?.memo || ''
-      });
+        placeData,
+        fallbackLabel: label,
+      }));
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
     });
@@ -5238,6 +5820,17 @@ const App = () => {
         }
 
         if (finalData && Array.isArray(finalData.days)) {
+          const recoveryProbe = {
+            ...finalData,
+            tripRegion: finalData.tripRegion || tripRegion,
+            tripStartDate: finalData.tripStartDate || tripStartDate,
+            tripEndDate: finalData.tripEndDate || tripEndDate,
+          };
+          if (targetPlanId === 'main' && hasNoItineraryContent(recoveryProbe) && isJejuRecoveryContext(recoveryProbe)) {
+            finalData = createDefaultJejuPlanData();
+            await setDoc(doc(db, 'users', user.uid, 'itinerary', targetPlanId), finalData);
+            setLastAction('비어 있던 제주 기본 일정 셸을 샘플 일정으로 복구했습니다.');
+          }
           const patchedDays = finalData.days.map(d => ({
             ...d,
             plan: (d.plan || []).map(p => {
@@ -5247,6 +5840,17 @@ const App = () => {
                 const defaultEnd = d.day === 1 ? '제주항' : '목포항';
                 updatedP.startPoint = updatedP.startPoint || defaultStart;
                 updatedP.endPoint = updatedP.endPoint || defaultEnd;
+                const shipTimeline = getShipTimeline(updatedP);
+                updatedP.time = shipTimeline.loadStartLabel;
+                updatedP.loadEndTime = shipTimeline.loadEndLabel;
+                updatedP.boardTime = shipTimeline.boardLabel;
+                updatedP.sailDuration = shipTimeline.sailDuration;
+                updatedP.duration = Math.max(0, shipTimeline.board - shipTimeline.loadStart) + shipTimeline.sailDuration;
+                updatedP.isTimeFixed = true;
+                if (updatedP.receipt?.shipDetails) {
+                  updatedP.receipt.shipDetails.depart = shipTimeline.boardLabel;
+                  updatedP.receipt.shipDetails.loading = `${shipTimeline.loadStartLabel} ~ ${shipTimeline.loadEndLabel}`;
+                }
               }
               if (updatedP.receipt?.items) {
                 updatedP.price = updatedP.receipt.items.reduce((sum, m) => sum + (m.selected ? getMenuLineTotal(m) : 0), 0);
@@ -5273,55 +5877,7 @@ const App = () => {
       } catch (e) { console.error('Firestore 로드/마이그레이션 실패:', e); }
 
       // 초기 데이터
-      const initialData = {
-        days: [
-          {
-            day: 1,
-            plan: [
-              { id: 'd1_s1', time: '01:00', activity: '퀸 제누비아 2호', types: ['ship'], startPoint: '목포항', endPoint: '제주항', price: 310000, duration: 300, state: 'confirmed', isTimeFixed: true, receipt: { address: '전남 목포시 해안로 148', shipDetails: { depart: '01:00', loading: '22:30 ~ 00:00' }, items: [{ name: '차량 선적', price: 160000, qty: 1, selected: true }, { name: '주니어룸 (3인)', price: 150000, qty: 1, selected: true }] } },
-              { id: 'd1_p1', time: '06:30', activity: '진아떡집', types: ['food', 'pickup'], price: 24000, duration: 15, state: 'confirmed', distance: 2, travelTimeOverride: '5분', receipt: { address: '제주 제주시 동문로4길 7-1', items: [{ name: '오메기떡 8알팩', price: 12000, qty: 2, selected: true }] }, memo: '오메기떡 픽업 필수!' },
-              { id: 'd1_c1', time: '06:50', activity: '카페 듀포레', types: ['cafe', 'view'], price: 38500, duration: 145, state: 'confirmed', distance: 8, receipt: { address: '제주시 서해안로 579', items: [{ name: '아메리카노', price: 6500, qty: 2, selected: true }, { name: '비행기 팡도르', price: 12500, qty: 1, selected: true }, { name: '크로와상', price: 13000, qty: 1, selected: true }] }, memo: '비행기 이착륙 뷰 맛집' },
-              { id: 'd1_f1', time: '09:30', activity: '말고기연구소', types: ['food', 'openrun'], price: 36000, duration: 60, state: 'confirmed', distance: 3, isTimeFixed: true, receipt: { address: '제주시 북성로 43', items: [{ name: '말육회 부각초밥', price: 12000, qty: 3, selected: true }] }, memo: '10:00 영업 시작' },
-              { id: 'd1_c2', time: '12:30', activity: '만다리노카페 & 승마', types: ['cafe', 'experience'], price: 26000, duration: 120, state: 'confirmed', distance: 18, receipt: { address: '조천읍 함와로 585', items: [{ name: '만다리노 라떼', price: 8000, qty: 2, selected: true }, { name: '승마 체험', price: 10000, qty: 1, selected: true }, { name: '귤 따기 체험', price: 10000, qty: 1, selected: false }] }, memo: '승마 및 귤 체험 가능' },
-              { id: 'd1_t1', time: '15:00', activity: '함덕잠수함', types: ['tour'], price: 79000, duration: 90, state: 'confirmed', distance: 10, receipt: { address: '조천읍 조함해안로 378', items: [{ name: '입장권', price: 28000, qty: 2, selected: true }] }, memo: '사전 예약 확인 필요' },
-              { id: 'd1_f2', time: '18:30', activity: '존맛식당', types: ['food'], price: 69000, duration: 90, state: 'confirmed', distance: 2, receipt: { address: '제주시 조천읍 신북로 493', items: [{ name: '문어철판볶음', price: 39000, qty: 1, selected: true }] }, memo: '저녁 웨이팅 있을 수 있음' }
-            ]
-          },
-          {
-            day: 2,
-            plan: [
-              { id: 'd2_c1', time: '09:00', activity: '델문도', types: ['cafe', 'view'], price: 42500, duration: 60, state: 'confirmed', distance: 2, receipt: { address: '함덕 조함해안로 519-10', items: [{ name: '문도샌드', price: 12000, qty: 1, selected: true }] } },
-              { id: 'd2_f1', time: '11:00', activity: '존맛식당', types: ['food'], price: 69000, duration: 90, state: 'confirmed', distance: 1, receipt: { address: '조천읍 신북로 493', items: [{ name: '재방문', price: 69000, qty: 1, selected: true }] } },
-              { id: 'd2_l1', time: '20:00', activity: '통나무파크', types: ['lodge'], price: 100000, duration: 600, state: 'confirmed', distance: 45, receipt: { address: '애월읍 도치돌길 303', items: [{ name: '숙박비', price: 100000, qty: 1, selected: true }] } }
-            ]
-          },
-          {
-            day: 3,
-            plan: [
-              { id: 'd3_t1', time: '09:00', activity: '도치돌알파카', types: ['tour', 'experience'], price: 21000, duration: 120, state: 'confirmed', distance: 0, travelTimeOverride: '30분', receipt: { address: '애월읍 도치돌길 303', items: [{ name: '입장권', price: 7000, qty: 3, selected: true }] } },
-              {
-                id: 'd3_s1',
-                time: '15:15',
-                activity: '퀸 제누비아 2호',
-                types: ['ship'],
-                startPoint: '제주항',
-                endPoint: '목포항',
-                price: 260000,
-                duration: 300,
-                state: 'confirmed',
-                distance: 25,
-                isTimeFixed: true,
-                receipt: {
-                  address: '제주항',
-                  shipDetails: { depart: '16:45', loading: '14:45 ~ 15:45' },
-                  items: [{ name: '차량 선적', price: 160000, qty: 1, selected: true }, { name: '이코노미 인원권', price: 100000, qty: 1, selected: true }]
-                },
-                memo: '동승자 하차 후 차량 선적 (셔틀 이동) / 16:45 출항'
-              }
-            ]
-          }
-        ]
-      };
+      const initialData = createDefaultJejuPlanData();
 
       // 초기 로딩 시 한 번 전체 계산
       const calculatedDays = initialData.days.map(day => ({
@@ -5329,7 +5885,17 @@ const App = () => {
         plan: recalculateSchedule(day.plan)
       }));
 
-      setItinerary({ days: calculatedDays, places: [] });
+      setItinerary({
+        days: calculatedDays,
+        places: initialData.places || [],
+        maxBudget: initialData.maxBudget || 1500000,
+        share: normalizeShare(initialData.share || {}),
+        planTitle: initialData.planTitle || `${initialData.tripRegion || '여행'} 일정`,
+        planCode: initialData.planCode || makePlanCode(initialData.tripRegion || '여행', initialData.tripStartDate || ''),
+      });
+      setTripRegion(initialData.tripRegion || '제주');
+      setTripStartDate(initialData.tripStartDate || '');
+      setTripEndDate(initialData.tripEndDate || '');
       if (!user.isGuest) await refreshPlanList(user.uid);
       setLoading(false);
     })();
@@ -5596,7 +6162,7 @@ const App = () => {
                       business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
                       receipt: { ...(current.receipt || {}), items: parsed.menus.length ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) : (current.receipt?.items || []) },
                     }));
-                    showInfoToast(result?.source === 'ai' ? 'Groq 스마트 전체 붙여넣기 완료' : '스마트 전체 붙여넣기 완료');
+                    showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 스마트 전체 붙여넣기 완료' : '스마트 전체 붙여넣기 완료');
                   } else {
                     showInfoToast(useAiSmartFill ? 'Groq가 붙여넣을 내용을 찾지 못했습니다.' : '붙여넣을 내용을 찾지 못했습니다.');
                   }
@@ -5610,7 +6176,7 @@ const App = () => {
                   const parsed = result?.parsed;
                   if (parsed?.business) {
                     setEditPlaceDraft((current) => createPlaceEditorDraft({ ...current, business: normalizeBusiness(parsed.business) }));
-                    showInfoToast(result?.source === 'ai' ? 'Groq 영업정보 스마트 입력 완료' : '영업 정보만 스마트 입력 완료');
+                    showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 영업정보 스마트 입력 완료' : '영업 정보만 스마트 입력 완료');
                   } else {
                     showInfoToast(useAiSmartFill ? 'Groq가 영업 정보를 찾지 못했습니다.' : '영업 정보를 찾지 못했습니다.');
                   }
@@ -5627,7 +6193,7 @@ const App = () => {
                       ...current,
                       receipt: { ...(current.receipt || {}), items: parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) },
                     }));
-                    showInfoToast(result?.source === 'ai' ? 'Groq 메뉴 스마트 입력 완료' : '메뉴 정보만 스마트 입력 완료');
+                    showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 메뉴 스마트 입력 완료' : '메뉴 정보만 스마트 입력 완료');
                   } else {
                     showInfoToast(useAiSmartFill ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.');
                   }
@@ -6244,6 +6810,12 @@ const App = () => {
                             setEditingPlaceId(place.id);
                             setEditPlaceDraft(createPlaceEditorDraft(place, { business: bizDefaults, showBusinessEditor: true }));
                           }}
+                          onBusinessQuickEdit={(fieldKey) => {
+                            const hasBiz = place.business?.open || place.business?.close || place.business?.breakStart || place.business?.breakEnd || place.business?.lastOrder || place.business?.entryClose || place.business?.closedDays?.length;
+                            const bizDefaults = hasBiz ? normalizeBusiness(place.business || {}) : { ...DEFAULT_BUSINESS };
+                            setEditingPlaceId(place.id);
+                            setEditPlaceDraft(createPlaceEditorDraft(place, { business: bizDefaults, showBusinessEditor: true, businessFocusField: fieldKey }));
+                          }}
                           onToggleExpand={(e) => { e.stopPropagation(); setExpandedPlaceId(prev => (prev === place.id ? null : place.id)); }}
                           onDelete={(e) => { e.stopPropagation(); removePlace(place.id); }}
                           getMenuQtyValue={getMenuQty}
@@ -6686,15 +7258,26 @@ const App = () => {
                       type="password"
                       value={aiSmartFillConfig.apiKey}
                       onChange={(e) => setAiSmartFillConfig((prev) => normalizeAiSmartFillConfig({ ...prev, apiKey: e.target.value }))}
-                      placeholder={serverAiKeyStatus.hasStoredKey ? '새 키로 교체하려면 다시 입력' : '암호화 저장할 API 키 입력'}
+                      placeholder={serverAiKeyStatus.hasStoredGroqKey ? '새 Groq 키로 교체하려면 다시 입력' : '암호화 저장할 Groq API 키 입력'}
                       className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
                     />
+                  </label>
+                  <label className="block">
+                    <span className="text-[10px] font-black text-slate-500">Gemini API Key (네이버 링크 전용)</span>
+                    <input
+                      type="password"
+                      value={aiSmartFillConfig.geminiApiKey}
+                      onChange={(e) => setAiSmartFillConfig((prev) => normalizeAiSmartFillConfig({ ...prev, geminiApiKey: e.target.value }))}
+                      placeholder={serverAiKeyStatus.hasStoredGeminiKey ? '새 Gemini 키로 교체하려면 다시 입력' : '암호화 저장할 Gemini API 키 입력'}
+                      className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                    />
+                    <p className="mt-1 text-[9px] font-bold text-slate-400">Gemini는 링크 기반 정보 추출 전용이며, 텍스트/이미지 자동채우기는 계속 Groq를 사용합니다.</p>
                   </label>
                   <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-bold text-slate-500 leading-relaxed">
                     {auth.currentUser && !auth.currentUser.isGuest ? (
                       <>
                         <div className="flex items-center justify-between gap-2">
-                          <span>{serverAiKeyStatus.loading ? '저장 상태 확인 중...' : serverAiKeyStatus.hasStoredKey ? '계정별 암호화 키 저장됨' : '계정별 저장된 키 없음'}</span>
+                          <span>{serverAiKeyStatus.loading ? '저장 상태 확인 중...' : `Groq ${serverAiKeyStatus.hasStoredGroqKey ? '저장됨' : '없음'} · Gemini ${serverAiKeyStatus.hasStoredGeminiKey ? '저장됨' : '없음'}`}</span>
                           <button
                             type="button"
                             onClick={() => { void fetchServerAiKeyStatus(); }}
@@ -6712,7 +7295,7 @@ const App = () => {
                     )}
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-500 leading-relaxed">
-                    로그인 상태에서는 서버가 키를 암호화해 Firestore에 저장하고, 실제 Groq 호출도 서버 복호화 경로를 사용합니다. 이 브라우저 localStorage에는 평문 키를 저장하지 않습니다.
+                    로그인 상태에서는 서버가 Groq/Gemini 키를 암호화해 Firestore에 저장합니다. Groq 분석과 Gemini 링크 분석은 저장된 서버 키를 재사용할 수 있고, 이 브라우저 localStorage에는 평문 키를 저장하지 않습니다.
                   </div>
                 </div>
                 <div className="mt-4 flex items-center justify-end gap-2">
@@ -6732,7 +7315,7 @@ const App = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAiSmartFillConfig((prev) => ({ ...DEFAULT_AI_SMART_FILL_CONFIG, apiKey: '' }))}
+                    onClick={() => setAiSmartFillConfig((prev) => ({ ...DEFAULT_AI_SMART_FILL_CONFIG, apiKey: '', geminiApiKey: '' }))}
                     className="px-3 py-2 rounded-xl border border-slate-200 text-[11px] font-black text-slate-500 hover:border-slate-300"
                   >
                     입력 초기화
@@ -6765,7 +7348,7 @@ const App = () => {
             const allBudgetItems = (itinerary.days || []).flatMap((day) => (day.plan || []))
               .filter((item) => item && item.type !== 'backup');
             const categoryLabelMap = {
-              ship: '선박',
+              ship: '페리',
               lodge: '숙소',
               food: '식당',
               cafe: '카페',
@@ -7493,29 +8076,13 @@ const App = () => {
                                     />
                                   </div>
                                 </div>
-                                {/* 시간 정보 행 — 드래그로 조절 */}
+                                {/* 시간 정보 행 — 클릭 후 직접 입력 */}
                                 {(() => {
-                                  const loadMins = timeToMinutes(p.time || '00:00');
-                                  const boardMins = timeToMinutes(p.boardTime || minutesToTime(loadMins + 60));
-                                  const sailDur = p.sailDuration ?? 240;
-                                  const disTime = minutesToTime(boardMins + sailDur);
+                                  const shipTimeline = getShipTimeline(p);
+                                  const sailDur = shipTimeline.sailDuration;
+                                  const disTime = shipTimeline.disembarkLabel;
                                   const editKey = (field) => ferryEditField?.pId === p.id && ferryEditField?.field === field;
-                                  const makeDrag = (onDelta, step = TIME_UNIT) => (e) => {
-                                    e.stopPropagation();
-                                    const el = e.currentTarget;
-                                    el.setPointerCapture(e.pointerId);
-                                    const startY = e.clientY; let last = 0; let dragging = false;
-                                    const move = (ev) => {
-                                      if (!dragging && Math.abs(ev.clientY - startY) > 6) dragging = true;
-                                      if (dragging) { const s = Math.round((startY - ev.clientY) / 6); if (s !== last) { onDelta((s - last) * step); last = s; } }
-                                    };
-                                    el.addEventListener('pointermove', move);
-                                    el.addEventListener('pointerup', () => {
-                                      el.removeEventListener('pointermove', move);
-                                      if (dragging) el.addEventListener('click', (ev) => { ev.stopPropagation(); ev.preventDefault(); }, { once: true, capture: true });
-                                    }, { once: true });
-                                  };
-                                  const timeInput = (field, displayVal, onDelta, step) => editKey(field)
+                                  const timeInput = (field, displayVal) => editKey(field)
                                     ? <input
                                       autoFocus
                                       defaultValue={displayVal.replace(':', '')}
@@ -7527,8 +8094,7 @@ const App = () => {
                                     />
                                     : <span
                                       className="text-[13px] font-black text-blue-800 tabular-nums cursor-pointer"
-                                      title="탭: 직접 입력 / 드래그: 조절"
-                                      onPointerDown={makeDrag(onDelta, step)}
+                                      title="클릭: 직접 입력"
                                       onClick={(e) => { e.stopPropagation(); setFerryEditField({ pId: p.id, field }); }}
                                     >{displayVal}</span>;
                                   const sailInput = editKey('sail')
@@ -7544,8 +8110,7 @@ const App = () => {
                                     />
                                     : <span
                                       className="text-[13px] font-black text-blue-800 tabular-nums cursor-pointer"
-                                      title="탭: 분 단위 입력 / 드래그: 조절"
-                                      onPointerDown={makeDrag(d => updateFerrySailDuration(dIdx, pIdx, d), 30)}
+                                      title="클릭: 분 단위 입력"
                                       onClick={(e) => { e.stopPropagation(); setFerryEditField({ pId: p.id, field: 'sail' }); }}
                                     >{minutesToTime(sailDur)}</span>;
                                   return (
@@ -7554,15 +8119,15 @@ const App = () => {
                                       <div className="flex-1 flex flex-col items-center gap-1 bg-blue-50/80 border border-blue-100 rounded-xl px-2 py-2.5">
                                         <span className="text-[8px] text-blue-400 font-black tracking-widest uppercase">선적</span>
                                         <div className="flex items-center gap-1 text-[13px] font-black text-blue-800 tabular-nums">
-                                          {timeInput('load', p.time || '00:00', d => updateStartTime(dIdx, pIdx, d))}
+                                          {timeInput('load', shipTimeline.loadStartLabel)}
                                           <span className="text-blue-400">-</span>
-                                          {timeInput('loadEnd', minutesToTime(boardMins), d => updateFerryBoardTime(dIdx, pIdx, d))}
+                                          {timeInput('loadEnd', shipTimeline.loadEndLabel)}
                                         </div>
                                       </div>
                                       {/* 출항 셀 */}
                                       <div className="flex-1 flex flex-col items-center gap-1 bg-sky-50/80 border border-sky-100 rounded-xl px-2 py-2.5">
                                         <span className="text-[8px] text-sky-400 font-black tracking-widest uppercase">출항</span>
-                                        {timeInput('depart', minutesToTime(boardMins), d => updateFerryBoardTime(dIdx, pIdx, d))}
+                                        {timeInput('depart', shipTimeline.boardLabel)}
                                       </div>
                                       {/* 소요 셀 */}
                                       <div className="flex-1 flex flex-col items-center gap-1 bg-indigo-50/80 border border-indigo-100 rounded-xl px-2 py-2.5">
@@ -7572,7 +8137,7 @@ const App = () => {
                                       {/* 하선 셀 */}
                                       <div className="flex-1 flex flex-col items-center gap-1 bg-violet-50/80 border border-violet-100 rounded-xl px-2 py-2.5">
                                         <span className="text-[8px] text-violet-500 font-black tracking-widest uppercase">하선</span>
-                                        {timeInput('disembark', disTime, d => updateFerrySailDuration(dIdx, pIdx, d), 30)}
+                                        {timeInput('disembark', disTime)}
                                       </div>
                                     </div>
                                   );
@@ -7765,7 +8330,7 @@ const App = () => {
                                             if (parsed.address) updateAddress(dIdx, pIdx, parsed.address);
                                             if (parsed.business) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
                                             if (parsed.menus.length) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: parsed.menus.filter(Boolean) }; return d; });
-                                            showInfoToast(result?.source === 'ai' ? `AI 스마트 전체 붙여넣기 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '스마트 전체 붙여넣기 완료');
+                                            showInfoToast(isAiSmartFillSource(result?.source) ? `AI 스마트 전체 붙여넣기 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '스마트 전체 붙여넣기 완료');
                                           } else {
                                             showInfoToast(useAiSmartFill ? 'Groq가 붙여넣을 내용을 찾지 못했습니다.' : '붙여넣을 내용을 찾지 못했습니다.');
                                           }
@@ -7862,7 +8427,9 @@ const App = () => {
                                 <SharedBusinessRow
                                   summary={formatBusinessSummary(p.business)}
                                   onContainerClick={(e) => e.stopPropagation()}
-                                  onToggle={() => setBusinessEditorTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx }))}
+                                  quickEditSegments={buildBusinessQuickEditSegments(p.business || {})}
+                                  onQuickEdit={(fieldKey) => setBusinessEditorTarget({ dayIdx: dIdx, pIdx, fieldKey })}
+                                  onToggle={() => setBusinessEditorTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx, fieldKey: null }))}
                                   actionButton={
                                     <button
                                       type="button"
@@ -7872,7 +8439,7 @@ const App = () => {
                                           const parsed = result?.parsed;
                                           if (parsed?.business) {
                                             setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
-                                            showInfoToast(result?.source === 'ai' ? `AI 영업정보 스마트 입력 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '영업 정보만 스마트 입력 완료');
+                                            showInfoToast(isAiSmartFillSource(result?.source) ? `AI 영업정보 스마트 입력 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '영업 정보만 스마트 입력 완료');
                                           } else {
                                             showInfoToast(useAiSmartFill ? 'Groq가 영업 정보를 찾지 못했습니다.' : '영업 정보를 찾지 못했습니다.');
                                           }
@@ -7889,6 +8456,7 @@ const App = () => {
                                       <p className="text-[9px] text-slate-400 font-semibold mb-1.5">현재 일정 시간과 충돌하면 위에 빨간 경고가 표시됩니다.</p>
                                       <BusinessHoursEditor
                                         business={p.business || {}}
+                                        focusField={businessEditorTarget?.dayIdx === dIdx && businessEditorTarget?.pIdx === pIdx ? businessEditorTarget?.fieldKey : null}
                                         onChange={(b) => updatePlanBusiness(dIdx, pIdx, b)}
                                       />
                                     </div>
@@ -7939,7 +8507,7 @@ const App = () => {
                                           const parsed = result?.parsed;
                                           if (parsed?.menus?.length) {
                                             setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: parsed.menus }; return d; });
-                                            showInfoToast(result?.source === 'ai' ? `AI 메뉴 스마트 입력 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '메뉴 정보만 스마트 입력 완료');
+                                            showInfoToast(isAiSmartFillSource(result?.source) ? `AI 메뉴 스마트 입력 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '메뉴 정보만 스마트 입력 완료');
                                           } else {
                                             showInfoToast(useAiSmartFill ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.');
                                           }

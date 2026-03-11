@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vite build)",
+      "Bash(npx vercel --prod)",
+      "Bash(npx vercel login)",
+      "Bash(node plan_update.cjs)",
+      "Bash(rm plan_update.cjs)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:scrapfly.io)",
+      "WebFetch(domain:velog.io)",
+      "WebFetch(domain:brightdata.com)",
+      "WebFetch(domain:docs.ncloud.com)",
+      "WebFetch(domain:guide.ncloud-docs.com)",
+      "WebFetch(domain:docs.ai-canvas.io)",
+      "WebFetch(domain:www.octoparse.kr)",
+      "WebFetch(domain:apify.com)",
+      "WebFetch(domain:alexwlchan.net)"
+    ]
+  }
+}

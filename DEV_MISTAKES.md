@@ -54,3 +54,22 @@
   - 공통 UI 수정 시 기준 화면은 항상 `일정탭 실제 일정 카드`
   - `내 장소`, `수정`, `추가`는 일정탭의 행 순서/간격/확장 흐름을 따라간다
   - 특히 `영업정보`는 일정탭 기준으로 기본 노출/클릭 확장 동작을 먼저 맞춘 뒤 개별 예외를 추가한다
+
+## 9. AI 키 저장/확인 "Failed to fetch" 반복 오류
+- 증상: `AI 키 상태 확인 실패: Failed to fetch` 또는 `AI 키 저장 실패: HTTP 405`
+- 원인 A (로컬 환경): `192.168.x.x`에서 접속 시 `/api/ai-key` relative 경로 → Vite proxy → `localhost:3001` 포워딩. 하지만 `server.js`의 Firebase Admin 인증 키가 placeholder(`.env`에 미설정)이면 verifyBearerToken 실패
+- 원인 B (배포 환경): Cloud Run `functions/index.js`의 `aiKey` 함수가 **구버전**으로 배포된 경우— `POST { groqApiKey }` 요청을 `apiKey is required`(400)로 거부하거나 CORS 미설정으로 "Failed to fetch"
+- 원인 C (CORS): `functions/index.js`의 `setCors`가 요청 origin을 허용목록에서 찾지 못하면 `Access-Control-Allow-Origin` 헤더 누락 → 브라우저가 CORS 에러로 막음
+- 예방/체크리스트:
+  1. 로컬에서 `server.js`가 떠 있는지 확인 (`node server.js`, 포트 3001)
+  2. `.env`에 실제 Firebase Admin 키 설정 여부 확인 (`FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`)
+  3. `functions/index.js`가 `api/ai-key.js`와 동기화됐는지 확인 후 `firebase deploy --only functions` 재실행
+  4. `getCors`의 허용 origin 목록에 실제 접속 도메인 포함 여부 확인
+
+## 10. React 컴포넌트 내부 IIFE에서 Hook 사용하는 실수
+- 증상: `Rendered more hooks than during the previous render` → 앱 전체 크래시
+- 원인: `{condition && (() => { useState(); useEffect(); return <JSX/>; })()} ` 패턴 — React Hook은 IIFE나 일반 함수 안에서 조건부 호출 불가
+- 예방:
+  - Hook을 쓰는 모달/컴포넌트는 반드시 **독립 컴포넌트 함수**로 분리
+  - 올바른 패턴: `{condition && <MyModal onClose={...} />}` + `const MyModal = () => { useState()... }`
+

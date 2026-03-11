@@ -1,6 +1,20 @@
 import { getAdminDb, verifyBearerToken } from './_firebaseAdmin.js';
 import { decryptSecret } from './_crypto.js';
 
+const DAY_TO_INTERNAL = {
+  // 한글
+  월: 'mon', 화: 'tue', 수: 'wed', 목: 'thu', 금: 'fri', 토: 'sat', 일: 'sun',
+  월요일: 'mon', 화요일: 'tue', 수요일: 'wed', 목요일: 'thu', 금요일: 'fri', 토요일: 'sat', 일요일: 'sun',
+  // 영문 풀네임
+  monday: 'mon', tuesday: 'tue', wednesday: 'wed', thursday: 'thu', friday: 'fri', saturday: 'sat', sunday: 'sun',
+  // 영문 약어 (AI가 잘못 출력하는 케이스 방어)
+  mon: 'mon', tue: 'tue', wed: 'wed', thu: 'thu', fri: 'fri', sat: 'sat', sun: 'sun',
+};
+const normalizeClosedDay = (raw) => {
+  const key = String(raw || '').trim().toLowerCase();
+  return DAY_TO_INTERNAL[key] || DAY_TO_INTERNAL[key.replace(/요일$/, '')] || null;
+};
+
 const normalizeBusiness = (business = {}) => ({
   open: String(business?.open || '').trim(),
   close: String(business?.close || '').trim(),
@@ -9,7 +23,7 @@ const normalizeBusiness = (business = {}) => ({
   lastOrder: String(business?.lastOrder || '').trim(),
   entryClose: String(business?.entryClose || '').trim(),
   closedDays: Array.isArray(business?.closedDays)
-    ? business.closedDays.map((item) => String(item || '').trim()).filter(Boolean)
+    ? [...new Set(business.closedDays.map(normalizeClosedDay).filter(Boolean))]
     : [],
 });
 
@@ -79,7 +93,7 @@ export default async function handler(req, res) {
 
   const systemPrompt = [
     'You extract Korean place information for a travel planner.',
-    'Return strict JSON only.',
+    'Return strict JSON only — no markdown, no explanation.',
     'Schema:',
     '{"name":"","address":"","business":{"open":"","close":"","breakStart":"","breakEnd":"","lastOrder":"","entryClose":"","closedDays":[]},"menus":[{"name":"","price":0}]}',
     `Current extraction mode: ${mode}.`,
@@ -88,6 +102,20 @@ export default async function handler(req, res) {
     'If mode is "all", fill every field you can infer.',
     'For prices, return integers without currency symbols.',
     'For unknown fields, use empty strings, empty arrays, or null business.',
+    '',
+    '--- closedDays rules (STRICT) ---',
+    'closedDays must only contain these exact values: mon, tue, wed, thu, fri, sat, sun',
+    'Convert Korean: 월→mon, 화→tue, 수→wed, 목→thu, 금→fri, 토→sat, 일→sun',
+    'Convert English full names: monday→mon, tuesday→tue, wednesday→wed, thursday→thu, friday→fri, saturday→sat, sunday→sun',
+    'NEVER output Korean names, English full names, "목요일", "thursday", etc. — only the 3-letter internal codes above.',
+    '',
+    '--- menus rules ---',
+    'Extract actual menu items with prices (name string + integer price).',
+    'Do NOT include restaurant descriptions, intro sentences, or non-menu content.',
+    'If no clear menu name + price pair exists, return an empty array.',
+    '',
+    '--- uncertainty rule ---',
+    'Leave uncertain fields as empty string or empty array. Do not guess or fabricate values.',
   ].join('\n');
 
   const userContent = [];

@@ -26,8 +26,9 @@
 11. **압축/요약 요청 처리 규칙**: 사용자가 특정 작업 번호 구간을 압축하거나 요약하라고 하면, 별도 요약 섹션을 새로 만들지 말고 해당 기존 항목 자리 자체를 한 줄 요약 형태로 줄여 정리합니다.
 12. **정렬은 생명**: 버튼 끝선, 카드 폭, 행 정렬, 여백 기준선처럼 눈에 보이는 정렬은 최우선으로 맞춥니다. 특히 `가운데 정렬`, `상하 중앙`, `윗라인 마진`, `좌우 여백 통일`은 기본값처럼 취급하고, UI 수정 시 기능과 함께 이 네 가지를 반드시 같이 점검합니다. 이 기준을 놓치면 같은 일을 반복하게 되므로 보고 전에 한 번 더 확인합니다.
 13. **마무리 보고 전 PLAN.md 기록 필수**: 작업 완료 후 사용자에게 결과를 보고하기 전에 반드시 먼저 `PLAN.md`에 해당 작업의 최종 내용(수정 내역, 검증 결과)을 기록합니다. 기록 없이 보고 먼저 하는 것은 금지입니다.
-14. **AI 자동 채우기 수동 교정은 별도 학습 기록으로 남김**: 사용자가 AI 스마트 붙여넣기 결과를 다시 손으로 수정한 사례가 확인되면, `SMART_FILL_FEEDBACK.md`에 원본 입력 유형·AI 채움 결과·사용자 교정 내용·다음 규칙을 남깁니다. 이 파일은 다음 자동 채우기 품질 개선의 근거 문서로 취급합니다.
+
 15. **공통 UI 소스는 영향 범위를 같이 기록**: `일정탭 실제 일정`, `내 장소`, `수정`, `만들기`가 같은 공통 컴포넌트를 쓰는 경우, 해당 UI를 수정할 때는 `PLAN.md`에 “이 변경은 공통 소스라 네 화면에 동시에 반영된다”는 점을 같이 기록합니다. 공통 UI는 한 곳만 고치는 게 아니라 전체 영향 범위를 전제로 검토합니다.
+
 16. **미완료 체크 항목은 완료 여부를 다시 확인해 함께 알림**: `PLAN.md`에서 완료 체크가 안 된 항목이 보이면, AI는 작업 중이거나 최종 보고 전에 그 항목의 실제 완료 여부를 다시 점검하고, 사용자에게 완료/미완료 상태를 함께 알려야 합니다.
 
 ---
@@ -42,6 +43,61 @@
 ## 🛠 현재 할 일 목록
 
 > 새 작업은 위에 추가 — 최신순 정렬
+
+### #173 · AI 자동채우기 분석 중 로딩 UI 표시
+- [x] **요청 분석**: AI 스마트 붙여넣기 버튼이 분석 중일 때 아무런 피드백 없이 토스트만 한번 치고 빠져서, 기다리는지 완료됐는지 알 수 없음. 분석 중임을 시각적으로 지속 표시 요청
+  > 🕐 시작: `2026-03-11 14:34 · Antigravity`
+  > 📝 이해: `PlaceEditorCard`의 `onSmartPasteAll/Business/Menus`가 async인데 로딩 상태가 없어, 버튼을 눌러도 결과 나올 때까지 UI 변화가 없는 문제
+- [x] **작업 계획**: `PlaceEditorCard` 내부에 `smartPasteLoading` state + `wrapSmartPaste` 헬퍼 추가. 분석 중 카드 상단에 파란 배너("✦ AI 분석 중입니다… 잠시만 기다려 주세요"), 세 버튼 모두 Sparkles→스피너로 교체, disabled 처리
+  > 📝 공통 UI 영향: PlaceEditorCard는 장소 수정·일정 수정·새 장소 등록 세 화면 공통이라 전체 반영됨
+  > 🕑 종료: `2026-03-11 14:34` | ✅ 완료
+  > 📝 수정 내역:
+  > ① `PlaceEditorCard`에 `smartPasteLoading` state, `wrapSmartPaste(fn)` 헬퍼 추가
+  > ② 분석 중 카드 헤더 바로 아래 파란 배너 + 스피너 + pulse 텍스트 표시
+  > ③ AI 버튼 3개(전체/영업정보/메뉴) 모두 `wrapSmartPaste`로 래핑, 분석 중에는 스피너+disabled
+  > 📝 검증: `npm run build` 성공
+
+### #172 · AI 키 저장 HTTP 405 버그 수정 (Cloud Run functions/index.js 구버전)
+- [x] **요청 분석**: AI 키 저장이 됐다 안됐다 반복되며 `AI 키 저장 실패: HTTP 405` 에러 발생
+  > 🕐 시작: `2026-03-11 14:33 · Antigravity`
+  > 📝 이해: `VITE_AI_KEY_URL`이 Cloud Run URL(`https://aikey-ywislrhvla-du.a.run.app`)을 가리키는데, 배포된 `functions/index.js`의 `aiKey` 함수가 구버전이라 `POST { groqApiKey }` 요청을 `apiKey is required`로 거부하거나 CORS 화이트리스트에 실제 도메인이 없어 405처럼 보임
+- [x] **작업 계획**: `functions/index.js`의 `aiKey` 함수를 `api/ai-key.js`(신버전)과 동일하게 업데이트. CORS 허용 목록에 Vercel 도메인 패턴 추가, `isCorsAllowed` 헬퍼로 정규식 매칭 지원
+  > 📝 공통 UI 영향 없음 — Cloud Run 서버사이드 코드만 변경
+  > 🕑 종료: `2026-03-11 14:33` | ✅ 수정 완료 (Firebase Functions 재배포 필요)
+  > 📝 수정 내역:
+  > ① `functions/index.js` CORS 허용 목록에 `localhost:5174`, `localhost:3001`, Vercel `anti-planer*.vercel.app` 패턴 추가
+  > ② `isCorsAllowed()` 헬퍼로 문자열 + 정규식 혼용 매칭 지원
+  > ③ `aiKey` POST 핸들러: `apiKey` 단일만 받던 구버전 → `groqApiKey/geminiApiKey/perplexityApiKey` 각각 지원하는 신버전으로 교체
+  > ④ `aiKey` GET 핸들러: `hasStoredGroqKey/hasStoredGeminiKey/hasStoredPerplexityKey` 필드 추가
+  > ⑤ `aiKey` DELETE 핸들러: `provider` 파라미터로 특정 키만 삭제 가능하게 확장
+  > 📝 **⚠️ 배포 필요: `firebase deploy --only functions` 실행해야 실제 반영됨**
+
+### #171 · 수정/추가 모달 폭 축소 + 시간 컨트롤 오밀조밀 압축
+- [x] **요청 분석**: ① 수정/추가 창(PlaceEditorCard 모달)이 일정 탭 카드 폭보다 너무 넓으니 일정 카드만큼만 맞춰라 ② 시간 컨트롤 확장 UI가 엉성해 보이므로 숫자/버튼/패딩을 전체적으로 더 조밀하게 압축
+  > 🕐 시작: `2026-03-11 · Claude Sonnet 4.6`
+  > 📝 이해: ① 모달 max-width 440px → 360px로 줄이면 타임라인 카드 폭과 비슷해짐 ② 시간 컨트롤은 숫자 폰트(30px), 버튼(w-8 h-5), 패딩, 우측 패널(76px) 등 모든 요소가 한 단계 과함 — 24px 숫자 + w-6 h-4 버튼 + 64px 우측으로 압축
+- [x] **작업 계획**: ① PlaceEditorCard className 3곳(장소수정·일정수정·새장소) min(440px→360px) ② 시간 확장 컨트롤에서 숫자 폰트·버튼·패딩·우측패널 전체 한 단계씩 축소 ③ npm run build 검증
+  > 📝 공통 UI 영향: PlaceEditorCard는 장소 수정·일정 수정·새 장소 등록 세 화면 공통. 시간 컨트롤은 일정탭 일정 카드 전용.
+  > 🕑 종료: `2026-03-11` | ✅ 완료
+  > 📝 수정 내역:
+  > ① `PlaceEditorCard` className 3곳 `min(440px→360px)` 적용 (장소 수정·일정 수정·새 장소 등록 동시 반영)
+  > ② 시간 확장 컨트롤 전체 압축: 숫자 폰트 30px→24px, 콜론 20px→16px, 화살표 버튼 w-8 h-5→w-6 h-4, 카드 패딩 px-1 py-0.5→px-0.5 py-0, 우측 패널 76px→64px, 소요 표시 22px→16px, +m 버튼 py-1.5→py-1, 스텝 버튼 gap 축소
+  > ③ 전체 확장 폭: `w-[164px] sm:w-[174px]` → `w-[148px] sm:w-[156px]`
+  > 📝 검증: `npm run build` 성공 (App-DDM7LuMa.js, 해시 변경 확인)
+
+### #170 · Groq 학습 MD 반영 + 휴일 토글 버그 수정
+- [x] **요청 분석**: ① SMART_FILL_FEEDBACK.md 내용을 기반으로 Groq 시스템 프롬프트 개선 및 closedDays 정규화 강화 ② 장소 수정/일정 수정 모달의 BusinessHoursEditor에서 휴일 요일 클릭 토글 시 값이 저장되지 않는 버그 수정
+  > 🕐 시작: `2026-03-11 · Claude Sonnet 4.6`
+  > 📝 이해: ① 피드백 누적 규칙(closedDays 내부값 정규화, 메뉴 추출 우선 등)이 현재 프롬프트에 반영 안 됨. ② 버그 원인: BusinessHoursEditor의 day 토글 버튼 클릭 이벤트가 SharedBusinessRow 컨테이너 div까지 버블링 → onContainerClick(updateDraft) 재호출 → onChange로 설정한 새 business 값이 이전 값으로 덮어씌워짐
+- [x] **작업 계획**: ① api/grok-analyze.js 시스템 프롬프트에 closedDays 형식 규칙·메뉴 추출 규칙·불확실 필드 공백 처리 규칙 추가 + normalizeClosedDays 후처리 함수 추가 ② BusinessHoursEditor의 최외곽 div에 onClick={(e) => e.stopPropagation()} 추가로 버블링 차단 ③ SMART_FILL_FEEDBACK.md 업데이트 ④ npm run build 검증
+  > 📝 공통 UI 영향 범위: BusinessHoursEditor는 장소 수정·일정 수정·새 장소 등록·내 장소 수정 네 화면 공통으로 사용. 버그 수정 시 전체 화면에 동시 반영됨
+  > 🕑 종료: `2026-03-11` | ✅ 완료
+  > 📝 수정 내역:
+  > ① `src/App.jsx` BusinessHoursEditor 외곽 div에 `onClick={(e) => e.stopPropagation()}` 추가 → 클릭 이벤트 버블링 차단 → 휴일 토글 저장 정상화
+  > ② `api/grok-analyze.js` 시스템 프롬프트에 closedDays 3글자 코드 강제 규칙·메뉴 추출 규칙·불확실 필드 공백 처리 규칙 추가
+  > ③ `api/grok-analyze.js` `normalizeClosedDay()` 후처리 함수 추가 (한글/영문 → 내부 코드 변환 방어)
+  > ④ `SMART_FILL_FEEDBACK.md` 프롬프트 적용 이력 갱신
+  > 📝 검증: `npm run build` 성공
 
 ### #168 · 로컬 AI 키 저장 상태가 항상 없음으로 보이는 fallback 경로 복구
 - [x] **요청 분석**: 사용자는 AI 키 저장 상태가 계속 `Groq 없음 · Gemini 없음 · Perplexity 없음`으로 보이고 저장도 불안정하다고 보고함. 실제로는 이전 저장 시각은 남아 있어, 저장 API 또는 상태 조회 API의 우선 경로가 잘못된 가능성이 큼

@@ -17,7 +17,8 @@
       "WebFetch(domain:docs.ai-canvas.io)",
       "WebFetch(domain:www.octoparse.kr)",
       "WebFetch(domain:apify.com)",
-      "WebFetch(domain:alexwlchan.net)"
+      "WebFetch(domain:alexwlchan.net)",
+      "Bash(npm run build)"
     ]
   }
 }

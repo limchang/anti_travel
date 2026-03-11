@@ -53,17 +53,33 @@ const verifyBearerToken = async (req) => {
 const ALLOWED_ORIGINS = [
   'https://limchang.github.io',
   'http://localhost:5173',
+  'http://localhost:5174',
   'http://localhost:3000',
+  'http://localhost:3001',
+  // Vercel deployments
+  /^https:\/\/anti-planer.*\.vercel\.app$/,
+  /^https:\/\/.*anti-planer.*\.vercel\.app$/,
 ];
+
+const isCorsAllowed = (origin) => {
+  if (!origin) return true; // same-origin / no-CORS requests
+  return ALLOWED_ORIGINS.some((o) => (typeof o === 'string' ? o === origin : o.test(origin)));
+};
 
 const setCors = (req, res) => {
   const origin = req.headers.origin || '';
-  if (ALLOWED_ORIGINS.includes(origin)) {
-    res.set('Access-Control-Allow-Origin', origin);
-  } else if (!origin) {
-    res.set('Access-Control-Allow-Origin', '*');
+  if (isCorsAllowed(origin)) {
+    res.set('Access-Control-Allow-Origin', origin || '*');
   }
   res.set('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  res.set('Access-Control-Max-Age', '3600');
+};
+
+// groqAnalyze 등 공개 엔드포인트는 CORS 완전 개방 (Groq/Gemini API 키로 자체 보안)
+const setCorsPublic = (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   res.set('Access-Control-Max-Age', '3600');
 };
@@ -87,30 +103,56 @@ exports.aiKey = onRequest({ invoker: 'public' }, async (req, res) => {
       const snap = await docRef.get();
       const data = snap.data() || {};
       return res.status(200).json({
-        hasStoredKey: !!data?.groqKeyCipher?.content,
+        hasStoredKey: !!data?.groqKeyCipher?.content || !!data?.geminiKeyCipher?.content || !!data?.perplexityKeyCipher?.content,
+        hasStoredGroqKey: !!data?.groqKeyCipher?.content,
+        hasStoredGeminiKey: !!data?.geminiKeyCipher?.content,
+        hasStoredPerplexityKey: !!data?.perplexityKeyCipher?.content,
         updatedAt: data?.updatedAt?.toDate?.()?.toISOString?.() || null,
       });
     }
 
     if (req.method === 'POST') {
-      const apiKey = String(req.body?.apiKey || '').trim();
-      if (!apiKey) return res.status(400).json({ error: 'apiKey is required' });
-      const encrypted = encryptSecret(apiKey);
-      await docRef.set(
-        { groqKeyCipher: encrypted, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
-        { merge: true }
-      );
-      return res.status(200).json({ ok: true, hasStoredKey: true });
+      // 신버전: groqApiKey / geminiApiKey / perplexityApiKey 각각 지원
+      // 구버전 호환: apiKey → groqApiKey 로 fallback
+      const groqApiKey = String(req.body?.groqApiKey || req.body?.apiKey || '').trim();
+      const geminiApiKey = String(req.body?.geminiApiKey || '').trim();
+      const perplexityApiKey = String(req.body?.perplexityApiKey || '').trim();
+      if (!groqApiKey && !geminiApiKey && !perplexityApiKey) {
+        return res.status(400).json({ error: 'groqApiKey or geminiApiKey or perplexityApiKey is required' });
+      }
+      const nextPayload = {
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+      if (groqApiKey) nextPayload.groqKeyCipher = encryptSecret(groqApiKey);
+      if (geminiApiKey) nextPayload.geminiKeyCipher = encryptSecret(geminiApiKey);
+      if (perplexityApiKey) nextPayload.perplexityKeyCipher = encryptSecret(perplexityApiKey);
+      await docRef.set(nextPayload, { merge: true });
+      return res.status(200).json({
+        ok: true,
+        hasStoredKey: true,
+        hasStoredGroqKey: !!groqApiKey,
+        hasStoredGeminiKey: !!geminiApiKey,
+        hasStoredPerplexityKey: !!perplexityApiKey,
+      });
     }
 
     if (req.method === 'DELETE') {
-      await docRef.set(
-        {
-          groqKeyCipher: admin.firestore.FieldValue.delete(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
+      const provider = String(req.query?.provider || req.body?.provider || '').trim().toLowerCase();
+      const deletePayload = { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+      if (!provider || provider === 'all') {
+        deletePayload.groqKeyCipher = admin.firestore.FieldValue.delete();
+        deletePayload.geminiKeyCipher = admin.firestore.FieldValue.delete();
+        deletePayload.perplexityKeyCipher = admin.firestore.FieldValue.delete();
+      } else if (provider === 'groq') {
+        deletePayload.groqKeyCipher = admin.firestore.FieldValue.delete();
+      } else if (provider === 'gemini') {
+        deletePayload.geminiKeyCipher = admin.firestore.FieldValue.delete();
+      } else if (provider === 'perplexity') {
+        deletePayload.perplexityKeyCipher = admin.firestore.FieldValue.delete();
+      } else {
+        return res.status(400).json({ error: 'provider must be groq, gemini, perplexity, or all' });
+      }
+      await docRef.set(deletePayload, { merge: true });
       return res.status(200).json({ ok: true, hasStoredKey: false });
     }
 
@@ -150,8 +192,8 @@ const normalizeResult = (raw = {}) => ({
   business: raw?.business ? normalizeBusiness(raw.business) : null,
   menus: Array.isArray(raw?.menus)
     ? raw.menus
-        .map((item) => ({ name: String(item?.name || '').trim(), price: Number(item?.price) || 0 }))
-        .filter((item) => item.name)
+      .map((item) => ({ name: String(item?.name || '').trim(), price: Number(item?.price) || 0 }))
+      .filter((item) => item.name)
     : [],
 });
 
@@ -168,7 +210,7 @@ const getStoredUserApiKey = async (req) => {
 };
 
 exports.groqAnalyze = onRequest({ invoker: 'public' }, async (req, res) => {
-  setCors(req, res);
+  setCorsPublic(req, res);
   if (req.method === 'OPTIONS') return res.status(204).send('');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 

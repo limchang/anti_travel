@@ -9,7 +9,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move
+  ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -7979,10 +7979,15 @@ const App = () => {
                     {d.day > 1 && pIdx === 0 && (
                       <div className="flex items-center justify-center py-3 w-full">
                         <div className="flex items-center bg-slate-50/95 px-3 py-1.5 rounded-full border border-slate-300 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.45)] gap-2">
+                          {(() => {
+                            const rid = `${dIdx}_${pIdx}`;
+                            const busy = calculatingRouteId === rid;
+                            return (
+                              <>
                           {/* 이동 시간 */}
                           <div className="flex flex-col items-center">
                             <span
-                              className={`min-w-[3rem] text-center tracking-tight text-xs font-black transition-colors ${p._isBufferCoordinated ? 'text-orange-500' : (p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800')}`}
+                              className={`min-w-[3rem] text-center tracking-tight text-xs font-black transition-colors ${busy ? 'text-[#3182F6]' : (p._isBufferCoordinated ? 'text-orange-500' : (p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800'))}`}
                               onClick={(e) => { e.stopPropagation(); if (p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto) resetTravelTime(dIdx, pIdx); }}
                               title={p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? '클릭하여 경로 계산 시간으로 초기화' : undefined}
                             >{p.travelTimeOverride || '15분'}</span>
@@ -7992,10 +7997,11 @@ const App = () => {
                           {/* 거리 */}
                           <button
                             type="button"
-                            className="flex items-center gap-1 text-slate-400 text-xs font-bold hover:text-[#3182F6] transition-colors"
-                            title="클릭하여 네이버 길찾기 열기"
+                            className={`flex items-center gap-1 text-xs font-bold transition-colors ${busy ? 'text-[#3182F6]' : 'text-slate-400 hover:text-[#3182F6]'}`}
+                            title={busy ? '경로 계산 중' : '클릭하여 네이버 길찾기 열기'}
                             onClick={(e) => {
                               e.stopPropagation();
+                              if (busy) return;
                               let prevItem;
                               if (pIdx === 0 && dIdx > 0) {
                                 const prevDayPlan = itinerary.days[dIdx - 1]?.plan || [];
@@ -8012,19 +8018,14 @@ const App = () => {
                               openNaverRouteSearch(prevItem?.activity || '출발지', fromAddr, p.activity || '도착지', toAddr);
                             }}
                           >
-                            <MapIcon size={11} />
-                            <span>{formatDistanceText(p.distance)}</span>
+                            {busy ? <LoaderCircle size={11} className="animate-spin" /> : <MapIcon size={11} />}
+                            <span>{busy ? '계산중' : formatDistanceText(p.distance)}</span>
                           </button>
 
                           {/* 자동경로 */}
-                          {(() => {
-                            const rid = `${dIdx}_${pIdx}`; const busy = calculatingRouteId === rid;
-                            return (
-                              <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
-                                <Sparkles size={10} />
+                              <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-[#3182F6]/10 text-[#3182F6] border-[#3182F6]/30' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
+                                {busy ? <LoaderCircle size={10} className="animate-spin" /> : <Sparkles size={10} />}
                               </button>
-                            );
-                          })()}
 
                           {/* 구분선 */}
                           <div className="w-px h-4 bg-slate-200 mx-0.5" />
@@ -8035,6 +8036,9 @@ const App = () => {
                             <span className="min-w-[3rem] text-center tracking-tight text-xs font-black text-slate-500">{p.bufferTimeOverride || '10분'}</span>
                             <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                           </div>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     )}
@@ -8885,11 +8889,16 @@ const App = () => {
                             return (
                               <div id={`travel-chip-${dIdx}-${pIdx}`} className="z-10 flex items-center justify-center w-full">
                                 <div className="my-2 flex items-center bg-slate-50/95 px-3 py-1.5 rounded-full border border-slate-300 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.45)] gap-2">
+                                  {(() => {
+                                    const rid = `${dIdx}_${pIdx + 1}`;
+                                    const busy = calculatingRouteId === rid;
+                                    return (
+                                      <>
                                   {/* 이동 시간 */}
                                   <div className="flex items-center gap-1.5">
                                     <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
                                     <span
-                                      className={`min-w-[3rem] text-center tracking-tight text-xs font-black ${nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800'}`}
+                                      className={`min-w-[3rem] text-center tracking-tight text-xs font-black ${busy ? 'text-[#3182F6]' : (nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800')}`}
                                       onClick={(e) => { e.stopPropagation(); if (nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto) resetTravelTime(dIdx, pIdx + 1); }}
                                       title={nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto ? '클릭하여 경로 계산 시간으로 초기화' : undefined}
                                     >{nextItem.travelTimeOverride || '15분'}</span>
@@ -8898,10 +8907,11 @@ const App = () => {
                                   {/* 거리 */}
                                   <button
                                     type="button"
-                                    className="flex items-center gap-1 text-slate-400 text-xs font-bold hover:text-[#3182F6] transition-colors"
-                                    title="구간 거리"
+                                    className={`flex items-center gap-1 text-xs font-bold transition-colors ${busy ? 'text-[#3182F6]' : 'text-slate-400 hover:text-[#3182F6]'}`}
+                                    title={busy ? '경로 계산 중' : '구간 거리'}
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      if (busy) return;
                                       const prevAddr = getRouteAddress(p, 'from');
                                       const toAddr = getRouteAddress(nextItem, 'to');
                                       if (!prevAddr || !toAddr) {
@@ -8911,15 +8921,13 @@ const App = () => {
                                       openNaverRouteSearch(p.activity || '출발지', prevAddr, nextItem.activity || '도착지', toAddr);
                                     }}
                                   >
-                                    <MapIcon size={11} /><span>{formatDistanceText(nextItem.distance)}</span>
-                                  </button>
-                                  {/* 자동경로 */}
-                                  {(() => {
-                                    const rid = `${dIdx}_${pIdx + 1}`; const busy = calculatingRouteId === rid; return (
-                                      <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
-                                        <Sparkles size={10} />
-                                      </button>);
-                                  })()}
+                                    {busy ? <LoaderCircle size={11} className="animate-spin" /> : <MapIcon size={11} />}
+                                    <span>{busy ? '계산중' : formatDistanceText(nextItem.distance)}</span>
+                                </button>
+                                {/* 자동경로 */}
+                                      <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-[#3182F6]/10 text-[#3182F6] border-[#3182F6]/30' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
+                                        {busy ? <LoaderCircle size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                                      </button>
                                   {/* 구분선 */}
                                   <div className="w-px h-4 bg-slate-200 mx-0.5" />
                                   <div className="flex items-center gap-1.5">
@@ -8938,6 +8946,9 @@ const App = () => {
                                     </div>
                                     <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                                   </div>
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             );

@@ -1146,6 +1146,7 @@ const getAiKeyEndpoint = () => {
 
 const getAiKeyEndpointCandidates = () => Array.from(new Set([
   getAiKeyEndpoint(),
+  import.meta.env.VITE_AI_KEY_URL || '',
   '/api/ai-key',
 ].filter(Boolean)));
 

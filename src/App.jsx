@@ -7557,6 +7557,36 @@ const App = () => {
                 return { key, label, amount, pct };
               })
               .sort((a, b) => b.amount - a.amount);
+            const routeStops = allBudgetItems
+              .map((item) => {
+                if (item.types?.includes('ship')) return item.endPoint || item.startPoint || item.activity || '';
+                if (item.activity) return item.activity;
+                return item.receipt?.address || '';
+              })
+              .map((value) => String(value || '').trim())
+              .filter(Boolean)
+              .filter((value, index, arr) => index === 0 || arr[index - 1] !== value);
+            const routeSummary = routeStops.length ? routeStops.slice(0, 5).join(' → ') : `${tripRegion || '여행지'} 중심 동선`;
+            const firstPlannedItem = allBudgetItems[0] || null;
+            const lastPlannedItem = allBudgetItems[allBudgetItems.length - 1] || null;
+            const firstTimeLabel = firstPlannedItem?.time || '--:--';
+            const lastTimeLabel = lastPlannedItem
+              ? (lastPlannedItem.types?.includes('ship')
+                ? getShipTimeline(lastPlannedItem).disembarkLabel
+                : minutesToTime(timeToMinutes(lastPlannedItem.time || '00:00') + (lastPlannedItem.duration || 0)))
+              : '--:--';
+            const categoryCountMap = allBudgetItems.reduce((acc, item) => {
+              const types = Array.isArray(item.types) ? item.types : [];
+              const baseType = types.find((t) => !MODIFIER_TAGS.has(t) && t !== 'place') || types.find((t) => !MODIFIER_TAGS.has(t)) || 'place';
+              acc[baseType] = (acc[baseType] || 0) + 1;
+              return acc;
+            }, {});
+            const topCategorySummary = Object.entries(categoryCountMap)
+              .map(([key, count]) => ({ label: categoryLabelMap[key] || key, count: Number(count) || 0 }))
+              .sort((a, b) => b.count - a.count)
+              .slice(0, 3)
+              .map((entry) => `${entry.label} ${entry.count}`)
+              .join(' · ');
             return (
               <div className="mb-8 relative">
                 {/* 컴팩트 플로팅 바 (스크롤 시) */}
@@ -7723,25 +7753,32 @@ const App = () => {
                           </div>
                         </div>
 
-                        {/* 🌟 2. 예산 현황 요약 (연결된 셀 스타일) */}
+                        {/* 🌟 2. 여행 한눈에 보기 */}
                         <div className="flex flex-col gap-8 px-3 sm:px-0">
                           <div className="w-full bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.04)] rounded-[32px] overflow-hidden flex flex-col pt-8 pb-7 px-8 items-center text-center">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Total Remaining Budget</p>
-                            <p className="text-[48px] font-black text-[#3182F6] leading-none tabular-nums tracking-tighter mb-8">
-                              ₩{budgetSummary.remaining.toLocaleString()}
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Travel At A Glance</p>
+                            <p className="max-w-[760px] text-[26px] sm:text-[34px] font-black text-[#3182F6] leading-tight tracking-tight mb-3 break-keep">
+                              {routeSummary}
+                            </p>
+                            <p className="text-[12px] font-bold text-slate-500 mb-8">
+                              {tripDays > 0 ? `${tripNights}박 ${tripDays}일` : `${itinerary.days?.length || 0}일 일정`} · 총 {allBudgetItems.length}개 일정
                             </p>
 
-                            <div className="w-full flex items-stretch bg-white/50 rounded-2xl border border-white/20 overflow-hidden min-h-[72px]">
-                              <div className="flex-1 p-4 flex flex-col items-center justify-center gap-1 border-r border-slate-100">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Spent</p>
-                                <p className="text-[14px] font-black text-slate-700 tabular-nums">₩{budgetSummary.total.toLocaleString()}</p>
+                            <div className="w-full grid grid-cols-1 sm:grid-cols-3 bg-white/50 rounded-2xl border border-white/20 overflow-hidden min-h-[72px]">
+                              <div className="p-4 flex flex-col items-center justify-center gap-1 border-b sm:border-b-0 sm:border-r border-slate-100">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">시간 흐름</p>
+                                <p className="text-[14px] font-black text-slate-700 tabular-nums">{firstTimeLabel} ~ {lastTimeLabel}</p>
+                              </div>
+                              <div className="p-4 flex flex-col items-center justify-center gap-1 border-b sm:border-b-0 sm:border-r border-slate-100">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">주요 카테고리</p>
+                                <p className="text-[14px] font-black text-slate-700 text-center">{topCategorySummary || '일정 요약 준비 중'}</p>
                               </div>
                               <div
-                                className="flex-1 p-4 flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-[#3182F6]/5 transition-all group"
+                                className="p-4 flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-[#3182F6]/5 transition-all group"
                                 onClick={() => setEditingBudget(true)}
                               >
                                 <p className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                  Budget <Plus size={9} className="text-[#3182F6] opacity-0 group-hover:opacity-100" />
+                                  예산 사용 <Plus size={9} className="text-[#3182F6] opacity-0 group-hover:opacity-100" />
                                 </p>
                                 {editingBudget ? (
                                   <input
@@ -7753,7 +7790,7 @@ const App = () => {
                                     onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setEditingBudget(false); }}
                                   />
                                 ) : (
-                                  <p className="text-[14px] font-black text-slate-400 tabular-nums">₩{MAX_BUDGET.toLocaleString()}</p>
+                                  <p className="text-[14px] font-black text-slate-700 tabular-nums">₩{budgetSummary.total.toLocaleString()} / ₩{MAX_BUDGET.toLocaleString()}</p>
                                 )}
                               </div>
                             </div>
@@ -7768,7 +7805,7 @@ const App = () => {
                             <button
                               type="button"
                               onClick={() => setHeroSummaryExpanded(v => !v)}
-                              className="mt-4 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-[10px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors flex items-center gap-1.5"
+                              className="mt-4 w-full sm:w-[340px] justify-center px-4 py-3 rounded-2xl border border-slate-200 bg-white text-[11px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors flex items-center gap-1.5"
                             >
                               여행 요약 확장
                               <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />

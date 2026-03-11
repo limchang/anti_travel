@@ -46,6 +46,17 @@
 
 > 새 작업은 위에 추가 — 최신순 정렬
 
+### 🟩 완료 · #176 · 웹 푸시(FCM) 도입 및 업데이트 알림 기반 마련
+- [x] **요청 분석**: GitHub Pages 환경에서도 앱 업데이트 시 푸시 알림을 받을 수 있도록 구현 요청.
+  > 🕐 시작: `2026-03-11 16:15 · Antigravity`
+  > 📝 이해: Firebase Cloud Messaging(FCM)을 사용하여 PWA 환경에서 백그라운드/포그라운드 푸시 수신 환경 구축.
+- [x] **작업 계획**:
+  > ① `public/firebase-messaging-sw.js` (서비스 워커) 생성: 백그라운드 푸시 수신 로직 작성
+  > ② `src/firebase.js` 업데이트: `getMessaging` 초기화 및 익스포트
+  > ③ `App.jsx` 업데이트: `getToken`, `onMessage` 등을 통해 알림 권한 요청 및 포그라운드 수신 핸들러 추가
+  > 🕑 종료: `2026-03-11 16:30` | ✅ 완료
+  > 📝 수정 내역: 서비스 워커 등록 및 FCM 토큰 획득 로직 앱 통합 완료. 이제 외부에서 토큰으로 푸시 발송 가능.
+
 ### 🟩 완료 · #175 · AI 스마트 채우기 HTTP 405 에러 및 Fall-through 버그 수정
 - [x] **요청 분석**: 네이버 지도 링크 입력 시 "Groq 요청 거부 (HTTP 405)" 에러 발생. 분석 결과 1) Vercel API Route의 CORS/OPTIONS 핸들링 부재 2) 링크 분석 실패 시 무의미하게 Groq로 넘어가는 Fall-through 로직이 원인임.
   > 🕐 시작: `2026-03-11 16:55 · Antigravity`

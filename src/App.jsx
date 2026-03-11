@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars, react-hooks/exhaustive-deps, no-useless-escape */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { db, auth } from './firebase';
+import { db, auth, messaging } from './firebase';
+import { getToken, onMessage } from 'firebase/messaging';
 import updateLog from './update-log.json';
 import { collection, doc, getDoc, getDocs, setDoc, query, limit } from 'firebase/firestore';
 import { onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
@@ -2872,6 +2873,44 @@ const App = () => {
   useEffect(() => {
     safeLocalStorageSet('ai_smart_fill_config', JSON.stringify(sanitizeAiSmartFillConfigForStorage(aiSmartFillConfig)));
   }, [aiSmartFillConfig]);
+
+  // Web Push (FCM) 등록 및 수신 설정
+  useEffect(() => {
+    const setupPush = async () => {
+      try {
+        // 알림 권한 체크 및 요청
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          // FCM 토큰 획득 (VAPID Key는 Firebase 콘솔에서 확인 가능하나 기본값으로 시도)
+          const token = await getToken(messaging, {
+            vapidKey: 'BHz_T_119pUOfcByY9_S2Eon9N60MIs17h_7-gXWl4SNDmI7jX27p_R4pYw7XN-Q5O4V4e1_vX9_Y' // 임시 VAPID (추후 관리자용으로 교체 필요)
+          }).catch(e => console.warn('FCM Token error:', e));
+
+          if (token) {
+            console.log('FCM Token:', token);
+            // 필요시 Firestore의 유저 정보에 토큰 저장 (추후 발송용)
+            /* if (auth.currentUser && !auth.currentUser.isGuest) {
+               await setDoc(doc(db, `users/${auth.currentUser.uid}/private/push`), { token, updatedAt: new Date().toISOString() });
+            } */
+          }
+        }
+      } catch (error) {
+        console.error('Push setup failed:', error);
+      }
+    };
+
+    setupPush();
+
+    // 포그라운드 메시지 수신 (앱을 보고 있을 때)
+    const unsubscribe = onMessage(messaging, (payload) => {
+      console.log('Foreground Message received:', payload);
+      if (payload.notification) {
+        showInfoToast(`🔔 ${payload.notification.title}: ${payload.notification.body}`);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth.currentUser]);
 
   const [planVariantPicker, setPlanVariantPicker] = useState(null); // { dayIdx, pIdx, left, top }
   const conflictAlertKeyRef = useRef('');

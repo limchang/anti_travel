@@ -1,0 +1,18 @@
+
+D:\諛뷀깢?붾㈃\anti_planer\src\App.jsx
+     1:1    warning  Unused eslint-disable directive (no problems were reported from 'no-useless-escape')
+  2192:7    error    'submitAiLearningCase' is not defined                                                 no-undef
+  3146:65   error    'askPlanBMoveMode' is not defined                                                     no-undef
+  6967:67   error    'askPlanBMoveMode' is not defined                                                     no-undef
+  7745:103  error    'askPlanBMoveMode' is not defined                                                     no-undef
+  7951:117  error    'askPlanBMoveMode' is not defined                                                     no-undef
+  9359:159  error    'isEndTimeFixed' is not defined                                                       no-undef
+  9361:87   error    'isEndTimeFixed' is not defined                                                       no-undef
+  9365:118  error    'isEndTimeFixed' is not defined                                                       no-undef
+  9371:118  error    'isEndTimeFixed' is not defined                                                       no-undef
+  9375:46   error    'isEndTimeFixed' is not defined                                                       no-undef
+  9385:86   error    'toggleDurationFix' is not defined                                                    no-undef
+
+??12 problems (11 errors, 1 warning)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

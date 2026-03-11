@@ -1,0 +1,16 @@
+
+D:\諛뷀깢?붾㈃\anti_planer\src\App.jsx
+     1:1    warning  Unused eslint-disable directive (no problems were reported from 'no-useless-escape')
+  2192:7    error    'submitAiLearningCase' is not defined                                                 no-undef
+  7278:65   error    'getTimingConflictRecommendation' is not defined                                      no-undef
+  7398:43   error    'applyTimingConflictRecommendation' is not defined                                    no-undef
+  7653:41   error    'distanceSortedPlaces' is not defined                                                 no-undef
+  7661:41   error    'distanceSortedPlaces' is not defined                                                 no-undef
+  8502:72   error    'budgetSummary' is not defined                                                        no-undef
+  8621:113  error    'budgetSummary' is not defined                                                        no-undef
+  9637:48   error    'updateMemo' is not defined                                                           no-undef
+  9867:48   error    'updateMemo' is not defined                                                           no-undef
+
+??10 problems (9 errors, 1 warning)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

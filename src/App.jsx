@@ -8854,8 +8854,8 @@ const App = () => {
                                     const [endHour = '00', endMinute = '00'] = endLabel.split(':');
                                     return (
                                       <div className="flex flex-col items-center w-full h-full px-2 py-1.5 gap-1.5 animate-in fade-in duration-200 overflow-y-auto select-none">
-                                        <div className="flex items-start gap-1.5 w-full justify-center">
-                                          <div className="flex flex-col items-center gap-1.5">
+                                        <div className="flex items-stretch gap-1.5 w-full justify-center">
+                                          <div className="flex flex-col items-center justify-between gap-1.5 self-stretch">
                                             <div className="flex items-center gap-1 rounded-[18px] bg-white px-2 py-1 shadow-sm border border-slate-100">
                                               <div className="flex flex-col items-center">
                                                 <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, 1); }} className={`w-8 h-5 flex items-center justify-center rounded-md transition-colors ${btnTone}`}><ChevronUp size={12} /></button>
@@ -8897,7 +8897,7 @@ const App = () => {
                                               })}
                                             </div>
                                           </div>
-                                          <div className="flex w-[84px] flex-col gap-1.5">
+                                          <div className="flex w-[84px] flex-col justify-between gap-1.5 self-stretch">
                                             <button onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`flex items-center justify-center gap-1 py-2 rounded-[14px] text-[10px] font-black transition-all border ${p.isTimeFixed ? 'bg-[#3182F6] text-white border-[#3182F6] ring-2 ring-[#3182F6]/25 ring-offset-1' : 'bg-[#F2F4F6] text-slate-500 border-slate-200 hover:bg-slate-200'}`}>
                                               <Lock size={10} /> 시작 고정
                                             </button>
@@ -8916,7 +8916,7 @@ const App = () => {
                                               </span>
                                               <span className="text-[22px] font-black tabular-nums leading-none mt-1">{minutesToTime(p.duration || 0)}</span>
                                             </button>
-                                            <div className="grid grid-cols-2 gap-1.5">
+                                            <div className="grid grid-cols-2 gap-1.5 mt-auto">
                                               {[5, 10, 20, 30].map((value) => (
                                                 <button
                                                   key={value}

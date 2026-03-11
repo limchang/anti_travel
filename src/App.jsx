@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars, react-hooks/exhaustive-deps, no-useless-escape */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { db, auth } from './firebase';
-import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, query, limit } from 'firebase/firestore';
 import { onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import {
   Navigation, MessageSquare, LogOut, User as UserIcon,
@@ -1418,7 +1418,13 @@ const getCurrentUserBearerToken = async () => {
   }
 };
 
-const runGroqSmartFill = async ({ mode = 'all', text = '', imageDataUrl = '', aiSettings = DEFAULT_AI_SMART_FILL_CONFIG, inputType = 'text' } = {}) => {
+const runGroqSmartFill = async ({
+  mode = 'all', text = '', imageDataUrl = '',
+  aiSettings = DEFAULT_AI_SMART_FILL_CONFIG,
+  inputType = 'text',
+  instructions = '',
+  learningContext = []
+} = {}) => {
   const normalizedSettings = normalizeAiSmartFillConfig(aiSettings);
   const directApiKey = normalizedSettings.apiKey;
   const bearerToken = await getCurrentUserBearerToken();
@@ -1426,21 +1432,37 @@ const runGroqSmartFill = async ({ mode = 'all', text = '', imageDataUrl = '', ai
 
   if (directApiKey) {
     try {
+      const systemContent = [
+        'You extract Korean place information for a travel planner.',
+        'Return strict JSON only.',
+        `Current extraction mode: ${mode}.`,
+        'Schema: {"name":"","address":"","business":{"open":"","close":"","breakStart":"","breakEnd":"","lastOrder":"","entryClose":"","closedDays":[]},"menus":[{"name":"","price":0}]}',
+      ];
+
+      if (instructions) {
+        systemContent.push('\n### IMPORTANT GUIDELINES FROM USER:');
+        systemContent.push(instructions);
+      }
+
+      if (learningContext?.length > 0) {
+        systemContent.push('\n### LEARN FROM PREVIOUS CORRECTIONS (FEW-SHOT):');
+        learningContext.forEach((c, idx) => {
+          systemContent.push(`Case #${idx + 1}:`);
+          systemContent.push(`- AI originally extracted: ${JSON.stringify(c.aiResult)}`);
+          systemContent.push(`- USER CORRECTED TO (FOLLOW THIS PATTERN): ${JSON.stringify(c.userFixed)}`);
+        });
+      }
+
       const requestBody = {
         model: normalizedSettings.model,
-        temperature: 1,
+        temperature: 0.1, // 정밀도 향상을 위해 낮춤
         max_completion_tokens: 1024,
         top_p: 1,
         response_format: { type: 'json_object' },
         messages: [
           {
             role: 'system',
-            content: [
-              'You extract Korean place information for a travel planner.',
-              'Return strict JSON only.',
-              `Current extraction mode: ${mode}.`,
-              'Schema: {"name":"","address":"","business":{"open":"","close":"","breakStart":"","breakEnd":"","lastOrder":"","entryClose":"","closedDays":[]},"menus":[{"name":"","price":0}]}',
-            ].join('\n'),
+            content: systemContent.join('\n'),
           },
           {
             role: 'user',
@@ -1510,6 +1532,8 @@ const runGroqSmartFill = async ({ mode = 'all', text = '', imageDataUrl = '', ai
           apiKey: directApiKey,
           apiBaseUrl: normalizedSettings.apiBaseUrl,
           model: normalizedSettings.model,
+          instructions, // 프록시 서버에서도 지원할 수 있도록 전달
+          learningContext,
         }),
       });
       if (!res.ok) {
@@ -1540,6 +1564,20 @@ const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSe
     throw new Error('Image smart fill requires AI');
   }
 
+  // AI 학습 데이터 페치
+  let instructions = '';
+  let learningContext = [];
+  if (aiEnabled) {
+    try {
+      const [instrSnap, casesSnap] = await Promise.all([
+        getDoc(doc(db, 'meta', 'smartFillGuide')),
+        getDocs(query(collection(db, 'meta', 'aiLearning', 'cases'), limit(5)))
+      ]);
+      instructions = instrSnap.data()?.content || '';
+      learningContext = casesSnap.docs.map(d => d.data());
+    } catch (e) { console.warn("AI context fetch failed", e); }
+  }
+
   const normalizedSettings = normalizeAiSmartFillConfig(aiSettings);
   const mapUrl = extractNaverMapLink(payload.text);
   if (mapUrl) {
@@ -1560,6 +1598,8 @@ const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSe
               imageDataUrl: '',
               aiSettings: normalizedSettings,
               inputType: 'text',
+              instructions,
+              learningContext
             });
           } catch {
             return {
@@ -1611,6 +1651,8 @@ const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSe
         imageDataUrl: payload.imageDataUrl,
         aiSettings: normalizedSettings,
         inputType,
+        instructions,
+        learningContext
       });
     } catch (lastError) {
       if (!payload.text) throw lastError;
@@ -2377,8 +2419,8 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
     </div>
   );
 };
-const APP_VERSION = '1.2.7';
-const LAST_PUSH_TIME = '2026-03-11T15:43:00+09:00';
+const APP_VERSION = '1.2.8';
+const LAST_PUSH_TIME = '2026-03-11T15:47:00+09:00';
 
 // ── AI 자동입력 학습 지침 모달 ───────────────────────────────────────────────
 const GUIDE_DOC_PATH = 'meta/smartFillGuide';

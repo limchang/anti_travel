@@ -6835,9 +6835,6 @@ const App = () => {
                                       </span>
                                     )}
                                   </div>
-                                  <span className="truncate pl-0.5 text-[9px] font-bold text-slate-400">
-                                    {p.receipt?.address || p.address || '주소 정보 없음'}
-                                  </span>
                                 </div>
                               ) : (
                                 <>

@@ -43,6 +43,17 @@
 
 > 새 작업은 위에 추가 — 최신순 정렬
 
+### #126 · 하단 에러 토스트 중앙 고정 + 업데이트 노트 기능 제거
+- [x] **요청 분석**: 사용자는 하단 에러 토스트가 처음엔 오른쪽으로 치우쳤다가 가운데로 오는 흔들림을 없애고 싶어 하며, 동시에 업데이트 노트 팝업/기능은 일단 전부 제거하길 원함
+  > 🕐 시작: `2026-03-11 09:46 · Codex` → 🕑 종료: `09:46` | ✅ 기록 완료
+  > 📝 이해: 토스트는 `left-1/2 -translate-x-1/2`와 진입 애니메이션 조합으로 첫 프레임 위치가 흔들리는 상태로 보인다. 업데이트 노트는 단순 숨김이 아니라 상태, 자동표시 effect, 모달/패치카드 렌더까지 함께 제거해야 재등장하지 않음
+- [x] **작업 계획**: `src/App.jsx`에서 토스트 래퍼를 `fixed inset-x-0 flex justify-center` 구조로 바꿔 중앙 고정을 안정화하고, `UPDATE_NOTES`, `UPDATE_LOG`, `patchNotice`, `showUpdateNotes` 관련 상태/effect/렌더를 모두 제거한 뒤 `npm run build`로 검증
+  > 🕐 시작: `2026-03-11 09:46 · Codex` → 🕑 종료: `09:46` | ✅ 기록 완료
+  > 📝 계획: 기능을 남겨두고 숨기는 대신 실제 코드 경로를 정리한다. 토스트는 같은 클래스 구조를 `infoToast`, `undoToast`에 함께 적용해 일관성 있게 고정한다
+  > 🕐 시작: `2026-03-11 09:46 · Codex` → 🕑 종료: `09:48` | ✅ 완료
+  > 📝 수정: `src/App.jsx`의 하단 `infoToast`, `undoToast` 래퍼를 `fixed inset-x-0 bottom-20 flex justify-center px-4` 구조로 변경해 첫 프레임부터 중앙 고정되게 수정. 동시에 `APP_VERSION`, `UPDATE_NOTES`, `UPDATE_LOG`, `patchNotice`, `showUpdateNotes`와 관련 effect/모달/패치카드 렌더를 전부 제거해 업데이트 노트 기능을 완전히 비활성화
+  > 📝 검증: `npm run build` 성공, 관련 식별자 검색 결과 0건 확인
+
 ### #125 · AI 붙여넣기 Gemini 도구 호출 `application/json` 충돌 복구
 - [x] **요청 분석**: 새 장소 등록에서 AI 붙여넣기 시 `Groq 스마트 붙여넣기 실패: Tool use with a response mime type: 'application/json' is unsupported`가 뜨는 것은, 실제로는 Gemini 링크 분석 경로에서 `url_context/google_search` 도구와 `responseMimeType: application/json`을 같이 보내고 있기 때문임
   > 🕐 시작: `2026-03-11 09:25 · Codex` → 🕑 종료: `09:25` | ✅ 기록 완료

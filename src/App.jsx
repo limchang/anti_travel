@@ -12,27 +12,6 @@ import {
   ChevronsRight, Sparkles, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move
 } from 'lucide-react';
 
-const APP_VERSION = '1.0.0.0';
-const UPDATE_NOTES = [
-  {
-    version: '1.0.0.0',
-    date: '2026-03-10',
-    timeline: [
-      { time: '23:50', emoji: '⛴️', title: '선적 종료 시간 직접 편집 가능', desc: '선박 카드에서 선적 종료 시간을 클릭해 바로 수정할 수 있어요.' },
-      { time: '23:20', emoji: '⏱️', title: '이동 단위 공유', desc: '시작 시각 이동 단위(1/5/15/30분)를 선택하면 소요시간 스피너도 같은 단위로 맞춰져요.' },
-      { time: '23:05', emoji: '🔒', title: '잠금 버튼 테두리 강조', desc: '시간 셀 확장 시 잠금 상태일 때 색상 ring이 추가되어 한눈에 확인할 수 있어요.' },
-      { time: '22:40', emoji: '📱', title: '모바일 초기 사이드바 접힘', desc: '모바일 환경에서 앱 시작 시 양쪽 사이드바가 자동으로 닫혀 있어요.' },
-      { time: '22:15', emoji: '🗂️', title: '버전 시스템 도입', desc: '좌측 사이드바 하단에 버전 뱃지가 생겼어요. 눌러보시면 이 화면이 뜹니다 😄' },
-      { time: '21:55', emoji: '📌', title: '사이드바 밀어내기 방식', desc: '사이드바를 열면 일정 영역 위에 겹치지 않고 옆으로 밀어내요.' },
-      { time: '21:30', emoji: '🅱️', title: '플랜B 셀 너비 통일', desc: '플랜B가 달린 일정 카드가 일반 카드와 동일한 너비로 표시돼요.' },
-      { time: '20:50', emoji: '🚀', title: '플랜B 드래그 개선', desc: '플랜B가 달린 일정을 드래그하면 현재 보이는 일정만 이동해요.' },
-      { time: '20:10', emoji: '🗓️', title: '카테고리 위치 변경', desc: '등록된 일정 탭에서 카테고리 뱃지가 장소 이름 아래로 이동했어요.' },
-      { time: '19:30', emoji: '00:00', title: '시간 표기 통일', desc: '시작·소요시간 모두 00:00 형식으로 표기를 통일했어요.' },
-      { time: '18:45', emoji: '🔒', title: '소요시간 잠금 표시', desc: '소요시간이 잠긴 경우에만 주황색으로 강조돼요.' },
-    ],
-  },
-];
-
 class AppErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -845,17 +824,6 @@ const formatClosedDaysSummary = (closedDays = []) => {
   return labels.join(' ');
 };
 const EMPTY_BUSINESS = { open: '', close: '', breakStart: '', breakEnd: '', lastOrder: '', entryClose: '', closedDays: [] };
-const UPDATE_LOG = [
-  { date: '03.10', time: '14:50', tag: 'FEAT', msg: '편집 모드 도입 — 안전한 페이지 탐색 기능' },
-  { date: '03.10', time: '14:50', tag: 'UX', msg: '플랜B 일정 상시 강조 (주황색 글로우)' },
-  { date: '03.10', time: '14:35', tag: 'FEAT', msg: '여분 시간 자동 보정 (시간 조율)' },
-  { date: '03.10', time: '14:35', tag: 'UX', msg: '컴팩트 플로팅 상단 바 디자인 개선' },
-  { date: '03.09', time: '21:15', tag: 'UX', msg: '시간 셀 — 소요시간 시작·종료 사이 배치' },
-  { date: '03.09', time: '20:40', tag: 'UX', msg: '업데이트 노트 — 사이트 UI 스타일 팝업' },
-  { date: '03.09', time: '17:30', tag: 'UX', msg: '금액 요약 셀 — 카드 내 좌우 여백 추가' },
-  { date: '03.09', time: '16:50', tag: 'FIX', msg: '내장소 수정 모달 터치 드래그 충돌 수정' },
-  { date: '03.08', time: '19:10', tag: 'FEAT', msg: '영업 시간 에디터 통합 + 프리셋 버튼' },
-];
 // 터치 시 나오는 시간 컨트롤러 프리셋 (필드별)
 const BUSINESS_PRESETS = {
   open: ['06:00', '08:00', '09:00', '10:00', '10:30', '11:00'],
@@ -2454,7 +2422,6 @@ const App = () => {
   };
 
   const [loading, setLoading] = useState(true);
-  const [patchNotice, setPatchNotice] = useState(null); // { timeText }
   const [currentPlanId, setCurrentPlanId] = useState('main');
   const [planList, setPlanList] = useState([]);
   const emptyPlanRecoveryKeyRef = useRef('');
@@ -2466,7 +2433,6 @@ const App = () => {
   const [navDayMenu, setNavDayMenu] = useState(null); // { dayIdx, day }
   const [perplexityNearbyModal, setPerplexityNearbyModal] = useState({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' });
   const [showAiSettings, setShowAiSettings] = useState(false);
-  const [showUpdateNotes, setShowUpdateNotes] = useState(false);
   const [showPlanOptions, setShowPlanOptions] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [shareSettings, setShareSettings] = useState({ visibility: 'private', permission: 'viewer' });
@@ -3260,21 +3226,6 @@ const App = () => {
     if (!user || user.isGuest) return;
     void refreshPlanList(user.uid);
   }, [user, refreshPlanList]);
-
-  // patchNotice 자동 표시 (새로운 업데이트가 있을 때)
-  useEffect(() => {
-    if (loading || UPDATE_LOG.length === 0) return;
-    const latest = UPDATE_LOG[0];
-    const key = `patch_${latest.date}_${latest.time}`;
-    if (localStorage.getItem(key)) return;
-
-    setPatchNotice({ timeText: `${latest.date} ${latest.time}` });
-    localStorage.setItem(key, 'read');
-
-    // 6초 뒤 자동 닫기
-    const timer = setTimeout(() => setPatchNotice(null), 6000);
-    return () => clearTimeout(timer);
-  }, [loading]);
 
   useEffect(() => {
     if (!user || user.isGuest || loading || isSharedReadOnly) return;
@@ -7000,73 +6951,6 @@ const App = () => {
             </div>
           )}
 
-          {showUpdateNotes && (
-            <>
-              <div className="fixed inset-0 z-[280] bg-black/30 backdrop-blur-sm" onClick={() => setShowUpdateNotes(false)} />
-              <div className="fixed z-[281] inset-0 flex items-center justify-center p-4 pointer-events-none">
-                <div className="pointer-events-auto w-[min(600px,96vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_40px_100px_-30px_rgba(15,23,42,0.5)] overflow-hidden">
-                  {/* 헤더 */}
-                  <div className="bg-gradient-to-br from-[#3182F6] to-[#1a5fd4] px-6 pt-6 pb-5">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-white/60 text-[11px] font-black tracking-widest uppercase">Anti Planer</span>
-                        </div>
-                        <p className="text-white text-[26px] font-black leading-none">업데이트 노트</p>
-                        <div className="flex items-center gap-2 mt-2.5">
-                          <span className="bg-white/20 text-white text-[13px] font-black px-3 py-1 rounded-full">v{APP_VERSION}</span>
-                          <span className="text-white/60 text-[12px] font-bold">{UPDATE_NOTES[0]?.date}</span>
-                          <span className="bg-white/15 text-white/90 text-[10px] font-black px-2 py-0.5 rounded-full">최신</span>
-                        </div>
-                      </div>
-                      <button onClick={() => setShowUpdateNotes(false)} className="text-white/60 hover:text-white transition-colors mt-0.5"><X size={20} /></button>
-                    </div>
-                  </div>
-                  {/* 내용 — 타임라인 */}
-                  <div className="px-6 py-4 max-h-[55vh] overflow-y-auto">
-                    {UPDATE_NOTES.map((note, ni) => (
-                      <div key={note.version} className={ni > 0 ? 'mt-8 pt-6 border-t border-slate-100' : ''}>
-                        {ni > 0 && (
-                          <div className="flex items-center gap-2 mb-4">
-                            <span className="text-[12px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg">v{note.version}</span>
-                            <span className="text-[11px] text-slate-400 font-bold">{note.date}</span>
-                          </div>
-                        )}
-                        <div className="relative flex flex-col">
-                          {/* 세로 타임라인 줄 */}
-                          <div className="absolute left-[42px] top-3 bottom-3 w-px bg-slate-100" />
-                          {note.timeline.map((entry, i) => (
-                            <div key={i} className="flex gap-3 mb-4 last:mb-0">
-                              {/* 시간 뱃지 */}
-                              <div className="shrink-0 w-[42px] flex flex-col items-center pt-0.5">
-                                <span className="text-[11px] font-black text-[#3182F6] tabular-nums leading-none bg-blue-50 border border-blue-100 rounded-lg px-1.5 py-1 text-center w-full">{entry.time}</span>
-                              </div>
-                              {/* 도트 */}
-                              <div className="shrink-0 w-2 h-2 rounded-full bg-[#3182F6]/30 border-2 border-[#3182F6] mt-1.5 z-10" />
-                              {/* 내용 */}
-                              <div className="flex-1 min-w-0 pb-1">
-                                <div className="flex items-center gap-1.5 mb-0.5">
-                                  <span className="text-[14px] leading-none">{entry.emoji.length <= 2 ? entry.emoji : ''}</span>
-                                  <span className="text-[13px] font-black text-slate-800">{entry.title}</span>
-                                </div>
-                                <p className="text-[11px] text-slate-500 font-bold leading-relaxed">{entry.desc}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* 푸터 */}
-                  <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/60">
-                    <span className="text-[11px] text-slate-400 font-bold">문의 및 피드백은 언제든 환영해요 🙌</span>
-                    <button onClick={() => setShowUpdateNotes(false)} className="px-4 py-1.5 rounded-xl bg-[#3182F6] text-white text-[12px] font-black hover:bg-[#1a5fd4] transition-colors">확인</button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
           {/* ── 플랜B 변형 선택 팝업 (루트 레벨 fixed — overflow-hidden 카드 영향 없음) ── */}
           {planVariantPicker && (() => {
             const allDays = itinerary.days || [];
@@ -8992,7 +8876,7 @@ const App = () => {
           {/* 되돌리기 토스트 */}
           {
             infoToast && (
-              <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[320] animate-in">
+              <div className="fixed inset-x-0 bottom-20 z-[320] flex justify-center px-4">
                 <div className="flex items-center gap-3 bg-white/95 backdrop-blur-xl border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl shadow-[0_14px_30px_-16px_rgba(15,23,42,0.45)]">
                   <span className="text-[12px] font-bold">{infoToast}</span>
                   <button onClick={() => setInfoToast('')} className="text-slate-300 hover:text-slate-500 transition-colors ml-1">
@@ -9005,7 +8889,7 @@ const App = () => {
 
           {
             undoToast && (
-              <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[320] animate-in">
+              <div className="fixed inset-x-0 bottom-20 z-[320] flex justify-center px-4">
                 <div className="flex items-center gap-3 bg-white/95 backdrop-blur-xl border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl shadow-[0_14px_30px_-16px_rgba(15,23,42,0.45)]">
                   <span className="text-[12px] font-bold">{undoMessage || "변경 사항이 저장되었습니다"}</span>
                   <button
@@ -9022,41 +8906,6 @@ const App = () => {
             )
           }
 
-          {
-            patchNotice && (
-              <div className="fixed top-4 right-4 z-[220] animate-in slide-in-from-right-4 fade-in duration-500">
-                <div className="bg-white border border-slate-200 shadow-[0_20px_40px_-12px_rgba(15,23,42,0.18)] rounded-[20px] overflow-hidden w-[300px]">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-[#3182F6] animate-pulse" />
-                      <span className="text-[11px] font-black text-slate-700 tracking-widest uppercase">업데이트 노트</span>
-                    </div>
-                    <button onClick={() => setPatchNotice(null)} className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
-                      <X size={13} />
-                    </button>
-                  </div>
-                  <div className="px-4 py-3 flex flex-col gap-2.5">
-                    {UPDATE_LOG.map((entry, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <span className={`shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded-md leading-tight border ${entry.tag === 'FIX' ? 'bg-red-50 text-red-500 border-red-100' :
-                          entry.tag === 'FEAT' ? 'bg-blue-50 text-[#3182F6] border-blue-100' :
-                            'bg-emerald-50 text-emerald-600 border-emerald-100'
-                          }`}>{entry.tag}</span>
-                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                          <span className="text-[11px] font-bold text-slate-700 leading-tight">{entry.msg}</span>
-                          <span className="text-[9px] font-bold text-slate-400 tabular-nums">03.{entry.date.split('.')[1]} · {entry.time}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="px-4 py-2 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between">
-                    <span className="text-[9px] font-bold text-slate-400 tabular-nums">{patchNotice.timeText} 적용</span>
-                    <span className="text-[9px] font-black text-[#3182F6]">anti_planer</span>
-                  </div>
-                </div>
-              </div>
-            )
-          }
 
           {
             draggingFromTimeline && (

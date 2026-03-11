@@ -8796,7 +8796,7 @@ const App = () => {
                                 ));
                               }}
                               className={`relative flex flex-col items-center justify-center gap-2 shrink-0 border-r border-slate-100 flex-none overflow-hidden transition-all duration-500 cursor-pointer group/tower ${timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx
-                                ? 'w-[176px] sm:w-[188px] bg-slate-50/80 shadow-inner'
+                                ? 'w-[164px] sm:w-[174px] bg-slate-50/80 shadow-inner'
                                 : (isCompactTimeline ? 'w-[30%] py-3' : 'w-[30%] py-4 px-2 sm:px-3')
                                 } ${p.isTimeFixed ? 'bg-blue-50/40' : 'bg-transparent'}`}
                             >
@@ -8853,19 +8853,19 @@ const App = () => {
                                     const endLabel = minutesToTime(endMins);
                                     const [endHour = '00', endMinute = '00'] = endLabel.split(':');
                                     return (
-                                      <div className="flex flex-col items-center w-full h-full px-1.5 py-1.5 gap-1 animate-in fade-in duration-200 overflow-y-auto select-none">
-                                        <div className="flex items-stretch gap-1 w-full justify-center">
-                                          <div className="flex flex-col items-center justify-between gap-1 self-stretch">
-                                            <div className="flex items-center gap-0.5 rounded-[18px] bg-white px-1.5 py-1 shadow-sm border border-slate-100">
+                                      <div className="flex flex-col items-center w-full h-full px-1 py-1 gap-0.5 animate-in fade-in duration-200 overflow-y-auto select-none">
+                                        <div className="flex items-stretch gap-0.5 w-full justify-center">
+                                          <div className="flex flex-col items-center justify-between gap-0.5 self-stretch">
+                                            <div className="flex items-center gap-0 rounded-[16px] bg-white px-1 py-0.5 shadow-sm border border-slate-100">
                                               <div className="flex flex-col items-center">
                                                 <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, 1); }} className={`w-8 h-5 flex items-center justify-center rounded-md transition-colors ${btnTone}`}><ChevronUp size={12} /></button>
-                                                <span className={`text-[30px] font-black tracking-tight tabular-nums leading-none w-[34px] text-center ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{String(isNaN(hour) ? 0 : hour).padStart(2, '0')}</span>
+                                                <span className={`text-[30px] font-black tracking-tight tabular-nums leading-none w-[30px] text-center ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{String(isNaN(hour) ? 0 : hour).padStart(2, '0')}</span>
                                                 <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, -1); }} className={`w-8 h-5 flex items-center justify-center rounded-md transition-colors ${btnTone}`}><ChevronDown size={12} /></button>
                                               </div>
                                               <span className={`text-[20px] font-black pb-0.5 ${p.isTimeFixed ? 'text-[#3182F6]/20' : 'text-slate-200'}`}>:</span>
                                               <div className="flex flex-col items-center">
                                                 <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, mStep); }} className={`w-8 h-5 flex items-center justify-center rounded-md transition-colors ${btnTone}`}><ChevronUp size={12} /></button>
-                                                <span className={`text-[30px] font-black tracking-tight tabular-nums leading-none w-[34px] text-center ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{String(isNaN(minute) ? 0 : minute).padStart(2, '0')}</span>
+                                                <span className={`text-[30px] font-black tracking-tight tabular-nums leading-none w-[30px] text-center ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{String(isNaN(minute) ? 0 : minute).padStart(2, '0')}</span>
                                                 <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, -mStep); }} className={`w-8 h-5 flex items-center justify-center rounded-md transition-colors ${btnTone}`}><ChevronDown size={12} /></button>
                                               </div>
                                             </div>
@@ -8874,18 +8874,18 @@ const App = () => {
                                                 e.stopPropagation();
                                                 setDurationValue(dIdx, pIdx, 0);
                                               }}
-                                              className="flex items-center gap-0.5 rounded-[18px] bg-white px-1.5 py-1 shadow-sm border border-slate-100 hover:bg-slate-50 transition-colors"
+                                              className="flex items-center gap-0 rounded-[16px] bg-white px-1 py-0.5 shadow-sm border border-slate-100 hover:bg-slate-50 transition-colors"
                                               title="끝 시각 기준을 시작과 동일하게 초기화"
                                             >
                                               <div className="flex flex-col items-center">
                                                 <button onClick={(e) => { e.stopPropagation(); updatePlanEndTime(dIdx, pIdx, 60); }} className="w-8 h-5 flex items-center justify-center rounded-md text-slate-400 hover:text-[#3182F6] hover:bg-blue-50"><ChevronUp size={12} /></button>
-                                                <span className="text-[30px] font-black tracking-tight tabular-nums leading-none w-[34px] text-center text-slate-700">{endHour}</span>
+                                                <span className="text-[30px] font-black tracking-tight tabular-nums leading-none w-[30px] text-center text-slate-700">{endHour}</span>
                                                 <button onClick={(e) => { e.stopPropagation(); updatePlanEndTime(dIdx, pIdx, -60); }} className="w-8 h-5 flex items-center justify-center rounded-md text-slate-400 hover:text-[#3182F6] hover:bg-blue-50"><ChevronDown size={12} /></button>
                                               </div>
                                               <span className="text-[20px] font-black pb-0.5 text-slate-200">:</span>
                                               <div className="flex flex-col items-center">
                                                 <button onClick={(e) => { e.stopPropagation(); updatePlanEndTime(dIdx, pIdx, mStep); }} className="w-8 h-5 flex items-center justify-center rounded-md text-slate-400 hover:text-[#3182F6] hover:bg-blue-50"><ChevronUp size={12} /></button>
-                                                <span className="text-[30px] font-black tracking-tight tabular-nums leading-none w-[34px] text-center text-slate-700">{endMinute}</span>
+                                                <span className="text-[30px] font-black tracking-tight tabular-nums leading-none w-[30px] text-center text-slate-700">{endMinute}</span>
                                                 <button onClick={(e) => { e.stopPropagation(); updatePlanEndTime(dIdx, pIdx, -mStep); }} className="w-8 h-5 flex items-center justify-center rounded-md text-slate-400 hover:text-[#3182F6] hover:bg-blue-50"><ChevronDown size={12} /></button>
                                               </div>
                                             </button>
@@ -8897,7 +8897,7 @@ const App = () => {
                                               })}
                                             </div>
                                           </div>
-                                          <div className="flex w-[82px] flex-col justify-between gap-1 self-stretch">
+                                          <div className="flex w-[76px] flex-col justify-between gap-0.5 self-stretch">
                                             <button onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`flex items-center justify-center gap-1 py-2 rounded-[14px] text-[10px] font-black transition-all border ${p.isTimeFixed ? 'bg-[#3182F6] text-white border-[#3182F6] ring-2 ring-[#3182F6]/25 ring-offset-1' : 'bg-[#F2F4F6] text-slate-500 border-slate-200 hover:bg-slate-200'}`}>
                                               <Lock size={10} /> 시작 고정
                                             </button>

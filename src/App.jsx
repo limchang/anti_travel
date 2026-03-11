@@ -107,12 +107,6 @@ const TAG_OPTIONS = [
   { label: '재방문', value: 'revisit' },
 ];
 
-const LODGE_SEGMENT_PRESETS = [
-  { type: 'stay', label: '숙박', duration: 480 },
-  { type: 'rest', label: '휴식', duration: 60 },
-  { type: 'swim', label: '물놀이', duration: 90 },
-];
-
 const TAG_VALUES = new Set(TAG_OPTIONS.map(t => t.value));
 const MODIFIER_TAGS = new Set(['revisit', 'new']);
 const normalizeTagOrder = (input) => {
@@ -2460,7 +2454,6 @@ const App = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [draggingFromLibrary, setDraggingFromLibrary] = useState(null);
   const [placeFilterTags, setPlaceFilterTags] = useState([]); // 내 장소 필터링 태그
-  const [editingLodgeSegmentTarget, setEditingLodgeSegmentTarget] = useState(null);
   const [showPlaceCategoryManager, setShowPlaceCategoryManager] = useState(false);
   const [draggingFromTimeline, setDraggingFromTimeline] = useState(null);
   const [isDroppingOnDeleteZone, setIsDroppingOnDeleteZone] = useState(false);
@@ -3051,7 +3044,6 @@ const App = () => {
 
   const getLodgeSegmentDragItems = (place = {}) => {
     if (!isLodgeStay(place?.types)) return [];
-    const customSegments = ensureLodgeStaySegments({ ...place, staySegments: deepClone(place.staySegments || []) }).staySegments || [];
     const defaultStayDuration = (() => {
       const checkin = timeToMinutes(place.time || '15:00');
       const checkout = timeToMinutes(place.lodgeCheckoutTime || '11:00');
@@ -3060,7 +3052,8 @@ const App = () => {
     })();
     return [
       { id: `${place.id}_stay`, type: 'stay', label: '숙박', time: normalizeLodgeSegmentTime(place.time, '15:00'), duration: defaultStayDuration, note: '' },
-      ...customSegments,
+      { id: `${place.id}_rest`, type: 'rest', label: '휴식', time: normalizeLodgeSegmentTime(place.time, '15:00'), duration: 60, note: '' },
+      { id: `${place.id}_swim`, type: 'swim', label: '물놀이', time: normalizeLodgeSegmentTime(place.time, '15:00'), duration: 90, note: '' },
     ];
   };
 
@@ -3069,8 +3062,8 @@ const App = () => {
     const baseTypes = segmentType === 'stay'
       ? ['lodge']
       : segmentType === 'swim'
-      ? ['experience']
-      : ['rest'];
+      ? ['lodge', 'experience']
+      : ['lodge', 'rest'];
     return normalizeLibraryPlace({
       id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: `${place.name || place.activity || '숙소'} · ${segment.label || '내부 일정'}`,
@@ -3797,11 +3790,23 @@ const App = () => {
     return normalized.includes('lodge') && !hasRestTag(normalized);
   };
   const isStandaloneLodgeSegmentItem = (item = {}) => (
-    isLodgeStay(item?.types)
-    && !!item?.renderAsSegmentCard
+    !!item?.renderAsSegmentCard
+    && !!item?.sourceLodgeId
     && !!String(item?.segmentType || '').trim()
   );
   const isFullLodgeStayItem = (item = {}) => isLodgeStay(item?.types) && !isStandaloneLodgeSegmentItem(item);
+  const isOvernightBusinessWindow = (business = {}) => {
+    if (!business?.open || !business?.close) return false;
+    return timeToMinutes(business.close) <= timeToMinutes(business.open);
+  };
+  const isMinuteWithinBusinessWindow = (minute, business = {}) => {
+    if (!business?.open && !business?.close) return true;
+    const openMinute = business?.open ? timeToMinutes(business.open) : null;
+    const closeMinute = business?.close ? timeToMinutes(business.close) : null;
+    if (openMinute === null || closeMinute === null) return true;
+    if (!isOvernightBusinessWindow(business)) return minute >= openMinute && minute < closeMinute;
+    return minute >= openMinute || minute < closeMinute;
+  };
   const openNaverPlaceSearch = (name = '', address = '') => {
     const query = `${String(name || '').trim()} ${String(address || '').trim()}`.trim();
     if (!query) return;
@@ -3940,8 +3945,17 @@ const App = () => {
     if (!hasBiz) return '';
     const start = timeToMinutes(item?.time || '00:00');
     const end = start + (item?.duration || 60);
-    if (business.open && start < timeToMinutes(business.open)) return `운영 시작 전 방문 (${business.open} 이후 권장)`;
-    if (business.close && start >= timeToMinutes(business.close)) return `운영 종료 후 방문 (${business.close} 이전 권장)`;
+    if (business.open && business.close) {
+      if (!isMinuteWithinBusinessWindow(start, business)) {
+        if (!isOvernightBusinessWindow(business) && start < timeToMinutes(business.open)) {
+          return `운영 시작 전 방문 (${business.open} 이후 권장)`;
+        }
+        return `운영 종료 후 방문 (${business.close} 이전 권장)`;
+      }
+    } else {
+      if (business.open && start < timeToMinutes(business.open)) return `운영 시작 전 방문 (${business.open} 이후 권장)`;
+      if (business.close && start >= timeToMinutes(business.close)) return `운영 종료 후 방문 (${business.close} 이전 권장)`;
+    }
     if (business.lastOrder && start > timeToMinutes(business.lastOrder)) return `라스트오더 이후 방문 (${business.lastOrder} 이전 권장)`;
     if (business.entryClose && start > timeToMinutes(business.entryClose)) return `입장 마감 이후 방문 (${business.entryClose} 이전 권장)`;
     if (business.breakStart && business.breakEnd) {
@@ -3996,8 +4010,15 @@ const App = () => {
       const label = WEEKDAY_OPTIONS.find(d => d.value === weekday)?.label || weekday;
       return `${label} 휴무`;
     }
-    if (business.open && estimatedMins < timeToMinutes(business.open)) return `영업 전 (${business.open}~)`;
-    if (business.close && estimatedMins >= timeToMinutes(business.close)) return `영업 종료`;
+    if (business.open && business.close) {
+      if (!isMinuteWithinBusinessWindow(estimatedMins, business)) {
+        if (!isOvernightBusinessWindow(business) && estimatedMins < timeToMinutes(business.open)) return `영업 전 (${business.open}~)`;
+        return '영업 종료';
+      }
+    } else {
+      if (business.open && estimatedMins < timeToMinutes(business.open)) return `영업 전 (${business.open}~)`;
+      if (business.close && estimatedMins >= timeToMinutes(business.close)) return `영업 종료`;
+    }
     if (business.lastOrder && estimatedMins > timeToMinutes(business.lastOrder)) return `라스트오더 이후`;
     if (business.entryClose && estimatedMins > timeToMinutes(business.entryClose)) return `입장 마감 이후`;
     if (business.breakStart && business.breakEnd) {
@@ -5565,26 +5586,6 @@ const App = () => {
     }));
   };
 
-  const addPlaceLodgeStaySegment = (place, preset = null) => {
-    if (!place || !isLodgeStay(place.types)) return;
-    const normalizedPlace = ensureLodgeStaySegments({ ...place, staySegments: deepClone(place.staySegments || []) });
-    const source = preset || LODGE_SEGMENT_PRESETS[0];
-    const baseTime = normalizedPlace.staySegments.length
-      ? normalizedPlace.staySegments[normalizedPlace.staySegments.length - 1].time
-      : (place.time || '18:00');
-    const nextSegment = {
-      id: `stay_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      type: source?.type || 'rest',
-      label: source?.label || '휴식',
-      time: normalizeLodgeSegmentTime(baseTime, place.time || '18:00'),
-      duration: Math.max(10, Number(source?.duration) || 60),
-      note: '',
-    };
-    updatePlace(place.id, { staySegments: [...normalizedPlace.staySegments, nextSegment] });
-    setEditingLodgeSegmentTarget({ placeId: place.id, segmentId: nextSegment.id });
-    setLastAction(`'${place.name || '숙소'}'에 '${nextSegment.label}' 세그먼트를 추가했습니다.`);
-  };
-
   const toLibraryPlaceFromPlanItem = (item) => {
     if (!item) return null;
     const receipt = deepClone(item.receipt || { address: '', items: [] });
@@ -7079,9 +7080,6 @@ const App = () => {
                           ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-[#3182F6]/20 bg-blue-50 text-[#3182F6]">영업중</span>
                           : null;
                       const lodgeSegmentItems = isLodgeStay(place.types) ? getLodgeSegmentDragItems(place) : [];
-                      const editingLodgeSegment = editingLodgeSegmentTarget?.placeId === place.id
-                        ? lodgeSegmentItems.find((segment) => segment.id === editingLodgeSegmentTarget.segmentId)
-                        : null;
 
                       return (
                         <PlaceLibraryCard
@@ -7146,8 +7144,6 @@ const App = () => {
                               <div className="mt-2 flex flex-wrap gap-1.5">
                                 {lodgeSegmentItems.map((segment) => {
                                   const segmentPayload = buildLibraryPayloadFromLodgeSegment(place, segment);
-                                  const isSelected = editingLodgeSegmentTarget?.placeId === place.id && editingLodgeSegmentTarget?.segmentId === segment.id;
-                                  const isSystemSegment = segment.type === 'checkin' || segment.type === 'checkout';
                                   return (
                                     <div
                                       key={segment.id}
@@ -7175,27 +7171,8 @@ const App = () => {
                                         });
                                       }}
                                       onDragEnd={() => { desktopDragRef.current = null; setDraggingFromLibrary(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false); }}
-                                      onClick={() => {
-                                        if (isSystemSegment) return;
-                                        setEditingLodgeSegmentTarget((prev) => (
-                                          prev?.placeId === place.id && prev?.segmentId === segment.id
-                                            ? null
-                                            : { placeId: place.id, segmentId: segment.id }
-                                        ));
-                                      }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                          e.preventDefault();
-                                          if (isSystemSegment) return;
-                                          setEditingLodgeSegmentTarget((prev) => (
-                                            prev?.placeId === place.id && prev?.segmentId === segment.id
-                                              ? null
-                                              : { placeId: place.id, segmentId: segment.id }
-                                          ));
-                                        }
-                                      }}
-                                      className={`inline-flex items-center gap-1.5 rounded-xl border px-2 py-1 text-[10px] font-black transition-colors cursor-grab active:cursor-grabbing select-none ${segment.type === 'stay' ? 'border-violet-200 bg-violet-50 text-violet-600' : isSelected ? 'border-indigo-300 bg-indigo-100 text-indigo-700' : 'border-slate-200 bg-white text-slate-500 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600'}`}
-                                      title="클릭하여 수정, 드래그하여 일정에 복제"
+                                      className={`inline-flex items-center gap-1.5 rounded-xl border px-2 py-1 text-[10px] font-black transition-colors cursor-grab active:cursor-grabbing select-none ${segment.type === 'stay' ? 'border-violet-200 bg-violet-50 text-violet-600' : segment.type === 'swim' ? 'border-cyan-200 bg-cyan-50 text-cyan-600' : 'border-slate-200 bg-white text-slate-500 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600'}`}
+                                      title="드래그하여 일정에 복제"
                                     >
                                       <GripVertical size={10} className="shrink-0" />
                                       <span>{segment.label}</span>
@@ -7203,62 +7180,6 @@ const App = () => {
                                   );
                                 })}
                               </div>
-                              <div className="mt-2 flex flex-wrap gap-1.5">
-                                {LODGE_SEGMENT_PRESETS.map((preset) => (
-                                  <button
-                                    key={`${place.id}_add_${preset.type}`}
-                                    type="button"
-                                    onClick={() => addPlaceLodgeStaySegment(place, preset)}
-                                    className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                                  >
-                                    + {preset.label}
-                                  </button>
-                                ))}
-                              </div>
-                              {editingLodgeSegment && editingLodgeSegment.type !== 'stay' && (
-                                <div className="mt-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2">
-                                  <div className="grid grid-cols-[70px_1fr_70px_auto] gap-2 items-center">
-                                    <input
-                                      value={editingLodgeSegment.time || ''}
-                                      onChange={(e) => updatePlace(place.id, {
-                                        staySegments: (place.staySegments || []).map((segment) => segment.id === editingLodgeSegment.id ? { ...segment, time: e.target.value } : segment),
-                                      })}
-                                      className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-[11px] font-black text-slate-700 tabular-nums outline-none focus:border-indigo-300 focus:bg-white"
-                                    />
-                                    <div className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 flex items-center text-[11px] font-black text-slate-700">
-                                      {editingLodgeSegment.label}
-                                    </div>
-                                    <input
-                                      type="number"
-                                      min="10"
-                                      step="10"
-                                      value={editingLodgeSegment.duration || 60}
-                                      onChange={(e) => updatePlace(place.id, {
-                                        staySegments: (place.staySegments || []).map((segment) => segment.id === editingLodgeSegment.id ? { ...segment, duration: e.target.value } : segment),
-                                      })}
-                                      className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-[11px] font-black text-slate-700 tabular-nums outline-none focus:border-indigo-300 focus:bg-white"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        updatePlace(place.id, { staySegments: (place.staySegments || []).filter((segment) => segment.id !== editingLodgeSegment.id) });
-                                        setEditingLodgeSegmentTarget(null);
-                                      }}
-                                      className="w-8 h-8 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center"
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
-                                  </div>
-                                  <input
-                                    value={editingLodgeSegment.note || ''}
-                                    onChange={(e) => updatePlace(place.id, {
-                                      staySegments: (place.staySegments || []).map((segment) => segment.id === editingLodgeSegment.id ? { ...segment, note: e.target.value } : segment),
-                                    })}
-                                    className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white"
-                                    placeholder="예: 수영 후 샤워, 잠깐 낮잠"
-                                  />
-                                </div>
-                              )}
                             </div>
                           ) : null}
                           onEdit={(e) => {

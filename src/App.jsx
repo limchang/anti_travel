@@ -3033,7 +3033,7 @@ const App = () => {
   };
 
   const ensureLodgeStaySegments = (item = {}) => {
-    if (!isLodgeStay(item?.types)) return item;
+    if (!isFullLodgeStayItem(item)) return item;
     const fallbackTime = String(item.time || '18:00').trim() || '18:00';
     item.staySegments = (Array.isArray(item.staySegments) ? item.staySegments : [])
       .filter(Boolean)
@@ -3079,12 +3079,13 @@ const App = () => {
       memo: segment.note || '',
       duration: Math.max(10, Number(segment.duration) || 30),
       time: normalizeLodgeSegmentTime(segment.time, place.time || '15:00'),
-      receipt: deepClone(place.receipt || { address: place.address || '', items: [] }),
+      receipt: { address: place.address || place.receipt?.address || '', items: [] },
       business: normalizeBusiness(place.business || {}),
       revisit: typeof place.revisit === 'boolean' ? place.revisit : false,
       sourceLodgeId: place.id,
       sourceLodgeName: place.name || place.activity || '숙소',
       segmentType,
+      renderAsSegmentCard: true,
     });
   };
 
@@ -3132,12 +3133,18 @@ const App = () => {
     place.address = String(place.address || place.receipt.address || '').trim();
     place.receipt.address = place.address || place.receipt.address || '';
     place.price = place.receipt.items.reduce((sum, item) => sum + (item.selected === false ? 0 : getMenuLineTotal(item)), 0);
-    if (isLodgeStay(place.types)) ensureLodgeStaySegments(place);
+    if (isFullLodgeStayItem(place)) ensureLodgeStaySegments(place);
     return place;
   };
 
   const createTimelineItem = ({ dayNumber = 1, baseTime = '09:00', types = ['place'], placeData = null, fallbackLabel = '장소' }) => {
     const normalizedTypes = normalizeTagOrder(placeData?.types || types);
+    const isStandaloneLodgeSegment = isStandaloneLodgeSegmentItem({
+      types: normalizedTypes,
+      renderAsSegmentCard: placeData?.renderAsSegmentCard,
+      segmentType: placeData?.segmentType,
+    });
+    const isFullLodge = isLodgeStay(normalizedTypes) && !isStandaloneLodgeSegment;
     const receiptPayload = placeData?.receipt
       ? deepClone(placeData.receipt)
       : { address: placeData?.address || '', items: [] };
@@ -3165,10 +3172,14 @@ const App = () => {
       receipt: receiptPayload,
       memo: placeData?.memo || '',
       isTimeFixed: isShip ? true : !!placeData?.isTimeFixed,
-      staySegments: isLodgeStay(normalizedTypes) ? deepClone(placeData?.staySegments || []) : undefined,
+      staySegments: isFullLodge ? deepClone(placeData?.staySegments || []) : undefined,
+      sourceLodgeId: placeData?.sourceLodgeId,
+      sourceLodgeName: placeData?.sourceLodgeName,
+      segmentType: placeData?.segmentType,
+      renderAsSegmentCard: !!placeData?.renderAsSegmentCard,
     };
     if (isShip) ensureShipItemDefaults(nextItem, dayNumber);
-    if (isLodgeStay(normalizedTypes)) ensureLodgeStaySegments(nextItem);
+    if (isFullLodge) ensureLodgeStaySegments(nextItem);
     return nextItem;
   };
 
@@ -3785,6 +3796,12 @@ const App = () => {
     const normalized = (Array.isArray(types) ? types : []).map(v => String(v || '').trim().toLowerCase());
     return normalized.includes('lodge') && !hasRestTag(normalized);
   };
+  const isStandaloneLodgeSegmentItem = (item = {}) => (
+    isLodgeStay(item?.types)
+    && !!item?.renderAsSegmentCard
+    && !!String(item?.segmentType || '').trim()
+  );
+  const isFullLodgeStayItem = (item = {}) => isLodgeStay(item?.types) && !isStandaloneLodgeSegmentItem(item);
   const openNaverPlaceSearch = (name = '', address = '') => {
     const query = `${String(name || '').trim()} ${String(address || '').trim()}`.trim();
     if (!query) return;
@@ -4211,7 +4228,7 @@ const App = () => {
       const mainItems = day.plan.filter(p => p.type !== 'backup');
       if (!mainItems.length) continue;
       const lastMain = mainItems[mainItems.length - 1];
-      if (!isLodgeStay(lastMain.types)) continue;
+      if (!isFullLodgeStayItem(lastMain)) continue;
       const nextDay = days[dIdx + 1];
       const nextMain = (nextDay?.plan || []).filter(p => p.type !== 'backup');
       if (!nextMain.length) continue;
@@ -4254,7 +4271,7 @@ const App = () => {
 
       let lastLodgeIdx = -1;
       day.plan.forEach((item, idx) => {
-        if (item?.type !== 'backup' && isLodgeStay(item?.types)) lastLodgeIdx = idx;
+        if (item?.type !== 'backup' && isFullLodgeStayItem(item)) lastLodgeIdx = idx;
       });
       if (lastLodgeIdx === -1) continue;
       if (lastLodgeIdx >= day.plan.length - 1) continue;
@@ -4286,7 +4303,7 @@ const App = () => {
       if (!Array.isArray(day?.plan) || day.plan.length === 0) continue;
       let lastLodgeIdx = -1;
       day.plan.forEach((item, idx) => {
-        if (item?.type !== 'backup' && isLodgeStay(item?.types)) lastLodgeIdx = idx;
+        if (item?.type !== 'backup' && isFullLodgeStayItem(item)) lastLodgeIdx = idx;
       });
       if (lastLodgeIdx !== -1 && lastLodgeIdx < day.plan.length - 1) return true;
     }
@@ -6624,7 +6641,7 @@ const App = () => {
                             {renderNavInsertTarget(dNavIdx, -1, `nav-insert-start-${d.day}`)}
                             {navPlanItems.map((p, pIdx, arr) => {
                         const isActive = activeItemId === p.id;
-                        const isLastLodge = isLodgeStay(p.types) && pIdx === arr.length - 1;
+                        const isLastLodge = isFullLodgeStayItem(p) && pIdx === arr.length - 1;
                         const isFixedTimeNav = !!p.isTimeFixed || p.types?.includes('ship');
                         const navConflictRecommendation = getTimingConflictRecommendation(dNavIdx, pIdx);
                         const navBizWarn = !p.types?.includes('ship') ? getBusinessWarning(p, dNavIdx) : '';
@@ -7917,7 +7934,7 @@ const App = () => {
               ? visitDayStats.reduce((sum, stat) => sum + stat.travelMinutes, 0) / activeVisitDayCount
               : 0;
             const lodgingConstraintCount = (itinerary.days || []).reduce((sum, day) => sum + ((day.plan || []).reduce((daySum, item) => {
-              if (!item || item.type === 'backup' || !isLodgeStay(item.types)) return daySum;
+              if (!item || item.type === 'backup' || !isFullLodgeStayItem(item)) return daySum;
               return daySum
                 + (item.isTimeFixed ? 1 : 0)
                 + (item.lodgeCheckoutFixed && item.lodgeCheckoutTime ? 1 : 0);
@@ -8253,7 +8270,8 @@ const App = () => {
             <React.Fragment>
               {itinerary.days?.map((d, dIdx) => d.plan?.map((p, pIdx) => {
                 const isExpanded = expandedId === p.id;
-                const isLodge = isLodgeStay(p.types);
+                const isLodge = isFullLodgeStayItem(p);
+                const isLodgeSegmentCard = isStandaloneLodgeSegmentItem(p);
                 const isShip = p.types?.includes('ship');
                 const planBCount = p.alternatives?.length || 0;
                 const hasPlanB = planBCount > 0;
@@ -9054,7 +9072,7 @@ const App = () => {
                         </div>
 
                         {/* 🟩 하단 영수증 영역 (전체 너비 100%) */}
-                        {p.type !== 'backup' && (
+                        {p.type !== 'backup' && !isLodgeSegmentCard && (
                           <div className="mx-3 mb-3 mt-1.5 rounded-2xl overflow-hidden border border-slate-100/80" onClick={(e) => e.stopPropagation()}>
                             {isExpanded && (
                               <div className="px-5 py-4 animate-in slide-in-from-top-1 bg-white border-b border-slate-100 border-dashed">

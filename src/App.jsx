@@ -5476,6 +5476,11 @@ const App = () => {
       default: return <div key={type} className={`${style} text-slate-500 bg-slate-100 border-slate-200`}>{getCustomTagLabel(type)}</div>;
     }
   };
+  const getPreferredNavCategory = (types = [], fallbackType = 'place') => {
+    const normalized = Array.isArray(types) ? types.filter(Boolean) : [];
+    const preferred = normalized.find((type) => !MODIFIER_TAGS.has(type) && type !== 'lodge' && type !== 'place');
+    return preferred || normalized.find((type) => !MODIFIER_TAGS.has(type)) || fallbackType;
+  };
 
   const addPlace = (formData) => {
     const { name = '', types = ['place'], menus = [], address = '', memo = '', revisit = false, business = EMPTY_BUSINESS } = formData || {};
@@ -6763,7 +6768,8 @@ const App = () => {
                             {renderNavInsertTarget(dNavIdx, -1, `nav-insert-start-${d.day}`)}
                             {navPlanItems.map((p, pIdx, arr) => {
                         const isActive = activeItemId === p.id;
-                        const isLastLodge = isFullLodgeStayItem(p) && pIdx === arr.length - 1;
+                        const isLastLodge = (isFullLodgeStayItem(p) || (Array.isArray(p.types) && p.types.includes('stay'))) && pIdx === arr.length - 1;
+                        const navPrimaryType = getPreferredNavCategory(p.types, p.type || 'place');
                         const isFixedTimeNav = !!p.isTimeFixed || p.types?.includes('ship');
                         const navConflictRecommendation = getTimingConflictRecommendation(dNavIdx, pIdx);
                         const navBizWarn = !p.types?.includes('ship') ? getBusinessWarning(p, dNavIdx) : '';
@@ -6821,7 +6827,7 @@ const App = () => {
                               {isLastLodge ? (
                                 <div className="w-full min-w-0 flex flex-col gap-1">
                                   <div className="flex items-center gap-1.5 min-w-0">
-                                    <div className={`shrink-0 scale-[0.88] origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-70'}`}>{getCategoryBadge((p.types?.[0]) || p.type || 'place')}</div>
+                                    <div className={`shrink-0 scale-[0.88] origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-70'}`}>{getCategoryBadge(navPrimaryType)}</div>
                                     <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-600' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-500'}`}>{p.activity}</span>
                                     {(p.alternatives?.length || 0) > 0 && (
                                       <span className={`shrink-0 text-[8px] leading-none px-1.5 py-0.5 rounded border ${isActive ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-amber-500 bg-amber-50/70 border-amber-200/80'}`}>
@@ -6837,7 +6843,7 @@ const App = () => {
                                 <>
                               <span className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6]' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}>{p.time || '--:--'}</span>
                               <div className="min-w-0 flex items-center gap-1.5 overflow-hidden">
-                                <div className={`shrink-0 scale-[0.88] origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-70'}`}>{getCategoryBadge((p.types?.[0]) || p.type || 'place')}</div>
+                                <div className={`shrink-0 scale-[0.88] origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-70'}`}>{getCategoryBadge(navPrimaryType)}</div>
                                 <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-600' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-500'}`}>{p.activity}</span>
                                 {(p.alternatives?.length || 0) > 0 && (
                                   <span className={`shrink-0 text-[8px] leading-none px-1.5 py-0.5 rounded border ${isActive ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-amber-500 bg-amber-50/70 border-amber-200/80'}`}>
@@ -8526,16 +8532,8 @@ const App = () => {
                       {/* 🟢 카드 본체 (내부 라운드 셀) */}
                       <div className={`relative w-full flex flex-col border overflow-hidden rounded-[24px] transition-all duration-300 ${stateStyles}`}>
                         {/* Plan B 페이지 인디케이터 */}
-                        <button
-                          type="button"
-                          className="absolute top-2 right-2 z-20 flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white/95 text-slate-400 shadow-[0_8px_16px_-10px_rgba(15,23,42,0.35)] transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
-                          onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}
-                          title="일정 수정"
-                        >
-                          <Edit3 size={12} />
-                        </button>
                         {hasPlanB && (
-                          <div className="absolute top-2 right-11 z-20 pointer-events-none">
+                          <div className="absolute top-2 right-2 z-20 pointer-events-none">
                             <button
                               type="button"
                               data-plan-picker-trigger="true"
@@ -8711,6 +8709,14 @@ const App = () => {
                                     onClick={(e) => e.stopPropagation()}
                                     placeholder="페리 이름"
                                   />
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}
+                                    className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                    title="일정 수정"
+                                  >
+                                    <Pencil size={9} />
+                                  </button>
                                 </div>
                                 {/* 루트 배너 */}
                                 <div className="flex items-center bg-gradient-to-r from-blue-700 to-cyan-600 rounded-xl px-3 py-2 gap-2">
@@ -8836,6 +8842,14 @@ const App = () => {
                                     onClick={(e) => e.stopPropagation()}
                                     placeholder="숙소 이름"
                                   />
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}
+                                    className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                    title="일정 수정"
+                                  >
+                                    <Pencil size={9} />
+                                  </button>
                                 </div>
                                 <button
                                   type="button"
@@ -9002,28 +9016,38 @@ const App = () => {
                                   placeholder="일정 이름 입력 후 Enter"
                                   onContainerClick={(e) => e.stopPropagation()}
                                   actionButton={
-                                    <button
-                                      type="button"
-                                      onClick={async () => {
-                                        try {
-                                          const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
-                                          const parsed = result?.parsed;
-                                          if (parsed) {
-                                            if (parsed.name) updateActivityName(dIdx, pIdx, parsed.name);
-                                            if (parsed.address) updateAddress(dIdx, pIdx, parsed.address);
-                                            if (parsed.business) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
-                                            if (parsed.menus.length) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: parsed.menus.filter(Boolean) }; return d; });
-                                            showInfoToast(isAiSmartFillSource(result?.source) ? `AI 스마트 전체 붙여넣기 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '스마트 전체 붙여넣기 완료');
-                                          } else {
-                                            showInfoToast(useAiSmartFill ? 'Groq가 붙여넣을 내용을 찾지 못했습니다.' : '붙여넣을 내용을 찾지 못했습니다.');
-                                          }
-                                        } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
-                                      }}
-                                      className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                                      title="스마트 전체 붙여넣기"
-                                    >
-                                      <Sparkles size={9} />
-                                    </button>
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}
+                                        className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                        title="일정 수정"
+                                      >
+                                        <Pencil size={9} />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          try {
+                                            const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                                            const parsed = result?.parsed;
+                                            if (parsed) {
+                                              if (parsed.name) updateActivityName(dIdx, pIdx, parsed.name);
+                                              if (parsed.address) updateAddress(dIdx, pIdx, parsed.address);
+                                              if (parsed.business) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
+                                              if (parsed.menus.length) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: parsed.menus.filter(Boolean) }; return d; });
+                                              showInfoToast(isAiSmartFillSource(result?.source) ? `AI 스마트 전체 붙여넣기 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '스마트 전체 붙여넣기 완료');
+                                            } else {
+                                              showInfoToast(useAiSmartFill ? 'Groq가 붙여넣을 내용을 찾지 못했습니다.' : '붙여넣을 내용을 찾지 못했습니다.');
+                                            }
+                                          } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
+                                        }}
+                                        className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                        title="스마트 전체 붙여넣기"
+                                      >
+                                        <Sparkles size={9} />
+                                      </button>
+                                    </div>
                                   }
                                 />
 

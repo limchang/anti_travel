@@ -1698,6 +1698,18 @@ const BusinessHoursEditor = ({ business = {}, onChange, focusField = null }) => 
     return `${left} - ${right}`;
   };
   const closingSummaryValue = (a, b, empty = '--:--') => a || b || empty;
+  const renderSummarySlots = (left, right, accentClass, singleValue = false) => {
+    if (singleValue) {
+      return <div className={`text-center text-[13px] font-black tracking-tight tabular-nums ${accentClass}`}>{left}</div>;
+    }
+    return (
+      <div className={`grid grid-cols-[minmax(0,1fr)_14px_minmax(0,1fr)] items-center justify-items-center text-[13px] font-black tracking-tight tabular-nums ${accentClass}`}>
+        <span className="w-[52px] text-center">{left}</span>
+        <span className="text-slate-300">-</span>
+        <span className="w-[52px] text-center">{right}</span>
+      </div>
+    );
+  };
   const isRowActive = (row) => row.fields.some((field) => activeField === field.key);
   const renderEditableValue = (row, field) => {
     const isActive = activeField === field.key;
@@ -1765,11 +1777,9 @@ const BusinessHoursEditor = ({ business = {}, onChange, focusField = null }) => 
                   {renderEditableValue(row, row.fields[1])}
                 </>
               ) : (
-                <div className={`text-center text-[13px] font-black tracking-tight tabular-nums ${row.accent}`}>
-                  {row.key === 'closing'
-                    ? closingSummaryValue(biz[row.fields[0].key], biz[row.fields[1].key])
-                    : summaryValue(biz[row.fields[0].key], biz[row.fields[1].key])}
-                </div>
+                row.key === 'closing'
+                  ? renderSummarySlots(closingSummaryValue(biz[row.fields[0].key], biz[row.fields[1].key]), '', row.accent, true)
+                  : renderSummarySlots(biz[row.fields[0].key] || '--:--', biz[row.fields[1].key] || '--:--', row.accent)
               )}
             </div>
           </div>

@@ -6501,6 +6501,10 @@ const App = () => {
 
   const isOwnerSession = !!user && !user.isGuest && (!sharedSource?.ownerId || sharedSource.ownerId === user.uid);
   const canManagePlan = isOwnerSession && !isSharedReadOnly;
+  const tripDays = (tripStartDate && tripEndDate)
+    ? Math.max(1, Math.floor((new Date(tripEndDate).setHours(0, 0, 0, 0) - new Date(tripStartDate).setHours(0, 0, 0, 0)) / 86400000) + 1)
+    : (itinerary.days?.length || 0);
+  const tripNights = Math.max(0, tripDays - 1);
 
   // 터치 드래그 드롭 실행 — 매 렌더마다 최신 클로저로 갱신
   executeTouchDropRef.current = (x, y) => {
@@ -8151,10 +8155,6 @@ const App = () => {
 
           {/* ── 여행 헤더 카드 ── */}
           {(() => {
-            const tripDays = (tripStartDate && tripEndDate)
-              ? Math.max(1, Math.round((new Date(tripEndDate) - new Date(tripStartDate)) / 86400000) + 1)
-              : (itinerary.days?.length || 0);
-            const tripNights = Math.max(0, tripDays - 1);
             const usedPct = MAX_BUDGET > 0 ? Math.min(100, Math.round((budgetSummary.total / MAX_BUDGET) * 100)) : 0;
             const allSummaryItems = (itinerary.days || []).flatMap((day) => (day.plan || []))
               .filter((item) => item && item.type !== 'backup' && !item.types?.includes('ship'));

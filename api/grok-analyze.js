@@ -137,21 +137,37 @@ export default async function handler(req, res) {
   }
   userContent.push({
     type: 'text',
-    text: 'Respond with JSON only.',
+    text: 'Respond with strict JSON only. Do not include markdown blocks or extra text.',
   });
 
+  // Multimodal을 지원하지 않는 모델이나 특정 가이드 준수를 위해 텍스트만 있는 경우 문자열로 변환
+  let finalMessages;
+  if (!imageDataUrl && text) {
+    finalMessages = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Clipboard text:\n${text}\n\nRespond with strict JSON ONLY.` },
+    ];
+  } else {
+    finalMessages = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userContent },
+    ];
+  }
+
   try {
+    const isScoutModel = /llama-4-scout/i.test(model);
     const requestBody = {
       model,
       temperature: 1,
       max_completion_tokens: 1024,
       top_p: 1,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userContent },
-      ],
+      messages: finalMessages,
     };
+
+    // Scout 모델이거나 특정 모델의 경우 response_format이 거부 사유가 될 수 있으므로 조건부 적용
+    if (!isScoutModel) {
+      requestBody.response_format = { type: 'json_object' };
+    }
     if (shouldUseReasoningEffort(model)) {
       requestBody.reasoning_effort = 'default';
     }

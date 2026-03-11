@@ -242,20 +242,35 @@ exports.groqAnalyze = onRequest({ invoker: 'public' }, async (req, res) => {
   const userContent = [];
   if (text) userContent.push({ type: 'text', text: `Clipboard text:\n${text}` });
   if (imageDataUrl) userContent.push({ type: 'image_url', image_url: { url: imageDataUrl } });
-  userContent.push({ type: 'text', text: 'Respond with JSON only.' });
+  userContent.push({ type: 'text', text: 'Respond with strict JSON only. Do not include markdown blocks or extra text.' });
+
+  // Multimodal 미지원 모델 호환성을 위한 메시지 구조 처리
+  let finalMessages;
+  if (!imageDataUrl && text) {
+    finalMessages = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Clipboard text:\n${text}\n\nRespond with strict JSON ONLY.` },
+    ];
+  } else {
+    finalMessages = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userContent },
+    ];
+  }
 
   try {
+    const isScoutModel = /llama-4-scout/i.test(model);
     const requestBody = {
       model,
       temperature: 1,
       max_completion_tokens: 1024,
       top_p: 1,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userContent },
-      ],
+      messages: finalMessages,
     };
+
+    if (!isScoutModel) {
+      requestBody.response_format = { type: 'json_object' };
+    }
     if (shouldUseReasoningEffort(model)) requestBody.reasoning_effort = 'default';
 
     const response = await fetch(apiBaseUrl.replace(/\/$/, '') + '/chat/completions', {

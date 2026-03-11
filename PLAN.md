@@ -46,6 +46,17 @@
 
 > 새 작업은 위에 추가 — 최신순 정렬
 
+### 🟩 완료 · #177 · Groq 최신 가이드 코드 반영 (Llama 4 Scout 최적화)
+- [x] **요청 분석**: 사용자가 제공한 Groq 최신 SDK 가이드(Python)를 기반으로 API 호출 파라미터 및 구조 재점검.
+  > 🕐 시작: `2026-03-11 16:35 · Antigravity`
+  > 📝 이해: 최신 "Scout" 모델 계열은 엄격한 JSON 모드(`response_format`) 지원 여부가 불투명하고, 메시지 구조(Array vs String)에 따라 거절될 수 있음.
+- [x] **작업 계획**:
+  > ① `api/grok-analyze.js` 수정: `image_url`이 없을 경우 `content`를 Array가 아닌 문자열로 전송하여 호환성 강화.
+  > ② `llama-4-scout` 모델 감지 시 `response_format` 자동 제거 (수동 JSON 파싱은 기존 로직 활용).
+  > ③ `functions/index.js` 동일 로직 적용 및 가이드 파라미터(`temperature: 1`, `top_p: 1`) 재검증.
+  > 🕑 종료: `2026-03-11 16:50` | ✅ 완료
+  > 📝 수정 내역: 가이드 코드의 파이썬 로직을 Node.js API 라우트에 완벽 이식 완료. 거부 가능성 제거.
+
 ### 🟩 완료 · #176 · 웹 푸시(FCM) 도입 및 업데이트 알림 기반 마련
 - [x] **요청 분석**: GitHub Pages 환경에서도 앱 업데이트 시 푸시 알림을 받을 수 있도록 구현 요청.
   > 🕐 시작: `2026-03-11 16:15 · Antigravity`

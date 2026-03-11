@@ -4874,9 +4874,25 @@ const App = () => {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   };
 
+  const parseFerryDurationInput = (raw) => {
+    const value = String(raw || '').trim();
+    if (!value) return null;
+    if (value.includes(':')) {
+      const [hourRaw, minuteRaw = '0'] = value.split(':');
+      const hours = Number.parseInt(String(hourRaw).trim(), 10);
+      const minutes = Number.parseInt(String(minuteRaw).trim(), 10);
+      if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || minutes < 0 || minutes > 59) return null;
+      return (hours * 60) + minutes;
+    }
+    const minutesOnly = Number.parseInt(value.replace(/[^\d]/g, ''), 10);
+    if (!Number.isFinite(minutesOnly) || minutesOnly < 0) return null;
+    return minutesOnly;
+  };
+
   const commitFerryTime = (dayIdx, pIdx, field, raw) => {
     if (field === 'sail') {
-      const mins = Math.max(30, parseInt(raw, 10) || 30);
+      const parsedDuration = parseFerryDurationInput(raw);
+      const mins = Math.max(30, parsedDuration || 30);
       setItinerary(prev => {
         const nextData = JSON.parse(JSON.stringify(prev));
         const item = nextData.days[dayIdx].plan[pIdx];
@@ -8372,17 +8388,17 @@ const App = () => {
                                   const sailInput = editKey('sail')
                                     ? <input
                                       autoFocus
-                                      defaultValue={sailDur}
+                                      defaultValue={minutesToTime(sailDur)}
                                       onFocus={(e) => e.target.select()}
-                                      className="w-10 text-center text-[13px] font-black text-blue-800 bg-white border-b-2 border-[#3182F6] outline-none tabular-nums rounded"
+                                      className="w-14 text-center text-[13px] font-black text-blue-800 bg-white border-b-2 border-[#3182F6] outline-none tabular-nums rounded"
                                       onBlur={(e) => commitFerryTime(dIdx, pIdx, 'sail', e.target.value)}
                                       onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setFerryEditField(null); }}
                                       onClick={(e) => e.stopPropagation()}
-                                      placeholder="분"
+                                      placeholder="시:분/분"
                                     />
                                     : <span
                                       className="text-[13px] font-black text-blue-800 tabular-nums cursor-pointer"
-                                      title="클릭: 분 단위 입력"
+                                      title="클릭: 시:분 또는 분 입력"
                                       onClick={(e) => { e.stopPropagation(); setFerryEditField({ pId: p.id, field: 'sail' }); }}
                                     >{minutesToTime(sailDur)}</span>;
                                   return (

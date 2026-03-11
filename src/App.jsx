@@ -3798,6 +3798,28 @@ const App = () => {
     }
     return (item.receipt?.address || item.address || '').trim();
   };
+  const getRouteCacheKey = (fromAddress = '', toAddress = '') => `${String(fromAddress || '').trim()}|${String(toAddress || '').trim()}`;
+  const summarizeRouteFailureReason = (errorMessage = '') => {
+    const normalized = String(errorMessage || '').trim();
+    if (!normalized) return '경로실패';
+    if (normalized.includes('출발지 좌표')) return '출발지 찾기실패';
+    if (normalized.includes('도착지 좌표')) return '도착지 찾기실패';
+    if (normalized.includes('route unavailable') || normalized.includes('near-zero route')) return '경로없음';
+    return '주소확인';
+  };
+  const getRouteDistanceStatus = (prevItem, targetItem) => {
+    if (!prevItem) return '출발지없음';
+    if (!targetItem) return '도착지없음';
+    const fromAddress = getRouteAddress(prevItem, 'from');
+    const toAddress = getRouteAddress(targetItem, 'to');
+    if (!String(fromAddress || '').trim()) return '출발지없음';
+    if (!String(toAddress || '').trim()) return '도착지없음';
+    if (String(fromAddress).includes('없음') || String(toAddress).includes('없음')) return '주소확인';
+    const cacheKey = getRouteCacheKey(fromAddress, toAddress);
+    const cachedRoute = routeCache[cacheKey];
+    if (cachedRoute?.failed) return cachedRoute.failedReason || '경로실패';
+    return formatDistanceText(targetItem?.distance);
+  };
   const shouldAutoCalculateRoute = (dayIdx, targetIdx) => {
     let prevItem;
     if (targetIdx === 0) {
@@ -5793,7 +5815,7 @@ const App = () => {
       return;
     }
 
-    const key = `${addr1}|${addr2}`;
+    const key = getRouteCacheKey(addr1, addr2);
     const cachedRoute = routeCache[key];
     const failedRecently = cachedRoute?.failedAt && (Date.now() - cachedRoute.failedAt < routeRetryCooldownMs);
     if (!forceRefresh && cachedRoute && !cachedRoute.failed) {
@@ -5897,8 +5919,9 @@ const App = () => {
       }
     } catch (e) {
       console.error(e);
-      setRouteCache(prev => ({ ...prev, [key]: { failed: true, failedAt: Date.now() } }));
-      if (!silent) setLastAction("자동차 경로 계산 실패: 주소 확인 후 다시 시도해주세요.");
+      const failedReason = summarizeRouteFailureReason(e?.message || e);
+      setRouteCache(prev => ({ ...prev, [key]: { failed: true, failedAt: Date.now(), failedReason } }));
+      if (!silent) setLastAction(`자동차 경로 계산 실패: ${failedReason}`);
     } finally {
       setCalculatingRouteId(null);
     }
@@ -8303,7 +8326,7 @@ const App = () => {
                             }}
                           >
                             {busy ? <LoaderCircle size={11} className="animate-spin" /> : <MapIcon size={11} />}
-                            <span>{busy ? '계산중' : formatDistanceText(p.distance)}</span>
+                            <span>{busy ? '계산중' : getRouteDistanceStatus(prevItem, p)}</span>
                           </button>
 
                           {/* 자동경로 */}
@@ -9206,8 +9229,8 @@ const App = () => {
                                     }}
                                   >
                                     {busy ? <LoaderCircle size={11} className="animate-spin" /> : <MapIcon size={11} />}
-                                    <span>{busy ? '계산중' : formatDistanceText(nextItem.distance)}</span>
-                                </button>
+                                    <span>{busy ? '계산중' : getRouteDistanceStatus(p, nextItem)}</span>
+                                  </button>
                                 {/* 자동경로 */}
                                       <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-[#3182F6]/10 text-[#3182F6] border-[#3182F6]/30' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
                                         {busy ? <LoaderCircle size={10} className="animate-spin" /> : <Sparkles size={10} />}

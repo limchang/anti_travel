@@ -2475,6 +2475,8 @@ const App = () => {
   }, []);
   const [editingPlaceId, setEditingPlaceId] = useState(null);
   const [editPlaceDraft, setEditPlaceDraft] = useState(null);
+  const [editingPlanTarget, setEditingPlanTarget] = useState(null);
+  const [editPlanDraft, setEditPlanDraft] = useState(null);
   const [useAiSmartFill, setUseAiSmartFill] = useState(() => safeLocalStorageGet('use_ai_smart_fill', 'true') === 'true');
   const [aiSmartFillConfig, setAiSmartFillConfig] = useState(() => {
     const raw = safeLocalStorageGet('ai_smart_fill_config', '');
@@ -4892,6 +4894,53 @@ const App = () => {
     setLastAction("태그를 업데이트했습니다.");
   };
 
+  const openPlanEditModal = (dayIdx, pIdx, overrides = {}) => {
+    const item = itinerary.days?.[dayIdx]?.plan?.[pIdx];
+    if (!item || item.type === 'backup') return;
+    const receipt = deepClone(item.receipt || { address: item.address || '', items: [] });
+    if (!Array.isArray(receipt.items)) receipt.items = [];
+    receipt.address = receipt.address || item.address || '';
+    setEditingPlanTarget({ dayIdx, pIdx });
+    setEditPlanDraft(createPlaceEditorDraft({
+      id: item.id,
+      name: item.activity || item.name || '',
+      address: receipt.address,
+      memo: item.memo || '',
+      types: item.types || ['place'],
+      business: normalizeBusiness(item.business || {}),
+      receipt,
+    }, overrides));
+  };
+
+  const savePlanEditDraft = (nextDraft) => {
+    if (!editingPlanTarget) return;
+    const { dayIdx, pIdx } = editingPlanTarget;
+    const receipt = deepClone(nextDraft.receipt || { address: nextDraft.address || '', items: [] });
+    if (!Array.isArray(receipt.items)) receipt.items = [];
+    receipt.address = nextDraft.address || receipt.address || '';
+    setItinerary((prev) => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
+      if (!item) return prev;
+      item.activity = nextDraft.name || item.activity || '';
+      item.types = normalizeTagOrder(nextDraft.types || item.types || ['place']);
+      item.business = normalizeBusiness(nextDraft.business || {});
+      item.memo = nextDraft.memo || '';
+      item.receipt = receipt;
+      item.price = isStandaloneLodgeSegmentItem(item)
+        ? 0
+        : receipt.items.reduce((sum, menu) => sum + (menu?.selected === false ? 0 : getMenuLineTotal(menu)), 0);
+      if (item.types.includes('ship')) {
+        ensureShipItemDefaults(item, nextData.days?.[dayIdx]?.day || dayIdx + 1);
+      }
+      nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
+      recalculateLodgeDurations(nextData.days);
+      return nextData;
+    });
+    setEditingPlanTarget(null);
+    setEditPlanDraft(null);
+  };
+
   const removeCustomCategoryEverywhere = (tagValue) => {
     const targetTag = String(tagValue || '').trim();
     if (!targetTag) return;
@@ -6410,30 +6459,16 @@ const App = () => {
     return (
       <div className="z-10 flex w-full items-center justify-center">
         <div
-          className={`relative my-2 flex items-center rounded-full border bg-slate-50/95 px-3 py-1.5 transition-all duration-200 ${
+          className={`relative my-2 flex min-h-[56px] w-full max-w-[320px] items-center justify-center rounded-[20px] border bg-slate-50/98 px-4 py-2.5 transition-all duration-200 ${
             isDropHere
               ? warnText
-                ? 'border-orange-300 bg-orange-50 text-orange-600 shadow-[0_18px_34px_-16px_rgba(251,146,60,0.65)] ring-2 ring-orange-200/70 scale-[1.06]'
-                : 'border-[#3182F6]/30 bg-blue-50 text-[#3182F6] shadow-[0_18px_34px_-16px_rgba(49,130,246,0.55)] ring-2 ring-blue-200/70 scale-[1.06]'
-              : 'border-slate-300 text-slate-400 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.45)]'
+                ? 'border-orange-300 bg-orange-50 text-orange-600 shadow-[0_22px_38px_-18px_rgba(251,146,60,0.55)] ring-2 ring-orange-200/70 scale-[1.02]'
+                : 'border-[#3182F6]/30 bg-blue-50 text-[#3182F6] shadow-[0_22px_38px_-18px_rgba(49,130,246,0.45)] ring-2 ring-blue-200/70 scale-[1.02]'
+              : 'border-slate-300 text-slate-400 shadow-[0_10px_18px_-14px_rgba(15,23,42,0.35)]'
           }`}
         >
-          <div className="flex items-center gap-1.5 opacity-0 pointer-events-none select-none">
-            <div className="flex items-center gap-1.5">
-              <span className="flex h-5 w-5 rounded-lg bg-slate-100" />
-              <span className="min-w-[3rem] text-xs font-black">00분</span>
-              <span className="flex h-5 w-5 rounded-lg bg-slate-100" />
-            </div>
-            <span className="flex items-center gap-1 text-xs font-bold">0.0km</span>
-            <span className="flex h-6 w-6 rounded-lg border border-slate-200" />
-            <div className="mx-0.5 h-4 w-px bg-slate-200" />
-            <div className="flex items-center gap-1.5">
-              <span className="flex h-5 w-5 rounded-lg bg-slate-100" />
-              <span className="min-w-[3rem] text-xs font-black">00분</span>
-              <span className="flex h-5 w-5 rounded-lg bg-slate-100" />
-            </div>
-          </div>
-          <span className={`absolute inset-0 flex items-center justify-center leading-none tracking-tight ${isDropHere ? 'text-[12px] font-black' : 'text-[12px] font-black'}`}>
+          <span className="absolute inset-x-5 top-1/2 h-px -translate-y-1/2 border-t border-dashed border-current/20" />
+          <span className="relative flex items-center justify-center rounded-full bg-white/90 px-3 py-1 text-[12px] font-black leading-none tracking-tight shadow-sm">
             {isDropHere ? activeText : '드래그해주세요.'}
           </span>
         </div>
@@ -6532,6 +6567,76 @@ const App = () => {
                   const parsed = result?.parsed;
                   if (parsed?.menus?.length) {
                     setEditPlaceDraft((current) => createPlaceEditorDraft({
+                      ...current,
+                      receipt: { ...(current.receipt || {}), items: parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) },
+                    }));
+                    showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 메뉴 스마트 입력 완료' : '메뉴 정보만 스마트 입력 완료');
+                  } else {
+                    showInfoToast(useAiSmartFill ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.');
+                  }
+                } catch (error) {
+                  showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));
+                }
+              }}
+            />
+          </div>
+        </div>
+      )}
+      {editingPlanTarget && editPlanDraft && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => { setEditingPlanTarget(null); setEditPlanDraft(null); }}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="relative max-h-[85vh] overflow-y-auto no-scrollbar px-3" onClick={(e) => e.stopPropagation()}>
+            <PlaceEditorCard
+              className="w-[min(440px,calc(100vw-24px))] mx-auto"
+              title="일정 수정"
+              draft={editPlanDraft}
+              onDraftChange={setEditPlanDraft}
+              onSubmit={savePlanEditDraft}
+              onCancel={() => { setEditingPlanTarget(null); setEditPlanDraft(null); }}
+              submitLabel="저장"
+              cancelLabel="취소"
+              regionHint={tripRegion}
+              forceReceiptExpanded
+              onSmartPasteAll={async () => {
+                try {
+                  const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                  const parsed = result?.parsed;
+                  if (parsed) {
+                    setEditPlanDraft((current) => createPlaceEditorDraft({
+                      ...current,
+                      name: parsed.name || current.name,
+                      address: parsed.address || current.address,
+                      business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
+                      receipt: { ...(current.receipt || {}), items: parsed.menus.length ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) : (current.receipt?.items || []) },
+                    }));
+                    showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 스마트 전체 붙여넣기 완료' : '스마트 전체 붙여넣기 완료');
+                  } else {
+                    showInfoToast(useAiSmartFill ? 'Groq가 붙여넣을 내용을 찾지 못했습니다.' : '붙여넣을 내용을 찾지 못했습니다.');
+                  }
+                } catch (error) {
+                  showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));
+                }
+              }}
+              onSmartPasteBusiness={async () => {
+                try {
+                  const result = await analyzeClipboardSmartFill({ mode: 'business', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                  const parsed = result?.parsed;
+                  if (parsed?.business) {
+                    setEditPlanDraft((current) => createPlaceEditorDraft({ ...current, business: normalizeBusiness(parsed.business) }));
+                    showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 영업정보 스마트 입력 완료' : '영업 정보만 스마트 입력 완료');
+                  } else {
+                    showInfoToast(useAiSmartFill ? 'Groq가 영업 정보를 찾지 못했습니다.' : '영업 정보를 찾지 못했습니다.');
+                  }
+                } catch (error) {
+                  showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));
+                }
+              }}
+              onSmartPasteMenus={async () => {
+                try {
+                  const result = await analyzeClipboardSmartFill({ mode: 'menus', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                  const parsed = result?.parsed;
+                  if (parsed?.menus?.length) {
+                    setEditPlanDraft((current) => createPlaceEditorDraft({
                       ...current,
                       receipt: { ...(current.receipt || {}), items: parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) },
                     }));
@@ -8207,14 +8312,17 @@ const App = () => {
                 const isExpanded = expandedId === p.id;
                 const isLodge = isFullLodgeStayItem(p);
                 const isLodgeSegmentCard = isStandaloneLodgeSegmentItem(p);
+                const isLodgeTagged = Array.isArray(p.types) && p.types.includes('lodge');
                 const isShip = p.types?.includes('ship');
+                const isTimelineDragActive = Boolean(draggingFromLibrary || draggingFromTimeline);
                 const planBCount = p.alternatives?.length || 0;
                 const hasPlanB = planBCount > 0;
                 const planPos = viewingPlanIdx[p.id] ?? 0;
                 const isPlanBActive = planPos > 0;
 
                 let stateStyles;
-                if (isLodge) stateStyles = 'bg-white border-slate-300 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.08)]';
+                if (isLodge) stateStyles = 'bg-[linear-gradient(180deg,rgba(244,245,255,0.98),rgba(255,255,255,0.98))] border-indigo-200 shadow-[0_12px_28px_-12px_rgba(99,102,241,0.18)]';
+                else if (isLodgeTagged) stateStyles = 'bg-[linear-gradient(180deg,rgba(249,245,255,0.98),rgba(255,255,255,0.98))] border-violet-200 shadow-[0_12px_28px_-14px_rgba(139,92,246,0.16)]';
                 else if (isShip) stateStyles = 'bg-[#f4fafe] border-blue-200 shadow-[0_8px_24px_-8px_rgba(29,78,216,0.12)]';
                 else if (hasPlanB) stateStyles = 'bg-white border-amber-300 shadow-[0_10px_30px_-8px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/20';
                 else if (p.isTimeFixed) stateStyles = 'bg-white border-[#3182F6]/40 shadow-[0_10px_30px_-8px_rgba(49,130,246,0.12)] ring-1 ring-[#3182F6]/15';
@@ -8246,6 +8354,28 @@ const App = () => {
                   >
                     {d.day > 1 && pIdx === 0 && (
                       <div className="flex items-center justify-center py-3 w-full">
+                        {isTimelineDragActive ? (
+                          <div
+                            className="z-10 w-full pt-2 pb-1 cursor-copy"
+                            data-droptarget={`day-start-${dIdx}`}
+                            onDragOver={(e) => { e.preventDefault(); setDropTarget({ dayIdx: dIdx, insertAfterPIdx: -1 }); }}
+                            onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null); }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              if (draggingFromLibrary) {
+                                addNewItem(dIdx, -1, draggingFromLibrary.types, draggingFromLibrary);
+                                if (!isDragCopy) removePlace(draggingFromLibrary.id);
+                              } else if (draggingFromTimeline?.altIdx !== undefined) {
+                                insertAlternativeToTimeline(dIdx, -1, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
+                              } else if (draggingFromTimeline && draggingFromTimeline.altIdx === undefined) {
+                                moveTimelineItem(dIdx, -1, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, isDragCopy, draggingFromTimeline.planPos);
+                              }
+                              setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropTarget(null); setIsDragCopy(false);
+                            }}
+                          >
+                            {renderTimelineInsertGuide(dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === -1, dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === -1 && draggingFromLibrary ? getDropWarning(draggingFromLibrary, dIdx, -1) : '')}
+                          </div>
+                        ) : (
                         <div className="flex items-center bg-slate-50/95 px-3 py-1.5 rounded-full border border-slate-300 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.45)] gap-2">
                           {(() => {
                             const rid = `${dIdx}_${pIdx}`;
@@ -8308,6 +8438,7 @@ const App = () => {
                             );
                           })()}
                         </div>
+                        )}
                       </div>
                     )}
 
@@ -8366,7 +8497,7 @@ const App = () => {
                           setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropOnItem(null); setIsDragCopy(false);
                         }
                       }}
-                      className={`relative z-10 w-full flex flex-col transition-all group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''}`}
+                      className={`relative z-10 w-full flex flex-col transition-all group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${isTimelineDragActive ? 'scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''}`}
                       onClick={() => toggleReceipt(p.id)}
                     >
 
@@ -8374,8 +8505,16 @@ const App = () => {
                       {/* 🟢 카드 본체 (내부 라운드 셀) */}
                       <div className={`relative w-full flex flex-col border overflow-hidden rounded-[24px] transition-all duration-300 ${stateStyles}`}>
                         {/* Plan B 페이지 인디케이터 */}
+                        <button
+                          type="button"
+                          className="absolute top-2 right-2 z-20 flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white/95 text-slate-400 shadow-[0_8px_16px_-10px_rgba(15,23,42,0.35)] transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                          onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}
+                          title="일정 수정"
+                        >
+                          <Edit3 size={12} />
+                        </button>
                         {hasPlanB && (
-                          <div className="absolute top-2 right-2 z-20 pointer-events-none">
+                          <div className="absolute top-2 right-11 z-20 pointer-events-none">
                             <button
                               type="button"
                               data-plan-picker-trigger="true"
@@ -8537,7 +8676,7 @@ const App = () => {
                           )}
 
                           {/* 🟢 우측 정보 영역 */}
-                          <div className={`${(isShip || isLodge) ? 'flex-1' : 'w-[70%] flex-none'} min-w-0 flex flex-col justify-start gap-2 transition-all duration-500 overflow-hidden ${isCompactTimeline ? 'p-2.5 sm:p-3' : 'p-3 sm:p-4'}`}>
+                          <div className={`${(isShip || isLodge) ? 'flex-1' : 'w-[70%] flex-none'} min-w-0 flex flex-col justify-start transition-all duration-500 overflow-hidden ${isTimelineDragActive ? 'gap-1.5 p-2.5 sm:p-3' : isCompactTimeline ? 'gap-2 p-2.5 sm:p-3' : 'gap-2 p-3 sm:p-4'}`}>
                             {isShip ? (
                               <div className="flex flex-col gap-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                                 {/* 페리 이름 */}
@@ -8790,12 +8929,14 @@ const App = () => {
                                     );
                                   })()}
                                 </div>
-                                <input
-                                  value={p.memo || ''}
-                                  onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
-                                  className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
-                                  placeholder="메모를 입력하세요..."
-                                />
+                                {String(p.memo || '').trim() ? (
+                                  <input
+                                    value={p.memo || ''}
+                                    onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
+                                    className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
+                                    placeholder="메모를 입력하세요..."
+                                  />
+                                ) : null}
                               </div>
                             ) : (
                               <>
@@ -8996,11 +9137,13 @@ const App = () => {
                                 />
 
                                 {/* 4행: 메모 입력란 */}
-                                <SharedMemoRow
-                                  value={p.memo || ''}
-                                  onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
-                                  onContainerClick={(e) => e.stopPropagation()}
-                                />
+                                {String(p.memo || '').trim() ? (
+                                  <SharedMemoRow
+                                    value={p.memo || ''}
+                                    onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
+                                    onContainerClick={(e) => e.stopPropagation()}
+                                  />
+                                ) : null}
                               </>
                             )}
                           </div>

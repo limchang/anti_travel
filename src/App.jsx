@@ -2377,8 +2377,8 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
     </div>
   );
 };
-const APP_VERSION = '1.2.6';
-const LAST_PUSH_TIME = '2026-03-11T15:35:00+09:00';
+const APP_VERSION = '1.2.7';
+const LAST_PUSH_TIME = '2026-03-11T15:43:00+09:00';
 
 // ── AI 자동입력 학습 지침 모달 ───────────────────────────────────────────────
 const GUIDE_DOC_PATH = 'meta/smartFillGuide';
@@ -2819,6 +2819,7 @@ const App = () => {
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [aiLearningCapture, setAiLearningCapture] = useState(null); // { itemId, rawSource, aiResult, inputType }
   const [isEditMode, setIsEditMode] = useState(false);
+  const [activeDay, setActiveDay] = useState(1);
   const [activeItemId, setActiveItemId] = useState(null);
 
   // AI 학습 피드백 자동 제출: 카드가 닫힐 때 혹은 편집 모드가 끝날 때 체크

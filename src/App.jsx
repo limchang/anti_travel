@@ -1136,6 +1136,11 @@ const getAiKeyEndpoint = () => {
   return import.meta.env.VITE_AI_KEY_URL || '/api/ai-key';
 };
 
+const getAiKeyEndpointCandidates = () => Array.from(new Set([
+  getAiKeyEndpoint(),
+  '/api/ai-key',
+].filter(Boolean)));
+
 const getPerplexityNearbyEndpoint = () => {
   if (typeof window !== 'undefined' && isLocalNetworkHost(window.location.hostname)) {
     return '/api/perplexity-nearby';
@@ -3937,6 +3942,30 @@ const App = () => {
     infoToastTimerRef.current = setTimeout(() => setInfoToast(''), 2600);
   };
 
+  const callAiKeyApi = useCallback(async ({ method = 'GET', token = '', body = undefined } = {}) => {
+    let lastError = null;
+    for (const endpoint of getAiKeyEndpointCandidates()) {
+      try {
+        const response = await fetch(endpoint, {
+          method,
+          headers: {
+            ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data?.error || `HTTP ${response.status}`);
+        }
+        return data;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError || new Error('AI key API request failed');
+  }, []);
+
   const fetchServerAiKeyStatus = useCallback(async () => {
     if (!auth.currentUser || auth.currentUser.isGuest) {
       setServerAiKeyStatus({ hasStoredKey: false, hasStoredGroqKey: false, hasStoredGeminiKey: false, hasStoredPerplexityKey: false, updatedAt: null, loading: false });
@@ -3945,17 +3974,7 @@ const App = () => {
     setServerAiKeyStatus((prev) => ({ ...prev, loading: true }));
     try {
       const token = await auth.currentUser.getIdToken();
-      const aiKeyUrl = getAiKeyEndpoint();
-      const res = await fetch(aiKeyUrl, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data?.error || `HTTP ${res.status}`);
-      }
+      const data = await callAiKeyApi({ method: 'GET', token });
       setServerAiKeyStatus({
         hasStoredKey: !!data?.hasStoredKey,
         hasStoredGroqKey: !!data?.hasStoredGroqKey,
@@ -3968,7 +3987,7 @@ const App = () => {
       setServerAiKeyStatus((prev) => ({ ...prev, loading: false }));
       showInfoToast(`AI 키 상태 확인 실패: ${error?.message || '알 수 없는 오류'}`);
     }
-  }, []);
+  }, [callAiKeyApi]);
 
   const saveServerAiKey = useCallback(async () => {
     const nextGroqKey = String(aiSmartFillConfig.apiKey || '').trim();
@@ -3984,19 +4003,11 @@ const App = () => {
     }
     try {
       const token = await auth.currentUser.getIdToken();
-      const aiKeyUrl = getAiKeyEndpoint();
-      const res = await fetch(aiKeyUrl, {
+      await callAiKeyApi({
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ groqApiKey: nextGroqKey, geminiApiKey: nextGeminiKey, perplexityApiKey: nextPerplexityKey }),
+        token,
+        body: { groqApiKey: nextGroqKey, geminiApiKey: nextGeminiKey, perplexityApiKey: nextPerplexityKey },
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data?.error || `HTTP ${res.status}`);
-      }
       setAiSmartFillConfig((prev) => ({ ...prev, apiKey: '', geminiApiKey: '', perplexityApiKey: '' }));
       setServerAiKeyStatus((prev) => ({
         ...prev,
@@ -4016,7 +4027,7 @@ const App = () => {
     } catch (error) {
       showInfoToast(`AI 키 저장 실패: ${error?.message || '알 수 없는 오류'}`);
     }
-  }, [aiSmartFillConfig.apiKey, aiSmartFillConfig.geminiApiKey, aiSmartFillConfig.perplexityApiKey, fetchServerAiKeyStatus]);
+  }, [aiSmartFillConfig.apiKey, aiSmartFillConfig.geminiApiKey, aiSmartFillConfig.perplexityApiKey, callAiKeyApi, fetchServerAiKeyStatus]);
 
   const deleteServerAiKey = useCallback(async () => {
     if (!auth.currentUser || auth.currentUser.isGuest) {
@@ -4025,23 +4036,16 @@ const App = () => {
     }
     try {
       const token = await auth.currentUser.getIdToken();
-      const aiKeyUrl = getAiKeyEndpoint();
-      const res = await fetch(aiKeyUrl, {
+      await callAiKeyApi({
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        token,
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data?.error || `HTTP ${res.status}`);
-      }
       setServerAiKeyStatus({ hasStoredKey: false, hasStoredGroqKey: false, hasStoredGeminiKey: false, hasStoredPerplexityKey: false, updatedAt: null, loading: false });
       showInfoToast('저장된 Groq / Gemini / Perplexity API Key를 삭제했습니다.');
     } catch (error) {
       showInfoToast(`저장된 AI 키 삭제 실패: ${error?.message || '알 수 없는 오류'}`);
     }
-  }, []);
+  }, [callAiKeyApi]);
 
   useEffect(() => {
     if (showAiSettings) {

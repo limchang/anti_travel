@@ -19,9 +19,10 @@ export default async function handler(req, res) {
       const snap = await docRef.get();
       const data = snap.data() || {};
       return res.status(200).json({
-        hasStoredKey: !!data?.groqKeyCipher?.content || !!data?.geminiKeyCipher?.content,
+        hasStoredKey: !!data?.groqKeyCipher?.content || !!data?.geminiKeyCipher?.content || !!data?.perplexityKeyCipher?.content,
         hasStoredGroqKey: !!data?.groqKeyCipher?.content,
         hasStoredGeminiKey: !!data?.geminiKeyCipher?.content,
+        hasStoredPerplexityKey: !!data?.perplexityKeyCipher?.content,
         updatedAt: data?.updatedAt?.toDate?.()?.toISOString?.() || null,
       });
     }
@@ -29,20 +30,23 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const groqApiKey = String(req.body?.groqApiKey || req.body?.apiKey || '').trim();
       const geminiApiKey = String(req.body?.geminiApiKey || '').trim();
-      if (!groqApiKey && !geminiApiKey) {
-        return res.status(400).json({ error: 'groqApiKey or geminiApiKey is required' });
+      const perplexityApiKey = String(req.body?.perplexityApiKey || '').trim();
+      if (!groqApiKey && !geminiApiKey && !perplexityApiKey) {
+        return res.status(400).json({ error: 'groqApiKey or geminiApiKey or perplexityApiKey is required' });
       }
       const nextPayload = {
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
       if (groqApiKey) nextPayload.groqKeyCipher = encryptSecret(groqApiKey);
       if (geminiApiKey) nextPayload.geminiKeyCipher = encryptSecret(geminiApiKey);
+      if (perplexityApiKey) nextPayload.perplexityKeyCipher = encryptSecret(perplexityApiKey);
       await docRef.set(nextPayload, { merge: true });
       return res.status(200).json({
         ok: true,
         hasStoredKey: true,
         hasStoredGroqKey: !!groqApiKey,
         hasStoredGeminiKey: !!geminiApiKey,
+        hasStoredPerplexityKey: !!perplexityApiKey,
       });
     }
 
@@ -54,12 +58,15 @@ export default async function handler(req, res) {
       if (!provider || provider === 'all') {
         deletePayload.groqKeyCipher = admin.firestore.FieldValue.delete();
         deletePayload.geminiKeyCipher = admin.firestore.FieldValue.delete();
+        deletePayload.perplexityKeyCipher = admin.firestore.FieldValue.delete();
       } else if (provider === 'groq') {
         deletePayload.groqKeyCipher = admin.firestore.FieldValue.delete();
       } else if (provider === 'gemini') {
         deletePayload.geminiKeyCipher = admin.firestore.FieldValue.delete();
+      } else if (provider === 'perplexity') {
+        deletePayload.perplexityKeyCipher = admin.firestore.FieldValue.delete();
       } else {
-        return res.status(400).json({ error: 'provider must be groq, gemini, or all' });
+        return res.status(400).json({ error: 'provider must be groq, gemini, perplexity, or all' });
       }
       await docRef.set({
         ...deletePayload,

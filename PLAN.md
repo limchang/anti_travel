@@ -43,6 +43,48 @@
 
 > 새 작업은 위에 추가 — 최신순 정렬
 
+### #125 · AI 붙여넣기 Gemini 도구 호출 `application/json` 충돌 복구
+- [x] **요청 분석**: 새 장소 등록에서 AI 붙여넣기 시 `Groq 스마트 붙여넣기 실패: Tool use with a response mime type: 'application/json' is unsupported`가 뜨는 것은, 실제로는 Gemini 링크 분석 경로에서 `url_context/google_search` 도구와 `responseMimeType: application/json`을 같이 보내고 있기 때문임
+  > 🕐 시작: `2026-03-11 09:25 · Codex` → 🕑 종료: `09:25` | ✅ 기록 완료
+  > 📝 이해: 토스트 문구가 Groq로 포장되어 보여도 실제 실패 지점은 Gemini 도구 호출이다. 도구 사용 시 JSON mime 강제를 제거하고 텍스트 응답에서 JSON만 추출하는 방식으로 바꾸는 게 맞음
+- [x] **작업 계획**: `src/App.jsx`의 직접 Gemini fallback과 `api/gemini-link-analyze.js`의 서버 Gemini 호출에서 `generationConfig.responseMimeType`를 제거하고, 기존 `extractJsonPayload` 기반 파싱은 유지한 채 `npm run build`로 검증
+  > 🕐 시작: `2026-03-11 09:25 · Codex` → 🕑 종료: `09:25` | ✅ 기록 완료
+  > 📝 계획: 링크 분석에서 JSON을 강제하지 말고 프롬프트로만 JSON 형식을 요구한다. 이미 후단에 JSON 추출 로직이 있어서 기능 요구는 유지되고, 현재 API 제약도 피할 수 있다
+
+### #124 · 일정 주소 행에 Perplexity 근처 추천 버튼 추가
+- [x] **요청 분석**: 사용자는 일정 카드 주소 행 우측 액션에 `퍼플렉시티 추천 받기` 버튼을 하나 더 두고, 현재 상호명/주소/현재 일정 시간과 다음 일정 시간까지 고려해 근처 추천 장소를 받고 싶어 함
+  > 🕐 시작: `2026-03-11 09:17 · Codex` → 🕑 종료: `09:17` | ✅ 기록 완료
+  > 📝 이해: 이건 단순 링크 버튼이 아니라 `Perplexity 키 입력/저장`, `서버 추천 API`, `현재 일정 시간창 계산`, `추천 결과 UI`가 함께 필요한 기능이다. 자동 삽입보다 먼저 추천 모달로 보여주는 쪽이 안전함
+- [x] **작업 계획**: `src/App.jsx`에 Perplexity 키 설정/저장 상태와 추천 모달 상태를 추가하고, 주소 행 액션에 추천 버튼을 붙여 현재 일정 종료 시각·다음 일정 시작 시각·상호·주소를 `api/perplexity-nearby.js`로 보내 추천 3건을 받아 모달로 렌더한다. `api/ai-key.js`와 `server.js`는 Perplexity 저장/라우팅을 같이 확장하고 `npm run build`로 검증
+  > 🕐 시작: `2026-03-11 09:17 · Codex` → 🕑 종료: `09:17` | ✅ 기록 완료
+  > 📝 계획: 로컬/사설망에서는 `/api/perplexity-nearby`를 직접 타고, 배포용으로는 `VITE_PERPLEXITY_NEARBY_URL`을 fallback으로 둔다. 추천 결과는 이름/주소/추천 이유/추천 시간/예상 이동 시간/운영시간 요약 중심으로 보여주고, 지도 열기/내 장소 추가 액션을 붙인다
+  > 🕐 시작: `2026-03-11 09:17 · Codex` → 🕑 종료: `09:23` | ✅ 완료
+  > 📝 수정: `src/App.jsx`에 `Perplexity API Key` 설정 필드와 저장 상태 표시를 추가하고, 주소 행 액션에 보라톤 `Star` 추천 버튼을 추가. 버튼 클릭 시 현재 일정 이름/주소, 현재 종료 시각, 다음 일정 시작 시각, 지역/일차 정보를 `api/perplexity-nearby.js`로 보내 추천 3건과 요약/참고 링크를 받아 모달로 렌더하도록 구현. 추천 항목마다 `네이버 지도 열기`, `내 장소 추가` 액션도 연결
+  > 📝 서버: `api/ai-key.js`는 Perplexity 키 암호화 저장/조회/삭제를 함께 지원하도록 확장했고, `server.js`에 `/api/perplexity-nearby` 라우트를 추가. `api/perplexity-nearby.js`는 요청 키 또는 저장된 서버 키를 사용해 Perplexity Sonar API로 근처 추천을 생성
+  > 📝 검증: `npm run build` 성공, `api/perplexity-nearby.js` 모듈 로드 확인 성공
+
+### #123 · 새 장소 등록 취소 시 이전 초안 초기화
+- [x] **요청 분석**: 사용자가 `장소등록 +`를 눌렀다가 `취소`해도 이전 입력 내용이 남아 있는 것은, 신규 등록 모달이 닫힐 때 `isAddingPlace`만 false로 바꾸고 `newPlaceName/newPlaceTypes` 같은 초안 상태를 초기화하지 않기 때문임
+  > 🕐 시작: `2026-03-11 09:15 · Codex` → 🕑 종료: `09:15` | ✅ 기록 완료
+  > 📝 이해: 사용자는 `새 장소 등록`을 임시 작성 공간으로 보고 있고, 취소는 저장 안 함과 동시에 입력 흔적도 사라지길 기대함. 따라서 취소, 바깥 클릭, 저장 완료가 같은 초기화 경로를 타야 함
+- [x] **작업 계획**: `src/App.jsx`에 새 장소 초안 초기화 헬퍼를 추가하고 `취소`, 모달 바깥 클릭, 저장 완료, `+` 버튼으로 닫기 경로가 모두 이 헬퍼를 사용하도록 통일한 뒤 `npm run build`로 검증
+  > 🕐 시작: `2026-03-11 09:15 · Codex` → 🕑 종료: `09:15` | ✅ 기록 완료
+  > 📝 계획: 폼 내부 draft는 마운트 해제 시 사라지므로, 바깥 상태인 `newPlaceName/newPlaceTypes/isAddingPlace`만 한 번에 리셋하는 헬퍼면 충분하다. 재오픈 시 항상 빈 폼으로 시작하도록 만든다
+  > 🕐 시작: `2026-03-11 09:15 · Codex` → 🕑 종료: `09:16` | ✅ 완료
+  > 📝 수정: `src/App.jsx`에 `resetNewPlaceDraft`를 추가하고 새 장소 저장 완료, `취소`, 모달 바깥 클릭, `+` 버튼으로 닫기 경로가 모두 이 헬퍼를 사용하도록 통일. 이제 새 장소 모달을 닫으면 `newPlaceName/newPlaceTypes`가 초기화되어 재오픈 시 이전 초안이 남지 않음
+  > 📝 검증: `npm run build` 성공
+
+### #122 · 로컬 개발 환경에서 AI 키 저장 URL 우선순위 복구
+- [x] **요청 분석**: 사용자가 로컬에서 `키 저장 실패: apiKey is required`를 보는 것은, 현재 프론트가 최신 로컬 `/api/ai-key`가 아니라 `.env`에 남아 있는 구버전 Cloud Run `VITE_AI_KEY_URL`로 요청을 보내고 있기 때문임
+  > 🕐 시작: `2026-03-11 09:12 · Codex` → 🕑 종료: `09:12` | ✅ 기록 완료
+  > 📝 이해: 지금 에러 문구가 현재 `api/ai-key.js`와 다르기 때문에 서버 로직 자체보다는 요청 대상이 잘못된 상태다. 로컬 개발/사설망 접속에서는 항상 현재 워크스페이스의 `/api/ai-key`를 우선 사용해야 함
+- [x] **작업 계획**: `src/App.jsx`에 런타임 host 기준 AI 키 endpoint resolver를 추가해 `localhost`, `127.0.0.1`, `192.168.x.x`, `10.x.x.x`, `172.16-31.x.x`에서는 무조건 `/api/ai-key`를 쓰게 바꾸고 `npm run build`로 검증
+  > 🕐 시작: `2026-03-11 09:12 · Codex` → 🕑 종료: `09:12` | ✅ 기록 완료
+  > 📝 계획: `.env` 값을 지우는 대신 코드에서 개발/로컬 런타임을 판별해 resolver로 우회한다. 이렇게 해야 배포 URL은 유지하면서 로컬과 모바일 사설망 테스트에서는 최신 로컬 API를 탄다
+  > 🕐 시작: `2026-03-11 09:12 · Codex` → 🕑 종료: `09:13` | ✅ 완료
+  > 📝 수정: `src/App.jsx`에 `isLocalNetworkHost`, `getAiKeyEndpoint`를 추가하고 AI 키 상태조회/저장/삭제 요청이 모두 이 resolver를 사용하도록 변경. 이제 로컬/사설망 개발 환경에서는 `.env`의 구버전 Cloud Run URL 대신 현재 앱의 `/api/ai-key`를 우선 사용함
+  > 📝 검증: `npm run build` 성공, `node server.js` 실행 후 `http://localhost:3001` 기동 확인
+
 ### #121 · 페리/공통 시간 입력에서 `24:00` 허용
 - [x] **요청 분석**: 사용자는 페리뿐 아니라 전반적인 시간 입력에서 `24:00`도 정상 시간으로 넣고 싶어 함. 현재 공통 `TimeInput`은 일부 허용하지만, 페리 전용 파서가 `23`으로 clamp 중이고 공통 시간 정규화/계산 경로도 `24:00`을 일관되게 다루는지 다시 맞출 필요가 있음
   > 🕐 시작: `2026-03-11 08:29 · Codex` → 🕑 종료: `08:29` | ✅ 기록 완료

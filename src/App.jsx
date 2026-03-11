@@ -1128,6 +1128,7 @@ const normalizeSmartFillResult = (raw = {}) => {
 const DEFAULT_AI_SMART_FILL_CONFIG = {
   apiKey: '',
   geminiApiKey: '',
+  perplexityApiKey: '',
   apiBaseUrl: 'https://api.groq.com/openai/v1',
   model: 'meta-llama/llama-4-scout-17b-16e-instruct',
   proxyBaseUrl: '',
@@ -1139,6 +1140,7 @@ const GEMINI_LINK_SYSTEM_PROMPT = '너는 장소 정보를 추출하는 전문�
 const normalizeAiSmartFillConfig = (raw = {}) => ({
   apiKey: String(raw?.apiKey || '').trim(),
   geminiApiKey: String(raw?.geminiApiKey || '').trim(),
+  perplexityApiKey: String(raw?.perplexityApiKey || '').trim(),
   apiBaseUrl: String(raw?.apiBaseUrl || 'https://api.groq.com/openai/v1').trim() || 'https://api.groq.com/openai/v1',
   model: String(raw?.model || 'meta-llama/llama-4-scout-17b-16e-instruct').trim() || 'meta-llama/llama-4-scout-17b-16e-instruct',
   proxyBaseUrl: String(raw?.proxyBaseUrl || '').trim(),
@@ -1146,7 +1148,31 @@ const normalizeAiSmartFillConfig = (raw = {}) => ({
 
 const sanitizeAiSmartFillConfigForStorage = (raw = {}) => {
   const normalized = normalizeAiSmartFillConfig(raw);
-  return { ...normalized, apiKey: '', geminiApiKey: '' };
+  return { ...normalized, apiKey: '', geminiApiKey: '', perplexityApiKey: '' };
+};
+
+const isLocalNetworkHost = (hostname = '') => {
+  const value = String(hostname || '').trim().toLowerCase();
+  if (!value) return false;
+  if (value === 'localhost' || value === '127.0.0.1' || value === '::1') return true;
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(value)) return true;
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(value)) return true;
+  if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(value)) return true;
+  return false;
+};
+
+const getAiKeyEndpoint = () => {
+  if (typeof window !== 'undefined' && isLocalNetworkHost(window.location.hostname)) {
+    return '/api/ai-key';
+  }
+  return import.meta.env.VITE_AI_KEY_URL || '/api/ai-key';
+};
+
+const getPerplexityNearbyEndpoint = () => {
+  if (typeof window !== 'undefined' && isLocalNetworkHost(window.location.hostname)) {
+    return '/api/perplexity-nearby';
+  }
+  return import.meta.env.VITE_PERPLEXITY_NEARBY_URL || '/api/perplexity-nearby';
 };
 
 const getSmartFillErrorMessage = (error, aiEnabled = false) => {
@@ -1248,7 +1274,6 @@ const fetchGeminiPlaceInfoFromMapLink = async ({ url, geminiApiKey, bearerToken 
       tools: [{ url_context: {} }, { google_search: {} }],
       generationConfig: {
         temperature: 0.2,
-        responseMimeType: 'application/json',
       },
       contents: [{
         role: 'user',
@@ -2439,6 +2464,7 @@ const App = () => {
   const [newPlanTitle, setNewPlanTitle] = useState('');
   const [showShareManager, setShowShareManager] = useState(false);
   const [navDayMenu, setNavDayMenu] = useState(null); // { dayIdx, day }
+  const [perplexityNearbyModal, setPerplexityNearbyModal] = useState({ open: false, loading: false, itemName: '', summary: '', recommendations: [], citations: [], error: '' });
   const [showAiSettings, setShowAiSettings] = useState(false);
   const [showUpdateNotes, setShowUpdateNotes] = useState(false);
   const [showPlanOptions, setShowPlanOptions] = useState(false);
@@ -2463,6 +2489,11 @@ const App = () => {
   const [isAddingPlace, setIsAddingPlace] = useState(false);
   const [newPlaceName, setNewPlaceName] = useState('');
   const [newPlaceTypes, setNewPlaceTypes] = useState(['food']);
+  const resetNewPlaceDraft = useCallback(() => {
+    setNewPlaceName('');
+    setNewPlaceTypes(['food']);
+    setIsAddingPlace(false);
+  }, []);
   const [editingPlaceId, setEditingPlaceId] = useState(null);
   const [editPlaceDraft, setEditPlaceDraft] = useState(null);
   const [useAiSmartFill, setUseAiSmartFill] = useState(() => safeLocalStorageGet('use_ai_smart_fill', 'true') === 'true');
@@ -2475,7 +2506,7 @@ const App = () => {
       return DEFAULT_AI_SMART_FILL_CONFIG;
     }
   });
-  const [serverAiKeyStatus, setServerAiKeyStatus] = useState({ hasStoredKey: false, hasStoredGroqKey: false, hasStoredGeminiKey: false, updatedAt: null, loading: false });
+  const [serverAiKeyStatus, setServerAiKeyStatus] = useState({ hasStoredKey: false, hasStoredGroqKey: false, hasStoredGeminiKey: false, hasStoredPerplexityKey: false, updatedAt: null, loading: false });
   const [tripRegion, setTripRegion] = useState(() => safeLocalStorageGet('trip_region_hint', '제주시'));
   const [tripStartDate, setTripStartDate] = useState(() => safeLocalStorageGet('trip_start_date', ''));
   const [tripEndDate, setTripEndDate] = useState(() => safeLocalStorageGet('trip_end_date', ''));
@@ -3957,13 +3988,13 @@ const App = () => {
 
   const fetchServerAiKeyStatus = useCallback(async () => {
     if (!auth.currentUser || auth.currentUser.isGuest) {
-      setServerAiKeyStatus({ hasStoredKey: false, hasStoredGroqKey: false, hasStoredGeminiKey: false, updatedAt: null, loading: false });
+      setServerAiKeyStatus({ hasStoredKey: false, hasStoredGroqKey: false, hasStoredGeminiKey: false, hasStoredPerplexityKey: false, updatedAt: null, loading: false });
       return;
     }
     setServerAiKeyStatus((prev) => ({ ...prev, loading: true }));
     try {
       const token = await auth.currentUser.getIdToken();
-      const aiKeyUrl = import.meta.env.VITE_AI_KEY_URL || '/api/ai-key';
+      const aiKeyUrl = getAiKeyEndpoint();
       const res = await fetch(aiKeyUrl, {
         method: 'GET',
         headers: {
@@ -3978,6 +4009,7 @@ const App = () => {
         hasStoredKey: !!data?.hasStoredKey,
         hasStoredGroqKey: !!data?.hasStoredGroqKey,
         hasStoredGeminiKey: !!data?.hasStoredGeminiKey,
+        hasStoredPerplexityKey: !!data?.hasStoredPerplexityKey,
         updatedAt: data?.updatedAt || null,
         loading: false,
       });
@@ -3990,8 +4022,9 @@ const App = () => {
   const saveServerAiKey = useCallback(async () => {
     const nextGroqKey = String(aiSmartFillConfig.apiKey || '').trim();
     const nextGeminiKey = String(aiSmartFillConfig.geminiApiKey || '').trim();
-    if (!nextGroqKey && !nextGeminiKey) {
-      showInfoToast('저장할 Groq 또는 Gemini API Key를 먼저 입력해 주세요.');
+    const nextPerplexityKey = String(aiSmartFillConfig.perplexityApiKey || '').trim();
+    if (!nextGroqKey && !nextGeminiKey && !nextPerplexityKey) {
+      showInfoToast('저장할 Groq, Gemini 또는 Perplexity API Key를 먼저 입력해 주세요.');
       return;
     }
     if (!auth.currentUser || auth.currentUser.isGuest) {
@@ -4000,37 +4033,39 @@ const App = () => {
     }
     try {
       const token = await auth.currentUser.getIdToken();
-      const aiKeyUrl = import.meta.env.VITE_AI_KEY_URL || '/api/ai-key';
+      const aiKeyUrl = getAiKeyEndpoint();
       const res = await fetch(aiKeyUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ groqApiKey: nextGroqKey, geminiApiKey: nextGeminiKey }),
+        body: JSON.stringify({ groqApiKey: nextGroqKey, geminiApiKey: nextGeminiKey, perplexityApiKey: nextPerplexityKey }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
-      setAiSmartFillConfig((prev) => ({ ...prev, apiKey: '', geminiApiKey: '' }));
+      setAiSmartFillConfig((prev) => ({ ...prev, apiKey: '', geminiApiKey: '', perplexityApiKey: '' }));
       setServerAiKeyStatus((prev) => ({
         ...prev,
         hasStoredKey: true,
         hasStoredGroqKey: prev.hasStoredGroqKey || !!nextGroqKey,
         hasStoredGeminiKey: prev.hasStoredGeminiKey || !!nextGeminiKey,
+        hasStoredPerplexityKey: prev.hasStoredPerplexityKey || !!nextPerplexityKey,
         updatedAt: null,
         loading: false,
       }));
       showInfoToast([
         nextGroqKey ? 'Groq API Key 저장 완료' : '',
         nextGeminiKey ? 'Gemini API Key 저장 완료' : '',
+        nextPerplexityKey ? 'Perplexity API Key 저장 완료' : '',
       ].filter(Boolean).join(' / '));
       void fetchServerAiKeyStatus();
     } catch (error) {
       showInfoToast(`AI 키 저장 실패: ${error?.message || '알 수 없는 오류'}`);
     }
-  }, [aiSmartFillConfig.apiKey, aiSmartFillConfig.geminiApiKey, fetchServerAiKeyStatus]);
+  }, [aiSmartFillConfig.apiKey, aiSmartFillConfig.geminiApiKey, aiSmartFillConfig.perplexityApiKey, fetchServerAiKeyStatus]);
 
   const deleteServerAiKey = useCallback(async () => {
     if (!auth.currentUser || auth.currentUser.isGuest) {
@@ -4039,7 +4074,7 @@ const App = () => {
     }
     try {
       const token = await auth.currentUser.getIdToken();
-      const aiKeyUrl = import.meta.env.VITE_AI_KEY_URL || '/api/ai-key';
+      const aiKeyUrl = getAiKeyEndpoint();
       const res = await fetch(aiKeyUrl, {
         method: 'DELETE',
         headers: {
@@ -4050,8 +4085,8 @@ const App = () => {
       if (!res.ok) {
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
-      setServerAiKeyStatus({ hasStoredKey: false, hasStoredGroqKey: false, hasStoredGeminiKey: false, updatedAt: null, loading: false });
-      showInfoToast('저장된 Groq / Gemini API Key를 삭제했습니다.');
+      setServerAiKeyStatus({ hasStoredKey: false, hasStoredGroqKey: false, hasStoredGeminiKey: false, hasStoredPerplexityKey: false, updatedAt: null, loading: false });
+      showInfoToast('저장된 Groq / Gemini / Perplexity API Key를 삭제했습니다.');
     } catch (error) {
       showInfoToast(`저장된 AI 키 삭제 실패: ${error?.message || '알 수 없는 오류'}`);
     }
@@ -5258,10 +5293,127 @@ const App = () => {
       ...prev,
       places: [...(prev.places || []), nextPlace]
     }));
-    setNewPlaceName('');
-    setNewPlaceTypes(['food']);
-    setIsAddingPlace(false);
+    resetNewPlaceDraft();
     setLastAction(`'${resolvedName}'이(가) 장소 목록에 추가되었습니다.`);
+  };
+
+  const inferPlaceTypesFromRecommendation = (category = '') => {
+    const normalized = String(category || '').toLowerCase();
+    if (!normalized) return ['place'];
+    if (/카페|cafe|coffee|dessert|bakery/.test(normalized)) return ['cafe'];
+    if (/식당|맛집|restaurant|food|dining|bar|pub/.test(normalized)) return ['food'];
+    if (/관광|명소|tour|museum|attraction|view|beach|park/.test(normalized)) return ['tour'];
+    return ['place'];
+  };
+
+  const addRecommendedPlaceToLibrary = (recommendation) => {
+    const name = String(recommendation?.name || '').trim();
+    const address = String(recommendation?.address || '').trim();
+    if (!name || !address) {
+      showInfoToast('추천 결과에 이름 또는 주소가 없어 내 장소에 추가할 수 없습니다.');
+      return;
+    }
+    const memo = [
+      recommendation?.why ? `추천 이유: ${recommendation.why}` : '',
+      recommendation?.hoursSummary ? `운영시간: ${recommendation.hoursSummary}` : '',
+      recommendation?.suggestedTime ? `추천 시간: ${recommendation.suggestedTime}` : '',
+      recommendation?.priceNote ? `비용 메모: ${recommendation.priceNote}` : '',
+    ].filter(Boolean).join(' / ');
+    const nextPlace = normalizeLibraryPlace({
+      id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      types: inferPlaceTypesFromRecommendation(recommendation?.category),
+      business: EMPTY_BUSINESS,
+      address,
+      memo,
+      receipt: { address, items: [] },
+    });
+    setItinerary((prev) => ({
+      ...prev,
+      places: [...(prev.places || []), nextPlace],
+    }));
+    showInfoToast(`'${name}' 추천 장소를 내 장소에 추가했습니다.`);
+  };
+
+  const requestPerplexityNearbyRecommendations = async (dayIdx, pIdx) => {
+    const item = itinerary.days?.[dayIdx]?.plan?.[pIdx];
+    if (!item || item.type === 'backup') return;
+    const itemName = String(item.activity || item.name || '').trim();
+    const itemAddress = String(item.receipt?.address || item.address || '').trim();
+    if (!itemName || !itemAddress) {
+      showInfoToast('추천을 받으려면 현재 일정의 이름과 주소가 필요합니다.');
+      return;
+    }
+
+    const day = itinerary.days?.[dayIdx];
+    const planItems = (day?.plan || []).filter((entry) => entry && entry.type !== 'backup');
+    const currentIndex = planItems.findIndex((entry) => entry.id === item.id);
+    const nextItem = currentIndex >= 0 ? planItems[currentIndex + 1] : null;
+    const itemEndTime = item.types?.includes('ship')
+      ? getShipTimeline(item).disembarkLabel
+      : minutesToTime(timeToMinutes(item.time || '00:00') + (item.duration || 0));
+    const dayLabel = `${day?.day || dayIdx + 1}일차`;
+    const dateInfo = getNavDateLabelForDay(day?.day || dayIdx + 1);
+    const currentBusinessSummary = formatBusinessSummary(item.business || {});
+
+    setPerplexityNearbyModal({
+      open: true,
+      loading: true,
+      itemName,
+      summary: '',
+      recommendations: [],
+      citations: [],
+      error: '',
+    });
+
+    try {
+      const endpoint = getPerplexityNearbyEndpoint();
+      const bearerToken = await getCurrentUserBearerToken();
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}),
+        },
+        body: JSON.stringify({
+          perplexityApiKey: String(aiSmartFillConfig.perplexityApiKey || '').trim(),
+          tripRegion,
+          dayLabel,
+          dateLabel: [dateInfo?.primary, dateInfo?.secondary].filter(Boolean).join(' '),
+          placeName: itemName,
+          placeAddress: itemAddress,
+          currentStartTime: item.time || '',
+          currentEndTime: itemEndTime,
+          currentBusinessSummary,
+          nextItemName: nextItem?.activity || '',
+          nextItemAddress: nextItem?.receipt?.address || nextItem?.address || '',
+          nextItemStartTime: nextItem?.time || '',
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.error || data?.details || `HTTP ${response.status}`);
+      }
+      setPerplexityNearbyModal({
+        open: true,
+        loading: false,
+        itemName,
+        summary: String(data?.summary || '').trim(),
+        recommendations: Array.isArray(data?.recommendations) ? data.recommendations.filter((entry) => entry?.name) : [],
+        citations: Array.isArray(data?.citations) ? data.citations.filter(Boolean) : [],
+        error: '',
+      });
+    } catch (error) {
+      setPerplexityNearbyModal({
+        open: true,
+        loading: false,
+        itemName,
+        summary: '',
+        recommendations: [],
+        citations: [],
+        error: error?.message || '알 수 없는 오류',
+      });
+    }
   };
 
   const removePlace = (placeId) => {
@@ -6206,7 +6358,7 @@ const App = () => {
         </div>
       )}
       {isAddingPlace && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => { setIsAddingPlace(false); }}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={resetNewPlaceDraft}>
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
           <div className="relative max-h-[85vh] overflow-y-auto no-scrollbar px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceAddForm
@@ -6216,7 +6368,7 @@ const App = () => {
               setNewPlaceTypes={setNewPlaceTypes}
               regionHint={tripRegion}
               onAdd={addPlace}
-              onCancel={() => setIsAddingPlace(false)}
+              onCancel={resetNewPlaceDraft}
               aiEnabled={useAiSmartFill}
               aiSettings={aiSmartFillConfig}
               onNotify={showInfoToast}
@@ -6393,11 +6545,11 @@ const App = () => {
                                 return (
                                   <div className="shrink-0 flex items-center gap-1">
                                     {navBizWarn && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={navBizWarn} />}
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openNaverPlaceSearch(p.activity, p.receipt?.address || p.address || '');
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openNaverPlaceSearch(p.activity, p.receipt?.address || p.address || '');
                                       }}
                                       data-no-drag="true"
                                       className={`text-[8px] font-black rounded-md px-1.5 py-0.5 leading-none whitespace-nowrap transition-colors ${dispDur >= 120 ? 'text-orange-500 bg-orange-50 border border-orange-200 hover:bg-orange-100' : isActive ? 'text-slate-400 bg-slate-100 border border-slate-200 hover:text-[#3182F6]' : 'text-slate-300 hover:text-[#3182F6]'}`}
@@ -6559,7 +6711,10 @@ const App = () => {
                   ) : null;
                 })()}
                 <button
-                  onClick={() => setIsAddingPlace(v => !v)}
+                  onClick={() => {
+                    if (isAddingPlace) resetNewPlaceDraft();
+                    else setIsAddingPlace(true);
+                  }}
                   className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] transition-colors shrink-0"
                 >
                   <Plus size={11} />
@@ -7273,11 +7428,22 @@ const App = () => {
                     />
                     <p className="mt-1 text-[9px] font-bold text-slate-400">Gemini는 링크 기반 정보 추출 전용이며, 텍스트/이미지 자동채우기는 계속 Groq를 사용합니다.</p>
                   </label>
+                  <label className="block">
+                    <span className="text-[10px] font-black text-slate-500">Perplexity API Key (근처 추천 전용)</span>
+                    <input
+                      type="password"
+                      value={aiSmartFillConfig.perplexityApiKey}
+                      onChange={(e) => setAiSmartFillConfig((prev) => normalizeAiSmartFillConfig({ ...prev, perplexityApiKey: e.target.value }))}
+                      placeholder={serverAiKeyStatus.hasStoredPerplexityKey ? '새 Perplexity 키로 교체하려면 다시 입력' : '암호화 저장할 Perplexity API 키 입력'}
+                      className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                    />
+                    <p className="mt-1 text-[9px] font-bold text-slate-400">Perplexity는 현재 일정 주변 추천 장소 탐색 전용으로 사용합니다.</p>
+                  </label>
                   <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-bold text-slate-500 leading-relaxed">
                     {auth.currentUser && !auth.currentUser.isGuest ? (
                       <>
                         <div className="flex items-center justify-between gap-2">
-                          <span>{serverAiKeyStatus.loading ? '저장 상태 확인 중...' : `Groq ${serverAiKeyStatus.hasStoredGroqKey ? '저장됨' : '없음'} · Gemini ${serverAiKeyStatus.hasStoredGeminiKey ? '저장됨' : '없음'}`}</span>
+                          <span>{serverAiKeyStatus.loading ? '저장 상태 확인 중...' : `Groq ${serverAiKeyStatus.hasStoredGroqKey ? '저장됨' : '없음'} · Gemini ${serverAiKeyStatus.hasStoredGeminiKey ? '저장됨' : '없음'} · Perplexity ${serverAiKeyStatus.hasStoredPerplexityKey ? '저장됨' : '없음'}`}</span>
                           <button
                             type="button"
                             onClick={() => { void fetchServerAiKeyStatus(); }}
@@ -7295,7 +7461,7 @@ const App = () => {
                     )}
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-500 leading-relaxed">
-                    로그인 상태에서는 서버가 Groq/Gemini 키를 암호화해 Firestore에 저장합니다. Groq 분석과 Gemini 링크 분석은 저장된 서버 키를 재사용할 수 있고, 이 브라우저 localStorage에는 평문 키를 저장하지 않습니다.
+                    로그인 상태에서는 서버가 Groq/Gemini/Perplexity 키를 암호화해 Firestore에 저장합니다. Groq 분석, Gemini 링크 분석, Perplexity 근처 추천은 저장된 서버 키를 재사용할 수 있고, 이 브라우저 localStorage에는 평문 키를 저장하지 않습니다.
                   </div>
                 </div>
                 <div className="mt-4 flex items-center justify-end gap-2">
@@ -7315,7 +7481,7 @@ const App = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAiSmartFillConfig((prev) => ({ ...DEFAULT_AI_SMART_FILL_CONFIG, apiKey: '', geminiApiKey: '' }))}
+                    onClick={() => setAiSmartFillConfig((prev) => ({ ...DEFAULT_AI_SMART_FILL_CONFIG, apiKey: '', geminiApiKey: '', perplexityApiKey: '' }))}
                     className="px-3 py-2 rounded-xl border border-slate-200 text-[11px] font-black text-slate-500 hover:border-slate-300"
                   >
                     입력 초기화
@@ -7327,6 +7493,123 @@ const App = () => {
                   >
                     닫기
                   </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {perplexityNearbyModal.open && (
+            <>
+              <div
+                className="fixed inset-0 z-[262] bg-black/20"
+                onClick={() => setPerplexityNearbyModal({ open: false, loading: false, itemName: '', summary: '', recommendations: [], citations: [], error: '' })}
+              />
+              <div className="fixed z-[263] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)] overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100 bg-[linear-gradient(135deg,#faf5ff,#ffffff)] flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[14px] font-black text-slate-800">Perplexity 근처 추천</p>
+                    <p className="mt-1 text-[10px] font-bold text-slate-400 truncate">{perplexityNearbyModal.itemName || '현재 일정'} 기준 주변 추천</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-slate-400 hover:text-slate-600"
+                    onClick={() => setPerplexityNearbyModal({ open: false, loading: false, itemName: '', summary: '', recommendations: [], citations: [], error: '' })}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="px-5 py-4 max-h-[68vh] overflow-y-auto no-scrollbar">
+                  {perplexityNearbyModal.loading ? (
+                    <div className="rounded-2xl border border-violet-100 bg-violet-50/60 px-4 py-6 text-center">
+                      <p className="text-[13px] font-black text-violet-700">Perplexity가 주변 장소를 찾는 중입니다.</p>
+                      <p className="mt-1 text-[10px] font-bold text-violet-400">현재 장소, 주소, 다음 일정 시간까지 고려해서 추천합니다.</p>
+                    </div>
+                  ) : perplexityNearbyModal.error ? (
+                    <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-5 text-center">
+                      <p className="text-[12px] font-black text-red-600">추천을 불러오지 못했습니다.</p>
+                      <p className="mt-1 text-[10px] font-bold text-red-400 break-words">{perplexityNearbyModal.error}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {perplexityNearbyModal.summary && (
+                        <div className="rounded-2xl border border-violet-100 bg-violet-50/60 px-4 py-3 text-[11px] font-bold text-violet-700 leading-relaxed">
+                          {perplexityNearbyModal.summary}
+                        </div>
+                      )}
+                      {perplexityNearbyModal.recommendations.map((recommendation, index) => (
+                        <div key={`${recommendation.name}-${index}`} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.2)]">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-[9px] font-black text-violet-600 border border-violet-100">추천 {index + 1}</span>
+                                {recommendation.category && <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-[9px] font-black text-slate-500 border border-slate-200">{recommendation.category}</span>}
+                              </div>
+                              <p className="mt-2 text-[15px] font-black text-slate-800 break-words">{recommendation.name}</p>
+                              <p className="mt-1 text-[11px] font-bold text-slate-400 break-words">{recommendation.address || '주소 정보 없음'}</p>
+                            </div>
+                            <div className="shrink-0 flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => openNaverPlaceSearch(recommendation.name, recommendation.address)}
+                                className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6]/30 hover:bg-blue-50 transition-colors"
+                                title="네이버 지도에서 보기"
+                              >
+                                <MapIcon size={12} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => addRecommendedPlaceToLibrary(recommendation)}
+                                className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-violet-600 hover:border-violet-200 hover:bg-violet-50 transition-colors"
+                                title="내 장소에 추가"
+                              >
+                                <Plus size={12} />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.12em]">추천 시간</p>
+                              <p className="mt-1 text-[12px] font-black text-slate-700">{recommendation.suggestedTime || '정보 없음'}</p>
+                            </div>
+                            <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.12em]">예상 이동</p>
+                              <p className="mt-1 text-[12px] font-black text-slate-700">{recommendation.estimatedTravelMinutes ? `${recommendation.estimatedTravelMinutes}분` : '정보 없음'}</p>
+                            </div>
+                          </div>
+                          {(recommendation.hoursSummary || recommendation.why || recommendation.priceNote) && (
+                            <div className="mt-3 space-y-1.5 text-[11px] font-bold text-slate-600 leading-relaxed">
+                              {recommendation.hoursSummary && <p><span className="text-slate-400">운영시간:</span> {recommendation.hoursSummary}</p>}
+                              {recommendation.why && <p><span className="text-slate-400">추천 이유:</span> {recommendation.why}</p>}
+                              {recommendation.priceNote && <p><span className="text-slate-400">비용 메모:</span> {recommendation.priceNote}</p>}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {!perplexityNearbyModal.recommendations.length && (
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-center text-[11px] font-bold text-slate-500">
+                          추천 결과가 없습니다. 주소를 더 정확히 입력하거나 Perplexity 키 상태를 확인해 주세요.
+                        </div>
+                      )}
+                      {!!perplexityNearbyModal.citations.length && (
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                          <p className="text-[10px] font-black text-slate-500 mb-2">참고 링크</p>
+                          <div className="flex flex-col gap-1.5">
+                            {perplexityNearbyModal.citations.slice(0, 5).map((url) => (
+                              <a
+                                key={url}
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[10px] font-bold text-[#3182F6] truncate hover:underline"
+                              >
+                                {url}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </>
@@ -8387,6 +8670,17 @@ const App = () => {
                                             className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
                                           >
                                             <MapIcon size={9} />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              void requestPerplexityNearbyRecommendations(dIdx, pIdx);
+                                            }}
+                                            title="Perplexity로 근처 추천 받기"
+                                            className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-violet-200 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+                                          >
+                                            <Star size={9} />
                                           </button>
                                           <button
                                             type="button"

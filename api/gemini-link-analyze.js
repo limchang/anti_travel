@@ -86,7 +86,6 @@ export default async function handler(req, res) {
         tools: [{ url_context: {} }, { google_search: {} }],
         generationConfig: {
           temperature: 0.2,
-          responseMimeType: 'application/json',
         },
         contents: [{
           role: 'user',

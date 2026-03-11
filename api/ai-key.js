@@ -1,10 +1,14 @@
 import admin from 'firebase-admin';
 import { getAdminDb, verifyBearerToken } from './_firebaseAdmin.js';
 import { encryptSecret } from './_crypto.js';
+import { setCors, handleOptions } from './_cors.js';
 
 const getDocRef = (uid) => getAdminDb().doc(`users/${uid}/private/ai`);
 
 export default async function handler(req, res) {
+  setCors(req, res);
+  if (handleOptions(req, res)) return;
+
   try {
     let decodedToken;
     try {

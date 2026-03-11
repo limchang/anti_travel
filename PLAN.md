@@ -46,6 +46,21 @@
 
 > 새 작업은 위에 추가 — 최신순 정렬
 
+### 🟩 완료 · #175 · AI 스마트 채우기 HTTP 405 에러 및 Fall-through 버그 수정
+- [x] **요청 분석**: 네이버 지도 링크 입력 시 "Groq 요청 거부 (HTTP 405)" 에러 발생. 분석 결과 1) Vercel API Route의 CORS/OPTIONS 핸들링 부재 2) 링크 분석 실패 시 무의미하게 Groq로 넘어가는 Fall-through 로직이 원인임.
+  > 🕐 시작: `2026-03-11 16:55 · Antigravity`
+  > 📝 이해: 브라우저의 OPTIONS(Preflight) 요청에 API 서버가 405를 반환함. 또한 링크는 Gemini/Scraper가 전담해야 하며 Groq로 넘어가면 안 됨.
+- [x] **작업 계획**:
+  > ① `api/_cors.js` 공통 CORS 헬퍼 생성 (OPTIONS 204 처리 포함)
+  > ② 모든 `api/*.js` (Vercel Node.js routes)에 해당 헬퍼 적용
+  > ③ `App.jsx`의 `analyzeClipboardSmartFill`: `mapUrl` 감지 시 Gemini/Scraper 실패하면 Groq로 넘기지 않고 즉시 에러 발생 (Fall-through 방지)
+  > ④ `getSmartFillErrorMessage`: 405 에러 시 도메인 허용 목록 안내 추가
+  > 🕑 종료: `2026-03-11 17:10` | ✅ 완료
+  > 📝 수정 내역:
+  > - `api/_cors.js`, `api/grok-analyze.js`, `api/gemini-link-analyze.js`, `api/ai-key.js`, `api/perplexity-nearby.js`, `api/route-verify.js` 수정 완료
+  > - `App.jsx` 로직 강화 및 에러 메시지 개선
+  > 📝 검증: `npm run build` 성공
+
 ### 🟩 완료 · #174 · AI 스마트 채우기 링크 단독 입력 방어 로직 강화 및 가이드 등록
 - [x] **요청 분석**: 사용자가 네이버 지도 링크만(또는 미세한 텍스트 포함) 붙여넣었을 때 Gemini/스크래퍼 실패 후 Groq로 넘어가서 거절당하는 현상 발생. 이를 "자주 하는 실수"로 정의하고 코드 방어 및 가이드(PLAN, README)에 등록 요청
   > 🕐 시작: `2026-03-11 16:30 · Antigravity`

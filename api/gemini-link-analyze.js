@@ -1,5 +1,6 @@
 import { getAdminDb, verifyBearerToken } from './_firebaseAdmin.js';
 import { decryptSecret } from './_crypto.js';
+import { setCors, handleOptions } from './_cors.js';
 
 const GEMINI_LINK_MODEL = process.env.GEMINI_LINK_MODEL || 'gemini-2.5-flash';
 const GEMINI_LINK_SYSTEM_PROMPT = '너는 장소 정보를 추출하는 전문가야. 제공된 URL이나 텍스트에서 상호명, 주소, 영업시간, 휴일, 라스트 오더 정보를 찾아서 JSON 형식으로만 응답해줘.';
@@ -57,6 +58,9 @@ const getStoredGeminiApiKey = async (req) => {
 };
 
 export default async function handler(req, res) {
+  setCors(req, res);
+  if (handleOptions(req, res)) return;
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

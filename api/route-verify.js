@@ -1,3 +1,5 @@
+import { setCors, handleOptions } from './_cors.js';
+
 const toNum = (v) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
@@ -125,6 +127,9 @@ const requestOsrmDirection = async ({ origin, destination }) => {
 };
 
 export default async function handler(req, res) {
+  setCors(req, res);
+  if (handleOptions(req, res)) return;
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const restKey = process.env.KAKAO_REST_API_KEY || process.env.KAKAO_API_KEY || DEFAULT_KAKAO_REST_KEY;

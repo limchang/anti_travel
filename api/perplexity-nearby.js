@@ -1,5 +1,6 @@
-import { getAdminDb, verifyBearerToken } from './_firebaseAdmin.js';
 import { decryptSecret } from './_crypto.js';
+import { verifyBearerToken, getAdminDb } from './_firebaseAdmin.js';
+import { setCors, handleOptions } from './_cors.js';
 
 const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 const PERPLEXITY_MODEL = process.env.PERPLEXITY_MODEL || 'sonar';
@@ -56,6 +57,9 @@ const normalizeRecommendation = (item = {}) => ({
 });
 
 export default async function handler(req, res) {
+  setCors(req, res);
+  if (handleOptions(req, res)) return;
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

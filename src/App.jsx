@@ -1202,8 +1202,9 @@ const getSmartFillErrorMessage = (error, aiEnabled = false) => {
   if (/Gemini/i.test(message)) return `Gemini 링크 분석 실패: ${message}`;
   if (/GROQ_API_KEY is not configured/i.test(message)) return 'Groq 설정이 비어 있습니다. AI 설정에서 API 키 또는 프록시를 확인해 주세요.';
   if (/did not contain valid JSON/i.test(message)) return 'Groq 응답 형식을 해석하지 못했습니다. 다시 시도해 주세요.';
-  if (/HTTP 4\d\d/i.test(message)) return `Groq 요청이 거부되었습니다. ${message}`;
-  if (/HTTP 5\d\d/i.test(message)) return `Groq 서버 응답에 실패했습니다. ${message}`;
+  if (/HTTP 405/i.test(message)) return `AI 서버 연결에 실패했습니다(405). 현재 사용 중인 도메인이 AI 서버 허용 목록에 있는지 확인해 주세요.`;
+  if (/HTTP 4\d\d/i.test(message)) return `Groq 요청이 거부되었습니다. (${message})`;
+  if (/HTTP 5\d\d/i.test(message)) return `Groq 서버 응답에 실패했습니다. (${message})`;
   return aiEnabled ? `Groq 스마트 붙여넣기 실패: ${message}` : `스마트 붙여넣기 실패: ${message}`;
 };
 
@@ -1651,6 +1652,11 @@ const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSe
       if (inputType === 'text' && subText.length < 15) {
         throw new Error('NAVER_URL_ONLY');
       }
+
+      // [CRITICAL] 네이버 지도 링크인 경우, Gemini와 스크래퍼가 모두 실패했다면 더 이상 Groq로 Fall-through 하지 않음.
+      // Groq는 브라우징 능력이 없어 링크만으로는 어차피 실패하거나 거절함.
+      if (geminiError) throw geminiError;
+      throw new Error('NAVER_URL_ONLY');
     }
   }
 

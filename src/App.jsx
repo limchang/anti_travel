@@ -8289,6 +8289,13 @@ const App = () => {
                           {(() => {
                             const rid = `${dIdx}_${pIdx}`;
                             const busy = calculatingRouteId === rid;
+                            let prevRouteItem;
+                            if (pIdx === 0 && dIdx > 0) {
+                              const prevDayPlan = itinerary.days[dIdx - 1]?.plan || [];
+                              prevRouteItem = prevDayPlan[prevDayPlan.length - 1];
+                            } else {
+                              prevRouteItem = d.plan?.[pIdx - 1];
+                            }
                             return (
                               <>
                           {/* 이동 시간 */}
@@ -8309,24 +8316,17 @@ const App = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               if (busy) return;
-                              let prevItem;
-                              if (pIdx === 0 && dIdx > 0) {
-                                const prevDayPlan = itinerary.days[dIdx - 1]?.plan || [];
-                                prevItem = prevDayPlan[prevDayPlan.length - 1];
-                              } else {
-                                prevItem = d.plan?.[pIdx - 1];
-                              }
-                              const fromAddr = getRouteAddress(prevItem, 'from');
+                              const fromAddr = getRouteAddress(prevRouteItem, 'from');
                               const toAddr = getRouteAddress(p, 'to');
                               if (!fromAddr || !toAddr) {
                                 setLastAction("길찾기용 출발/도착 주소가 필요합니다.");
                                 return;
                               }
-                              openNaverRouteSearch(prevItem?.activity || '출발지', fromAddr, p.activity || '도착지', toAddr);
+                              openNaverRouteSearch(prevRouteItem?.activity || '출발지', fromAddr, p.activity || '도착지', toAddr);
                             }}
                           >
                             {busy ? <LoaderCircle size={11} className="animate-spin" /> : <MapIcon size={11} />}
-                            <span>{busy ? '계산중' : getRouteDistanceStatus(prevItem, p)}</span>
+                            <span>{busy ? '계산중' : getRouteDistanceStatus(prevRouteItem, p)}</span>
                           </button>
 
                           {/* 자동경로 */}

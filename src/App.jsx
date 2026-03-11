@@ -2431,10 +2431,18 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
             const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled, aiSettings });
             const parsed = result?.parsed;
             if (parsed) {
-              setDraft((current) => createPlaceEditorDraft({
-                ...current,
-                name: parsed.name || current.name,
-                address: parsed.address || current.address,
+              const nextName = parsed.name || draft.name;
+              let nextAddress = parsed.address || draft.address;
+
+              // 주소를 못 찾았을 경우 장소명으로 추가 검색 시도
+              if (!nextAddress && nextName) {
+                const searchRes = await searchAddressFromPlaceName(nextName, regionHint);
+                if (searchRes?.address) nextAddress = searchRes.address;
+              }
+
+              setDraft((current) => createPlaceEditorDraft(current, {
+                name: nextName,
+                address: nextAddress,
                 business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
                 receipt: {
                   ...current.receipt,
@@ -2443,19 +2451,18 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
                     : current.receipt.items
                 }
               }));
-              if (parsed.name) setNewPlaceName(parsed.name);
+              if (nextName) setNewPlaceName(nextName);
+
               onNotify?.(isAiSmartFillSource(result?.source)
                 ? `AI가${result?.usedImage ? ' 이미지와 ' : ' '}모든 정보를 분석해 입력했습니다.`
                 : '모든 정보를 스마트 입력했습니다.');
 
-              if (parsed) {
-                setAiLearningCapture?.({
-                  itemId: 'new',
-                  rawSource: result?.rawSource || '',
-                  aiResult: parsed,
-                  inputType: result?.usedImage ? 'image' : 'text'
-                });
-              }
+              setAiLearningCapture?.({
+                itemId: 'new',
+                rawSource: result?.rawPayload?.text || (result?.usedImage ? '[Image Data]' : ''),
+                aiResult: parsed,
+                inputType: result?.usedImage ? 'image' : 'text'
+              });
             } else {
               onNotify?.(aiEnabled ? 'AI가 정보를 찾지 못했습니다.' : '정보를 찾지 못했습니다.');
             }
@@ -7105,10 +7112,16 @@ const App = () => {
                   const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
                   const parsed = result?.parsed;
                   if (parsed) {
-                    setEditPlaceDraft((current) => createPlaceEditorDraft({
-                      ...current,
-                      name: parsed.name || current.name,
-                      address: parsed.address || current.address,
+                    const nextName = parsed.name || editPlaceDraft.name;
+                    let nextAddress = parsed.address || editPlaceDraft.address;
+                    if (!nextAddress && nextName) {
+                      const searchRes = await searchAddressFromPlaceName(nextName, tripRegion);
+                      if (searchRes?.address) nextAddress = searchRes.address;
+                    }
+
+                    setEditPlaceDraft((current) => createPlaceEditorDraft(current, {
+                      name: nextName,
+                      address: nextAddress,
                       business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
                       receipt: { ...(current.receipt || {}), items: parsed.menus?.length ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) : (current.receipt?.items || []) },
                     }));
@@ -7195,10 +7208,16 @@ const App = () => {
                   const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
                   const parsed = result?.parsed;
                   if (parsed) {
-                    setEditPlanDraft((current) => createPlaceEditorDraft({
-                      ...current,
-                      name: parsed.name || current.name,
-                      address: parsed.address || current.address,
+                    const nextName = parsed.name || editPlanDraft.name;
+                    let nextAddress = parsed.address || editPlanDraft.address;
+                    if (!nextAddress && nextName) {
+                      const searchRes = await searchAddressFromPlaceName(nextName, tripRegion);
+                      if (searchRes?.address) nextAddress = searchRes.address;
+                    }
+
+                    setEditPlanDraft((current) => createPlaceEditorDraft(current, {
+                      name: nextName,
+                      address: nextAddress,
                       business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
                       receipt: { ...(current.receipt || {}), items: parsed.menus?.length ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) : (current.receipt?.items || []) },
                     }));

@@ -1,6 +1,11 @@
 {
     "lastUpdates": [
         {
+            "version": "1.3.6",
+            "timestamp": "2026-03-11T18:35:00+09:00",
+            "message": "fix: enhance Super Smart Fill address extraction with search fallback & state stability"
+        },
+        {
             "version": "1.3.5",
             "timestamp": "2026-03-11T18:15:00+09:00",
             "message": "feat: implement 'Super Smart Fill' for all info & refactor tag UI to '+' icon"

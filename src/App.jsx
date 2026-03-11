@@ -8760,10 +8760,10 @@ const App = () => {
                                     const endLabel = minutesToTime(endMins);
                                     const [endHour = '00', endMinute = '00'] = endLabel.split(':');
                                     return (
-                                      <div className="flex flex-col items-center w-full h-full px-2.5 py-2 gap-2 animate-in fade-in duration-200 overflow-y-auto select-none">
-                                        <div className="flex items-start gap-2 w-full justify-center">
-                                          <div className="flex flex-col items-center gap-2">
-                                            <div className="flex items-center gap-1 rounded-xl bg-white px-2 py-1.5 shadow-sm">
+                                      <div className="flex flex-col items-center w-full h-full px-2 py-1.5 gap-1.5 animate-in fade-in duration-200 overflow-y-auto select-none">
+                                        <div className="flex items-start gap-1.5 w-full justify-center">
+                                          <div className="flex flex-col items-center gap-1.5">
+                                            <div className="flex items-center gap-1 rounded-[18px] bg-white px-2 py-1 shadow-sm border border-slate-100">
                                               <div className="flex flex-col items-center">
                                                 <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, 1); }} className={`w-8 h-5 flex items-center justify-center rounded-md transition-colors ${btnTone}`}><ChevronUp size={12} /></button>
                                                 <span className={`text-[30px] font-black tracking-tight tabular-nums leading-none w-[40px] text-center ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{String(isNaN(hour) ? 0 : hour).padStart(2, '0')}</span>
@@ -8781,7 +8781,7 @@ const App = () => {
                                                 e.stopPropagation();
                                                 setDurationValue(dIdx, pIdx, 0);
                                               }}
-                                              className="flex items-center gap-1 rounded-xl bg-white px-2 py-1.5 shadow-sm hover:bg-slate-50 transition-colors"
+                                              className="flex items-center gap-1 rounded-[18px] bg-white px-2 py-1 shadow-sm border border-slate-100 hover:bg-slate-50 transition-colors"
                                               title="끝 시각 기준을 시작과 동일하게 초기화"
                                             >
                                               <div className="flex flex-col items-center">
@@ -8804,21 +8804,24 @@ const App = () => {
                                               })}
                                             </div>
                                           </div>
-                                          <div className="flex w-[88px] flex-col gap-2">
-                                            <button onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-black transition-all ${p.isTimeFixed ? 'bg-[#3182F6] text-white ring-2 ring-[#3182F6]/40 ring-offset-1' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'}`}>
+                                          <div className="flex w-[84px] flex-col gap-1.5">
+                                            <button onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`flex items-center justify-center gap-1 py-2 rounded-[14px] text-[10px] font-black transition-all border ${p.isTimeFixed ? 'bg-[#3182F6] text-white border-[#3182F6] ring-2 ring-[#3182F6]/25 ring-offset-1' : 'bg-[#F2F4F6] text-slate-500 border-slate-200 hover:bg-slate-200'}`}>
                                               <Lock size={10} /> 시작 고정
                                             </button>
                                             <button
                                               onClick={(e) => { e.stopPropagation(); toggleDurationLock(dIdx, pIdx); }}
-                                              className={`flex flex-col items-center justify-center rounded-xl border px-2 py-3 transition-all ${
+                                              className={`flex flex-col items-center justify-center rounded-[14px] border px-2 py-2.5 transition-all ${
                                                 isDurationLocked
                                                   ? 'border-orange-300 bg-orange-50 text-orange-500 ring-2 ring-orange-200/60'
-                                                  : 'border-slate-200 bg-slate-50 text-[#245BDB] hover:border-orange-200 hover:bg-orange-50/60'
+                                                  : 'border-slate-200 bg-[#F2F4F6] text-slate-500 hover:bg-slate-200'
                                               }`}
                                               title="클릭하여 소요 잠금"
                                             >
-                                              <span className="text-[9px] font-black tracking-[0.18em] uppercase">소요</span>
-                                              <span className="text-[22px] font-black tabular-nums leading-none">{minutesToTime(p.duration || 0)}</span>
+                                              <span className="flex items-center gap-1 text-[9px] font-black tracking-[0.18em] uppercase">
+                                                <Timer size={9} />
+                                                소요
+                                              </span>
+                                              <span className="text-[22px] font-black tabular-nums leading-none mt-1">{minutesToTime(p.duration || 0)}</span>
                                             </button>
                                             <div className="grid grid-cols-2 gap-1.5">
                                               {[5, 10, 20, 30].map((value) => (
@@ -8832,7 +8835,7 @@ const App = () => {
                                                     }
                                                     updateDuration(dIdx, pIdx, value);
                                                   }}
-                                                  className="rounded-lg border border-orange-100 bg-orange-50/70 py-1.5 text-[10px] font-black text-orange-500 transition-colors hover:bg-orange-400 hover:text-white"
+                                                  className="rounded-[12px] border border-slate-200 bg-[#F2F4F6] py-1.5 text-[10px] font-black text-slate-500 transition-colors hover:bg-slate-200"
                                                 >
                                                   +{value}m
                                                 </button>

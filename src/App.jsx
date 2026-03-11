@@ -3060,8 +3060,34 @@ const App = () => {
     ];
   };
 
+  const extractLodgeSegmentMemo = (parentMemo = '', segmentType = '') => {
+    const normalizedType = String(segmentType || '').trim();
+    if (!normalizedType) return '';
+    const labelMap = {
+      stay: ['숙박'],
+      rest: ['휴식'],
+      swim: ['물놀이'],
+    };
+    const labels = labelMap[normalizedType] || [];
+    if (!labels.length) return '';
+    const lines = String(parentMemo || '')
+      .split(/\r?\n/)
+      .map((line) => String(line || '').trim())
+      .filter(Boolean);
+    const matched = lines
+      .map((line) => {
+        const match = line.match(/^([^:：-]+?)\s*[:：-]\s*(.+)$/);
+        if (!match) return '';
+        const [, rawLabel, content] = match;
+        return labels.includes(String(rawLabel || '').trim()) ? String(content || '').trim() : '';
+      })
+      .filter(Boolean);
+    return matched.join('\n');
+  };
+
   const buildLibraryPayloadFromLodgeSegment = (place = {}, segment = {}) => {
     const segmentType = String(segment.type || 'rest').trim() || 'rest';
+    const segmentMemo = extractLodgeSegmentMemo(place.memo || '', segmentType) || segment.note || '';
     const baseTypes = segmentType === 'stay'
       ? ['lodge', 'stay']
       : segmentType === 'swim'
@@ -3072,7 +3098,7 @@ const App = () => {
       name: `${place.name || place.activity || '숙소'} · ${segment.label || '내부 일정'}`,
       types: baseTypes,
       address: place.address || place.receipt?.address || '',
-      memo: segment.note || '',
+      memo: segmentMemo,
       duration: Math.max(10, Number(segment.duration) || 30),
       time: normalizeLodgeSegmentTime(segment.time, place.time || '15:00'),
       receipt: { address: place.address || place.receipt?.address || '', items: [] },
@@ -3955,7 +3981,12 @@ const App = () => {
     const end = start + (item?.duration || 60);
     if (business.open && business.close) {
       if (!isMinuteWithinBusinessWindow(start, business)) {
-        if (!isOvernightBusinessWindow(business) && start < timeToMinutes(business.open)) {
+        const openMinute = timeToMinutes(business.open);
+        const closeMinute = timeToMinutes(business.close);
+        if (!isOvernightBusinessWindow(business) && start < openMinute) {
+          return `운영 시작 전 방문 (${business.open} 이후 권장)`;
+        }
+        if (isOvernightBusinessWindow(business) && start >= closeMinute && start < openMinute) {
           return `운영 시작 전 방문 (${business.open} 이후 권장)`;
         }
         return `운영 종료 후 방문 (${business.close} 이전 권장)`;

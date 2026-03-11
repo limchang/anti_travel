@@ -3841,6 +3841,17 @@ const App = () => {
     if (!isOvernightBusinessWindow(business)) return minute >= openMinute && minute < closeMinute;
     return minute >= openMinute || minute < closeMinute;
   };
+  const getOpenCloseWarningText = (minute, business = {}, beforeText, afterText) => {
+    if (!business?.open || !business?.close) return '';
+    const openMinute = timeToMinutes(business.open);
+    const closeMinute = timeToMinutes(business.close);
+    if (isMinuteWithinBusinessWindow(minute, business)) return '';
+    if (!isOvernightBusinessWindow(business)) {
+      return minute < openMinute ? beforeText : afterText;
+    }
+    if (minute >= closeMinute && minute < openMinute) return beforeText;
+    return afterText;
+  };
   const openNaverPlaceSearch = (name = '', address = '') => {
     const query = `${String(name || '').trim()} ${String(address || '').trim()}`.trim();
     if (!query) return;
@@ -4050,10 +4061,8 @@ const App = () => {
       return `${label} 휴무`;
     }
     if (business.open && business.close) {
-      if (!isMinuteWithinBusinessWindow(estimatedMins, business)) {
-        if (!isOvernightBusinessWindow(business) && estimatedMins < timeToMinutes(business.open)) return `영업 전 (${business.open}~)`;
-        return '영업 종료';
-      }
+      const openCloseWarn = getOpenCloseWarningText(estimatedMins, business, `영업 전 (${business.open}~)`, '영업 종료');
+      if (openCloseWarn) return openCloseWarn;
     } else {
       if (business.open && estimatedMins < timeToMinutes(business.open)) return `영업 전 (${business.open}~)`;
       if (business.close && estimatedMins >= timeToMinutes(business.close)) return `영업 종료`;
@@ -4106,8 +4115,18 @@ const App = () => {
       const label = WEEKDAY_OPTIONS.find(d => d.value === todayKey)?.label || todayKey;
       return `${label} 휴무일`;
     }
-    if (business.open && refMins < timeToMinutes(business.open)) return `영업 전 (${business.open} 오픈)`;
-    if (business.close && refMins >= timeToMinutes(business.close)) return `영업 종료 (${business.close} 마감)`;
+    if (business.open && business.close) {
+      const openCloseWarn = getOpenCloseWarningText(
+        refMins,
+        business,
+        `영업 전 (${business.open} 오픈)`,
+        `영업 종료 (${business.close} 마감)`
+      );
+      if (openCloseWarn) return openCloseWarn;
+    } else {
+      if (business.open && refMins < timeToMinutes(business.open)) return `영업 전 (${business.open} 오픈)`;
+      if (business.close && refMins >= timeToMinutes(business.close)) return `영업 종료 (${business.close} 마감)`;
+    }
     if (business.lastOrder && refMins > timeToMinutes(business.lastOrder)) return `라스트오더 이후 (${business.lastOrder})`;
     if (business.entryClose && refMins > timeToMinutes(business.entryClose)) return `입장 마감 이후 (${business.entryClose})`;
     if (business.breakStart && business.breakEnd) {

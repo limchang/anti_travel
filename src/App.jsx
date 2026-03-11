@@ -1475,6 +1475,7 @@ const runGroqSmartFill = async ({ mode = 'all', text = '', imageDataUrl = '', ai
           source: 'ai',
           usedImage: !!imageDataUrl,
           inputType,
+          rawPayload: { text, imageDataUrl }
         };
       }
       throw new Error('AI response did not contain valid JSON');
@@ -1521,6 +1522,7 @@ const runGroqSmartFill = async ({ mode = 'all', text = '', imageDataUrl = '', ai
         source: 'ai',
         usedImage: !!imageDataUrl,
         inputType,
+        rawPayload: { text, imageDataUrl }
       };
     } catch (error) {
       lastError = error;
@@ -1565,6 +1567,7 @@ const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSe
               source: 'gemini',
               usedImage: false,
               inputType,
+              rawPayload: payload
             };
           }
         }
@@ -1573,6 +1576,7 @@ const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSe
           source: 'gemini',
           usedImage: false,
           inputType,
+          rawPayload: payload
         };
       } catch (error) {
         geminiError = error;
@@ -1586,6 +1590,7 @@ const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSe
           source: 'link',
           usedImage: false,
           inputType,
+          rawPayload: payload
         };
       }
     } catch (scrapeError) {
@@ -1619,6 +1624,7 @@ const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSe
     source: 'text',
     usedImage: false,
     inputType,
+    rawPayload: payload
   };
 };
 
@@ -2301,6 +2307,12 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
             const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled, aiSettings });
             const parsed = result?.parsed;
             if (parsed) {
+              setAiLearningCapture({
+                itemId: draft.id || 'new',
+                rawSource: result.rawPayload,
+                aiResult: parsed,
+                inputType: result.inputType
+              });
               const nextDraft = createPlaceEditorDraft({
                 ...draft,
                 name: parsed.name || draft.name,
@@ -2365,8 +2377,8 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
     </div>
   );
 };
-const APP_VERSION = '1.2.5';
-const LAST_PUSH_TIME = '2026-03-11T15:11:00+09:00';
+const APP_VERSION = '1.2.6';
+const LAST_PUSH_TIME = '2026-03-11T15:35:00+09:00';
 
 // ── AI 자동입력 학습 지침 모달 ───────────────────────────────────────────────
 const GUIDE_DOC_PATH = 'meta/smartFillGuide';
@@ -2377,27 +2389,43 @@ const SmartFillGuideModal = ({ onClose }) => {
   const [isEditing, setIsEditing] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
   const [saveMsg, setSaveMsg] = React.useState('');
+  const [activeTab, setActiveTab] = React.useState('guide'); // 'guide' | 'history'
+  const [historyCases, setHistoryCases] = React.useState([]);
+  const [historyLoading, setHistoryLoading] = React.useState(false);
 
   React.useEffect(() => {
     const load = async () => {
-      // Firestore 우선 확인
       try {
         const snap = await getDoc(doc(db, GUIDE_DOC_PATH));
         const stored = snap.data()?.content;
         if (stored) { setGuideContent(stored); setGuideLoading(false); return; }
       } catch { /* ignore */ }
-      // fallback: public .md 파일
       const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
       fetch(`${base}/SMART_FILL_FEEDBACK.md`)
         .then((r) => r.ok ? r.text() : Promise.reject(r))
         .then((t) => { setGuideContent(t); setGuideLoading(false); })
-        .catch(() => { setGuideContent('학습 지침 파일을 불러오지 못했습니다.\n\nFirestore에도 저장된 내용이 없습니다.'); setGuideLoading(false); });
+        .catch(() => { setGuideContent('학습 지침 파일을 불러오지 못했습니다.'); setGuideLoading(false); });
     };
     load();
   }, []);
 
+  React.useEffect(() => {
+    if (activeTab === 'history' && historyCases.length === 0) {
+      const fetchHistory = async () => {
+        setHistoryLoading(true);
+        try {
+          const q = await getDocs(collection(db, 'meta', 'aiLearning', 'cases'));
+          const cases = q.docs.map(d => ({ id: d.id, ...d.data() }))
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+          setHistoryCases(cases);
+        } catch (e) { console.error(e); }
+        setHistoryLoading(false);
+      };
+      fetchHistory();
+    }
+  }, [activeTab]);
+
   const handleEdit = () => { setEditContent(guideContent); setIsEditing(true); setSaveMsg(''); };
-  const handleCancel = () => { setIsEditing(false); setSaveMsg(''); };
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -2406,11 +2434,7 @@ const SmartFillGuideModal = ({ onClose }) => {
       setIsEditing(false);
       setSaveMsg('저장 완료 ✓');
       setTimeout(() => setSaveMsg(''), 2500);
-    } catch (e) {
-      setSaveMsg(`저장 실패: ${e?.message || '알 수 없는 오류'}`);
-    } finally {
-      setIsSaving(false);
-    }
+    } catch (e) { setSaveMsg(`저장 실패: ${e?.message}`); } finally { setIsSaving(false); }
   };
 
   const renderMd = (md) => md.split('\n').map((line, i) => {
@@ -2419,7 +2443,6 @@ const SmartFillGuideModal = ({ onClose }) => {
     if (/^#\s/.test(line)) return <p key={i} className="text-[14px] font-black text-slate-800 mt-2 mb-3">{line.replace(/^#\s/, '')}</p>;
     if (/^---/.test(line)) return <div key={i} className="h-px bg-slate-100 my-3" />;
     if (/^-\s/.test(line)) return <p key={i} className="text-[11px] text-slate-600 font-semibold pl-3 leading-relaxed">· {line.replace(/^-\s/, '')}</p>;
-    if (/^\s+-\s/.test(line)) return <p key={i} className="text-[10px] text-slate-500 font-semibold pl-6 leading-relaxed">› {line.replace(/^\s+-\s/, '')}</p>;
     if (line.trim() === '') return <div key={i} className="h-1" />;
     return <p key={i} className="text-[11px] text-slate-600 leading-relaxed">{line}</p>;
   });
@@ -2429,62 +2452,111 @@ const SmartFillGuideModal = ({ onClose }) => {
       <div className="fixed inset-0 z-[260] bg-black/20" onClick={isEditing ? undefined : onClose} />
       <div className="fixed inset-x-4 top-[5vh] bottom-[5vh] z-[261] max-w-lg mx-auto bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden">
         {/* 헤더 */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-slate-50/70 shrink-0">
-          <div>
-            <p className="text-[13px] font-black text-slate-700">자동입력 학습 지침</p>
-            <p className="text-[10px] font-bold text-slate-400 mt-0.5">
-              {isEditing ? '✎ 편집 중 — Firestore에 저장됩니다' : 'SMART_FILL_FEEDBACK.md · Firestore'}
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {!isEditing && !guideLoading && (
-              <button
-                onClick={handleEdit}
-                className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors flex items-center gap-1"
-              >
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                편집
+        <div className="px-5 pt-4 pb-1 border-b border-slate-100 bg-slate-50/70 shrink-0">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-[13px] font-black text-slate-700">AI 입력 학습 관리</p>
+              <p className="text-[10px] font-bold text-slate-400 mt-0.5">{isEditing ? '✎ 지침 편집 중' : '교차 검증 및 지침 갱신'}</p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {!isEditing && activeTab === 'guide' && !guideLoading && (
+                <button onClick={handleEdit} className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:text-[#3182F6] transition-colors flex items-center gap-1">
+                  <Pencil size={9} /> 편집
+                </button>
+              )}
+              {saveMsg && <span className="text-[10px] font-bold text-emerald-500">{saveMsg}</span>}
+              <button onClick={isEditing ? () => setIsEditing(false) : onClose} className="p-1.5 rounded-xl text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition-colors">
+                <X size={14} />
               </button>
-            )}
-            {saveMsg && <span className="text-[10px] font-bold text-emerald-500">{saveMsg}</span>}
-            <button onClick={isEditing ? handleCancel : onClose} className="p-1.5 rounded-xl text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition-colors">
-              <X size={14} />
-            </button>
+            </div>
           </div>
-        </div>
-
-        {/* 본문 */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          {guideLoading ? (
-            <div className="flex items-center justify-center flex-1 text-[12px] text-slate-400 font-bold">불러오는 중...</div>
-          ) : isEditing ? (
-            <textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              className="flex-1 w-full px-5 py-4 text-[11px] font-mono text-slate-700 leading-relaxed resize-none outline-none border-none bg-slate-50/50"
-              placeholder="지침 내용을 입력하세요..."
-              spellCheck={false}
-            />
-          ) : (
-            <div className="flex-1 overflow-y-auto px-5 py-4">
-              <div className="space-y-0.5">{renderMd(guideContent)}</div>
+          {/* 탭 버튼 */}
+          {!isEditing && (
+            <div className="flex gap-4">
+              <button
+                onClick={() => setActiveTab('guide')}
+                className={`pb-2 text-[11px] font-black transition-all border-b-2 ${activeTab === 'guide' ? 'border-[#3182F6] text-[#3182F6]' : 'border-transparent text-slate-400'}`}
+              >
+                학습 지침(Instruction)
+              </button>
+              <button
+                onClick={() => setActiveTab('history')}
+                className={`pb-2 text-[11px] font-black transition-all border-b-2 ${activeTab === 'history' ? 'border-[#3182F6] text-[#3182F6]' : 'border-transparent text-slate-400'}`}
+              >
+                교정 사례(Cross-Check)
+                {historyCases.length > 0 && <span className="ml-1 px-1 bg-[#3182F6] text-white rounded text-[8px]">{historyCases.length}</span>}
+              </button>
             </div>
           )}
         </div>
 
-        {/* 편집 모드 하단 버튼 */}
+        {/* 본문 */}
+        <div className="flex-1 overflow-hidden flex flex-col bg-slate-50/30">
+          {activeTab === 'guide' ? (
+            guideLoading ? (
+              <div className="flex items-center justify-center flex-1 text-[12px] text-slate-400 font-bold">지침 불러오는 중...</div>
+            ) : isEditing ? (
+              <textarea
+                value={editContent} onChange={(e) => setEditContent(e.target.value)}
+                className="flex-1 w-full px-5 py-4 text-[11px] font-mono text-slate-700 leading-relaxed resize-none outline-none border-none bg-slate-50/50"
+                placeholder="AI 지침을 수정하세요..." spellCheck={false}
+              />
+            ) : (
+              <div className="flex-1 overflow-y-auto px-5 py-4">
+                <div className="space-y-0.5">{renderMd(guideContent)}</div>
+              </div>
+            )
+          ) : (
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {historyLoading ? (
+                <div className="flex items-center justify-center py-10 text-[12px] text-slate-400 font-bold animate-pulse">사례 데이터를 불러오는 중...</div>
+              ) : historyCases.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-slate-300 gap-2">
+                  <Sparkles size={24} className="opacity-20" />
+                  <p className="text-[11px] font-bold">아직 기록된 교정 사례가 없습니다.</p>
+                </div>
+              ) : (
+                historyCases.map((c, i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden text-[10px]">
+                    <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center font-bold text-slate-400">
+                      <span>Case #{historyCases.length - i} · {new Date(c.timestamp).toLocaleString()}</span>
+                      <span className="px-1.5 py-0.5 bg-blue-50 text-blue-500 rounded text-[8px] uppercase">{c.inputType}</span>
+                    </div>
+                    <div className="p-3 space-y-3">
+                      <div>
+                        <p className="text-[#3182F6] font-black mb-1">❶ 원본 데이터(Raw Source)</p>
+                        <div className="bg-slate-50 rounded-lg p-2 text-slate-500 italic max-h-24 overflow-y-auto no-scrollbar font-mono break-all whitespace-pre-wrap">
+                          {c.rawSource?.text || '(이미지 데이터)'}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <p className="text-slate-400 font-black mb-1">❷ AI 결과</p>
+                          <div className="bg-red-50/30 rounded-lg p-2 text-slate-400 border border-red-50/50 font-mono overflow-x-auto no-scrollbar">
+                            <pre className="text-[9px]">{JSON.stringify(c.aiResult, null, 1)}</pre>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-emerald-500 font-black mb-1">❸ 사용자 교정(Fixed)</p>
+                          <div className="bg-emerald-50/30 rounded-lg p-2 text-emerald-600 border border-emerald-50/50 font-mono overflow-x-auto no-scrollbar">
+                            <pre className="text-[9px]">{JSON.stringify(c.userFixed, null, 1)}</pre>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 하단 제어 */}
         {isEditing && (
           <div className="shrink-0 px-5 py-3 border-t border-slate-100 bg-white flex items-center justify-end gap-2">
-            <button onClick={handleCancel} className="px-3 py-2 rounded-xl border border-slate-200 text-[11px] font-black text-slate-500 hover:bg-slate-50 transition-colors">
-              취소
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="px-4 py-2 rounded-xl bg-[#3182F6] text-white text-[11px] font-black disabled:opacity-60 hover:bg-blue-600 transition-colors flex items-center gap-1.5"
-            >
-              {isSaving && <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>}
-              {isSaving ? '저장 중...' : 'Firestore에 저장'}
+            <button onClick={() => setIsEditing(false)} className="px-3 py-2 rounded-xl border border-slate-200 text-[11px] font-black text-slate-500 hover:bg-slate-50 transition-colors">취소</button>
+            <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 rounded-xl bg-[#3182F6] text-white text-[11px] font-black disabled:opacity-60 hover:bg-blue-600 transition-colors flex items-center gap-1.5">
+              {isSaving && <LoaderCircle size={10} className="animate-spin" />} {isSaving ? '저장 중...' : '지침 업데이트'}
             </button>
           </div>
         )}
@@ -2745,9 +2817,63 @@ const App = () => {
   const conflictAlertKeyRef = useRef('');
   const [lastAction, setLastAction] = useState("3일차 시작 일정이 수정되었습니다.");
   const [aiSuggestions, setAiSuggestions] = useState({});
+  const [aiLearningCapture, setAiLearningCapture] = useState(null); // { itemId, rawSource, aiResult, inputType }
   const [isEditMode, setIsEditMode] = useState(false);
-  const [activeDay, setActiveDay] = useState(1);
   const [activeItemId, setActiveItemId] = useState(null);
+
+  // AI 학습 피드백 자동 제출: 카드가 닫힐 때 혹은 편집 모드가 끝날 때 체크
+  useEffect(() => {
+    if (!expandedId && aiLearningCapture?.itemId && aiLearningCapture.itemId !== 'new') {
+      const targetId = aiLearningCapture.itemId;
+      // 현재 일정에서 해당 아이템 찾기
+      let found = null;
+      for (const day of itinerary.days || []) {
+        found = day.plan?.find(p => p.id === targetId);
+        if (found) break;
+      }
+      if (found) {
+        submitAiLearningCase(found, targetId);
+      }
+    }
+  }, [expandedId, aiLearningCapture]);
+
+  const submitAiLearningCase = async (finalData, targetId) => {
+    if (!aiLearningCapture || !aiLearningCapture.aiResult) return;
+    if (aiLearningCapture.itemId !== targetId && aiLearningCapture.itemId !== 'new') return;
+
+    // 단순 비교를 위해 필드 정규화
+    const aiComp = JSON.stringify(aiLearningCapture.aiResult);
+    const userComp = JSON.stringify({
+      name: finalData.name || finalData.activity || '',
+      address: finalData.address || (finalData.receipt?.address) || '',
+      business: finalData.business || {},
+      menus: (finalData.receipt?.items || []).map(m => ({ name: m.name, price: m.price }))
+    });
+
+    if (aiComp === userComp) return; // 변경사항 없으면 스킵
+
+    try {
+      const docRef = doc(collection(db, 'meta', 'aiLearning', 'cases'));
+      await setDoc(docRef, {
+        timestamp: new Date().toISOString(),
+        itemId: targetId,
+        inputType: aiLearningCapture.inputType,
+        rawSource: aiLearningCapture.rawSource,
+        aiResult: aiLearningCapture.aiResult,
+        userFixed: {
+          name: finalData.name || finalData.activity || '',
+          address: finalData.address || (finalData.receipt?.address) || '',
+          business: finalData.business || {},
+          menus: (finalData.receipt?.items || []).map(m => ({ name: m.name, price: m.price }))
+        },
+        version: APP_VERSION
+      });
+      console.log("AI Learning feedback captured.");
+      setAiLearningCapture(null);
+    } catch (e) {
+      console.warn("AI Feedback logging failed", e);
+    }
+  };
   const isNavScrolling = React.useRef(false);
   const navScrollTimeout = React.useRef(null);
   const longPressTimerRef = useRef(null);
@@ -5253,6 +5379,7 @@ const App = () => {
       recalculateLodgeDurations(nextData.days);
       return nextData;
     });
+    submitAiLearningCase(nextDraft, editingPlanTarget.id || itinerary.days[dayIdx].plan[pIdx].id);
     setEditingPlanTarget(null);
     setEditPlanDraft(null);
   };
@@ -9522,6 +9649,12 @@ const App = () => {
                                             const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
                                             const parsed = result?.parsed;
                                             if (parsed) {
+                                              setAiLearningCapture({
+                                                itemId: p.id,
+                                                rawSource: result.rawPayload,
+                                                aiResult: parsed,
+                                                inputType: result.inputType
+                                              });
                                               if (parsed.name) updateActivityName(dIdx, pIdx, parsed.name);
                                               if (parsed.address) updateAddress(dIdx, pIdx, parsed.address);
                                               if (parsed.business) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
@@ -9646,6 +9779,12 @@ const App = () => {
                                           const result = await analyzeClipboardSmartFill({ mode: 'business', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
                                           const parsed = result?.parsed;
                                           if (parsed?.business) {
+                                            setAiLearningCapture({
+                                              itemId: p.id,
+                                              rawSource: result.rawPayload,
+                                              aiResult: parsed,
+                                              inputType: result.inputType
+                                            });
                                             setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
                                             showInfoToast(isAiSmartFillSource(result?.source) ? `AI 영업정보 스마트 입력 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '영업 정보만 스마트 입력 완료');
                                           } else {
@@ -9716,6 +9855,12 @@ const App = () => {
                                           const result = await analyzeClipboardSmartFill({ mode: 'menus', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
                                           const parsed = result?.parsed;
                                           if (parsed?.menus?.length) {
+                                            setAiLearningCapture({
+                                              itemId: p.id,
+                                              rawSource: result.rawPayload,
+                                              aiResult: parsed,
+                                              inputType: result.inputType
+                                            });
                                             setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: parsed.menus }; return d; });
                                             showInfoToast(isAiSmartFillSource(result?.source) ? `AI 메뉴 스마트 입력 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '메뉴 정보만 스마트 입력 완료');
                                           } else {

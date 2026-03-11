@@ -6446,11 +6446,10 @@ const App = () => {
           <>
             {/* ── 고정 헤더 ── */}
             <div className="px-5 pt-5 pb-3 border-b border-slate-100 bg-white shrink-0">
-              <div className="flex items-center gap-2.5 flex-1 mb-3">
-                <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+              <div className="flex items-center justify-start mb-1">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
                   <MapIcon size={14} className="text-[#3182F6]" />
                 </div>
-                <h2 className="text-[14px] font-black text-slate-800 tracking-tight flex-1">네비게이션</h2>
               </div>
             </div>
             {/* ── 스크롤 컨텐츠 ── */}
@@ -7749,6 +7748,9 @@ const App = () => {
                   <section className="mb-10 -mx-4 -mt-8">
                     <div className="w-full relative overflow-hidden bg-transparent">
                       {canManagePlan && <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                        <div className="h-10 px-3 rounded-xl border border-white/35 bg-slate-900/40 backdrop-blur text-white shadow-lg flex items-center">
+                          <span className="text-[11px] font-black tracking-[0.18em] uppercase whitespace-nowrap">Anti Planer</span>
+                        </div>
                         <button
                           onClick={(e) => { e.stopPropagation(); setIsEditMode(!isEditMode); }}
                           className={`w-10 h-10 rounded-xl border backdrop-blur transition-all flex items-center justify-center shadow-lg ${isEditMode ? 'bg-amber-400/90 border-amber-300 text-white font-black' : 'bg-white/85 border-white/40 text-slate-700'}`}

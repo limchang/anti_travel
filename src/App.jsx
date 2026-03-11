@@ -107,6 +107,13 @@ const TAG_OPTIONS = [
   { label: '재방문', value: 'revisit' },
 ];
 
+const LODGE_SEGMENT_PRESETS = [
+  { type: 'rest', label: '휴식', duration: 60 },
+  { type: 'swim', label: '물놀이', duration: 90 },
+  { type: 'shower', label: '샤워', duration: 40 },
+  { type: 'prepare', label: '짐정리', duration: 30 },
+];
+
 const TAG_VALUES = new Set(TAG_OPTIONS.map(t => t.value));
 const MODIFIER_TAGS = new Set(['revisit', 'new']);
 const normalizeTagOrder = (input) => {
@@ -2997,6 +3004,45 @@ const App = () => {
     return item;
   };
 
+  const normalizeLodgeSegmentTime = (raw, fallback = '18:00') => {
+    const value = String(raw || '').trim();
+    if (!value) return fallback;
+    if (/^\d{1,2}:\d{1,2}$/.test(value)) {
+      const [hourRaw, minuteRaw] = value.split(':');
+      const hours = Number.parseInt(hourRaw, 10);
+      const minutes = Number.parseInt(minuteRaw, 10);
+      if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || hours > 24 || minutes < 0 || minutes > 59 || (hours === 24 && minutes > 0)) {
+        return fallback;
+      }
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+    const digits = value.replace(/\D/g, '').slice(0, 4);
+    if (!digits) return fallback;
+    const hours = digits.length <= 2 ? Number.parseInt(digits, 10) : Number.parseInt(digits.slice(0, digits.length - 2), 10);
+    const minutes = digits.length <= 2 ? 0 : Number.parseInt(digits.slice(-2), 10);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || hours > 24 || minutes < 0 || minutes > 59 || (hours === 24 && minutes > 0)) {
+      return fallback;
+    }
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  };
+
+  const ensureLodgeStaySegments = (item = {}) => {
+    if (!isLodgeStay(item?.types)) return item;
+    const fallbackTime = String(item.time || '18:00').trim() || '18:00';
+    item.staySegments = (Array.isArray(item.staySegments) ? item.staySegments : [])
+      .filter(Boolean)
+      .map((segment, index) => ({
+        id: segment.id || `stay_${Date.now()}_${index}`,
+        type: String(segment.type || 'rest').trim() || 'rest',
+        label: String(segment.label || '').trim() || '숙소 일정',
+        time: normalizeLodgeSegmentTime(segment.time, fallbackTime),
+        duration: Math.max(10, Number(segment.duration) || 60),
+        note: String(segment.note || '').trim(),
+      }))
+      .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+    return item;
+  };
+
   const normalizeLibraryPlace = (place, dayNumber = 1) => {
     if (!place) return place;
     place.types = normalizeTagOrder(Array.isArray(place.types) && place.types.length ? place.types : ['place']);
@@ -3041,6 +3087,7 @@ const App = () => {
     place.address = String(place.address || place.receipt.address || '').trim();
     place.receipt.address = place.address || place.receipt.address || '';
     place.price = place.receipt.items.reduce((sum, item) => sum + (item.selected === false ? 0 : getMenuLineTotal(item)), 0);
+    if (isLodgeStay(place.types)) ensureLodgeStaySegments(place);
     return place;
   };
 
@@ -3073,8 +3120,10 @@ const App = () => {
       receipt: receiptPayload,
       memo: placeData?.memo || '',
       isTimeFixed: isShip ? true : !!placeData?.isTimeFixed,
+      staySegments: isLodgeStay(normalizedTypes) ? deepClone(placeData?.staySegments || []) : undefined,
     };
     if (isShip) ensureShipItemDefaults(nextItem, dayNumber);
+    if (isLodgeStay(normalizedTypes)) ensureLodgeStaySegments(nextItem);
     return nextItem;
   };
 
@@ -4389,6 +4438,66 @@ const App = () => {
     setLastAction(fixed ? '숙소 체크아웃 시간이 고정되었습니다.' : '숙소 체크아웃 시간 고정이 해제되었습니다.');
   };
 
+  const addLodgeStaySegment = (dayIdx, pIdx, preset = null) => {
+    saveHistory();
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
+      if (!item || !isLodgeStay(item.types)) return prev;
+      ensureLodgeStaySegments(item);
+      const source = preset || LODGE_SEGMENT_PRESETS[0];
+      const baseTime = item.staySegments.length
+        ? item.staySegments[item.staySegments.length - 1].time
+        : (item.time || '18:00');
+      item.staySegments.push({
+        id: `stay_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        type: source?.type || 'rest',
+        label: source?.label || '휴식',
+        time: normalizeLodgeSegmentTime(baseTime, item.time || '18:00'),
+        duration: Math.max(10, Number(source?.duration) || 60),
+        note: '',
+      });
+      ensureLodgeStaySegments(item);
+      return nextData;
+    });
+    setLastAction(`숙소 내부 일정${preset?.label ? ` '${preset.label}'` : ''}을 추가했습니다.`);
+  };
+
+  const updateLodgeStaySegment = (dayIdx, pIdx, segmentId, patch = {}) => {
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
+      if (!item || !isLodgeStay(item.types)) return prev;
+      ensureLodgeStaySegments(item);
+      item.staySegments = item.staySegments.map((segment) => {
+        if (segment.id !== segmentId) return segment;
+        return {
+          ...segment,
+          ...patch,
+          label: patch.label !== undefined ? String(patch.label || '').trim() : segment.label,
+          note: patch.note !== undefined ? String(patch.note || '').trim() : segment.note,
+          time: patch.time !== undefined ? normalizeLodgeSegmentTime(patch.time, segment.time) : segment.time,
+          duration: patch.duration !== undefined ? Math.max(10, Number(patch.duration) || 10) : segment.duration,
+        };
+      });
+      ensureLodgeStaySegments(item);
+      return nextData;
+    });
+  };
+
+  const removeLodgeStaySegment = (dayIdx, pIdx, segmentId) => {
+    saveHistory();
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
+      if (!item || !isLodgeStay(item.types)) return prev;
+      ensureLodgeStaySegments(item);
+      item.staySegments = item.staySegments.filter((segment) => segment.id !== segmentId);
+      return nextData;
+    });
+    setLastAction('숙소 내부 일정을 삭제했습니다.');
+  };
+
   const updateDuration = (dayIdx, pIdx, delta) => {
     saveHistory();
     setItinerary(prev => {
@@ -5456,6 +5565,7 @@ const App = () => {
       boardTime: item.boardTime,
       sailDuration: item.sailDuration,
       duration: item.duration,
+      staySegments: deepClone(item.staySegments || []),
       isTimeFixed: item.isTimeFixed,
       travelTimeOverride: item.travelTimeOverride,
       bufferTimeOverride: item.bufferTimeOverride,
@@ -7870,7 +7980,7 @@ const App = () => {
                                 <p className="text-[24px] leading-none font-black text-slate-700 text-center">{travelIntensity.label}</p>
                                 <p className="text-[11px] font-bold text-slate-500 text-center">{travelIntensity.note}</p>
                                 {showTravelIntensityInfo && (
-                                  <div className="absolute left-1/2 top-full z-20 mt-3 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
+                                  <div className="absolute left-1/2 top-7 z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
                                     <p className="mt-2 text-[11px] font-bold text-slate-600">시간당 방문 수: {visitPerHour.toFixed(2)}개</p>
                                     <p className="mt-1 text-[11px] font-bold text-slate-600">하루 활동 시간: 평균 {averageSpanHours.toFixed(1)}시간</p>
@@ -8572,6 +8682,101 @@ const App = () => {
                                       </>
                                     );
                                   })()}
+                                </div>
+                                <div className="rounded-2xl border border-indigo-100 bg-white/70 px-3 py-3">
+                                  <div className="flex items-center justify-between gap-2 mb-2">
+                                    <div>
+                                      <p className="text-[10px] font-black tracking-[0.18em] uppercase text-indigo-400">숙소 내부 일정</p>
+                                      <p className="text-[11px] font-bold text-slate-400">하나로 쓰거나, 필요할 때만 내부 체류를 추가하세요.</p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        addLodgeStaySegment(dIdx, pIdx, { type: 'custom', label: '내부 일정', duration: 60 });
+                                      }}
+                                      className="h-8 px-3 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors text-[10px] font-black flex items-center gap-1"
+                                    >
+                                      <Plus size={10} />
+                                      내부 일정 추가
+                                    </button>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5 mb-2">
+                                    {LODGE_SEGMENT_PRESETS.map((preset) => (
+                                      <button
+                                        key={preset.type}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          addLodgeStaySegment(dIdx, pIdx, preset);
+                                        }}
+                                        className="px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 text-[10px] font-black text-slate-500 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                                      >
+                                        + {preset.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  {Array.isArray(p.staySegments) && p.staySegments.length > 0 ? (
+                                    <div className="flex flex-col gap-2">
+                                      {p.staySegments.map((segment) => (
+                                        <div key={segment.id} className="rounded-xl border border-slate-200 bg-white px-2.5 py-2">
+                                          <div className="grid grid-cols-[70px_1fr_70px_auto] gap-2 items-center">
+                                            <input
+                                              value={segment.time || ''}
+                                              onChange={(e) => updateLodgeStaySegment(dIdx, pIdx, segment.id, { time: e.target.value })}
+                                              onClick={(e) => e.stopPropagation()}
+                                              className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-[11px] font-black text-slate-700 tabular-nums outline-none focus:border-indigo-300 focus:bg-white"
+                                              placeholder="18:00"
+                                            />
+                                            <input
+                                              value={segment.label || ''}
+                                              onChange={(e) => updateLodgeStaySegment(dIdx, pIdx, segment.id, { label: e.target.value, type: 'custom' })}
+                                              onClick={(e) => e.stopPropagation()}
+                                              className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-[11px] font-black text-slate-700 outline-none focus:border-indigo-300 focus:bg-white"
+                                              placeholder="휴식, 물놀이, 샤워..."
+                                            />
+                                            <input
+                                              type="number"
+                                              min="10"
+                                              step="10"
+                                              value={segment.duration || 60}
+                                              onChange={(e) => updateLodgeStaySegment(dIdx, pIdx, segment.id, { duration: e.target.value })}
+                                              onClick={(e) => e.stopPropagation()}
+                                              className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-[11px] font-black text-slate-700 tabular-nums outline-none focus:border-indigo-300 focus:bg-white"
+                                              placeholder="60"
+                                            />
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                removeLodgeStaySegment(dIdx, pIdx, segment.id);
+                                              }}
+                                              className="w-8 h-8 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center"
+                                              title="내부 일정 삭제"
+                                            >
+                                              <Trash2 size={12} />
+                                            </button>
+                                          </div>
+                                          <div className="mt-1 text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                                            <span>{segment.duration || 60}분</span>
+                                            <span>·</span>
+                                            <span>{segment.time || '--:--'} 시작</span>
+                                          </div>
+                                          <input
+                                            value={segment.note || ''}
+                                            onChange={(e) => updateLodgeStaySegment(dIdx, pIdx, segment.id, { note: e.target.value })}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white"
+                                            placeholder="예: 수영 후 샤워, 잠깐 낮잠, 짐정리"
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-3 py-4 text-center text-[11px] font-bold text-slate-400">
+                                      아직 내부 일정이 없습니다. 위 버튼으로 `휴식`, `물놀이`, `샤워` 같은 체류를 추가할 수 있습니다.
+                                    </div>
+                                  )}
                                 </div>
                                 <input
                                   value={p.memo || ''}

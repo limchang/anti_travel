@@ -1646,7 +1646,9 @@ const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSe
       if (geminiError) {
         throw geminiError;
       }
-      if (inputType === 'text' && String(payload.text || '').trim() === mapUrl) {
+      // 링크 외의 나머지 텍스트가 너무 짧으면(예: '[네이버 지도]' 등) 사실상 링크만 있는 것으로 간주하여 방어
+      const subText = String(payload.text || '').replace(mapUrl, '').trim();
+      if (inputType === 'text' && subText.length < 15) {
         throw new Error('NAVER_URL_ONLY');
       }
     }

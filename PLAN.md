@@ -50,6 +50,9 @@
 - [x] **작업 계획**: `src/App.jsx`의 직접 Gemini fallback과 `api/gemini-link-analyze.js`의 서버 Gemini 호출에서 `generationConfig.responseMimeType`를 제거하고, 기존 `extractJsonPayload` 기반 파싱은 유지한 채 `npm run build`로 검증
   > 🕐 시작: `2026-03-11 09:25 · Codex` → 🕑 종료: `09:25` | ✅ 기록 완료
   > 📝 계획: 링크 분석에서 JSON을 강제하지 말고 프롬프트로만 JSON 형식을 요구한다. 이미 후단에 JSON 추출 로직이 있어서 기능 요구는 유지되고, 현재 API 제약도 피할 수 있다
+  > 🕐 시작: `2026-03-11 09:25 · Codex` → 🕑 종료: `09:26` | ✅ 완료
+  > 📝 수정: `src/App.jsx`와 `api/gemini-link-analyze.js`의 Gemini 링크 분석 호출에서 `generationConfig.responseMimeType: 'application/json'`를 제거. 도구 사용은 유지하고, 응답 텍스트에서 기존 `extractJsonPayload`로 JSON만 추출하도록 정리해 현재 Gemini 도구 제약과 충돌하지 않게 수정
+  > 📝 검증: `npm run build` 성공
 
 ### #124 · 일정 주소 행에 Perplexity 근처 추천 버튼 추가
 - [x] **요청 분석**: 사용자는 일정 카드 주소 행 우측 액션에 `퍼플렉시티 추천 받기` 버튼을 하나 더 두고, 현재 상호명/주소/현재 일정 시간과 다음 일정 시간까지 고려해 근처 추천 장소를 받고 싶어 함
@@ -62,6 +65,8 @@
   > 📝 수정: `src/App.jsx`에 `Perplexity API Key` 설정 필드와 저장 상태 표시를 추가하고, 주소 행 액션에 보라톤 `Star` 추천 버튼을 추가. 버튼 클릭 시 현재 일정 이름/주소, 현재 종료 시각, 다음 일정 시작 시각, 지역/일차 정보를 `api/perplexity-nearby.js`로 보내 추천 3건과 요약/참고 링크를 받아 모달로 렌더하도록 구현. 추천 항목마다 `네이버 지도 열기`, `내 장소 추가` 액션도 연결
   > 📝 서버: `api/ai-key.js`는 Perplexity 키 암호화 저장/조회/삭제를 함께 지원하도록 확장했고, `server.js`에 `/api/perplexity-nearby` 라우트를 추가. `api/perplexity-nearby.js`는 요청 키 또는 저장된 서버 키를 사용해 Perplexity Sonar API로 근처 추천을 생성
   > 📝 검증: `npm run build` 성공, `api/perplexity-nearby.js` 모듈 로드 확인 성공
+  > 📝 후속 보강: Perplexity 키가 없을 때도 쓸 수 있도록 `api/perplexity-nearby.js`를 `Perplexity 우선, 없으면 Gemini grounding fallback` 구조로 확장. UI 문구도 `Perplexity 근처 추천`에서 `AI 근처 추천`으로 정리했고, 설정창 Perplexity 키는 선택사항으로 안내 변경
+  > 📝 추가 검증: `npm run build` 성공, Gemini fallback 포함 endpoint 모듈 로드 확인 성공
 
 ### #123 · 새 장소 등록 취소 시 이전 초안 초기화
 - [x] **요청 분석**: 사용자가 `장소등록 +`를 눌렀다가 `취소`해도 이전 입력 내용이 남아 있는 것은, 신규 등록 모달이 닫힐 때 `isAddingPlace`만 false로 바꾸고 `newPlaceName/newPlaceTypes` 같은 초안 상태를 초기화하지 않기 때문임

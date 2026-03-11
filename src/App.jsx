@@ -2464,7 +2464,7 @@ const App = () => {
   const [newPlanTitle, setNewPlanTitle] = useState('');
   const [showShareManager, setShowShareManager] = useState(false);
   const [navDayMenu, setNavDayMenu] = useState(null); // { dayIdx, day }
-  const [perplexityNearbyModal, setPerplexityNearbyModal] = useState({ open: false, loading: false, itemName: '', summary: '', recommendations: [], citations: [], error: '' });
+  const [perplexityNearbyModal, setPerplexityNearbyModal] = useState({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' });
   const [showAiSettings, setShowAiSettings] = useState(false);
   const [showUpdateNotes, setShowUpdateNotes] = useState(false);
   const [showPlanOptions, setShowPlanOptions] = useState(false);
@@ -5359,6 +5359,7 @@ const App = () => {
     setPerplexityNearbyModal({
       open: true,
       loading: true,
+      provider: '',
       itemName,
       summary: '',
       recommendations: [],
@@ -5377,6 +5378,7 @@ const App = () => {
         },
         body: JSON.stringify({
           perplexityApiKey: String(aiSmartFillConfig.perplexityApiKey || '').trim(),
+          geminiApiKey: String(aiSmartFillConfig.geminiApiKey || '').trim(),
           tripRegion,
           dayLabel,
           dateLabel: [dateInfo?.primary, dateInfo?.secondary].filter(Boolean).join(' '),
@@ -5397,6 +5399,7 @@ const App = () => {
       setPerplexityNearbyModal({
         open: true,
         loading: false,
+        provider: String(data?.provider || '').trim(),
         itemName,
         summary: String(data?.summary || '').trim(),
         recommendations: Array.isArray(data?.recommendations) ? data.recommendations.filter((entry) => entry?.name) : [],
@@ -5407,6 +5410,7 @@ const App = () => {
       setPerplexityNearbyModal({
         open: true,
         loading: false,
+        provider: '',
         itemName,
         summary: '',
         recommendations: [],
@@ -7429,7 +7433,7 @@ const App = () => {
                     <p className="mt-1 text-[9px] font-bold text-slate-400">Gemini는 링크 기반 정보 추출 전용이며, 텍스트/이미지 자동채우기는 계속 Groq를 사용합니다.</p>
                   </label>
                   <label className="block">
-                    <span className="text-[10px] font-black text-slate-500">Perplexity API Key (근처 추천 전용)</span>
+                    <span className="text-[10px] font-black text-slate-500">Perplexity API Key (선택, 있으면 우선 사용)</span>
                     <input
                       type="password"
                       value={aiSmartFillConfig.perplexityApiKey}
@@ -7437,7 +7441,7 @@ const App = () => {
                       placeholder={serverAiKeyStatus.hasStoredPerplexityKey ? '새 Perplexity 키로 교체하려면 다시 입력' : '암호화 저장할 Perplexity API 키 입력'}
                       className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
                     />
-                    <p className="mt-1 text-[9px] font-bold text-slate-400">Perplexity는 현재 일정 주변 추천 장소 탐색 전용으로 사용합니다.</p>
+                    <p className="mt-1 text-[9px] font-bold text-slate-400">없으면 Gemini 키로 무료 AI 추천을 시도하고, 있으면 Perplexity를 우선 사용합니다.</p>
                   </label>
                   <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-bold text-slate-500 leading-relaxed">
                     {auth.currentUser && !auth.currentUser.isGuest ? (
@@ -7461,7 +7465,7 @@ const App = () => {
                     )}
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-500 leading-relaxed">
-                    로그인 상태에서는 서버가 Groq/Gemini/Perplexity 키를 암호화해 Firestore에 저장합니다. Groq 분석, Gemini 링크 분석, Perplexity 근처 추천은 저장된 서버 키를 재사용할 수 있고, 이 브라우저 localStorage에는 평문 키를 저장하지 않습니다.
+                    로그인 상태에서는 서버가 Groq/Gemini/Perplexity 키를 암호화해 Firestore에 저장합니다. Groq 분석, Gemini 링크 분석, 근처 AI 추천은 저장된 서버 키를 재사용할 수 있고, 이 브라우저 localStorage에는 평문 키를 저장하지 않습니다.
                   </div>
                 </div>
                 <div className="mt-4 flex items-center justify-end gap-2">
@@ -7502,18 +7506,18 @@ const App = () => {
             <>
               <div
                 className="fixed inset-0 z-[262] bg-black/20"
-                onClick={() => setPerplexityNearbyModal({ open: false, loading: false, itemName: '', summary: '', recommendations: [], citations: [], error: '' })}
+                onClick={() => setPerplexityNearbyModal({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' })}
               />
               <div className="fixed z-[263] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)] overflow-hidden">
                 <div className="px-5 py-4 border-b border-slate-100 bg-[linear-gradient(135deg,#faf5ff,#ffffff)] flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[14px] font-black text-slate-800">Perplexity 근처 추천</p>
+                    <p className="text-[14px] font-black text-slate-800">AI 근처 추천</p>
                     <p className="mt-1 text-[10px] font-bold text-slate-400 truncate">{perplexityNearbyModal.itemName || '현재 일정'} 기준 주변 추천</p>
                   </div>
                   <button
                     type="button"
                     className="text-slate-400 hover:text-slate-600"
-                    onClick={() => setPerplexityNearbyModal({ open: false, loading: false, itemName: '', summary: '', recommendations: [], citations: [], error: '' })}
+                    onClick={() => setPerplexityNearbyModal({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' })}
                   >
                     <X size={16} />
                   </button>
@@ -7521,7 +7525,7 @@ const App = () => {
                 <div className="px-5 py-4 max-h-[68vh] overflow-y-auto no-scrollbar">
                   {perplexityNearbyModal.loading ? (
                     <div className="rounded-2xl border border-violet-100 bg-violet-50/60 px-4 py-6 text-center">
-                      <p className="text-[13px] font-black text-violet-700">Perplexity가 주변 장소를 찾는 중입니다.</p>
+                      <p className="text-[13px] font-black text-violet-700">AI가 주변 장소를 찾는 중입니다.</p>
                       <p className="mt-1 text-[10px] font-bold text-violet-400">현재 장소, 주소, 다음 일정 시간까지 고려해서 추천합니다.</p>
                     </div>
                   ) : perplexityNearbyModal.error ? (
@@ -7533,6 +7537,7 @@ const App = () => {
                     <div className="space-y-3">
                       {perplexityNearbyModal.summary && (
                         <div className="rounded-2xl border border-violet-100 bg-violet-50/60 px-4 py-3 text-[11px] font-bold text-violet-700 leading-relaxed">
+                          {perplexityNearbyModal.provider && <div className="mb-1 text-[9px] uppercase tracking-[0.12em] text-violet-400">{perplexityNearbyModal.provider === 'perplexity' ? 'Perplexity' : 'Gemini'}</div>}
                           {perplexityNearbyModal.summary}
                         </div>
                       )}
@@ -7587,7 +7592,7 @@ const App = () => {
                       ))}
                       {!perplexityNearbyModal.recommendations.length && (
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-center text-[11px] font-bold text-slate-500">
-                          추천 결과가 없습니다. 주소를 더 정확히 입력하거나 Perplexity 키 상태를 확인해 주세요.
+                          추천 결과가 없습니다. 주소를 더 정확히 입력하거나 Gemini/Perplexity 키 상태를 확인해 주세요.
                         </div>
                       )}
                       {!!perplexityNearbyModal.citations.length && (
@@ -8677,7 +8682,7 @@ const App = () => {
                                               e.stopPropagation();
                                               void requestPerplexityNearbyRecommendations(dIdx, pIdx);
                                             }}
-                                            title="Perplexity로 근처 추천 받기"
+                                            title="AI로 근처 추천 받기"
                                             className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-violet-200 hover:text-violet-600 hover:bg-violet-50 transition-colors"
                                           >
                                             <Star size={9} />

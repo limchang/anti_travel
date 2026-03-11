@@ -411,9 +411,12 @@ const SharedTotalFooter = ({ expanded, onToggle, total }) => (
   </div>
 );
 const createPlaceEditorDraft = (place = {}, overrides = {}) => {
-  const business = normalizeBusiness(place.business || {});
+  const business = normalizeBusiness(overrides.business ?? place.business ?? {});
   const cloneValue = (value) => JSON.parse(JSON.stringify(value));
-  const receipt = cloneValue(place.receipt || { address: place.address || '', items: [] });
+
+  const rawReceipt = overrides.receipt ?? place.receipt ?? { address: overrides.address ?? place.address ?? '', items: [] };
+  const receipt = cloneValue(rawReceipt);
+
   if (!Array.isArray(receipt.items)) receipt.items = [];
   receipt.items = receipt.items
     .filter(Boolean)
@@ -434,8 +437,7 @@ const createPlaceEditorDraft = (place = {}, overrides = {}) => {
     business,
     receipt: {
       ...receipt,
-      address: overrides.address ?? place.address ?? place.receipt?.address ?? receipt.address ?? '',
-      items: overrides.receipt?.items ?? receipt.items,
+      address: overrides.receipt?.address ?? overrides.address ?? place.receipt?.address ?? place.address ?? '',
     },
     showBusinessEditor: overrides.showBusinessEditor ?? true,
     businessFocusField: overrides.businessFocusField ?? null,

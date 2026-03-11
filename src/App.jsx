@@ -6904,8 +6904,54 @@ const App = () => {
                     <div className="flex flex-col gap-1">
                       {(() => {
                         const navPlanItems = (d.plan || []).filter(p => p.type !== 'backup');
+                        const expectedNightSlot = d.day <= tripNights;
+                        const lastStayIndex = navPlanItems.findIndex((item, index, arr) =>
+                          index === arr.length - 1 && (isFullLodgeStayItem(item) || (Array.isArray(item.types) && item.types.includes('stay')))
+                        );
+                        const lastStayItem = lastStayIndex >= 0 ? navPlanItems[lastStayIndex] : null;
                         if (navPlanItems.length === 0) {
-                          return renderNavInsertTarget(dNavIdx, -1, `nav-insert-empty-${d.day}`);
+                          return (
+                            <>
+                              {renderNavInsertTarget(dNavIdx, -1, `nav-insert-empty-${d.day}`)}
+                              {expectedNightSlot && (
+                                <div
+                                  data-droptarget={`${dNavIdx}|-1`}
+                                  onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setDropTarget({ dayIdx: dNavIdx, insertAfterPIdx: -1 });
+                                    setDropOnItem(null);
+                                  }}
+                                  onDragLeave={(e) => {
+                                    if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null);
+                                  }}
+                                  onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const changed = draggingFromLibrary
+                                      ? applyInsertAtDropTarget(dNavIdx, -1, { kind: 'library', place: draggingFromLibrary, isCopy: isDragCopy })
+                                      : applyInsertAtDropTarget(dNavIdx, -1, { kind: 'timeline', payload: draggingFromTimeline, isCopy: isDragCopy });
+                                    if (changed) triggerUndoToast();
+                                    setDraggingFromLibrary(null);
+                                    setDraggingFromTimeline(null);
+                                    setDropTarget(null);
+                                    setDropOnItem(null);
+                                    setIsDragCopy(false);
+                                  }}
+                                  className={`mt-2 flex min-h-[42px] w-full items-center gap-1.5 rounded-[14px] border px-2 py-1.5 text-left transition-all ${
+                                    dropTarget?.dayIdx === dNavIdx && dropTarget?.insertAfterPIdx === -1
+                                      ? 'border-indigo-300 bg-indigo-50/90 shadow-[0_14px_24px_-20px_rgba(99,102,241,0.28)]'
+                                      : 'border-indigo-200 bg-[linear-gradient(180deg,rgba(238,242,255,0.8),rgba(255,255,255,0.98))]'
+                                  }`}
+                                >
+                                  <div className="shrink-0 scale-[0.88] origin-left opacity-80">{getCategoryBadge('stay')}</div>
+                                  <span className="truncate text-[10px] font-bold leading-none text-slate-400">
+                                    {dropTarget?.dayIdx === dNavIdx && dropTarget?.insertAfterPIdx === -1 ? '여기에 숙박 배치' : '숙박 드래그'}
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          );
                         }
                         return (
                           <>
@@ -7071,6 +7117,43 @@ const App = () => {
                           </React.Fragment>
                         );
                             })}
+                            {expectedNightSlot && !lastStayItem && (
+                              <div
+                                data-droptarget={`${dNavIdx}|${navPlanItems.length - 1}`}
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setDropTarget({ dayIdx: dNavIdx, insertAfterPIdx: navPlanItems.length - 1 });
+                                  setDropOnItem(null);
+                                }}
+                                onDragLeave={(e) => {
+                                  if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null);
+                                }}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const changed = draggingFromLibrary
+                                    ? applyInsertAtDropTarget(dNavIdx, navPlanItems.length - 1, { kind: 'library', place: draggingFromLibrary, isCopy: isDragCopy })
+                                    : applyInsertAtDropTarget(dNavIdx, navPlanItems.length - 1, { kind: 'timeline', payload: draggingFromTimeline, isCopy: isDragCopy });
+                                  if (changed) triggerUndoToast();
+                                  setDraggingFromLibrary(null);
+                                  setDraggingFromTimeline(null);
+                                  setDropTarget(null);
+                                  setDropOnItem(null);
+                                  setIsDragCopy(false);
+                                }}
+                                className={`mt-2 flex min-h-[42px] w-full items-center gap-1.5 rounded-[14px] border px-2 py-1.5 text-left transition-all ${
+                                  dropTarget?.dayIdx === dNavIdx && dropTarget?.insertAfterPIdx === navPlanItems.length - 1
+                                    ? 'border-indigo-300 bg-indigo-50/90 shadow-[0_14px_24px_-20px_rgba(99,102,241,0.28)]'
+                                    : 'border-indigo-200 bg-[linear-gradient(180deg,rgba(238,242,255,0.8),rgba(255,255,255,0.98))]'
+                                }`}
+                              >
+                                <div className="shrink-0 scale-[0.88] origin-left opacity-80">{getCategoryBadge('stay')}</div>
+                                <span className="truncate text-[10px] font-bold leading-none text-slate-400">
+                                  {dropTarget?.dayIdx === dNavIdx && dropTarget?.insertAfterPIdx === navPlanItems.length - 1 ? '여기에 숙박 배치' : '숙박 드래그'}
+                                </span>
+                              </div>
+                            )}
                           </>
                         );
                       })()}

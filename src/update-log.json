@@ -1,6 +1,11 @@
 {
     "lastUpdates": [
         {
+            "version": "1.3.7",
+            "timestamp": "2026-03-11T19:55:00+09:00",
+            "message": "feat: refactor Hero action buttons (icon-only), add Quick Add button, and AI Address extraction"
+        },
+        {
             "version": "1.3.6",
             "timestamp": "2026-03-11T18:35:00+09:00",
             "message": "fix: enhance Super Smart Fill address extraction with search fallback & state stability"

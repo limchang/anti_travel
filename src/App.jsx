@@ -458,6 +458,7 @@ const PlaceEditorCard = ({
   onSmartPasteAll,
   onSmartPasteBusiness,
   onSmartPasteMenus,
+  onSmartPasteAddress,
   onSuperSmartPaste,
   onNameInput = null,
   onNamePaste = null,
@@ -604,7 +605,7 @@ const PlaceEditorCard = ({
           placeholder="주소를 입력하세요"
           leading={<MapPin size={12} className="text-[#3182F6] shrink-0" />}
           actions={
-            <>
+            <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => {
@@ -617,16 +618,28 @@ const PlaceEditorCard = ({
               >
                 <MapIcon size={9} />
               </button>
+              {onSmartPasteAddress && (
+                <button
+                  type="button"
+                  onClick={wrapSmartPaste(onSmartPasteAddress)}
+                  disabled={smartPasteLoading}
+                  title="클립보드 AI 주소 붙여넣기"
+                  className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors disabled:opacity-50"
+                  style={{ color: '#3182F6' }}
+                >
+                  <Sparkles size={9} />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => { void tryAutoFillAddress(true); }}
                 disabled={isSearchingAddress || !safeDraft.name.trim()}
-                title="장소 이름으로 주소 자동 입력"
+                title="장소 이름으로 주소 자동 검색"
                 className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 disabled:opacity-50 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
               >
-                <Sparkles size={9} />
+                <PlusCircle size={9} />
               </button>
-            </>
+            </div>
           }
         />
         <SharedBusinessRow
@@ -2465,6 +2478,22 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
               });
             } else {
               onNotify?.(aiEnabled ? 'AI가 정보를 찾지 못했습니다.' : '정보를 찾지 못했습니다.');
+            }
+          } catch (error) {
+            onNotify?.(getSmartFillErrorMessage(error, aiEnabled));
+          }
+        }}
+        onSmartPasteAddress={async () => {
+          try {
+            const result = await analyzeClipboardSmartFill({ mode: 'address', aiEnabled, aiSettings });
+            const parsed = result?.parsed;
+            if (parsed?.address) {
+              setDraft((current) => createPlaceEditorDraft(current, { address: parsed.address }));
+              onNotify?.(isAiSmartFillSource(result?.source)
+                ? `AI가${result?.usedImage ? ' 이미지와 ' : ' '}주소 정보를 분석해 입력했습니다.`
+                : '주소 정보를 스마트 입력했습니다.');
+            } else {
+              onNotify?.(aiEnabled ? 'AI가 주소를 찾지 못했습니다.' : '주소를 찾지 못했습니다.');
             }
           } catch (error) {
             onNotify?.(getSmartFillErrorMessage(error, aiEnabled));
@@ -7133,6 +7162,19 @@ const App = () => {
                   showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));
                 }
               }}
+              onSmartPasteAddress={async () => {
+                try {
+                  const result = await analyzeClipboardSmartFill({ mode: 'address', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                  if (result?.parsed?.address) {
+                    setEditPlaceDraft((current) => createPlaceEditorDraft(current, { address: result.parsed.address }));
+                    showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 주소 스마트 입력 완료' : '주소 스마트 입력 완료');
+                  } else {
+                    showInfoToast('주소를 찾지 못했습니다.');
+                  }
+                } catch (error) {
+                  showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));
+                }
+              }}
               onSmartPasteBusiness={async () => {
                 try {
                   const result = await analyzeClipboardSmartFill({ mode: 'business', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
@@ -7224,6 +7266,19 @@ const App = () => {
                     showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 슈퍼 자동 채우기 완료' : '슈퍼 자동 채우기 완료');
                   } else {
                     showInfoToast(useAiSmartFill ? 'AI가 정보를 찾지 못했습니다.' : '정보를 찾지 못했습니다.');
+                  }
+                } catch (error) {
+                  showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));
+                }
+              }}
+              onSmartPasteAddress={async () => {
+                try {
+                  const result = await analyzeClipboardSmartFill({ mode: 'address', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                  if (result?.parsed?.address) {
+                    setEditPlanDraft((current) => createPlaceEditorDraft(current, { address: result.parsed.address }));
+                    showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 주소 스마트 입력 완료' : '주소 스마트 입력 완료');
+                  } else {
+                    showInfoToast('주소를 찾지 못했습니다.');
                   }
                 } catch (error) {
                   showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));
@@ -8786,13 +8841,26 @@ const App = () => {
                               {isEditMode ? <Edit3 size={13} /> : <Lock size={13} />}
                             </button>
                             <button
+                              onClick={(e) => { e.stopPropagation(); setIsAddingPlace(true); }}
+                              className="w-8 h-8 rounded-xl border border-blue-200 bg-blue-50 text-[#3182F6] hover:bg-[#3182F6] hover:text-white transition-all flex items-center justify-center shadow-sm"
+                              title="내 장소에 일정 추가"
+                            >
+                              <PlusCircle size={15} />
+                            </button>
+                            <button
                               onClick={(e) => { e.stopPropagation(); autoCalculateAllRoutes(); }}
                               disabled={isCalculatingAllRoutes}
-                              className="min-w-[84px] h-8 px-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:border-[#3182F6]/40 hover:text-[#3182F6] hover:bg-white transition-all flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="w-8 h-8 rounded-xl border border-slate-200 bg-white text-slate-700 hover:border-[#3182F6]/40 hover:text-[#3182F6] hover:bg-white transition-all flex items-center justify-center shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                               title="전체 경로 다시 계산"
                             >
-                              <Navigation size={12} />
-                              <span className="text-[10px] font-black">{isCalculatingAllRoutes ? `${routeCalcProgress}%` : '전체경로'}</span>
+                              {isCalculatingAllRoutes ? (
+                                <div className="relative flex items-center justify-center">
+                                  <div className="absolute inset-0 animate-spin border-t-2 border-[#3182F6] rounded-full scale-125 opacity-20" />
+                                  <span className="text-[8px] font-black text-[#3182F6]">{routeCalcProgress}</span>
+                                </div>
+                              ) : (
+                                <Navigation size={14} />
+                              )}
                             </button>
                             <button
                               onClick={() => setShowPlanOptions(true)}
@@ -8826,13 +8894,26 @@ const App = () => {
                           {isEditMode ? <Edit3 size={18} /> : <Lock size={18} />}
                         </button>
                         <button
+                          onClick={(e) => { e.stopPropagation(); setIsAddingPlace(true); }}
+                          className="w-10 h-10 rounded-xl border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg"
+                          title="내 장소에 일정 추가"
+                        >
+                          <PlusCircle size={20} className="text-[#3182F6]" />
+                        </button>
+                        <button
                           onClick={(e) => { e.stopPropagation(); autoCalculateAllRoutes(); }}
                           disabled={isCalculatingAllRoutes}
-                          className="h-10 px-3 rounded-xl border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center gap-1.5 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-10 h-10 rounded-xl border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                           title="전체 경로 다시 계산"
                         >
-                          <Navigation size={16} />
-                          <span className="text-[11px] font-black">{isCalculatingAllRoutes ? `탐색 ${routeCalcProgress}%` : '전체경로'}</span>
+                          {isCalculatingAllRoutes ? (
+                            <div className="relative flex items-center justify-center">
+                              <div className="absolute inset-0 animate-spin border-t-2 border-[#3182F6] rounded-full scale-150 opacity-10" />
+                              <span className="text-[10px] font-black text-[#3182F6]">{routeCalcProgress}%</span>
+                            </div>
+                          ) : (
+                            <Navigation size={18} />
+                          )}
                         </button>
                         <button
                           onClick={() => setShowPlanOptions(true)}

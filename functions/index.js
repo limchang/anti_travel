@@ -232,6 +232,7 @@ exports.groqAnalyze = onRequest({ invoker: 'public' }, async (req, res) => {
     'Schema:',
     '{"name":"","address":"","business":{"open":"","close":"","breakStart":"","breakEnd":"","lastOrder":"","entryClose":"","closedDays":[]},"menus":[{"name":"","price":0}]}',
     `Current extraction mode: ${mode}.`,
+    'If mode is "address", prioritize address extraction and keep business/menus empty when uncertain.',
     'If mode is "business", prioritize business hours and keep menus empty when uncertain.',
     'If mode is "menus", prioritize menus and keep business empty when uncertain.',
     'If mode is "all", fill every field you can infer.',

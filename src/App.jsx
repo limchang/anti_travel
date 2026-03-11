@@ -108,10 +108,9 @@ const TAG_OPTIONS = [
 ];
 
 const LODGE_SEGMENT_PRESETS = [
+  { type: 'stay', label: '숙박', duration: 480 },
   { type: 'rest', label: '휴식', duration: 60 },
   { type: 'swim', label: '물놀이', duration: 90 },
-  { type: 'shower', label: '샤워', duration: 40 },
-  { type: 'prepare', label: '짐정리', duration: 30 },
 ];
 
 const TAG_VALUES = new Set(TAG_OPTIONS.map(t => t.value));
@@ -3048,24 +3047,26 @@ const App = () => {
 
   const getLodgeSegmentDragItems = (place = {}) => {
     if (!isLodgeStay(place?.types)) return [];
-    const checkoutTime = place.lodgeCheckoutTime
-      ? normalizeLodgeSegmentTime(place.lodgeCheckoutTime, '11:00')
-      : '11:00';
     const customSegments = ensureLodgeStaySegments({ ...place, staySegments: deepClone(place.staySegments || []) }).staySegments || [];
+    const defaultStayDuration = (() => {
+      const checkin = timeToMinutes(place.time || '15:00');
+      const checkout = timeToMinutes(place.lodgeCheckoutTime || '11:00');
+      const overnightCheckout = checkout <= checkin ? checkout + 1440 : checkout;
+      return Math.max(30, overnightCheckout - checkin);
+    })();
     return [
-      { id: `${place.id}_checkin`, type: 'checkin', label: '체크인', time: normalizeLodgeSegmentTime(place.time, '15:00'), duration: 30, note: '' },
+      { id: `${place.id}_stay`, type: 'stay', label: '숙박', time: normalizeLodgeSegmentTime(place.time, '15:00'), duration: defaultStayDuration, note: '' },
       ...customSegments,
-      { id: `${place.id}_checkout`, type: 'checkout', label: '체크아웃', time: checkoutTime, duration: 30, note: '' },
     ];
   };
 
   const buildLibraryPayloadFromLodgeSegment = (place = {}, segment = {}) => {
     const segmentType = String(segment.type || 'rest').trim() || 'rest';
-    const baseTypes = segmentType === 'swim'
+    const baseTypes = segmentType === 'stay'
+      ? ['lodge']
+      : segmentType === 'swim'
       ? ['experience']
-      : segmentType === 'checkin' || segmentType === 'checkout'
-        ? ['lodge']
-        : ['rest'];
+      : ['rest'];
     return normalizeLibraryPlace({
       id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: `${place.name || place.activity || '숙소'} · ${segment.label || '내부 일정'}`,
@@ -7135,15 +7136,13 @@ const App = () => {
                                     <button
                                       key={segment.id}
                                       type="button"
-                                      draggable={isEditMode}
+                                      draggable
                                       data-no-drag="true"
                                       onTouchStart={(e) => {
-                                        if (!isEditMode) return;
                                         touchDragSourceRef.current = { kind: 'library', place: segmentPayload, startX: e.touches[0].clientX, startY: e.touches[0].clientY };
                                         isDraggingActiveRef.current = false;
                                       }}
                                       onDragStart={(e) => {
-                                        if (!isEditMode) { e.preventDefault(); return; }
                                         const copy = true;
                                         desktopDragRef.current = { kind: 'library', place: segmentPayload, copy };
                                         e.dataTransfer.effectAllowed = 'copy';
@@ -7164,8 +7163,8 @@ const App = () => {
                                             : { placeId: place.id, segmentId: segment.id }
                                         ));
                                       }}
-                                      className={`inline-flex items-center gap-1.5 rounded-xl border px-2 py-1 text-[10px] font-black transition-colors ${isSystemSegment ? 'border-violet-200 bg-violet-50 text-violet-600' : isSelected ? 'border-indigo-300 bg-indigo-100 text-indigo-700' : 'border-slate-200 bg-white text-slate-500 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600'}`}
-                                      title={isSystemSegment ? '드래그하여 일정에 복제' : '클릭하여 수정, 드래그하여 일정에 복제'}
+                                      className={`inline-flex items-center gap-1.5 rounded-xl border px-2 py-1 text-[10px] font-black transition-colors ${segment.type === 'stay' ? 'border-violet-200 bg-violet-50 text-violet-600' : isSelected ? 'border-indigo-300 bg-indigo-100 text-indigo-700' : 'border-slate-200 bg-white text-slate-500 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600'}`}
+                                      title="클릭하여 수정, 드래그하여 일정에 복제"
                                     >
                                       <GripVertical size={10} className="shrink-0" />
                                       <span>{segment.label}</span>
@@ -7186,7 +7185,7 @@ const App = () => {
                                   </button>
                                 ))}
                               </div>
-                              {editingLodgeSegment && !['checkin', 'checkout'].includes(editingLodgeSegment.type) && (
+                              {editingLodgeSegment && editingLodgeSegment.type !== 'stay' && (
                                 <div className="mt-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2">
                                   <div className="grid grid-cols-[70px_1fr_70px_auto] gap-2 items-center">
                                     <input
@@ -7196,13 +7195,9 @@ const App = () => {
                                       })}
                                       className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-[11px] font-black text-slate-700 tabular-nums outline-none focus:border-indigo-300 focus:bg-white"
                                     />
-                                    <input
-                                      value={editingLodgeSegment.label || ''}
-                                      onChange={(e) => updatePlace(place.id, {
-                                        staySegments: (place.staySegments || []).map((segment) => segment.id === editingLodgeSegment.id ? { ...segment, label: e.target.value } : segment),
-                                      })}
-                                      className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-[11px] font-black text-slate-700 outline-none focus:border-indigo-300 focus:bg-white"
-                                    />
+                                    <div className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 flex items-center text-[11px] font-black text-slate-700">
+                                      {editingLodgeSegment.label}
+                                    </div>
                                     <input
                                       type="number"
                                       min="10"

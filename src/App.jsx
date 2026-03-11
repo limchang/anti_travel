@@ -2617,23 +2617,7 @@ const SmartFillGuideModal = ({ onClose }) => {
 const askPlanBMoveMode = (item) => item?.alternatives?.length > 0 ? window.confirm(`Plan B도 함께 이동하시겠습니까? (취소 시 현재 기준 일정만 이동합니다)`) : false;
 const App = () => {
 
-  const getTimingConflictRecommendation = () => null;
-  const applyTimingConflictRecommendation = () => { };
-  const distanceSortedPlaces = [];
-  const budgetSummary = {
-    totalExpected: 0,
-    totalActual: 0,
-    totalUnpaid: 0,
-    categories: []
-  };
-  const updateMemo = (dayIdx, pIdx, val) => {
-    setItinerary(prev => {
-      const draft = JSON.parse(JSON.stringify(prev));
-      const p = draft.days[dayIdx].plan[pIdx];
-      p.memo = val;
-      return draft;
-    });
-  };
+
 
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -4382,6 +4366,45 @@ const App = () => {
   });
 
   const calculateFuelCost = (km) => Math.round((km / CAR_EFFICIENCY) * FUEL_PRICE_PER_LITER);
+
+  const budgetSummary = useMemo(() => {
+    let totalSpent = 0;
+    if (!itinerary || !itinerary.days) return { total: 0, remaining: MAX_BUDGET };
+    itinerary.days.forEach(day => {
+      day.plan?.forEach(p => {
+        if (p.type !== 'backup') {
+          totalSpent += (Number(p.price) || 0);
+          if (p.distance) totalSpent += calculateFuelCost(p.distance);
+        }
+      });
+    });
+    return { total: totalSpent, remaining: (MAX_BUDGET || 0) - totalSpent };
+  }, [itinerary, MAX_BUDGET]);
+
+  const distanceSortedPlaces = useMemo(() => {
+    const list = [...(itinerary.places || [])];
+    if (!basePlanRef?.id) {
+      return list.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+    }
+    return list.sort((a, b) => {
+      const da = placeDistanceMap[a.id] ?? Infinity;
+      const db = placeDistanceMap[b.id] ?? Infinity;
+      return da - db;
+    });
+  }, [itinerary.places, basePlanRef, placeDistanceMap]);
+
+  const updateMemo = (dayIdx, pIdx, val) => {
+    setItinerary(prev => {
+      const draft = JSON.parse(JSON.stringify(prev));
+      if (!draft.days?.[dayIdx]?.plan?.[pIdx]) return prev;
+      draft.days[dayIdx].plan[pIdx].memo = val;
+      return draft;
+    });
+  };
+
+  const getTimingConflictRecommendation = (dayIdx, pIdx) => null;
+  const applyTimingConflictRecommendation = (dayIdx, pIdx) => { };
+
 
   const getWeekdayForDayIndex = (dayIdx) => {
     if (!tripStartDate) return null;

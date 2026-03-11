@@ -2520,6 +2520,7 @@ const App = () => {
   const [pendingPlanMenuFocus, setPendingPlanMenuFocus] = useState(null); // { dayIdx, pIdx, menuIdx }
   // durationControllerTarget 제거됨 — 시간 셀 확장으로 통합
   const [timeControllerTarget, setTimeControllerTarget] = useState(null); // { dayIdx, pIdx }
+  const [lodgeCheckoutDraft, setLodgeCheckoutDraft] = useState(null); // { key, value }
   const [timeControlStep, setTimeControlStep] = useState(5);
 
   // 시작 시간 컨트롤러 외부 클릭 시 닫기
@@ -4588,6 +4589,44 @@ const App = () => {
     setLastAction('숙소 체크아웃 시간을 조정했습니다.');
   };
 
+  const setLodgeCheckoutTimeValue = (dayIdx, pIdx, nextLabel) => {
+    const normalized = String(nextLabel || '').trim();
+    if (!/^\d{2}:\d{2}$/.test(normalized)) {
+      setLastAction('체크아웃 시간 형식이 올바르지 않습니다.');
+      return;
+    }
+    const [hours, minutes] = normalized.split(':').map(Number);
+    if (hours > 24 || minutes > 59 || (hours === 24 && minutes > 0)) {
+      setLastAction('체크아웃 시간 형식이 올바르지 않습니다.');
+      return;
+    }
+    saveHistory();
+    let updated = false;
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
+      const nextDayPlan = nextData.days?.[dayIdx + 1]?.plan || [];
+      const nextFirstIdx = nextDayPlan.findIndex(candidate => candidate?.type !== 'backup');
+      if (!item || nextFirstIdx < 0) return prev;
+
+      const nextFirst = nextDayPlan[nextFirstIdx];
+      const checkoutMinutes = timeToMinutes(normalized);
+      item.lodgeCheckoutTime = normalized;
+      item.lodgeCheckoutFixed = true;
+      nextFirst.time = minutesToTime(
+        checkoutMinutes
+        + parseMinsLabel(nextFirst.travelTimeOverride, DEFAULT_TRAVEL_MINS)
+        + parseMinsLabel(nextFirst.bufferTimeOverride, DEFAULT_BUFFER_MINS)
+      );
+
+      nextData.days[dayIdx + 1].plan = recalculateSchedule(nextDayPlan);
+      recalculateLodgeDurations(nextData.days);
+      updated = true;
+      return nextData;
+    });
+    setLastAction(updated ? '숙소 체크아웃 시간을 설정했습니다.' : '조정할 다음 일정이 없어 체크아웃 시간을 고정할 수 없습니다.');
+  };
+
   const toggleLodgeCheckoutFix = (dayIdx, pIdx) => {
     let fixed = false;
     saveHistory();
@@ -6511,12 +6550,12 @@ const App = () => {
   const renderTimelineInsertGuide = (isDropHere, warnText = '') => {
     const activeText = warnText || '여기야 · 드래그해주세요.';
     if (!isDropHere) {
-      return <div className="h-1.5 w-full" />;
+      return <div className="h-2 w-full" />;
     }
     return (
       <div className="z-10 flex w-full items-center justify-center">
         <div
-          className={`relative my-2 flex min-h-[56px] w-full max-w-[320px] items-center justify-center rounded-[20px] border bg-slate-50/98 px-4 py-2.5 transition-all duration-200 ${
+          className={`relative flex min-h-[56px] w-full max-w-[320px] items-center justify-center rounded-[20px] border bg-slate-50/98 px-4 py-2.5 transition-all duration-200 ${
             isDropHere
               ? warnText
                 ? 'border-orange-300 bg-orange-50 text-orange-600 shadow-[0_22px_38px_-18px_rgba(251,146,60,0.55)] ring-2 ring-orange-200/70 scale-[1.02]'
@@ -8430,7 +8469,7 @@ const App = () => {
                       <div className="flex items-center justify-center py-3 w-full">
                         {isTimelineDragActive ? (
                           <div
-                            className="z-10 w-full pt-2 pb-1 cursor-copy"
+                            className="z-10 w-full py-2 cursor-copy"
                             data-droptarget={`day-start-${dIdx}`}
                             onDragOver={(e) => { e.preventDefault(); setDropTarget({ dayIdx: dIdx, insertAfterPIdx: -1 }); }}
                             onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null); }}
@@ -8923,6 +8962,12 @@ const App = () => {
                                         ? timeToMinutes(nextItem.time) - parseMinsLabel(nextItem.travelTimeOverride, DEFAULT_TRAVEL_MINS) - parseMinsLabel(nextItem.bufferTimeOverride, DEFAULT_BUFFER_MINS)
                                         : timeToMinutes(p.time || '00:00') + (p.duration || 0);
                                     const checkoutLabel = minutesToTime(rawCheckoutMins);
+                                    const stayDurationMins = (() => {
+                                      const checkinMins = timeToMinutes(p.time || '15:00');
+                                      const checkoutMins = timeToMinutes(checkoutLabel);
+                                      const overnightCheckout = checkoutMins <= checkinMins ? checkoutMins + 1440 : checkoutMins;
+                                      return Math.max(0, overnightCheckout - checkinMins);
+                                    })();
                                     const [checkinHour = '00', checkinMinute = '00'] = String(p.time || '00:00').split(':');
                                     const [checkoutHour = '00', checkoutMinute = '00'] = String(checkoutLabel).split(':');
                                     const lodgeButtonTone = p.isTimeFixed ? 'bg-[#3182F6] text-white ring-2 ring-[#3182F6]/30 ring-offset-1' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50';
@@ -8930,6 +8975,16 @@ const App = () => {
 
                                     return (
                                       <>
+                                  {(checkinTarget || checkoutTarget) && (
+                                    <div className="w-full grid grid-cols-2 gap-2 mb-2">
+                                      <button onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${lodgeButtonTone}`}>
+                                        {p.isTimeFixed ? <Lock size={10} /> : <Unlock size={10} />} 체크인 {p.isTimeFixed ? '고정' : '해제'}
+                                      </button>
+                                      <button onClick={(e) => { e.stopPropagation(); if (!nextItem) return; toggleLodgeCheckoutFix(dIdx, pIdx); }} disabled={!nextItem} className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black transition-all disabled:opacity-40 ${lodgeCheckoutButtonTone}`}>
+                                        {p.lodgeCheckoutFixed ? <Lock size={10} /> : <Unlock size={10} />} 체크아웃 {p.lodgeCheckoutFixed ? '고정' : '해제'}
+                                      </button>
+                                    </div>
+                                  )}
                                   <div
                                     data-time-trigger="true"
                                     className={`relative overflow-hidden flex-1 rounded-xl border p-3 flex flex-col items-center justify-center gap-2 min-h-[96px] cursor-pointer transition-colors ${checkinTarget ? 'bg-indigo-100/80 border-indigo-300' : 'bg-indigo-50/70 border-indigo-100'}`}
@@ -8954,9 +9009,6 @@ const App = () => {
                                           <span className="text-[22px] font-black tracking-tight tabular-nums text-indigo-900 leading-none">{checkinMinute}</span>
                                           <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, -lodgeStep); }} className="w-7 h-5 flex items-center justify-center rounded-md text-indigo-300 hover:text-indigo-600 hover:bg-white/80 transition-colors"><ChevronDown size={12} /></button>
                                         </div>
-                                        <button onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`col-span-2 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${lodgeButtonTone}`}>
-                                          {p.isTimeFixed ? <Lock size={10} /> : <Unlock size={10} />} {p.isTimeFixed ? '고정됨' : '고정'}
-                                        </button>
                                         <div className="col-span-2 grid grid-cols-4 gap-1">
                                           {renderTimeStepButtons({
                                             selectedStep: lodgeStep,
@@ -8982,31 +9034,57 @@ const App = () => {
                                       )}
                                     </div>
                                     {checkoutTarget && (
-                                      <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 w-full relative z-10">
-                                        <div className="flex flex-col items-center">
-                                          <button onClick={(e) => { e.stopPropagation(); if (!nextItem) return; updateLodgeCheckoutTime(dIdx, pIdx, 60); }} className="w-7 h-5 flex items-center justify-center rounded-md text-violet-300 hover:text-violet-600 hover:bg-white/80 transition-colors disabled:opacity-40" disabled={!nextItem}><ChevronUp size={12} /></button>
-                                          <span className="text-[22px] font-black tracking-tight tabular-nums text-violet-900 leading-none">{checkoutHour}</span>
-                                          <button onClick={(e) => { e.stopPropagation(); if (!nextItem) return; updateLodgeCheckoutTime(dIdx, pIdx, -60); }} className="w-7 h-5 flex items-center justify-center rounded-md text-violet-300 hover:text-violet-600 hover:bg-white/80 transition-colors disabled:opacity-40" disabled={!nextItem}><ChevronDown size={12} /></button>
-                                        </div>
-                                        <div className="flex flex-col items-center">
-                                          <button onClick={(e) => { e.stopPropagation(); if (!nextItem) return; updateLodgeCheckoutTime(dIdx, pIdx, lodgeStep); }} className="w-7 h-5 flex items-center justify-center rounded-md text-violet-300 hover:text-violet-600 hover:bg-white/80 transition-colors disabled:opacity-40" disabled={!nextItem}><ChevronUp size={12} /></button>
-                                          <span className="text-[22px] font-black tracking-tight tabular-nums text-violet-900 leading-none">{checkoutMinute}</span>
-                                          <button onClick={(e) => { e.stopPropagation(); if (!nextItem) return; updateLodgeCheckoutTime(dIdx, pIdx, -lodgeStep); }} className="w-7 h-5 flex items-center justify-center rounded-md text-violet-300 hover:text-violet-600 hover:bg-white/80 transition-colors disabled:opacity-40" disabled={!nextItem}><ChevronDown size={12} /></button>
-                                        </div>
-                                        <button onClick={(e) => { e.stopPropagation(); if (!nextItem) return; toggleLodgeCheckoutFix(dIdx, pIdx); }} disabled={!nextItem} className={`col-span-2 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black transition-all disabled:opacity-40 ${lodgeCheckoutButtonTone}`}>
-                                          {p.lodgeCheckoutFixed ? <Lock size={10} /> : <Unlock size={10} />} {p.lodgeCheckoutFixed ? '고정됨' : '고정'}
-                                        </button>
-                                        <div className="col-span-2 grid grid-cols-4 gap-1">
-                                          {renderTimeStepButtons({
-                                            selectedStep: lodgeStep,
-                                            onSelect: setTimeControlStep,
-                                            activeTone: 'violet',
-                                            compact: true,
-                                          })}
-                                        </div>
+                                      <div className="w-full relative z-10 flex flex-col items-center gap-2">
+                                        <TimeInput
+                                          value={lodgeCheckoutDraft?.key === lodgeCheckoutKey ? lodgeCheckoutDraft.value : checkoutLabel}
+                                          onChange={(value) => setLodgeCheckoutDraft({ key: lodgeCheckoutKey, value })}
+                                          onFocus={() => setLodgeCheckoutDraft({ key: lodgeCheckoutKey, value: checkoutLabel })}
+                                          onBlurExtra={() => {
+                                            const draftValue = lodgeCheckoutDraft?.key === lodgeCheckoutKey ? lodgeCheckoutDraft.value : checkoutLabel;
+                                            if (nextItem && /^\d{2}:\d{2}$/.test(draftValue || '')) {
+                                              setLodgeCheckoutTimeValue(dIdx, pIdx, draftValue);
+                                            }
+                                            setLodgeCheckoutDraft(null);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') e.currentTarget.blur();
+                                            if (e.key === 'Escape') {
+                                              setLodgeCheckoutDraft(null);
+                                              e.currentTarget.blur();
+                                            }
+                                          }}
+                                          title="체크아웃 시간 직접 입력"
+                                          placeholder="01:00"
+                                          className="w-[112px] rounded-xl border border-violet-200 bg-white/90 px-3 py-2 text-center text-[24px] font-black tracking-tight tabular-nums text-violet-700 outline-none focus:border-violet-400"
+                                        />
+                                        <div className="text-[10px] font-bold text-violet-400">종료시간을 다시 입력하면 시작 기준으로 자동 재계산됩니다.</div>
                                       </div>
                                     )}
                                   </div>
+                                  {(checkinTarget || checkoutTarget) && (
+                                    <div className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 flex flex-col gap-2 mt-2">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="text-[10px] font-black tracking-[0.16em] text-slate-400 uppercase">자동 소요</span>
+                                        <span className="text-[14px] font-black tabular-nums text-slate-700">{fmtDur(stayDurationMins)}</span>
+                                      </div>
+                                      <div className="grid grid-cols-4 gap-1.5">
+                                        {[5, 10, 20, 30].map((value) => (
+                                          <button
+                                            key={value}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (!nextItem) return;
+                                              updateLodgeCheckoutTime(dIdx, pIdx, value);
+                                            }}
+                                            disabled={!nextItem}
+                                            className="rounded-lg border border-violet-100 bg-violet-50/70 py-1.5 text-[10px] font-black text-violet-600 transition-colors hover:bg-violet-500 hover:text-white disabled:opacity-40"
+                                          >
+                                            +{value}m
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                       </>
                                     );
                                   })()}
@@ -9331,7 +9409,7 @@ const App = () => {
                         const dropWarn = isDropHere && draggingFromLibrary ? getDropWarning(draggingFromLibrary, dIdx, pIdx) : '';
                         return (
                           <div
-                            className="relative w-full pt-4 pb-1 -mb-2 z-10 cursor-copy"
+                            className="relative z-10 w-full py-2 cursor-copy"
                             data-droptarget={`${dIdx}-${pIdx}`}
                             onDragOver={(e) => { e.preventDefault(); setDropTarget({ dayIdx: dIdx, insertAfterPIdx: pIdx }); }}
                             onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null); }}
@@ -9357,7 +9435,7 @@ const App = () => {
                     {/* 이동 정보 칩 / 드롭 존 */}
                     {
                       pIdx < d.plan.length - 1 && (
-                        <div className="flex items-center pt-3 pb-0 -mb-3 relative w-full">
+                        <div className="relative flex w-full items-center py-2">
                           {(() => {
                             const nextItem = d.plan[pIdx + 1];
                             if (!nextItem) return null;
@@ -9367,7 +9445,7 @@ const App = () => {
                               const dropWarn = isDropHere && draggingFromLibrary ? getDropWarning(draggingFromLibrary, dIdx, pIdx) : '';
                               return (
                                 <div
-                                  className="z-10 w-full pt-4 pb-1 -mb-2 cursor-copy"
+                                  className="z-10 w-full py-2 cursor-copy"
                                   data-droptarget={`${dIdx}-${pIdx}`}
                                   onDragOver={(e) => { e.preventDefault(); setDropTarget({ dayIdx: dIdx, insertAfterPIdx: pIdx }); }}
                                   onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null); }}
@@ -9391,7 +9469,7 @@ const App = () => {
 
                             return (
                               <div id={`travel-chip-${dIdx}-${pIdx}`} className="z-10 flex items-center justify-center w-full">
-                                <div className="my-2 flex items-center bg-slate-50/95 px-3 py-1.5 rounded-full border border-slate-300 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.45)] gap-2">
+                                <div className="flex items-center bg-slate-50/95 px-3 py-1.5 rounded-full border border-slate-300 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.45)] gap-2">
                                   {(() => {
                                     const rid = `${dIdx}_${pIdx + 1}`;
                                     const busy = calculatingRouteId === rid;

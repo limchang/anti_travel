@@ -2736,6 +2736,8 @@ const App = () => {
   const [calculatingRouteId, setCalculatingRouteId] = useState(null);
   const [isCalculatingAllRoutes, setIsCalculatingAllRoutes] = useState(false);
   const [routeCalcProgress, setRouteCalcProgress] = useState(0);
+  const routeRetryCooldownMs = 45000;
+  const autoRouteQueuedRef = useRef(new Set());
   const [dashboardHeight, setDashboardHeight] = useState(200);
   const dashboardRef = useRef(null);
   const heroTriggerRef = useRef(null);
@@ -3676,7 +3678,7 @@ const App = () => {
 
   const formatDistanceText = (distance) => {
     const num = Number(distance);
-    if (!Number.isFinite(num) || num <= 0) return '미계산';
+    if (!Number.isFinite(num) || num < 0) return '미계산';
     return `${num}km`;
   };
   const hasRestTag = (types = []) => {
@@ -3704,6 +3706,24 @@ const App = () => {
       return (item.receipt?.address || item.startPoint || '').trim();
     }
     return (item.receipt?.address || item.address || '').trim();
+  };
+  const shouldAutoCalculateRoute = (dayIdx, targetIdx) => {
+    let prevItem;
+    if (targetIdx === 0) {
+      if (dayIdx <= 0) return false;
+      const prevDayPlan = (itinerary.days?.[dayIdx - 1]?.plan || []).filter((item) => item && item.type !== 'backup');
+      prevItem = prevDayPlan[prevDayPlan.length - 1];
+    } else {
+      prevItem = itinerary.days?.[dayIdx]?.plan?.[targetIdx - 1];
+    }
+    const targetItem = itinerary.days?.[dayIdx]?.plan?.[targetIdx];
+    if (!prevItem || !targetItem || targetItem.type === 'backup' || targetItem.types?.includes('ship')) return false;
+    const fromAddress = getRouteAddress(prevItem, 'from');
+    const toAddress = getRouteAddress(targetItem, 'to');
+    if (!fromAddress || !toAddress || fromAddress.includes('없음') || toAddress.includes('없음')) return false;
+    const hasDistance = Number.isFinite(Number(targetItem.distance)) && Number(targetItem.distance) >= 0;
+    const hasTravelAuto = String(targetItem.travelTimeAuto || '').trim() !== '';
+    return !hasDistance || !hasTravelAuto;
   };
   const geocodeAddress = async (address) => {
     const key = String(address || '').trim();
@@ -5646,9 +5666,11 @@ const App = () => {
     }
 
     const key = `${addr1}|${addr2}`;
-    if (!forceRefresh && routeCache[key] && !routeCache[key].failed) {
+    const cachedRoute = routeCache[key];
+    const failedRecently = cachedRoute?.failedAt && (Date.now() - cachedRoute.failedAt < routeRetryCooldownMs);
+    if (!forceRefresh && cachedRoute && !cachedRoute.failed) {
       const cached = routeCache[key];
-      const cachedDistance = Math.max(0.1, Number(cached.distance) || 0.1);
+      const cachedDistance = Math.max(0, Number(cached.distance) || 0);
       const verifiedCachedDuration = verifyRouteDurationMins({
         distanceKm: cachedDistance,
         straightKm: cachedDistance,
@@ -5660,6 +5682,9 @@ const App = () => {
         setRouteCache(prev => ({ ...prev, [key]: verifiedCached }));
       }
       applyRoute(dayIdx, targetIdx, verifiedCached);
+      return;
+    }
+    if (!forceRefresh && failedRecently) {
       return;
     }
 
@@ -5744,7 +5769,7 @@ const App = () => {
       }
     } catch (e) {
       console.error(e);
-      setRouteCache(prev => ({ ...prev, [key]: { failed: true } }));
+      setRouteCache(prev => ({ ...prev, [key]: { failed: true, failedAt: Date.now() } }));
       if (!silent) setLastAction("자동차 경로 계산 실패: 주소 확인 후 다시 시도해주세요.");
     } finally {
       setCalculatingRouteId(null);
@@ -5755,6 +5780,7 @@ const App = () => {
     if (!pendingAutoRouteJobs.length) return;
     const job = pendingAutoRouteJobs[0];
     setPendingAutoRouteJobs(prev => prev.slice(1));
+    autoRouteQueuedRef.current.delete(`${job.dayIdx}:${job.targetIdx}`);
     const run = async () => {
       await autoCalculateRouteFor(job.dayIdx, job.targetIdx, { silent: true });
       const nextExists = !!itinerary.days?.[job.dayIdx]?.plan?.[job.targetIdx + 1];
@@ -5764,6 +5790,28 @@ const App = () => {
     };
     void run();
   }, [itinerary, pendingAutoRouteJobs]);
+
+  useEffect(() => {
+    if (isCalculatingAllRoutes || calculatingRouteId) return;
+    const missingJobs = [];
+    for (let dayIdx = 0; dayIdx < (itinerary.days || []).length; dayIdx++) {
+      const plan = itinerary.days?.[dayIdx]?.plan || [];
+      for (let targetIdx = 0; targetIdx < plan.length; targetIdx++) {
+        if (!shouldAutoCalculateRoute(dayIdx, targetIdx)) continue;
+        const jobKey = `${dayIdx}:${targetIdx}`;
+        if (autoRouteQueuedRef.current.has(jobKey)) continue;
+        missingJobs.push({ dayIdx, targetIdx, key: jobKey });
+      }
+    }
+    if (!missingJobs.length) return;
+    for (const job of missingJobs) {
+      autoRouteQueuedRef.current.add(job.key);
+    }
+    setPendingAutoRouteJobs((prev) => [
+      ...prev,
+      ...missingJobs.map(({ dayIdx, targetIdx }) => ({ dayIdx, targetIdx })),
+    ]);
+  }, [itinerary, calculatingRouteId, isCalculatingAllRoutes]);
 
   const autoCalculateAllRoutes = async () => {
     setIsCalculatingAllRoutes(true);
@@ -7557,36 +7605,43 @@ const App = () => {
                 return { key, label, amount, pct };
               })
               .sort((a, b) => b.amount - a.amount);
-            const routeStops = allBudgetItems
-              .map((item) => {
-                if (item.types?.includes('ship')) return item.endPoint || item.startPoint || item.activity || '';
-                if (item.activity) return item.activity;
-                return item.receipt?.address || '';
-              })
-              .map((value) => String(value || '').trim())
-              .filter(Boolean)
-              .filter((value, index, arr) => index === 0 || arr[index - 1] !== value);
-            const routeSummary = routeStops.length ? routeStops.slice(0, 5).join(' → ') : `${tripRegion || '여행지'} 중심 동선`;
-            const firstPlannedItem = allBudgetItems[0] || null;
-            const lastPlannedItem = allBudgetItems[allBudgetItems.length - 1] || null;
-            const firstTimeLabel = firstPlannedItem?.time || '--:--';
-            const lastTimeLabel = lastPlannedItem
-              ? (lastPlannedItem.types?.includes('ship')
-                ? getShipTimeline(lastPlannedItem).disembarkLabel
-                : minutesToTime(timeToMinutes(lastPlannedItem.time || '00:00') + (lastPlannedItem.duration || 0)))
-              : '--:--';
-            const categoryCountMap = allBudgetItems.reduce((acc, item) => {
-              const types = Array.isArray(item.types) ? item.types : [];
-              const baseType = types.find((t) => !MODIFIER_TAGS.has(t) && t !== 'place') || types.find((t) => !MODIFIER_TAGS.has(t)) || 'place';
-              acc[baseType] = (acc[baseType] || 0) + 1;
-              return acc;
-            }, {});
-            const topCategorySummary = Object.entries(categoryCountMap)
-              .map(([key, count]) => ({ label: categoryLabelMap[key] || key, count: Number(count) || 0 }))
-              .sort((a, b) => b.count - a.count)
-              .slice(0, 3)
-              .map((entry) => `${entry.label} ${entry.count}`)
-              .join(' · ');
+            const planCountsByDay = (itinerary.days || []).map((day) => (day.plan || []).filter((item) => item && item.type !== 'backup').length);
+            const totalPlanCount = planCountsByDay.reduce((sum, count) => sum + count, 0);
+            const activeDayCount = planCountsByDay.filter((count) => count > 0).length || (itinerary.days?.length || 1);
+            const dailyPlanAverage = totalPlanCount > 0 ? (totalPlanCount / activeDayCount) : 0;
+            const perDayPlanSummary = planCountsByDay.length
+              ? planCountsByDay.map((count, index) => `${index + 1}일차 ${count}`).join(' · ')
+              : '일정 데이터 없음';
+            const dayIntensityStats = (itinerary.days || []).map((day) => {
+              const plan = (day.plan || []).filter((item) => item && item.type !== 'backup');
+              if (!plan.length) return { count: 0, spanHours: 0, travelMinutes: 0 };
+              const startMinutes = timeToMinutes(plan[0]?.time || '00:00');
+              const endItem = plan[plan.length - 1];
+              const endMinutes = endItem?.types?.includes('ship')
+                ? getShipTimeline(endItem).disembarkMinutes
+                : timeToMinutes(endItem?.time || '00:00') + (Number(endItem?.duration) || 0);
+              const spanHours = Math.max(0, endMinutes - startMinutes) / 60;
+              const travelMinutes = plan.reduce((sum, item) => sum + (Number(item.travelTimeValue) || 0), 0);
+              return { count: plan.length, spanHours, travelMinutes };
+            });
+            const averageSpanHours = dayIntensityStats.length
+              ? dayIntensityStats.reduce((sum, stat) => sum + stat.spanHours, 0) / dayIntensityStats.length
+              : 0;
+            const averageTravelMinutes = dayIntensityStats.length
+              ? dayIntensityStats.reduce((sum, stat) => sum + stat.travelMinutes, 0) / dayIntensityStats.length
+              : 0;
+            const intensityScore = [
+              dailyPlanAverage >= 8 ? 2 : dailyPlanAverage >= 6 ? 1 : 0,
+              averageSpanHours >= 11 ? 2 : averageSpanHours >= 8.5 ? 1 : 0,
+              averageTravelMinutes >= 120 ? 2 : averageTravelMinutes >= 70 ? 1 : 0,
+            ].reduce((sum, value) => sum + value, 0);
+            const travelIntensity = intensityScore >= 5
+              ? { label: '매우 빠듯함', note: '이동/체류 여유 적음' }
+              : intensityScore >= 3
+                ? { label: '빠듯함', note: '조정 여지 확인 필요' }
+                : intensityScore >= 1
+                  ? { label: '보통', note: '무난한 이동 밀도' }
+                  : { label: '널널함', note: '여유 있는 흐름' };
             return (
               <div className="mb-8 relative">
                 {/* 컴팩트 플로팅 바 (스크롤 시) */}
@@ -7756,42 +7811,23 @@ const App = () => {
                         {/* 🌟 2. 여행 한눈에 보기 */}
                         <div className="flex flex-col gap-8 px-3 sm:px-0">
                           <div className="w-full bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.04)] rounded-[32px] overflow-hidden flex flex-col pt-8 pb-7 px-8 items-center text-center">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Travel At A Glance</p>
-                            <p className="max-w-[760px] text-[26px] sm:text-[34px] font-black text-[#3182F6] leading-tight tracking-tight mb-3 break-keep">
-                              {routeSummary}
-                            </p>
-                            <p className="text-[12px] font-bold text-slate-500 mb-8">
-                              {tripDays > 0 ? `${tripNights}박 ${tripDays}일` : `${itinerary.days?.length || 0}일 일정`} · 총 {allBudgetItems.length}개 일정
-                            </p>
-
-                            <div className="w-full grid grid-cols-1 sm:grid-cols-3 bg-white/50 rounded-2xl border border-white/20 overflow-hidden min-h-[72px]">
+                            <div className="w-full grid grid-cols-1 sm:grid-cols-3 bg-white/50 rounded-2xl border border-white/20 overflow-hidden min-h-[96px]">
                               <div className="p-4 flex flex-col items-center justify-center gap-1 border-b sm:border-b-0 sm:border-r border-slate-100">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">시간 흐름</p>
-                                <p className="text-[14px] font-black text-slate-700 tabular-nums">{firstTimeLabel} ~ {lastTimeLabel}</p>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">예산 사용</p>
+                                <p className="text-[14px] font-black text-slate-700 tabular-nums">₩{budgetSummary.total.toLocaleString()} / ₩{MAX_BUDGET.toLocaleString()}</p>
+                                <p className="text-[11px] font-bold text-[#3182F6] tabular-nums">{usedPct}% 사용</p>
                               </div>
                               <div className="p-4 flex flex-col items-center justify-center gap-1 border-b sm:border-b-0 sm:border-r border-slate-100">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">주요 카테고리</p>
-                                <p className="text-[14px] font-black text-slate-700 text-center">{topCategorySummary || '일정 요약 준비 중'}</p>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">여행 강도</p>
+                                <p className="text-[16px] font-black text-slate-700 text-center">{travelIntensity.label}</p>
+                                <p className="text-[11px] font-bold text-slate-500 text-center">{travelIntensity.note}</p>
                               </div>
-                              <div
-                                className="p-4 flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-[#3182F6]/5 transition-all group"
-                                onClick={() => setEditingBudget(true)}
-                              >
-                                <p className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                  예산 사용 <Plus size={9} className="text-[#3182F6] opacity-0 group-hover:opacity-100" />
+                              <div className="p-4 flex flex-col items-center justify-center gap-1">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                  일정 갯수
                                 </p>
-                                {editingBudget ? (
-                                  <input
-                                    type="number"
-                                    defaultValue={MAX_BUDGET}
-                                    autoFocus
-                                    className="text-[14px] font-black text-[#3182F6] w-24 bg-transparent border-b border-blue-200 outline-none tabular-nums text-center"
-                                    onBlur={(e) => { const val = Number(e.target.value); if (val > 0) setItinerary(prev => ({ ...prev, maxBudget: val })); setEditingBudget(false); }}
-                                    onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setEditingBudget(false); }}
-                                  />
-                                ) : (
-                                  <p className="text-[14px] font-black text-slate-700 tabular-nums">₩{budgetSummary.total.toLocaleString()} / ₩{MAX_BUDGET.toLocaleString()}</p>
-                                )}
+                                <p className="text-[16px] font-black text-slate-700 text-center tabular-nums">총 {totalPlanCount}개</p>
+                                <p className="text-[11px] font-bold text-slate-500 text-center">{dailyPlanAverage.toFixed(1)}개/일 · {perDayPlanSummary}</p>
                               </div>
                             </div>
 
@@ -7805,7 +7841,7 @@ const App = () => {
                             <button
                               type="button"
                               onClick={() => setHeroSummaryExpanded(v => !v)}
-                              className="mt-4 w-full sm:w-[340px] justify-center px-4 py-3 rounded-2xl border border-slate-200 bg-white text-[11px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors flex items-center gap-1.5"
+                              className="mt-4 w-full sm:w-[380px] justify-center px-4 py-3 rounded-2xl border border-slate-200 bg-white text-[11px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors flex items-center gap-1.5"
                             >
                               여행 요약 확장
                               <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />

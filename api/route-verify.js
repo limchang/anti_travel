@@ -3,6 +3,8 @@ const toNum = (v) => {
   return Number.isFinite(n) ? n : null;
 };
 
+const DEFAULT_KAKAO_REST_KEY = 'b312628369f47e04894f338b7fc0b318';
+
 const haversineKm = (lat1, lon1, lat2, lon2) => {
   const toRad = (d) => d * (Math.PI / 180);
   const R = 6371;
@@ -47,6 +49,15 @@ const fetchKakaoJson = async (url, restKey) => {
   return r.json();
 };
 
+const fetchJson = async (url, headers = {}) => {
+  const r = await fetch(url, { headers });
+  if (!r.ok) {
+    const body = await r.text().catch(() => '');
+    throw new Error(`http ${r.status}: ${body.slice(0, 180)}`);
+  }
+  return r.json();
+};
+
 const geocodeWithKakao = async ({ address, restKey }) => {
   const queries = getCandidateQueries(address);
   for (const q of queries) {
@@ -57,6 +68,32 @@ const geocodeWithKakao = async ({ address, restKey }) => {
       const lat = toNum(doc.y);
       const lon = toNum(doc.x);
       if (lat != null && lon != null) return { lat, lon, source: 'address', query: q };
+    }
+
+    const kwUrl = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(q)}&size=1`;
+    const kwJson = await fetchKakaoJson(kwUrl, restKey);
+    if (Array.isArray(kwJson?.documents) && kwJson.documents.length > 0) {
+      const doc = kwJson.documents[0];
+      const lat = toNum(doc.y);
+      const lon = toNum(doc.x);
+      if (lat != null && lon != null) return { lat, lon, source: 'keyword-address', query: q };
+    }
+  }
+  return null;
+};
+
+const geocodeWithNominatim = async ({ address }) => {
+  const queries = getCandidateQueries(address);
+  for (const q of queries) {
+    const json = await fetchJson(
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=kr&accept-language=ko&q=${encodeURIComponent(q)}`,
+      { Accept: 'application/json', 'Accept-Language': 'ko' }
+    );
+    if (Array.isArray(json) && json.length > 0) {
+      const doc = json[0];
+      const lat = toNum(doc.lat);
+      const lon = toNum(doc.lon);
+      if (lat != null && lon != null) return { lat, lon, source: 'nominatim', query: q };
     }
   }
   return null;
@@ -76,14 +113,21 @@ const requestDirection = async ({ origin, destination, restKey, priority }) => {
   };
 };
 
+const requestOsrmDirection = async ({ origin, destination }) => {
+  const json = await fetchJson(`https://router.project-osrm.org/route/v1/driving/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=false`);
+  const summary = json?.routes?.[0];
+  if (!summary) throw new Error('osrm route unavailable');
+  return {
+    priority: 'OSRM',
+    distanceKm: Math.max(0, Number(summary.distance || 0) / 1000),
+    durationMins: Math.max(1, Math.ceil(Number(summary.duration || 0) / 60)),
+  };
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const restKey = process.env.KAKAO_REST_API_KEY || process.env.KAKAO_API_KEY;
-  if (!restKey) {
-    return res.status(503).json({ error: 'KAKAO_REST_API_KEY not configured' });
-  }
-
+  const restKey = process.env.KAKAO_REST_API_KEY || process.env.KAKAO_API_KEY || DEFAULT_KAKAO_REST_KEY;
   const {
     fromAddress = '',
     toAddress = '',
@@ -94,26 +138,34 @@ export default async function handler(req, res) {
   }
 
   try {
+    const geocoder = restKey ? geocodeWithKakao : geocodeWithNominatim;
     const [fromCoord, toCoord] = await Promise.all([
-      geocodeWithKakao({ address: fromAddress, restKey }),
-      geocodeWithKakao({ address: toAddress, restKey }),
+      geocoder({ address: fromAddress, restKey }),
+      geocoder({ address: toAddress, restKey }),
     ]);
     if (!fromCoord || !toCoord) {
       return res.status(422).json({ error: 'geocode failed', fromCoord: !!fromCoord, toCoord: !!toCoord });
     }
 
-    const [recommend, timeBased] = await Promise.allSettled([
-      requestDirection({ origin: fromCoord, destination: toCoord, restKey, priority: 'RECOMMEND' }),
-      requestDirection({ origin: fromCoord, destination: toCoord, restKey, priority: 'TIME' }),
-    ]);
+    let primary;
+    let secondary;
+    if (restKey) {
+      const [recommend, timeBased] = await Promise.allSettled([
+        requestDirection({ origin: fromCoord, destination: toCoord, restKey, priority: 'RECOMMEND' }),
+        requestDirection({ origin: fromCoord, destination: toCoord, restKey, priority: 'TIME' }),
+      ]);
 
-    const candidates = [recommend, timeBased]
-      .filter((r) => r.status === 'fulfilled')
-      .map((r) => r.value);
-    if (!candidates.length) return res.status(502).json({ error: 'directions failed' });
+      const candidates = [recommend, timeBased]
+        .filter((r) => r.status === 'fulfilled')
+        .map((r) => r.value);
+      if (!candidates.length) return res.status(502).json({ error: 'directions failed' });
+      primary = candidates[0];
+      secondary = candidates[1] || candidates[0];
+    } else {
+      primary = await requestOsrmDirection({ origin: fromCoord, destination: toCoord });
+      secondary = primary;
+    }
 
-    const primary = candidates[0];
-    const secondary = candidates[1] || candidates[0];
     const baseDistance = (primary.distanceKm + secondary.distanceKm) / 2;
     const baseDuration = Math.max(primary.durationMins, secondary.durationMins);
     const straightKm = haversineKm(fromCoord.lat, fromCoord.lon, toCoord.lat, toCoord.lon);
@@ -121,7 +173,7 @@ export default async function handler(req, res) {
     const verifiedDuration = verifyDurationMins(baseDistance, straightKm, baseDuration, isSameAddress);
 
     return res.status(200).json({
-      provider: 'kakao',
+      provider: restKey ? 'kakao' : 'osrm',
       distanceKm: +baseDistance.toFixed(1),
       durationMins: verifiedDuration,
       review: {

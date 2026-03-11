@@ -6002,16 +6002,13 @@ const App = () => {
     setLastAction(`'${suggestion.name}'이(가) 대안 일정으로 등록되었습니다.`);
   };
 
-  const fetchKakaoVerifiedRoute = async ({ fromAddress, toAddress, fromName, toName }) => {
+  const fetchKakaoVerifiedRoute = async ({ fromAddress, toAddress }) => {
     const r = await fetch('/api/route-verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         fromAddress,
         toAddress,
-        fromName,
-        toName,
-        region: tripRegion,
       }),
     });
     if (!r.ok) {
@@ -6081,8 +6078,6 @@ const App = () => {
         const kakaoRoute = await fetchKakaoVerifiedRoute({
           fromAddress: addr1,
           toAddress: addr2,
-          fromName: prevItem?.activity || '',
-          toName: targetItem?.activity || '',
         });
         setRouteCache(prev => ({ ...prev, [key]: kakaoRoute }));
         applyRoute(dayIdx, targetIdx, kakaoRoute);

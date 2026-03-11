@@ -27,16 +27,12 @@ const verifyDurationMins = (distanceKm, straightKm, rawDurationMins, isSameAddre
   return Math.max(raw, byRoadSpeed + signalPenalty, byStraight + signalPenalty, shortTripFloor);
 };
 
-const getCandidateQueries = (address = '', name = '', region = '') => {
+const getCandidateQueries = (address = '') => {
   const addr = String(address || '').trim();
-  const nm = String(name || '').trim();
-  const rg = String(region || '').trim();
   return [
     addr,
     addr.split(/[,\(]/)[0].trim(),
     addr.replace(/제주특별자치도/g, '제주').replace(/특별자치도/g, '').trim(),
-    `${rg} ${nm}`.trim(),
-    nm,
   ].filter(Boolean);
 };
 
@@ -51,8 +47,8 @@ const fetchKakaoJson = async (url, restKey) => {
   return r.json();
 };
 
-const geocodeWithKakao = async ({ address, name, region, restKey }) => {
-  const queries = getCandidateQueries(address, name, region);
+const geocodeWithKakao = async ({ address, restKey }) => {
+  const queries = getCandidateQueries(address);
   for (const q of queries) {
     const addrUrl = `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(q)}&size=1`;
     const addrJson = await fetchKakaoJson(addrUrl, restKey);
@@ -61,15 +57,6 @@ const geocodeWithKakao = async ({ address, name, region, restKey }) => {
       const lat = toNum(doc.y);
       const lon = toNum(doc.x);
       if (lat != null && lon != null) return { lat, lon, source: 'address', query: q };
-    }
-
-    const kwUrl = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(q)}&size=1`;
-    const kwJson = await fetchKakaoJson(kwUrl, restKey);
-    if (Array.isArray(kwJson?.documents) && kwJson.documents.length > 0) {
-      const doc = kwJson.documents[0];
-      const lat = toNum(doc.y);
-      const lon = toNum(doc.x);
-      if (lat != null && lon != null) return { lat, lon, source: 'keyword', query: q };
     }
   }
   return null;
@@ -100,9 +87,6 @@ export default async function handler(req, res) {
   const {
     fromAddress = '',
     toAddress = '',
-    fromName = '',
-    toName = '',
-    region = '',
   } = req.body || {};
 
   if (!String(fromAddress).trim() || !String(toAddress).trim()) {
@@ -111,8 +95,8 @@ export default async function handler(req, res) {
 
   try {
     const [fromCoord, toCoord] = await Promise.all([
-      geocodeWithKakao({ address: fromAddress, name: fromName, region, restKey }),
-      geocodeWithKakao({ address: toAddress, name: toName, region, restKey }),
+      geocodeWithKakao({ address: fromAddress, restKey }),
+      geocodeWithKakao({ address: toAddress, restKey }),
     ]);
     if (!fromCoord || !toCoord) {
       return res.status(422).json({ error: 'geocode failed', fromCoord: !!fromCoord, toCoord: !!toCoord });
@@ -155,4 +139,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'route verify failed', details: e?.message || 'unknown error' });
   }
 }
-

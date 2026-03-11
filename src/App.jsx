@@ -1012,12 +1012,13 @@ const extractPlaceNameFromLines = (lines = []) => {
     if (!line || NAVER_PARSE_STOP_WORDS.has(line)) continue;
     if (/^https?:\/\//i.test(line)) continue;
     if (isLikelyParsedAddress(line)) continue;
-    if (/(방문자\s*리뷰|블로그\s*리뷰|별점|라스트오더|브레이크타임|영업\s*중|이미지\s*갯수|육류,고기요리)/.test(line)) {
+    if (/(방문자\s*리뷰|블로그\s*리뷰|별점|라스트오더|브레이크타임|영업\s*중|이미지\s*갯수|육류,고기요리|,카페|,한식|,중식|,양식|,일식)/.test(line)) {
       const cleaned = line
         .replace(/별점.*$/g, '')
         .replace(/방문자\s*리뷰.*$/g, '')
         .replace(/블로그\s*리뷰.*$/g, '')
-        .replace(/(육류,고기요리)\s*$/g, '')
+        .replace(/(육류,고기요리|카페|한식|중식|양식|일식|베이커리|디저트|바\(BAR\)|펍|포장마차|분식|면요리|패스트푸드|피자|치킨|햄버거|스테이크|패밀리레스토랑|뷔페|해산물|일식당|고기집|한정식|백반|국밥|찌개|전골|탕|칼국수|수제비|냉면|소바|우동|이자카야|스시|라멘|돈가스|덮밥|카레|중식당|짜장면|짬뽕|마라탕|양꼬치|이탈리안|프랑스요리|스페인요리|태국요리|베트남요리|인도요리|멕시코요리|브런치|샌드위치|도너츠|케이크|쿠키|마카롱|빙수|전통찻집|호프|와인바|칵테일바)\s*$/g, '')
+        .replace(/,\s*$/, '')
         .trim();
       if (cleaned && cleaned !== line && isLikelyMenuNameLine(cleaned)) return cleaned;
       continue;
@@ -1133,7 +1134,14 @@ const DEFAULT_AI_SMART_FILL_CONFIG = {
 };
 
 const GEMINI_LINK_MODEL = 'gemini-2.5-flash';
-const GEMINI_LINK_SYSTEM_PROMPT = '너는 장소 정보를 추출하는 전문가야. 제공된 URL이나 텍스트에서 상호명, 주소, 영업시간, 휴일, 라스트 오더 정보를 찾아서 JSON 형식으로만 응답해줘.';
+const GEMINI_LINK_SYSTEM_PROMPT = `너는 대한민국 장소 정보를 추출하는 전문가야. 제공된 URL이나 텍스트에서 상호명, 주소, 영업시간, 휴일, 라스트 오더 정보를 추출해.
+
+### CRITICAL RULES DO NOT FAIL:
+1. **상호명(name) 정제**: 상호명 뒤에 붙어있는 '식당', '카페', '베이커리', '한식', '일식' 같은 업종 태그는 무조건 제거해. 
+   - 예: "스타벅스 성수점 카페" -> "스타벅스 성수점"
+   - 예: "맛있는갈비 육류,고기요리" -> "맛있는갈비"
+2. **JSON 형식 엄수**: 응답은 오직 JSON 형식으로만 해. 다른 텍스트는 섞지 마.
+3. **분석 범위**: 주소뿐만 아니라 정확한 영업시간 스케줄을 "10:00~20:00" 같은 형태로 추출해.`;
 
 const normalizeAiSmartFillConfig = (raw = {}) => ({
   apiKey: String(raw?.apiKey || '').trim(),
@@ -2419,8 +2427,8 @@ const PlaceAddForm = ({ newPlaceName, setNewPlaceName, newPlaceTypes, setNewPlac
     </div>
   );
 };
-const APP_VERSION = '1.2.8';
-const LAST_PUSH_TIME = '2026-03-11T15:47:00+09:00';
+const APP_VERSION = '1.2.9';
+const LAST_PUSH_TIME = '2026-03-11T15:53:00+09:00';
 
 // ── AI 자동입력 학습 지침 모달 ───────────────────────────────────────────────
 const GUIDE_DOC_PATH = 'meta/smartFillGuide';

@@ -8681,9 +8681,9 @@ const App = () => {
                                       const endMins = timeToMinutes(p.time || '00:00') + (p.duration || 0);
                                       const [ehh, emm] = minutesToTime(endMins).split(':');
                                       return (
-                                        <div className="flex flex-col items-center justify-center w-full h-full gap-0 select-none py-1">
+                                        <div className="flex flex-col items-center justify-between w-full h-full min-h-[156px] select-none py-2">
                                           {/* 상단: 시작 시각 */}
-                                          <div className="flex flex-col items-center translate-y-1">
+                                          <div className="flex flex-col items-center">
                                             {p.isTimeFixed && (
                                               <div className="flex items-center gap-0.5 mb-0.5">
                                                 <Lock size={8} className="text-[#3182F6]" />
@@ -8696,21 +8696,21 @@ const App = () => {
                                           </div>
 
                                           {/* 중단: 연결 라인 및 소요시간 뱃지 */}
-                                          <div className="relative flex flex-col items-center w-full py-2.5">
-                                            <div className="absolute top-0 bottom-0 w-[2px] bg-gradient-to-b from-slate-100 via-slate-200 to-slate-100"></div>
+                                          <div className="relative flex flex-1 items-center justify-center w-full min-h-[52px]">
+                                            <div className="absolute inset-y-[-14px] left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-slate-100 via-slate-200 to-slate-100"></div>
                                             <div
-                                              className={`relative z-10 flex items-center gap-1 px-2 py-0.5 rounded-full border shadow-sm transition-all hover:scale-105 active:scale-95 ${isAutoLocked ? 'bg-red-500 border-red-600 text-white' :
+                                              className={`relative z-10 min-w-[58px] flex items-center justify-center px-2.5 py-1 rounded-lg border shadow-[0_6px_14px_-10px_rgba(15,23,42,0.35)] transition-all hover:scale-[1.03] active:scale-[0.98] ${isAutoLocked ? 'bg-red-500 border-red-600 text-white' :
                                                 isDurationLocked ? 'bg-amber-400 border-amber-500 text-white' :
-                                                  'bg-white border-slate-200 text-slate-600 hover:border-slate-400'
+                                                  'bg-white border-slate-200 text-[#3182F6] hover:border-slate-300'
                                                 }`}
                                               onClick={(e) => { e.stopPropagation(); if (isAutoLocked) { setLastAction('자동 연동 일정은 소요시간을 조절할 수 없습니다.'); return; } setTimeControllerTarget({ dayIdx: dIdx, pIdx }); }}
                                             >
-                                              <span className="text-[10px] font-bold tabular-nums tracking-tight">{fmtDur(p.duration)}</span>
+                                              <span className="text-[11px] font-black tabular-nums tracking-tight">{fmtDur(p.duration)}</span>
                                             </div>
                                           </div>
 
                                           {/* 하단: 종료 시각 */}
-                                          <div className="flex flex-col items-center -translate-y-1">
+                                          <div className="flex flex-col items-center">
                                             <span className="text-[20px] font-bold tabular-nums tracking-tighter leading-none text-slate-400 group-hover/tower:text-slate-500 transition-colors">
                                               {ehh}<span className="opacity-20 mx-[-1px]">:</span>{emm}
                                             </span>

@@ -9890,31 +9890,20 @@ const App = () => {
                               }}
                               className={`relative flex flex-col shrink-0 border-r border-slate-100 flex-none overflow-hidden cursor-pointer group/tower ${isCompactTimeline ? 'w-[30%] items-center justify-center py-2' : 'w-[30%] items-center justify-center py-3 px-2 sm:px-3'} ${p.isTimeFixed ? 'bg-blue-50/20' : 'bg-transparent'}`}
                             >
-                              {/* 락 상태일 때 컨트롤 타워 전체에 은은하게 깔리는 거대 자물쇠 */}
-                              {p.isTimeFixed && (
-                                <Lock size={90} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-500 opacity-[0.035] pointer-events-none" />
-                              )}
-
                               {/* 시간 조절 */}
                               <div
                                 data-time-trigger="true"
-                                className="relative w-full rounded-2xl select-none z-10 px-1 py-1 transition-all group-hover/tower:bg-slate-100/30"
+                                className="relative z-10 w-full rounded-2xl px-1 py-1 select-none transition-all group-hover/tower:bg-slate-100/30"
                               >
-                                <div className="relative flex w-full flex-col items-center justify-center gap-3 z-10">
+                                <div className="relative z-10 flex w-full flex-col items-center justify-center gap-2">
                                   {(() => {
                                     const endMins = timeToMinutes(p.time || '00:00') + (p.duration || 0);
                                     const [hh, mm] = (p.time || '00:00').split(':');
                                     const [ehh, emm] = minutesToTime(endMins).split(':');
                                     return (
-                                      <div className="flex w-full flex-col items-center justify-center gap-1.5 px-2 py-1 select-none">
-                                        <div className={`relative flex w-full min-h-[44px] items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-[#bfd7ff] bg-[#eef5ff]' : 'border-slate-200 bg-white/92 group-hover/tower:border-[#bfd7ff] group-hover/tower:bg-[#f3f8ff]'}`}>
-                                          {p.isTimeFixed && (
-                                            <div className="absolute left-3 top-2.5 flex items-center gap-0.5">
-                                              <Lock size={8} className="text-[#3182F6]" />
-                                              <span className="text-[8px] font-bold text-[#3182F6] uppercase tracking-[0.14em]">FIXED</span>
-                                            </div>
-                                          )}
-                                          <span className={`text-[23px] font-black tabular-nums tracking-[-0.02em] leading-none transition-colors ${p.isTimeFixed ? 'text-[#1f5fd6]' : 'text-slate-900 group-hover/tower:text-[#244f9e]'}`}>
+                                      <div className="flex w-full select-none flex-col items-center justify-center gap-2 px-2 py-1">
+                                        <div className={`relative flex h-[44px] w-full items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-[#bfd7ff] bg-[#eef5ff]' : 'border-slate-200 bg-white/92 group-hover/tower:border-[#bfd7ff] group-hover/tower:bg-[#f3f8ff]'}`}>
+                                          <span className={`text-[39px] font-black tabular-nums tracking-[-0.08em] leading-none transition-colors ${p.isTimeFixed ? 'text-[#1f5fd6]' : 'text-slate-900 group-hover/tower:text-[#244f9e]'}`}>
                                             {hh}<span className="mx-[1px] opacity-72">:</span>{mm}
                                           </span>
                                         </div>
@@ -9922,7 +9911,7 @@ const App = () => {
                                         <div className="relative flex w-full items-center justify-center">
                                           <button
                                             type="button"
-                                            className={`relative z-10 flex min-h-[30px] min-w-[92px] items-center justify-center gap-2 rounded-[12px] border px-2.5 py-1 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
+                                            className={`relative z-10 flex h-[30px] min-w-[94px] items-center justify-center gap-2 rounded-[12px] border px-2.5 py-1 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
                                               ? 'bg-red-500 text-white'
                                               : isDurationLocked
                                                 ? 'bg-[#ff8a1a] text-white'
@@ -9930,14 +9919,14 @@ const App = () => {
                                               }`}
                                             onClick={(e) => e.stopPropagation()}
                                           >
-                                            <ChevronLeft size={12} />
-                                            <span className="text-[11px] font-black tabular-nums tracking-[0.12em]">{fmtDur(p.duration).replace('분', '')}</span>
-                                            <ChevronRight size={12} />
+                                            <ChevronLeft size={11} />
+                                            <span className="text-[12px] font-black tabular-nums tracking-[0.16em]">{fmtDur(p.duration).replace('분', '')}</span>
+                                            <ChevronRight size={11} />
                                           </button>
                                         </div>
 
-                                        <div className="flex w-full min-h-[44px] items-center justify-center rounded-[14px] border border-[#d8e4f5] bg-[#f6f9ff] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-[#bfd7ff] group-hover/tower:bg-[#eef5ff]">
-                                          <span className="text-[23px] font-black tabular-nums tracking-[-0.02em] leading-none text-slate-400">
+                                        <div className="flex h-[44px] w-full items-center justify-center rounded-[14px] border border-[#d8e4f5] bg-[#f6f9ff] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-[#bfd7ff] group-hover/tower:bg-[#eef5ff]">
+                                          <span className="text-[39px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-400">
                                             {ehh}<span className="mx-[1px] opacity-70">:</span>{emm}
                                           </span>
                                         </div>

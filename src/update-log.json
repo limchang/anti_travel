@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.17",
+      "timestamp": "2026-03-12T10:41:16+09:00",
+      "message": "feat: support multiple web push tokens per user"
+    },
+    {
       "version": "1.3.16",
       "timestamp": "2026-03-12T10:37:04+09:00",
       "message": "fix: force kakao route verify and preload api key status"

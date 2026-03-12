@@ -89,6 +89,8 @@ const isGeoStaleForAddress = (geo, address = '') => {
   return current.address !== normalizedAddress || !hasGeoCoords(current);
 };
 
+const makePushTokenDocId = (token = '') => encodeURIComponent(String(token || '').trim()).slice(0, 1500);
+
 const getTimeOfDayOverlay = (timeStr) => {
   const [h = '12', m = '0'] = (timeStr || '12:00').split(':');
   const mins = parseInt(h, 10) * 60 + parseInt(m, 10);
@@ -2419,12 +2421,15 @@ const App = () => {
         if (token) {
           console.log('FCM Token:', token);
           if (auth.currentUser && !auth.currentUser.isGuest) {
-            await setDoc(doc(db, `users/${auth.currentUser.uid}/private/push`), {
+            const payload = {
               token,
               updatedAt: new Date().toISOString(),
               userAgent: navigator.userAgent,
               version: APP_VERSION,
-            });
+              platform: 'web',
+            };
+            await setDoc(doc(db, `users/${auth.currentUser.uid}/private/push`), payload, { merge: true });
+            await setDoc(doc(db, `users/${auth.currentUser.uid}/private/pushTokens/${makePushTokenDocId(token)}`), payload, { merge: true });
           }
         }
 

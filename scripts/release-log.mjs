@@ -62,6 +62,31 @@ const getAdminApp = () => {
   });
 };
 
+const collectPushTargets = async (db) => {
+  const targets = new Map();
+
+  const tokenDocs = await db.collectionGroup('pushTokens').get();
+  tokenDocs.forEach((docSnap) => {
+    const token = String(docSnap.data()?.token || '').trim();
+    if (!token) return;
+    targets.set(token, { token, refs: [docSnap.ref] });
+  });
+
+  const legacyDocs = await db.collectionGroup('private').where(admin.firestore.FieldPath.documentId(), '==', 'push').get();
+  legacyDocs.forEach((docSnap) => {
+    const token = String(docSnap.data()?.token || '').trim();
+    if (!token) return;
+    const existing = targets.get(token);
+    if (existing) {
+      existing.refs.push(docSnap.ref);
+      return;
+    }
+    targets.set(token, { token, refs: [docSnap.ref] });
+  });
+
+  return [...targets.values()];
+};
+
 const sendReleasePush = async ({ version, message }) => {
   const app = getAdminApp();
   if (!app) {
@@ -70,14 +95,8 @@ const sendReleasePush = async ({ version, message }) => {
   }
 
   const db = admin.firestore(app);
-  const snapshot = await db.collectionGroup('private').where(admin.firestore.FieldPath.documentId(), '==', 'push').get();
-  const tokens = [];
-  snapshot.forEach((docSnap) => {
-    const token = String(docSnap.data()?.token || '').trim();
-    if (token) tokens.push(token);
-  });
-
-  const uniqueTokens = [...new Set(tokens)];
+  const targets = await collectPushTargets(db);
+  const uniqueTokens = targets.map((target) => target.token);
   if (!uniqueTokens.length) {
     console.warn('Release push skipped: no saved FCM tokens were found.');
     return { sent: 0, skipped: true };
@@ -118,13 +137,12 @@ const sendReleasePush = async ({ version, message }) => {
   });
 
   if (invalidTokens.length) {
-    const pushDocs = await db.collectionGroup('private').where(admin.firestore.FieldPath.documentId(), '==', 'push').get();
     const batch = db.batch();
-    pushDocs.forEach((docSnap) => {
-      const token = String(docSnap.data()?.token || '').trim();
-      if (invalidTokens.includes(token)) {
-        batch.delete(docSnap.ref);
-      }
+    targets.forEach((target) => {
+      if (!invalidTokens.includes(target.token)) return;
+      target.refs.forEach((ref) => {
+        batch.delete(ref);
+      });
     });
     await batch.commit();
   }

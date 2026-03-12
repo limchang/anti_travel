@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.71",
+      "timestamp": "2026-03-12T14:31:07+09:00",
+      "message": "지도 좌표 조회를 카카오 주소검색 직조회로 고정"
+    },
+    {
       "version": "1.3.70",
       "timestamp": "2026-03-12T14:26:21+09:00",
       "message": "시간 모달 라벨 제거 및 상단 잠금버튼 통일, 소요시간 타이머형 변경"
@@ -144,11 +149,6 @@
       "version": "1.3.42",
       "timestamp": "2026-03-12T12:25:42+09:00",
       "message": "fix: rebuild kakao route preview map and time modal close behavior"
-    },
-    {
-      "version": "1.3.41",
-      "timestamp": "2026-03-12T12:15:06+09:00",
-      "message": "fix: render route map immediately from stored coords"
     }
   ]
 }

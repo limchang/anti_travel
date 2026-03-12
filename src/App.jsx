@@ -1641,14 +1641,31 @@ const getShipTimeline = (item = {}) => {
 
 const KAKAO_API_KEY = 'b312628369f47e04894f338b7fc0b318';
 
-// kakaoKey 있으면 카카오 먼저 시도, 없거나 실패 시 Nominatim fallback
+// 주소/장소 문자열을 카카오 API로 직접 조회
 const searchAddressFromPlaceName = async (keyword, regionHint = '', kakaoKey = KAKAO_API_KEY) => {
   const query = keyword.trim();
   if (!query) return { address: '', source: '', error: '' };
   const searchQuery = `${regionHint?.trim() || ''} ${query}`.trim();
 
-  // 1번: 카카오 로컈 키워드 검색 API (한국 주소 가장 정확)
+  // 1) 카카오 주소 검색 API 우선
   if (kakaoKey) {
+    try {
+      const res = await fetch(
+        `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(searchQuery)}&size=1`,
+        { headers: { Authorization: `KakaoAK ${kakaoKey}` } }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const first = data.documents?.[0];
+        if (first) {
+          const addr = first.road_address?.address_name || first.address?.address_name || '';
+          if (addr) return { address: addr, lat: first.y, lon: first.x, source: '카카오주소' };
+        }
+      }
+    } catch (_) {
+      // next
+    }
+    // 2) 주소 검색 미검출 시 카카오 키워드 검색 1회
     try {
       const res = await fetch(
         `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(searchQuery)}&size=1`,
@@ -1659,91 +1676,15 @@ const searchAddressFromPlaceName = async (keyword, regionHint = '', kakaoKey = K
         const first = data.documents?.[0];
         if (first) {
           const addr = first.road_address_name || first.address_name || '';
-          if (addr) return { address: addr, lat: first.y, lon: first.x, source: '카카오' };
+          if (addr) return { address: addr, lat: first.y, lon: first.x, source: '카카오키워드' };
         }
-        return { address: '', source: '카카오', error: '검색 결과 없음' };
       }
-    } catch (e) {
-      // 카카오 실패 시 Nominatim으로 fallback
+    } catch (_) {
+      // noop
     }
   }
 
-  // 2번: Nominatim — 여러 쿼리 시도 + 도로명 주소 구성
-  const buildRoadAddress = (a) => {
-    if (!a) return '';
-    const road = a.road || a.pedestrian || a.footway || '';
-    const num = a.house_number || '';
-    const dong = a.quarter || a.suburb || a.neighbourhood || '';
-    const gu = a.city_district || a.county || '';
-    const city = a.city || a.town || a.village || '';
-    if (road) {
-      const parts = [city || gu, road, num].filter(Boolean);
-      return parts.join(' ');
-    }
-    if (dong) return [city, gu, dong].filter(Boolean).join(' ');
-    return '';
-  };
-
-  const queries = [...new Set([searchQuery, query, regionHint ? `${regionHint} ${query}`.trim() : null].filter(Boolean))];
-  for (const q of queries) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=3&countrycodes=kr&accept-language=ko&addressdetails=1&q=${encodeURIComponent(q)}`,
-        { method: 'GET', headers: { Accept: 'application/json', 'Accept-Language': 'ko' }, signal: controller.signal }
-      );
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const results = await response.json();
-      clearTimeout(timeoutId);
-      if (!results?.length) continue;
-      // 도로명 주소 우선 구성
-      for (const r of results) {
-        const road = buildRoadAddress(r.address);
-        if (road) return { address: road, lat: r.lat, lon: r.lon, source: 'Nominatim' };
-      }
-      const raw = results[0].display_name || '';
-      if (raw) {
-        // 한국 주소 역순 정제: "번지, 도로명, 동, 시, 도, 대한민국" → "시 도로명 번지"
-        const parts = raw.split(', ').filter(p => p !== '대한민국' && !/^\d{5}$/.test(p));
-        return { address: parts.slice(0, 4).reverse().join(' '), lat: results[0].lat, lon: results[0].lon, source: 'Nominatim' };
-      }
-    } catch (e) {
-      clearTimeout(timeoutId);
-      continue;
-    }
-  }
-
-  // 3번: 서버 스크래퍼 fallback (네이버 지도 검색 기반)
-  try {
-    const apiBase = (import.meta.env.VITE_SCRAPER_API_BASE || '').replace(/\/$/, '');
-    const endpoints = Array.from(new Set([
-      apiBase ? `${apiBase}/api/scrape` : '',
-      '/api/scrape',
-    ].filter(Boolean)));
-    const naverSearchUrl = `https://map.naver.com/v5/search/${encodeURIComponent(searchQuery)}`;
-    for (const endpoint of endpoints) {
-      try {
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: naverSearchUrl }),
-        });
-        if (!res.ok) continue;
-        const data = await res.json();
-        const addr = String(data?.address || '').trim();
-        if (addr && /[가-힣]/.test(addr) && /\d/.test(addr) && /(로|길|대로|번길|읍|면|동|리)/.test(addr)) {
-          return { address: addr, source: 'NaverScrape' };
-        }
-      } catch (_) {
-        // 다음 endpoint 시도
-      }
-    }
-  } catch (_) {
-    // noop
-  }
-
-  return { address: '', source: 'Nominatim', error: '검색 결과 없음 (카카오/네이버 보강 실패)' };
+  return { address: '', source: '카카오', error: '카카오 주소 검색 결과 없음' };
 };
 
 const DateRangePicker = ({ startDate, endDate, onStartChange, onEndChange, onClose }) => {
@@ -4286,55 +4227,24 @@ const App = () => {
           geoCacheRef.current[key] = sdkAddressResult;
           return sdkAddressResult;
         }
-        const sdkKeywordResult = await new Promise((resolve) => {
-          places.keywordSearch(key, (result, status) => {
-            if (status === services.Status.OK && result?.[0]) {
-              const first = result[0];
-              resolve({
-                address: String(first.road_address_name || first.address_name || key).trim(),
-                lat: parseFloat(first.y),
-                lon: parseFloat(first.x),
-                source: 'kakao-sdk-keyword',
-                updatedAt: new Date().toISOString(),
-              });
-              return;
-            }
-            resolve(null);
-          });
-        });
-        if (sdkKeywordResult?.lat && sdkKeywordResult?.lon) {
-          geoCacheRef.current[key] = sdkKeywordResult;
-          return sdkKeywordResult;
-        }
       }
     } catch {
       // fallback below
     }
     try {
-      const result = await searchAddressFromPlaceName(key, tripRegion);
-      if (result?.lat && result?.lon) {
-        const coord = {
-          address: String(result.address || key).trim(),
-          lat: parseFloat(result.lat),
-          lon: parseFloat(result.lon),
-          source: result.source || 'lookup',
-          updatedAt: new Date().toISOString(),
-        };
-        geoCacheRef.current[key] = coord;
-        return coord;
-      }
-    } catch {
-      // fallback below
-    }
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(key)}&format=json&limit=1`);
+      const res = await fetch(
+        `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(key)}&size=1`,
+        { headers: { Authorization: `KakaoAK ${KAKAO_API_KEY}` } }
+      );
+      if (!res.ok) return null;
       const data = await res.json();
-      if (!Array.isArray(data) || data.length === 0) return null;
+      const first = data?.documents?.[0];
+      if (!first) return null;
       const coord = {
-        address: key,
-        lat: parseFloat(data[0].lat),
-        lon: parseFloat(data[0].lon),
-        source: 'nominatim',
+        address: String(first.road_address?.address_name || first.address?.address_name || key).trim(),
+        lat: parseFloat(first.y),
+        lon: parseFloat(first.x),
+        source: 'kakao-rest-address',
         updatedAt: new Date().toISOString(),
       };
       geoCacheRef.current[key] = coord;
@@ -4342,7 +4252,7 @@ const App = () => {
     } catch {
       return null;
     }
-  }, [tripRegion]);
+  }, []);
 
   const geoSyncRequestKeyRef = useRef('');
   const deepClone = (value) => JSON.parse(JSON.stringify(value));
@@ -10893,6 +10803,9 @@ const App = () => {
             const startHourValues = Array.from({ length: 24 }, (_, idx) => idx);
             const currentStartHour = Math.floor(startMinutes / 60);
             const currentStartMinute = startMinutes % 60;
+            const currentDurationHour = Math.floor(durationMinutes / 60);
+            const currentDurationMinute = durationMinutes % 60;
+            const durationHourValues = Array.from({ length: 24 }, (_, idx) => idx);
             const endHourValues = Array.from({ length: 24 }, (_, idx) => idx);
             const currentEndHour = Math.floor(currentEndMinutes / 60);
             const currentEndMinute = currentEndMinutes % 60;
@@ -10908,6 +10821,7 @@ const App = () => {
               const normalized = normalizeDayMinute(candidateMinutes);
               return Math.max(startMinutes, normalized);
             };
+            const clampDurationMinutes = (candidateMinutes) => Math.max(0, Math.min(1439, Number(candidateMinutes) || 0));
             return (
               <div
                 data-time-modal="true"
@@ -10961,8 +10875,32 @@ const App = () => {
                       >
                         소요시간 잠금
                       </button>
-                      <div className="relative flex min-h-[44px] w-full items-center justify-center rounded-[14px] border border-slate-300 bg-white px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
-                        <span className="text-[39px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-900">{fmtDur(durationMinutes).replace('분', '')}</span>
+                      <div className="flex w-full items-center justify-center gap-1">
+                        <TimeWheelColumn
+                          label=""
+                          value={currentDurationHour}
+                          values={durationHourValues}
+                          onDragStateChange={setIsTimeWheelDragging}
+                          onChange={(nextHour) => {
+                            const nextDuration = clampDurationMinutes((nextHour * 60) + currentDurationMinute);
+                            setDurationValue(dayIdx, pIdx, nextDuration, { skipHistory: true });
+                          }}
+                          accentClass="text-slate-800"
+                        />
+                        <TimeWheelColumn
+                          label=""
+                          value={currentDurationMinute}
+                          values={Array.from({ length: 60 }, (_, idx) => idx)}
+                          cyclic
+                          liveOnDrag
+                          onDragStateChange={setIsTimeWheelDragging}
+                          onChange={(nextMinute) => {
+                            const wrapped = buildWrappedTotalMinutes(currentDurationHour, currentDurationMinute, nextMinute);
+                            const nextDuration = clampDurationMinutes(wrapped);
+                            setDurationValue(dayIdx, pIdx, nextDuration, { skipHistory: true });
+                          }}
+                          accentClass="text-slate-800"
+                        />
                       </div>
                     </div>
                   </div>

@@ -1834,16 +1834,23 @@ const TimeWheelColumn = ({
   onChange,
   formatter = (next) => String(next).padStart(2, '0'),
   accentClass = 'text-slate-900',
+  cyclic = false,
 }) => {
   const listRef = React.useRef(null);
   const settleTimerRef = React.useRef(null);
   const isProgrammaticRef = React.useRef(false);
   const dragStateRef = React.useRef({ active: false, startY: 0, startScrollTop: 0, pointerId: null });
 
+  const renderedValues = React.useMemo(() => {
+    if (!cyclic) return values;
+    return [...values, ...values, ...values];
+  }, [cyclic, values]);
+
   React.useEffect(() => {
     const list = listRef.current;
     if (!list) return;
-    const currentIndex = Math.max(0, values.indexOf(value));
+    const baseIndex = Math.max(0, values.indexOf(value));
+    const currentIndex = cyclic ? (baseIndex + values.length) : baseIndex;
     const targetTop = currentIndex * TIME_WHEEL_ITEM_HEIGHT;
     if (Math.abs(list.scrollTop - targetTop) < 2) return;
     isProgrammaticRef.current = true;
@@ -1851,7 +1858,7 @@ const TimeWheelColumn = ({
     requestAnimationFrame(() => {
       isProgrammaticRef.current = false;
     });
-  }, [value, values]);
+  }, [cyclic, value, values]);
 
   React.useEffect(() => () => {
     if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
@@ -1864,17 +1871,24 @@ const TimeWheelColumn = ({
   const commitClosestValue = React.useCallback(() => {
     const list = listRef.current;
     if (!list || !values.length) return;
-    const nextIndex = Math.max(0, Math.min(values.length - 1, Math.round(list.scrollTop / TIME_WHEEL_ITEM_HEIGHT)));
-    const snappedTop = nextIndex * TIME_WHEEL_ITEM_HEIGHT;
-    if (Math.abs(list.scrollTop - snappedTop) > 1) {
+    const renderedLength = renderedValues.length;
+    if (!renderedLength) return;
+    const rawIndex = Math.max(0, Math.min(renderedLength - 1, Math.round(list.scrollTop / TIME_WHEEL_ITEM_HEIGHT)));
+    const normalizedIndex = cyclic
+      ? ((rawIndex % values.length) + values.length) % values.length
+      : rawIndex;
+    const nextIndex = Math.max(0, Math.min(values.length - 1, normalizedIndex));
+    const centerIndex = cyclic ? (nextIndex + values.length) : nextIndex;
+    const targetTop = centerIndex * TIME_WHEEL_ITEM_HEIGHT;
+    if (Math.abs(list.scrollTop - targetTop) > 1) {
       isProgrammaticRef.current = true;
-      list.scrollTo({ top: snappedTop, behavior: 'smooth' });
+      list.scrollTo({ top: targetTop, behavior: 'smooth' });
       setTimeout(() => {
         isProgrammaticRef.current = false;
       }, 140);
     }
     if (values[nextIndex] !== value) onChange?.(values[nextIndex]);
-  }, [onChange, value, values]);
+  }, [cyclic, onChange, renderedValues.length, value, values]);
 
   const handleScroll = React.useCallback(() => {
     if (isProgrammaticRef.current) return;
@@ -1928,11 +1942,11 @@ const TimeWheelColumn = ({
           onPointerCancel={finishPointerDrag}
           className="relative h-[102px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[34px] cursor-grab active:cursor-grabbing touch-none"
         >
-          {values.map((entry) => {
+          {renderedValues.map((entry, idx) => {
             const active = entry === value;
             return (
               <div
-                key={`${label}-${entry}`}
+                key={`${label}-${entry}-${idx}`}
                 className={`flex h-[34px] snap-start items-center justify-center text-[20px] font-black tabular-nums transition-all ${active ? `${accentClass} scale-100` : 'scale-[0.9] text-slate-300/90'}`}
               >
                 {formatter(entry)}
@@ -10652,7 +10666,6 @@ const App = () => {
             );
             const currentStartHour = Math.floor(startMinutes / 60);
             const currentStartMinute = startMinutes % 60;
-            const startMinuteValues = getStartMinuteValues(currentStartHour);
             const endHourValues = Array.from({ length: 24 }, (_, idx) => idx).filter((hour) => (
               Array.from({ length: 60 }, (_, minute) => hour * 60 + minute).some((total) => total >= startMinutes)
             ));
@@ -10661,11 +10674,17 @@ const App = () => {
               Array.from({ length: 60 }, (_, idx) => idx).filter((minute) => (hour * 60 + minute) >= startMinutes)
             );
             const currentEndMinute = clampedEndMinutes % 60;
-            const endMinuteValues = getEndMinuteValues(currentEndHour);
             const pickNearestValue = (values, preferred) => {
               if (!values.length) return 0;
               if (values.includes(preferred)) return preferred;
               return values[Math.max(0, Math.min(values.length - 1, values.findIndex((value) => value > preferred) === -1 ? values.length - 1 : values.findIndex((value) => value > preferred)))];
+            };
+            const buildWrappedTotalMinutes = (baseHour, baseMinute, nextMinute) => {
+              let nextHour = baseHour;
+              const delta = nextMinute - baseMinute;
+              if (delta >= 30) nextHour -= 1;
+              if (delta <= -30) nextHour += 1;
+              return (nextHour * 60) + nextMinute;
             };
             return (
               <div
@@ -10711,8 +10730,13 @@ const App = () => {
                       <TimeWheelColumn
                         label="분"
                         value={currentStartMinute}
-                        values={startMinuteValues}
-                        onChange={(nextMinute) => setStartTimeValue(dayIdx, pIdx, minutesToTime(currentStartHour * 60 + nextMinute), { skipHistory: true })}
+                        values={Array.from({ length: 60 }, (_, idx) => idx)}
+                        cyclic
+                        onChange={(nextMinute) => {
+                          const wrapped = buildWrappedTotalMinutes(currentStartHour, currentStartMinute, nextMinute);
+                          const clamped = Math.max(0, Math.min(maxStartMinutes, wrapped));
+                          setStartTimeValue(dayIdx, pIdx, minutesToTime(clamped), { skipHistory: true });
+                        }}
                         accentClass="text-[#1f5fd6]"
                       />
                     </div>
@@ -10758,8 +10782,13 @@ const App = () => {
                       <TimeWheelColumn
                         label="분"
                         value={currentEndMinute}
-                        values={endMinuteValues}
-                        onChange={(nextMinute) => setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(currentEndHour * 60 + nextMinute), { skipHistory: true })}
+                        values={Array.from({ length: 60 }, (_, idx) => idx)}
+                        cyclic
+                        onChange={(nextMinute) => {
+                          const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);
+                          const clamped = Math.max(startMinutes, Math.min(1439, wrapped));
+                          setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(clamped), { skipHistory: true });
+                        }}
                         accentClass="text-slate-600"
                       />
                     </div>

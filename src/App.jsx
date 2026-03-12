@@ -9770,12 +9770,12 @@ const App = () => {
                           </div>
                         )}
                         {/* planVariantPicker 팝업은 overflow-hidden 카드 밖 루트 레벨에서 렌더링 */}
-                        <div className="flex items-stretch border-b border-slate-100 border-dashed">
+                        <div className="relative flex items-stretch border-b border-slate-100 border-dashed">
 
                           {!isShip && !isLodge && (
                             <div
                               data-no-drag="true"
-                              className={`relative flex flex-col shrink-0 border-r border-slate-100 flex-none group/tower ${isTimeCellExpanded ? 'overflow-visible z-20' : 'overflow-hidden'} ${isCompactTimeline ? 'w-[30%] items-center justify-center py-1.5' : 'w-[30%] items-center justify-center py-2 px-2 sm:px-2.5'} bg-transparent`}
+                              className={`flex flex-col shrink-0 border-r border-slate-100 flex-none group/tower ${isTimeCellExpanded ? 'overflow-visible z-20' : 'overflow-hidden'} ${isCompactTimeline ? 'w-[30%] items-center justify-center py-1.5' : 'w-[30%] items-center justify-center py-2 px-2 sm:px-2.5'} bg-transparent`}
                             >
                               {(() => {
                                 const startMinutes = timeToMinutes(p.time || '00:00');
@@ -9860,10 +9860,10 @@ const App = () => {
                                   <div
                                     data-time-modal="true"
                                     onClick={(e) => e.stopPropagation()}
-                                    className="mt-1.5 w-[560px] max-w-[calc(100vw-28px)] rounded-[22px] border border-slate-200 bg-white/98 p-2 shadow-[0_18px_34px_-20px_rgba(15,23,42,0.35)] backdrop-blur-xl"
+                                    className="absolute inset-x-0 top-0 z-30 rounded-none bg-white/98 p-2 backdrop-blur-xl"
                                   >
-                                    <div className="grid h-full grid-cols-3 gap-1.5 items-stretch">
-                                      <div className="rounded-[20px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
+                                    <div className="grid h-full grid-cols-3 gap-1.5 items-stretch rounded-[18px] border border-slate-200 bg-white p-1.5 shadow-[0_20px_34px_-24px_rgba(15,23,42,0.35)]">
+                                      <div className="rounded-[16px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
                                         <div className="flex h-full w-full flex-col items-center justify-center gap-2">
                                           <button
                                             type="button"
@@ -9898,7 +9898,7 @@ const App = () => {
                                         </div>
                                       </div>
 
-                                      <div className="rounded-[20px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
+                                      <div className="rounded-[16px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
                                         <div className="flex h-full w-full flex-col items-center justify-center gap-2">
                                           <button
                                             type="button"
@@ -9937,7 +9937,7 @@ const App = () => {
                                         </div>
                                       </div>
 
-                                      <div className="rounded-[20px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
+                                      <div className="rounded-[16px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
                                         <div className="flex h-full w-full flex-col items-center justify-center gap-2">
                                           <button
                                             type="button"

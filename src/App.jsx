@@ -9847,27 +9847,16 @@ const App = () => {
                                 data-time-trigger="true"
                                 className="relative z-10 w-full rounded-2xl px-1 py-1 select-none transition-all group-hover/tower:bg-slate-100/30"
                               >
-                                <div className="relative z-10 flex w-full flex-col items-center justify-center gap-1.5">
+                                <div className="relative z-10 flex w-full flex-col items-center justify-center gap-1">
                                   {(() => {
-                                    const normalizeMinutes = (value) => ((value % 1440) + 1440) % 1440;
-                                    const startTotal = timeToMinutes(p.time || '00:00');
-                                    const prevStart = minutesToTime(normalizeMinutes(startTotal - 1));
-                                    const currentStart = minutesToTime(normalizeMinutes(startTotal));
-                                    const nextStart = minutesToTime(normalizeMinutes(startTotal + 1));
-                                    const [prevHour, prevMinute] = prevStart.split(':');
-                                    const [curHour, curMinute] = currentStart.split(':');
-                                    const [nextHour, nextMinute] = nextStart.split(':');
-                                    const miniColumn = (prevValue, curValue, nextValue) => (
-                                      <div className="flex w-[54px] flex-col items-center justify-center rounded-[12px] border border-slate-200 bg-white/90 px-1 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
-                                        <span className="text-[12px] leading-none font-black tabular-nums tracking-[-0.02em] text-slate-300">{prevValue}</span>
-                                        <span className="my-0.5 flex h-[28px] w-full items-center justify-center rounded-[10px] border border-[#3182F6]/35 bg-[#3182F6]/8 text-[18px] leading-none font-black tabular-nums tracking-[-0.02em] text-[#1e4fa3]">{curValue}</span>
-                                        <span className="text-[12px] leading-none font-black tabular-nums tracking-[-0.02em] text-slate-300">{nextValue}</span>
-                                      </div>
-                                    );
+                                    const [hh, mm] = (p.time || '00:00').split(':');
                                     return (
-                                      <div className="flex w-full select-none items-center justify-center gap-1.5 px-1 py-0.5">
-                                        {miniColumn(prevHour, curHour, nextHour)}
-                                        {miniColumn(prevMinute, curMinute, nextMinute)}
+                                      <div className="flex w-full select-none items-center justify-center px-2 py-0.5">
+                                        <div className={`relative flex h-[54px] w-full items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 group-hover/tower:border-slate-300 group-hover/tower:bg-white'}`}>
+                                          <span className="text-[44px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-900">
+                                            {hh}<span className="mx-[1px] opacity-72">:</span>{mm}
+                                          </span>
+                                        </div>
                                       </div>
                                     );
                                   })()}

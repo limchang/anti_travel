@@ -821,6 +821,18 @@ const getPerplexityNearbyEndpoint = () => {
   return import.meta.env.VITE_PERPLEXITY_NEARBY_URL || '/api/perplexity-nearby';
 };
 
+const getRouteVerifyEndpointCandidates = (proxyBase = '') => {
+  const normalizedProxyBase = String(proxyBase || '').trim().replace(/\/$/, '');
+  const envApiBase = String(import.meta.env.VITE_AI_ANALYZE_API_BASE || '').trim().replace(/\/$/, '');
+  return Array.from(new Set([
+    normalizedProxyBase ? `${normalizedProxyBase}/api/route-verify` : '',
+    envApiBase ? `${envApiBase}/api/route-verify` : '',
+    import.meta.env.VITE_ROUTE_VERIFY_URL || '',
+    typeof window !== 'undefined' && isLocalNetworkHost(window.location.hostname) ? '/api/route-verify' : '',
+    '/api/route-verify',
+  ].filter(Boolean)));
+};
+
 const getSmartFillErrorMessage = (error, aiEnabled = false) => {
   const message = String(error?.message || '').trim();
   if (!message) {
@@ -3869,9 +3881,10 @@ const App = () => {
   const summarizeRouteFailureReason = (errorMessage = '') => {
     const normalized = String(errorMessage || '').trim();
     if (!normalized) return '경로실패';
+    if (/kakao/i.test(normalized)) return '카카오경로실패';
     if (normalized.includes('출발지 좌표')) return '출발지 찾기실패';
     if (normalized.includes('도착지 좌표')) return '도착지 찾기실패';
-    if (normalized.includes('route unavailable') || normalized.includes('near-zero route')) return '경로없음';
+    if (normalized.includes('route unavailable') || normalized.includes('near-zero route') || normalized.includes('directions failed')) return '경로없음';
     return '주소확인';
   };
   const getRouteDistanceStatus = (prevItem, targetItem) => {
@@ -4580,6 +4593,15 @@ const App = () => {
       showInfoToast(`저장된 AI 키 삭제 실패: ${error?.message || '알 수 없는 오류'}`);
     }
   }, [callAiKeyApi]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user || user.isGuest) {
+      setServerAiKeyStatus({ hasStoredKey: false, hasStoredGroqKey: false, hasStoredGeminiKey: false, hasStoredPerplexityKey: false, updatedAt: null, loading: false });
+      return;
+    }
+    void fetchServerAiKeyStatus();
+  }, [authLoading, user?.uid, user?.isGuest, fetchServerAiKeyStatus]);
 
   useEffect(() => {
     if (showAiSettings) {
@@ -6200,29 +6222,40 @@ const App = () => {
     setLastAction(`'${suggestion.name}'이(가) 대안 일정으로 등록되었습니다.`);
   };
 
-  const fetchKakaoVerifiedRoute = async ({ fromAddress, toAddress }) => {
-    const r = await fetch('/api/route-verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fromAddress,
-        toAddress,
-      }),
-    });
-    if (!r.ok) {
-      const txt = await r.text().catch(() => '');
-      throw new Error(`kakao verify failed: ${r.status} ${txt.slice(0, 140)}`);
+  const fetchKakaoVerifiedRoute = async ({ fromAddress, toAddress, fromCoord = null, toCoord = null }) => {
+    const endpoints = getRouteVerifyEndpointCandidates(aiSmartFillConfig?.proxyBaseUrl);
+    let lastError = null;
+    for (const endpoint of endpoints) {
+      try {
+        const r = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fromAddress,
+            toAddress,
+            fromCoord: hasGeoCoords(fromCoord) ? { lat: Number(fromCoord.lat), lon: Number(fromCoord.lon) } : null,
+            toCoord: hasGeoCoords(toCoord) ? { lat: Number(toCoord.lat), lon: Number(toCoord.lon) } : null,
+          }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          throw new Error(data?.details || data?.error || `HTTP ${r.status}`);
+        }
+        if (!Number.isFinite(Number(data?.distanceKm)) || !Number.isFinite(Number(data?.durationMins))) {
+          throw new Error('kakao verify invalid payload');
+        }
+        return {
+          distance: +Number(data.distanceKm).toFixed(1),
+          durationMins: Math.max(1, Math.round(Number(data.durationMins))),
+          provider: data.provider || 'kakao',
+          review: data.review || null,
+          geocode: data.geocode || null,
+        };
+      } catch (error) {
+        lastError = error;
+      }
     }
-    const data = await r.json();
-    if (!Number.isFinite(Number(data?.distanceKm)) || !Number.isFinite(Number(data?.durationMins))) {
-      throw new Error('kakao verify invalid payload');
-    }
-    return {
-      distance: +Number(data.distanceKm).toFixed(1),
-      durationMins: Math.max(1, Math.round(Number(data.durationMins))),
-      provider: data.provider || 'kakao',
-      review: data.review || null,
-    };
+    throw lastError || new Error('kakao verify failed');
   };
 
   const autoCalculateRouteFor = async (dayIdx, targetIdx, options = {}) => {
@@ -6271,74 +6304,17 @@ const App = () => {
     if (!silent) setLastAction("경로와 거리를 자동 계산 중입니다...");
 
     try {
-      // 1) 카카오 경로 + 검수 우선
-      try {
-        const kakaoRoute = await fetchKakaoVerifiedRoute({
-          fromAddress: addr1,
-          toAddress: addr2,
-        });
-        setRouteCache(prev => ({ ...prev, [key]: kakaoRoute }));
-        applyRoute(dayIdx, targetIdx, kakaoRoute);
-        if (!silent) setLastAction(`카카오 검수 경로: ${kakaoRoute.distance}km, ${kakaoRoute.durationMins}분`);
-        return;
-      } catch (kakaoErr) {
-        if (!silent) {
-          setLastAction("카카오 검수 경로 실패, 대체 경로로 재시도합니다.");
-        }
-      }
-
-      // 2) 대체(OSRM + 하한 검수)
-      const getCoords = async (item, addr) => {
-        const normalizedAddr = String(addr || '').trim();
-        const stored = getRouteGeoPoint(item, item === prevItem ? 'from' : 'to');
-        if (hasGeoCoords(stored) && !isGeoStaleForAddress(stored, normalizedAddr)) {
-          return { lat: Number(stored.lat), lon: Number(stored.lon) };
-        }
-        const resolved = await geocodeAddress(normalizedAddr);
-        if (hasGeoCoords(resolved)) {
-          return { lat: Number(resolved.lat), lon: Number(resolved.lon) };
-        }
-        return null;
-      };
-
-      const c1 = await getCoords(prevItem, addr1);
-      if (!c1) throw new Error("출발지 좌표를 찾지 못했습니다.");
-      await new Promise(r => setTimeout(r, 1000)); // Respect OpenStreetMaps limits
-      const c2 = await getCoords(targetItem, addr2);
-      if (!c2) throw new Error("도착지 좌표를 찾지 못했습니다.");
-
-      const r2 = await fetch(`https://router.project-osrm.org/route/v1/driving/${c1.lon},${c1.lat};${c2.lon},${c2.lat}?overview=false`);
-      const d2 = await r2.json();
-
-      if (d2 && d2.routes && d2.routes.length > 0) {
-        const osrmDistanceKm = d2.routes[0].distance / 1000;
-        const osrmDurationMins = Math.ceil(d2.routes[0].duration / 60);
-        const straightKm = haversineKm(
-          parseFloat(c1.lat), parseFloat(c1.lon),
-          parseFloat(c2.lat), parseFloat(c2.lon)
-        );
-        const isSameAddress = addr1.trim() === addr2.trim();
-        const isSuspiciousZero = !isSameAddress && osrmDistanceKm < 0.05 && straightKm > 0.3;
-        if (isSuspiciousZero) throw new Error('osrm suspicious near-zero route');
-        const baseDistanceKm = osrmDistanceKm;
-        const verifiedDurationMins = verifyRouteDurationMins({
-          distanceKm: baseDistanceKm,
-          straightKm,
-          rawDurationMins: osrmDurationMins,
-          isSameAddress
-        });
-        const routeData = {
-          distance: +baseDistanceKm.toFixed(1),
-          durationMins: verifiedDurationMins
-        };
-        setRouteCache(prev => ({ ...prev, [key]: routeData }));
-        applyRoute(dayIdx, targetIdx, routeData);
-        if (!silent) {
-          setLastAction(`대체경로 확인: ${routeData.distance}km, ${routeData.durationMins}분`);
-        }
-      } else {
-        throw new Error('osrm route unavailable');
-      }
+      const fromCoord = getRouteGeoPoint(prevItem, 'from');
+      const toCoord = getRouteGeoPoint(targetItem, 'to');
+      const kakaoRoute = await fetchKakaoVerifiedRoute({
+        fromAddress: addr1,
+        toAddress: addr2,
+        fromCoord,
+        toCoord,
+      });
+      setRouteCache(prev => ({ ...prev, [key]: kakaoRoute }));
+      applyRoute(dayIdx, targetIdx, kakaoRoute);
+      if (!silent) setLastAction(`카카오 경로 확인: ${kakaoRoute.distance}km, ${kakaoRoute.durationMins}분`);
     } catch (e) {
       console.error(e);
       const failedReason = summarizeRouteFailureReason(e?.message || e);

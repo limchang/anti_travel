@@ -136,6 +136,8 @@ export default async function handler(req, res) {
   const {
     fromAddress = '',
     toAddress = '',
+    fromCoord: rawFromCoord = null,
+    toCoord: rawToCoord = null,
   } = req.body || {};
 
   if (!String(fromAddress).trim() || !String(toAddress).trim()) {
@@ -143,33 +145,37 @@ export default async function handler(req, res) {
   }
 
   try {
+    const clientFromCoord = rawFromCoord && toNum(rawFromCoord.lat) != null && toNum(rawFromCoord.lon) != null
+      ? { lat: toNum(rawFromCoord.lat), lon: toNum(rawFromCoord.lon), source: 'client-geo', query: String(fromAddress || '').trim() }
+      : null;
+    const clientToCoord = rawToCoord && toNum(rawToCoord.lat) != null && toNum(rawToCoord.lon) != null
+      ? { lat: toNum(rawToCoord.lat), lon: toNum(rawToCoord.lon), source: 'client-geo', query: String(toAddress || '').trim() }
+      : null;
+
     const geocoder = restKey ? geocodeWithKakao : geocodeWithNominatim;
     const [fromCoord, toCoord] = await Promise.all([
-      geocoder({ address: fromAddress, restKey }),
-      geocoder({ address: toAddress, restKey }),
+      clientFromCoord ? Promise.resolve(clientFromCoord) : geocoder({ address: fromAddress, restKey }),
+      clientToCoord ? Promise.resolve(clientToCoord) : geocoder({ address: toAddress, restKey }),
     ]);
     if (!fromCoord || !toCoord) {
       return res.status(422).json({ error: 'geocode failed', fromCoord: !!fromCoord, toCoord: !!toCoord });
     }
 
-    let primary;
-    let secondary;
-    if (restKey) {
-      const [recommend, timeBased] = await Promise.allSettled([
-        requestDirection({ origin: fromCoord, destination: toCoord, restKey, priority: 'RECOMMEND' }),
-        requestDirection({ origin: fromCoord, destination: toCoord, restKey, priority: 'TIME' }),
-      ]);
-
-      const candidates = [recommend, timeBased]
-        .filter((r) => r.status === 'fulfilled')
-        .map((r) => r.value);
-      if (!candidates.length) return res.status(502).json({ error: 'directions failed' });
-      primary = candidates[0];
-      secondary = candidates[1] || candidates[0];
-    } else {
-      primary = await requestOsrmDirection({ origin: fromCoord, destination: toCoord });
-      secondary = primary;
+    if (!restKey) {
+      return res.status(500).json({ error: 'kakao rest key missing' });
     }
+
+    const [recommend, timeBased] = await Promise.allSettled([
+      requestDirection({ origin: fromCoord, destination: toCoord, restKey, priority: 'RECOMMEND' }),
+      requestDirection({ origin: fromCoord, destination: toCoord, restKey, priority: 'TIME' }),
+    ]);
+
+    const candidates = [recommend, timeBased]
+      .filter((r) => r.status === 'fulfilled')
+      .map((r) => r.value);
+    if (!candidates.length) return res.status(502).json({ error: 'kakao directions failed' });
+    const primary = candidates[0];
+    const secondary = candidates[1] || candidates[0];
 
     const baseDistance = (primary.distanceKm + secondary.distanceKm) / 2;
     const baseDuration = Math.max(primary.durationMins, secondary.durationMins);
@@ -178,7 +184,7 @@ export default async function handler(req, res) {
     const verifiedDuration = verifyDurationMins(baseDistance, straightKm, baseDuration, isSameAddress);
 
     return res.status(200).json({
-      provider: restKey ? 'kakao' : 'osrm',
+      provider: 'kakao',
       distanceKm: +baseDistance.toFixed(1),
       durationMins: verifiedDuration,
       review: {

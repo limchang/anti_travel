@@ -4119,6 +4119,12 @@ const App = () => {
       setItinerary((prev) => {
         const nextData = JSON.parse(JSON.stringify(prev));
         let changed = false;
+        const routeRefreshJobs = new Map();
+        const pushRouteRefreshJob = (dayIdx, targetIdx) => {
+          if (targetIdx < 0) return;
+          if (!nextData.days?.[dayIdx]?.plan?.[targetIdx]) return;
+          routeRefreshJobs.set(`${dayIdx}:${targetIdx}`, { dayIdx, targetIdx, forceRefresh: true });
+        };
         jobs.forEach((job) => {
           const resolved = resolvedMap[job.address];
           if (!hasGeoCoords(resolved)) return;
@@ -4140,7 +4146,19 @@ const App = () => {
           if (!item || !isGeoStaleForAddress(item[job.field], job.address)) return;
           item[job.field] = nextGeo;
           changed = true;
+          pushRouteRefreshJob(job.dayIdx, job.pIdx);
+          pushRouteRefreshJob(job.dayIdx, job.pIdx + 1);
         });
+        if (changed && routeRefreshJobs.size) {
+          setPendingAutoRouteJobs((prevJobs) => {
+            const merged = new Map(prevJobs.map((job) => [`${job.dayIdx}:${job.targetIdx}`, job]));
+            routeRefreshJobs.forEach((job, key) => {
+              const existing = merged.get(key) || {};
+              merged.set(key, { ...existing, ...job, forceRefresh: true });
+            });
+            return [...merged.values()];
+          });
+        }
         return changed ? nextData : prev;
       });
       geoSyncRequestKeyRef.current = '';
@@ -6357,10 +6375,10 @@ const App = () => {
     setPendingAutoRouteJobs(prev => prev.slice(1));
     autoRouteQueuedRef.current.delete(`${job.dayIdx}:${job.targetIdx}`);
     const run = async () => {
-      await autoCalculateRouteFor(job.dayIdx, job.targetIdx, { silent: true });
+      await autoCalculateRouteFor(job.dayIdx, job.targetIdx, { silent: true, forceRefresh: !!job.forceRefresh });
       const nextExists = !!itinerary.days?.[job.dayIdx]?.plan?.[job.targetIdx + 1];
       if (nextExists) {
-        await autoCalculateRouteFor(job.dayIdx, job.targetIdx + 1, { silent: true });
+        await autoCalculateRouteFor(job.dayIdx, job.targetIdx + 1, { silent: true, forceRefresh: !!job.forceRefresh });
       }
     };
     void run();
@@ -6384,7 +6402,7 @@ const App = () => {
     }
     setPendingAutoRouteJobs((prev) => [
       ...prev,
-      ...missingJobs.map(({ dayIdx, targetIdx }) => ({ dayIdx, targetIdx })),
+      ...missingJobs.map(({ dayIdx, targetIdx }) => ({ dayIdx, targetIdx, forceRefresh: false })),
     ]);
   }, [itinerary, calculatingRouteId, isCalculatingAllRoutes]);
 
@@ -9273,7 +9291,7 @@ const App = () => {
                               }}
                               className={`relative flex flex-col items-center justify-center shrink-0 border-r border-slate-100 flex-none overflow-hidden transition-all duration-500 cursor-pointer group/tower ${timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx
                                 ? 'w-[170px] sm:w-[180px] bg-white shadow-[inset_0_2px_8px_rgba(0,0,0,0.02)]'
-                                : (isCompactTimeline ? 'w-[30%] py-2' : 'w-[30%] py-4 px-2 sm:px-3')
+                                : (isCompactTimeline ? 'w-[30%] py-2' : 'w-[30%] py-3 px-2 sm:px-3')
                                 } ${p.isTimeFixed ? 'bg-blue-50/20' : 'bg-transparent'}`}
                             >
                               {/* 락 상태일 때 컨트롤 타워 전체에 은은하게 깔리는 거대 자물쇠 */}
@@ -10015,7 +10033,7 @@ const App = () => {
                         {/* 🟩 하단 영수증 영역 (전체 너비 100%) */}
                         {
                           p.type !== 'backup' && !isLodgeSegmentCard && (
-                            <div className="mx-3 mb-3 mt-1.5 rounded-2xl overflow-hidden border border-slate-100/80" onClick={(e) => e.stopPropagation()}>
+                            <div className="mx-3 mb-2 mt-1 rounded-2xl overflow-hidden border border-slate-100/80" onClick={(e) => e.stopPropagation()}>
                               {isExpanded && (
                                 <div className="px-5 py-4 animate-in slide-in-from-top-1 bg-white border-b border-slate-100 border-dashed">
                                   {p.types?.includes('ship') && (

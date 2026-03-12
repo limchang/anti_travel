@@ -1777,6 +1777,7 @@ const DateRangePicker = ({ startDate, endDate, onStartChange, onEndChange, onClo
 const latestUpdate = updateLog.lastUpdates[0] || { version: '0.0.0', timestamp: new Date().toISOString() };
 const APP_VERSION = latestUpdate.version;
 const LAST_PUSH_TIME = latestUpdate.timestamp;
+const ROUTE_PREVIEW_COLORS = ['#34C759', '#FF8A3D', '#8B5CF6', '#3182F6', '#EF4444', '#14B8A6'];
 
 // ── AI 자동입력 학습 지침 모달 ───────────────────────────────────────────────
 const GUIDE_DOC_PATH = 'meta/smartFillGuide';
@@ -2513,6 +2514,9 @@ const App = () => {
   const [calculatingRouteId, setCalculatingRouteId] = useState(null);
   const [isCalculatingAllRoutes, setIsCalculatingAllRoutes] = useState(false);
   const [routeCalcProgress, setRouteCalcProgress] = useState(0);
+  const [routePreviewDays, setRoutePreviewDays] = useState([]);
+  const [routePreviewLoading, setRoutePreviewLoading] = useState(false);
+  const [showRoutePreviewModal, setShowRoutePreviewModal] = useState(false);
   const routeRetryCooldownMs = 45000;
   const autoRouteQueuedRef = useRef(new Set());
   const [dashboardHeight, setDashboardHeight] = useState(200);
@@ -3676,7 +3680,7 @@ const App = () => {
     const hasTravelAuto = String(targetItem.travelTimeAuto || '').trim() !== '';
     return !hasDistance || !hasTravelAuto;
   };
-  const geocodeAddress = async (address) => {
+  const geocodeAddress = useCallback(async (address) => {
     const key = String(address || '').trim();
     if (!key) return null;
     if (geoCacheRef.current[key]) return geoCacheRef.current[key];
@@ -3690,8 +3694,89 @@ const App = () => {
     } catch {
       return null;
     }
-  };
+  }, []);
   const deepClone = (value) => JSON.parse(JSON.stringify(value));
+  useEffect(() => {
+    let cancelled = false;
+
+    const buildRoutePreview = async () => {
+      const dayEntries = (itinerary.days || [])
+        .map((day, index) => {
+          const points = (day.plan || [])
+            .filter((item) => item && item.type !== 'backup')
+            .map((item) => ({
+              id: item.id,
+              label: item.activity || item.name || '일정',
+              address: String(item.receipt?.address || item.address || '').trim(),
+            }))
+            .filter((item) => item.address)
+            .slice(0, 8);
+          return {
+            day: day.day || index + 1,
+            color: ROUTE_PREVIEW_COLORS[index % ROUTE_PREVIEW_COLORS.length],
+            points,
+          };
+        })
+        .filter((entry) => entry.points.length >= 2);
+
+      if (!dayEntries.length) {
+        if (!cancelled) setRoutePreviewDays([]);
+        return;
+      }
+
+      setRoutePreviewLoading(true);
+      try {
+        const nextDays = [];
+        for (const entry of dayEntries) {
+          const coords = [];
+          for (const point of entry.points) {
+            const geo = await geocodeAddress(point.address);
+            if (!geo?.lat || !geo?.lon) continue;
+            coords.push({
+              ...point,
+              lat: Number(geo.lat),
+              lon: Number(geo.lon),
+            });
+          }
+          if (coords.length >= 2) {
+            nextDays.push({ ...entry, points: coords });
+          }
+        }
+        if (!cancelled) setRoutePreviewDays(nextDays);
+      } finally {
+        if (!cancelled) setRoutePreviewLoading(false);
+      }
+    };
+
+    void buildRoutePreview();
+    return () => {
+      cancelled = true;
+    };
+  }, [itinerary.days, geocodeAddress]);
+
+  const routePreviewMap = useMemo(() => {
+    const allPoints = routePreviewDays.flatMap((day) => day.points || []);
+    if (!allPoints.length) return [];
+
+    const lats = allPoints.map((point) => point.lat);
+    const lons = allPoints.map((point) => point.lon);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLon = Math.min(...lons);
+    const maxLon = Math.max(...lons);
+    const latRange = Math.max(0.01, maxLat - minLat);
+    const lonRange = Math.max(0.01, maxLon - minLon);
+
+    return routePreviewDays.map((day) => ({
+      ...day,
+      points: day.points.map((point) => ({
+        ...point,
+        x: 12 + ((point.lon - minLon) / lonRange) * 76,
+        y: 12 + (1 - ((point.lat - minLat) / latRange)) * 76,
+      })),
+    }));
+  }, [routePreviewDays]);
+
   const normalizeAlternative = (alt = {}) => {
     const receipt = alt.receipt
       ? deepClone(alt.receipt)
@@ -6619,6 +6704,62 @@ const App = () => {
           </div>
         </div>
       )}
+      {showRoutePreviewModal && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center" onClick={() => setShowRoutePreviewModal(false)}>
+          <div className="absolute inset-0 bg-black/35 backdrop-blur-sm" />
+          <div className="relative w-[min(520px,92vw)] rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_60px_-24px_rgba(15,23,42,0.35)] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <p className="text-[14px] font-black text-slate-800">전체 동선 지도 보기</p>
+                <p className="mt-1 text-[10px] font-bold text-slate-400">Day별 이동 흐름 요약</p>
+              </div>
+              <button type="button" onClick={() => setShowRoutePreviewModal(false)} className="w-8 h-8 rounded-xl border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors">
+                <X size={14} />
+              </button>
+            </div>
+            <div className="p-5">
+              <div className="rounded-[24px] border border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(191,219,254,0.35),_rgba(255,255,255,0.96)_55%)] p-4">
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {routePreviewMap.map((day) => (
+                    <div key={`modal-day-${day.day}`} className="inline-flex items-center gap-1.5 rounded-full bg-white/90 border border-slate-200 px-2.5 py-1 text-[10px] font-black text-slate-600 shadow-sm">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: day.color }} />
+                      <span>Day {day.day}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="relative overflow-hidden rounded-[22px] border border-sky-100 bg-[linear-gradient(180deg,rgba(186,230,253,0.75),rgba(239,246,255,0.9))] p-3">
+                  <svg viewBox="0 0 100 100" className="w-full aspect-[1.25/1]">
+                    <path d="M10 58 C18 42, 34 30, 52 28 C69 26, 86 35, 92 50 C95 59, 90 72, 79 79 C66 87, 44 89, 26 83 C15 79, 8 69, 10 58Z" fill="rgba(187,247,208,0.8)" stroke="rgba(110,231,183,0.95)" strokeWidth="1.2" />
+                    <path d="M21 40 C28 47, 31 56, 30 67" stroke="rgba(255,255,255,0.85)" strokeWidth="0.7" strokeDasharray="2 2" />
+                    <path d="M39 33 C46 42, 49 54, 48 71" stroke="rgba(255,255,255,0.8)" strokeWidth="0.7" strokeDasharray="2 2" />
+                    <path d="M60 31 C67 43, 69 56, 67 76" stroke="rgba(255,255,255,0.82)" strokeWidth="0.7" strokeDasharray="2 2" />
+                    <path d="M76 39 C81 48, 83 60, 81 70" stroke="rgba(255,255,255,0.78)" strokeWidth="0.7" strokeDasharray="2 2" />
+                    {routePreviewMap.map((day) => (
+                      <g key={`modal-route-${day.day}`}>
+                        <polyline
+                          points={day.points.map((point) => `${point.x},${point.y}`).join(' ')}
+                          fill="none"
+                          stroke={day.color}
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          opacity="0.95"
+                        />
+                        {day.points.map((point, idx) => (
+                          <g key={`${day.day}-${point.id}-${idx}`}>
+                            <circle cx={point.x} cy={point.y} r="2.8" fill={day.color} />
+                            <circle cx={point.x} cy={point.y} r="1.15" fill="white" />
+                          </g>
+                        ))}
+                      </g>
+                    ))}
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Col1 테두리 탭 (오른쪽 경계) ── */}
       <div
@@ -7153,6 +7294,87 @@ const App = () => {
                 ];
                 return (
                   <div className="w-full flex flex-col gap-1.5 items-stretch">
+                    <div className="mb-3 rounded-[24px] border border-slate-200 bg-white shadow-[0_10px_30px_-22px_rgba(15,23,42,0.28)] overflow-hidden">
+                      <div className="px-4 pt-3 pb-2 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="text-[12px] font-black text-slate-800 truncate">Daily Route Summary Map</p>
+                          <p className="mt-0.5 text-[9px] font-bold text-slate-400">Day 1 · Day 2 · Day 3 동선 확인</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowRoutePreviewModal(true)}
+                          className="shrink-0 px-2.5 py-1 rounded-full border border-slate-200 bg-white text-[9px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                        >
+                          전체 보기
+                        </button>
+                      </div>
+                      <div className="p-3">
+                        <div className="rounded-[20px] border border-sky-100 bg-[linear-gradient(180deg,rgba(186,230,253,0.8),rgba(239,246,255,0.94))] px-3 py-3">
+                          <div className="mb-2 flex flex-wrap gap-1.5">
+                            {routePreviewMap.length > 0 ? routePreviewMap.slice(0, 4).map((day) => (
+                              <div key={`sidebar-day-${day.day}`} className="inline-flex items-center gap-1 rounded-full bg-white/90 border border-slate-200 px-2 py-0.5 text-[9px] font-black text-slate-600 shadow-sm">
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: day.color }} />
+                                <span>Day {day.day}</span>
+                              </div>
+                            )) : (
+                              <div className="inline-flex items-center gap-1 rounded-full bg-white/90 border border-slate-200 px-2 py-0.5 text-[9px] font-black text-slate-400 shadow-sm">
+                                경로 준비 중
+                              </div>
+                            )}
+                          </div>
+                          <div className="relative overflow-hidden rounded-[18px] border border-white/70 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.8),_rgba(219,234,254,0.4)_70%)] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+                            {routePreviewLoading ? (
+                              <div className="aspect-[1.2/1] flex items-center justify-center text-[11px] font-bold text-slate-400">
+                                지도 좌표 계산 중...
+                              </div>
+                            ) : routePreviewMap.length > 0 ? (
+                              <svg viewBox="0 0 100 100" className="w-full aspect-[1.2/1]">
+                                <path d="M10 58 C18 42, 34 30, 52 28 C69 26, 86 35, 92 50 C95 59, 90 72, 79 79 C66 87, 44 89, 26 83 C15 79, 8 69, 10 58Z" fill="rgba(187,247,208,0.82)" stroke="rgba(110,231,183,0.95)" strokeWidth="1.2" />
+                                <path d="M21 40 C28 47, 31 56, 30 67" stroke="rgba(255,255,255,0.88)" strokeWidth="0.7" strokeDasharray="2 2" />
+                                <path d="M39 33 C46 42, 49 54, 48 71" stroke="rgba(255,255,255,0.84)" strokeWidth="0.7" strokeDasharray="2 2" />
+                                <path d="M60 31 C67 43, 69 56, 67 76" stroke="rgba(255,255,255,0.84)" strokeWidth="0.7" strokeDasharray="2 2" />
+                                <path d="M76 39 C81 48, 83 60, 81 70" stroke="rgba(255,255,255,0.82)" strokeWidth="0.7" strokeDasharray="2 2" />
+                                {routePreviewMap.map((day) => (
+                                  <g key={`sidebar-route-${day.day}`}>
+                                    <polyline
+                                      points={day.points.map((point) => `${point.x},${point.y}`).join(' ')}
+                                      fill="none"
+                                      stroke={day.color}
+                                      strokeWidth="1.8"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      opacity="0.95"
+                                    />
+                                    {day.points.map((point, idx) => (
+                                      <g key={`${day.day}-mini-${point.id}-${idx}`}>
+                                        <circle cx={point.x} cy={point.y} r="2.7" fill={day.color} />
+                                        <circle cx={point.x} cy={point.y} r="1.1" fill="white" />
+                                      </g>
+                                    ))}
+                                  </g>
+                                ))}
+                              </svg>
+                            ) : (
+                              <div className="aspect-[1.2/1] flex flex-col items-center justify-center gap-1 text-center">
+                                <MapIcon size={18} className="text-slate-300" />
+                                <p className="text-[10px] font-bold text-slate-400">주소가 있는 일정이 2개 이상 있어야 경로를 표시합니다.</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <span className="text-[9px] font-black text-slate-400">일정 요약</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowRoutePreviewModal(true)}
+                            className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[9px] font-black text-slate-600 hover:bg-slate-200 transition-colors"
+                          >
+                            전체 동선 지도 보기
+                            <ChevronDown size={10} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                     {draggingFromTimeline && (
                       <div
                         className={`w-full mb-2 rounded-[20px] border-2 border-dashed px-4 py-4 flex items-center justify-center gap-3 text-center transition-all ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6] shadow-[0_12px_26px_-18px_rgba(49,130,246,0.45)]' : 'border-slate-200 bg-white/90 text-slate-500'}`}

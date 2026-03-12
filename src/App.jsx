@@ -63,6 +63,32 @@ const safeLocalStorageSet = (key, value) => {
   }
 };
 
+const normalizeGeoPoint = (raw = {}, fallbackAddress = '') => {
+  const address = String(raw?.address || fallbackAddress || '').trim();
+  const lat = Number(raw?.lat);
+  const lon = Number(raw?.lon);
+  const source = String(raw?.source || '').trim();
+  const updatedAt = String(raw?.updatedAt || '').trim();
+  if (!address && !Number.isFinite(lat) && !Number.isFinite(lon)) return null;
+  return {
+    address,
+    lat: Number.isFinite(lat) ? lat : null,
+    lon: Number.isFinite(lon) ? lon : null,
+    source,
+    updatedAt: updatedAt || null,
+  };
+};
+
+const hasGeoCoords = (geo) => Number.isFinite(Number(geo?.lat)) && Number.isFinite(Number(geo?.lon));
+
+const isGeoStaleForAddress = (geo, address = '') => {
+  const normalizedAddress = String(address || '').trim();
+  if (!normalizedAddress) return false;
+  const current = normalizeGeoPoint(geo, normalizedAddress);
+  if (!current) return true;
+  return current.address !== normalizedAddress || !hasGeoCoords(current);
+};
+
 const getTimeOfDayOverlay = (timeStr) => {
   const [h = '12', m = '0'] = (timeStr || '12:00').split(':');
   const mins = parseInt(h, 10) * 60 + parseInt(m, 10);
@@ -3020,6 +3046,42 @@ const App = () => {
     });
   };
 
+  const getPlanItemPrimaryAddress = (item = {}) => String(item?.receipt?.address || item?.address || '').trim();
+  const getShipStartAddress = (item = {}) => String(item?.receipt?.address || item?.startPoint || '').trim();
+  const getShipEndAddress = (item = {}) => String(item?.endAddress || item?.endPoint || '').trim();
+  const applyGeoFieldsToRecord = (record = {}) => {
+    if (!record || typeof record !== 'object') return record;
+    if (Array.isArray(record?.types) && record.types.includes('ship')) {
+      const startAddress = getShipStartAddress(record);
+      const endAddress = getShipEndAddress(record);
+      record.geoStart = isGeoStaleForAddress(record.geoStart, startAddress)
+        ? normalizeGeoPoint({ address: startAddress }, startAddress)
+        : normalizeGeoPoint(record.geoStart, startAddress);
+      record.geoEnd = isGeoStaleForAddress(record.geoEnd, endAddress)
+        ? normalizeGeoPoint({ address: endAddress }, endAddress)
+        : normalizeGeoPoint(record.geoEnd, endAddress);
+      delete record.geo;
+      return record;
+    }
+    const address = getPlanItemPrimaryAddress(record);
+    record.geo = isGeoStaleForAddress(record.geo, address)
+      ? normalizeGeoPoint({ address }, address)
+      : normalizeGeoPoint(record.geo, address);
+    delete record.geoStart;
+    delete record.geoEnd;
+    return record;
+  };
+
+  const cloneGeoForRecord = (record = {}) => {
+    if (Array.isArray(record?.types) && record.types.includes('ship')) {
+      return {
+        geoStart: normalizeGeoPoint(record.geoStart, getShipStartAddress(record)),
+        geoEnd: normalizeGeoPoint(record.geoEnd, getShipEndAddress(record)),
+      };
+    }
+    return { geo: normalizeGeoPoint(record.geo, getPlanItemPrimaryAddress(record)) };
+  };
+
   const normalizeLibraryPlace = (place, dayNumber = 1) => {
     if (!place) return place;
     place.types = normalizeTagOrder(Array.isArray(place.types) && place.types.length ? place.types : ['place']);
@@ -3057,6 +3119,7 @@ const App = () => {
       place.receipt = shipItem.receipt;
       place.address = shipItem.receipt?.address || place.address || shipItem.startPoint || '';
       place.price = Number(shipItem.price) || 0;
+      applyGeoFieldsToRecord(place);
       return place;
     }
 
@@ -3065,6 +3128,7 @@ const App = () => {
     place.receipt.address = place.address || place.receipt.address || '';
     place.price = place.receipt.items.reduce((sum, item) => sum + (item.selected === false ? 0 : getMenuLineTotal(item)), 0);
     if (isFullLodgeStayItem(place)) ensureLodgeStaySegments(place);
+    applyGeoFieldsToRecord(place);
     return place;
   };
 
@@ -3108,9 +3172,11 @@ const App = () => {
       sourceLodgeName: placeData?.sourceLodgeName,
       segmentType: placeData?.segmentType,
       renderAsSegmentCard: !!placeData?.renderAsSegmentCard,
+      ...cloneGeoForRecord(placeData || {}),
     };
     if (isShip) ensureShipItemDefaults(nextItem, dayNumber);
     if (isFullLodge) ensureLodgeStaySegments(nextItem);
+    applyGeoFieldsToRecord(nextItem);
     return nextItem;
   };
 
@@ -3243,11 +3309,17 @@ const App = () => {
         }
         const patchedDays = (sharedData.days || []).map(d => ({
           ...d,
-          plan: (d.plan || []).map(p => ({ ...p }))
+          plan: (d.plan || []).map((p) => {
+            const nextItem = { ...p };
+            if (!nextItem.receipt) nextItem.receipt = { address: nextItem.address || '', items: [] };
+            if (!Array.isArray(nextItem.receipt.items)) nextItem.receipt.items = [];
+            applyGeoFieldsToRecord(nextItem);
+            return nextItem;
+          })
         }));
         setItinerary({
           days: patchedDays,
-          places: sharedData.places || [],
+          places: (sharedData.places || []).map((place) => normalizeLibraryPlace({ ...place })),
           maxBudget: sharedData.maxBudget || 1500000,
           share: sharedConfig,
           planTitle: sharedData.planTitle || `${sharedData.tripRegion || '공유'} 일정`,
@@ -3500,7 +3572,9 @@ const App = () => {
       const pairs = await Promise.all((itinerary.places || []).map(async (p) => {
         const addr = (p.address || p.receipt?.address || '').trim();
         if (!addr) return [p.id, null];
-        const c = await geocodeAddress(addr);
+        const c = hasGeoCoords(p.geo) && !isGeoStaleForAddress(p.geo, addr)
+          ? p.geo
+          : await geocodeAddress(addr);
         if (!c) return [p.id, null];
         return [p.id, +haversineKm(baseCoord.lat, baseCoord.lon, c.lat, c.lon).toFixed(1)];
       }));
@@ -3693,7 +3767,9 @@ const App = () => {
         for (const p of places) {
           if (!p.receipt?.address && !p.address) continue;
           const queryAddr = p.receipt?.address || p.address;
-          if (geoCacheRef.current[queryAddr]) {
+          if (hasGeoCoords(p.geo) && !isGeoStaleForAddress(p.geo, queryAddr)) {
+            newMap[p.id] = +haversineKm(bLat, bLon, p.geo.lat, p.geo.lon).toFixed(1);
+          } else if (geoCacheRef.current[queryAddr]) {
             const { lat, lon } = geoCacheRef.current[queryAddr];
             newMap[p.id] = +haversineKm(bLat, bLon, lat, lon).toFixed(1);
           } else {
@@ -3823,16 +3899,40 @@ const App = () => {
     if (!key) return null;
     if (geoCacheRef.current[key]) return geoCacheRef.current[key];
     try {
+      const result = await searchAddressFromPlaceName(key, tripRegion);
+      if (result?.lat && result?.lon) {
+        const coord = {
+          address: String(result.address || key).trim(),
+          lat: parseFloat(result.lat),
+          lon: parseFloat(result.lon),
+          source: result.source || 'lookup',
+          updatedAt: new Date().toISOString(),
+        };
+        geoCacheRef.current[key] = coord;
+        return coord;
+      }
+    } catch {
+      // fallback below
+    }
+    try {
       const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(key)}&format=json&limit=1`);
       const data = await res.json();
       if (!Array.isArray(data) || data.length === 0) return null;
-      const coord = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+      const coord = {
+        address: key,
+        lat: parseFloat(data[0].lat),
+        lon: parseFloat(data[0].lon),
+        source: 'nominatim',
+        updatedAt: new Date().toISOString(),
+      };
       geoCacheRef.current[key] = coord;
       return coord;
     } catch {
       return null;
     }
-  }, []);
+  }, [tripRegion]);
+
+  const geoSyncRequestKeyRef = useRef('');
   const deepClone = (value) => JSON.parse(JSON.stringify(value));
   const routePreviewEndpointActions = useMemo(() => {
     const allShips = (itinerary.days || []).flatMap((day, dayIdx) => (
@@ -3883,6 +3983,7 @@ const App = () => {
               id: startKey,
               label: `${item.activity || '페리'} 출발`,
               address: startAddress,
+              geo: normalizeGeoPoint(item.geoStart, startAddress),
               isEndpointToggle: item.id === firstShip?.id,
               endpointLabel: '첫 페리 출발지 제외',
             };
@@ -3890,6 +3991,7 @@ const App = () => {
               id: endKey,
               label: `${item.activity || '페리'} 도착`,
               address: endAddress,
+              geo: normalizeGeoPoint(item.geoEnd, endAddress),
               isEndpointToggle: item.id === lastShip?.id,
               endpointLabel: '마지막 페리 도착지 제외',
             };
@@ -3903,6 +4005,7 @@ const App = () => {
             id: item.id,
             label: item.activity || item.name || '일정',
             address,
+            geo: normalizeGeoPoint(item.geo, address),
             isEndpointToggle: false,
             endpointLabel: '',
           }];
@@ -3915,6 +4018,89 @@ const App = () => {
       };
     }).filter((entry) => entry.points.length >= 2);
   }, [itinerary.days, hiddenRoutePreviewEndpoints]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const jobs = [];
+
+    (itinerary.places || []).forEach((place, placeIdx) => {
+      const address = String(place?.address || place?.receipt?.address || '').trim();
+      if (!address || !isGeoStaleForAddress(place?.geo, address)) return;
+      jobs.push({ kind: 'place', placeIdx, field: 'geo', address });
+    });
+
+    (itinerary.days || []).forEach((day, dayIdx) => {
+      (day.plan || []).forEach((item, pIdx) => {
+        if (!item || item.type === 'backup') return;
+        if (item.types?.includes('ship')) {
+          const startAddress = getShipStartAddress(item);
+          const endAddress = getShipEndAddress(item);
+          if (startAddress && isGeoStaleForAddress(item.geoStart, startAddress)) {
+            jobs.push({ kind: 'plan', dayIdx, pIdx, field: 'geoStart', address: startAddress });
+          }
+          if (endAddress && isGeoStaleForAddress(item.geoEnd, endAddress)) {
+            jobs.push({ kind: 'plan', dayIdx, pIdx, field: 'geoEnd', address: endAddress });
+          }
+          return;
+        }
+        const address = getPlanItemPrimaryAddress(item);
+        if (!address || !isGeoStaleForAddress(item.geo, address)) return;
+        jobs.push({ kind: 'plan', dayIdx, pIdx, field: 'geo', address });
+      });
+    });
+
+    if (!jobs.length) {
+      geoSyncRequestKeyRef.current = '';
+      return undefined;
+    }
+
+    const requestKey = jobs.map((job) => `${job.kind}:${job.field}:${job.address}`).join('|');
+    if (geoSyncRequestKeyRef.current === requestKey) return undefined;
+    geoSyncRequestKeyRef.current = requestKey;
+
+    const syncGeo = async () => {
+      const uniqueAddresses = [...new Set(jobs.map((job) => job.address))];
+      const resolvedMap = {};
+      for (const address of uniqueAddresses) {
+        resolvedMap[address] = await geocodeAddress(address);
+        if (cancelled) return;
+      }
+      if (cancelled) return;
+      setItinerary((prev) => {
+        const nextData = JSON.parse(JSON.stringify(prev));
+        let changed = false;
+        jobs.forEach((job) => {
+          const resolved = resolvedMap[job.address];
+          if (!hasGeoCoords(resolved)) return;
+          const nextGeo = normalizeGeoPoint({
+            address: job.address,
+            lat: resolved.lat,
+            lon: resolved.lon,
+            source: resolved.source || 'lookup',
+            updatedAt: resolved.updatedAt || new Date().toISOString(),
+          }, job.address);
+          if (job.kind === 'place') {
+            const place = nextData.places?.[job.placeIdx];
+            if (!place || !isGeoStaleForAddress(place[job.field], job.address)) return;
+            place[job.field] = nextGeo;
+            changed = true;
+            return;
+          }
+          const item = nextData.days?.[job.dayIdx]?.plan?.[job.pIdx];
+          if (!item || !isGeoStaleForAddress(item[job.field], job.address)) return;
+          item[job.field] = nextGeo;
+          changed = true;
+        });
+        return changed ? nextData : prev;
+      });
+      geoSyncRequestKeyRef.current = '';
+    };
+
+    void syncGeo();
+    return () => {
+      cancelled = true;
+    };
+  }, [itinerary.days, itinerary.places, geocodeAddress]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3932,7 +4118,9 @@ const App = () => {
         for (const entry of dayEntries) {
           const coords = [];
           for (const point of entry.points) {
-            const geo = await geocodeAddress(point.address);
+            const geo = hasGeoCoords(point.geo) && !isGeoStaleForAddress(point.geo, point.address)
+              ? point.geo
+              : await geocodeAddress(point.address);
             if (!geo?.lat || !geo?.lon) continue;
             coords.push({
               ...point,
@@ -3984,7 +4172,7 @@ const App = () => {
       ? deepClone(alt.receipt)
       : { address: alt.address || '', items: deepClone(alt.items || []) };
     if (!Array.isArray(receipt.items)) receipt.items = [];
-    return {
+    const normalized = {
       activity: alt.activity || alt.name || '새로운 플랜',
       price: Number(alt.price || 0),
       memo: alt.memo || '',
@@ -3993,7 +4181,10 @@ const App = () => {
       types: Array.isArray(alt.types) && alt.types.length ? deepClone(alt.types) : ['place'],
       duration: Number(alt.duration || 60),
       receipt,
+      ...cloneGeoForRecord({ ...alt, receipt }),
     };
+    applyGeoFieldsToRecord(normalized);
+    return normalized;
   };
   const toAlternativeFromItem = (item = {}) => normalizeAlternative({
     activity: item.activity,
@@ -4976,6 +5167,7 @@ const App = () => {
       const item = nextData.days[dayIdx].plan[pIdx];
       if (!item.receipt) item.receipt = { address: '', items: [] };
       item.receipt.address = value;
+      applyGeoFieldsToRecord(item);
       return nextData;
     });
   };
@@ -4996,6 +5188,7 @@ const App = () => {
       if (item.types.includes('ship')) {
         ensureShipItemDefaults(item, nextData.days[dayIdx]?.day || dayIdx + 1);
       }
+      applyGeoFieldsToRecord(item);
       nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
       return nextData;
     });
@@ -5041,6 +5234,7 @@ const App = () => {
       if (item.types.includes('ship')) {
         ensureShipItemDefaults(item, nextData.days?.[dayIdx]?.day || dayIdx + 1);
       }
+      applyGeoFieldsToRecord(item);
       nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
       recalculateLodgeDurations(nextData.days);
       return nextData;
@@ -5135,6 +5329,7 @@ const App = () => {
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       nextData.days[dayIdx].plan[pIdx][field] = value;
+      applyGeoFieldsToRecord(nextData.days[dayIdx].plan[pIdx]);
       return nextData;
     });
   };
@@ -5301,7 +5496,8 @@ const App = () => {
         address: alt.receipt?.address || '',
         price: alt.price || 0,
         memo: alt.memo || '',
-        receipt: deepClone(alt.receipt || { address: '', items: [] })
+        receipt: deepClone(alt.receipt || { address: '', items: [] }),
+        ...cloneGeoForRecord(alt),
       });
       return next;
     });
@@ -5340,7 +5536,8 @@ const App = () => {
         travelTimeOverride: `${DEFAULT_TRAVEL_MINS}분`,
         bufferTimeOverride: `${DEFAULT_BUFFER_MINS}분`,
         receipt: deepClone(alt.receipt || { address: '', items: [] }),
-        memo: alt.memo || ''
+        memo: alt.memo || '',
+        ...cloneGeoForRecord(alt),
       });
 
       nextData.days[targetDayIdx].plan = recalculateSchedule(targetDayPlan);
@@ -5442,6 +5639,13 @@ const App = () => {
       // 플랜 교체 시 기존 일정의 시간축(소요시간)을 유지
       item.duration = item.duration || 60;
       item.receipt = deepClone(alt.receipt || { address: '', items: [] });
+      if (item.types.includes('ship')) {
+        item.geoStart = normalizeGeoPoint(alt.geoStart, getShipStartAddress(alt));
+        item.geoEnd = normalizeGeoPoint(alt.geoEnd, getShipEndAddress(alt));
+      } else {
+        item.geo = normalizeGeoPoint(alt.geo, getPlanItemPrimaryAddress(alt));
+      }
+      applyGeoFieldsToRecord(item);
 
       item.alternatives[altIdx] = currentAsAlt;
       nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
@@ -5470,6 +5674,13 @@ const App = () => {
       // 플랜 회전 시 기존 일정의 시간축(소요시간)을 유지
       item.duration = item.duration || 60;
       item.receipt = deepClone(nextMain.receipt || { address: '', items: [] });
+      if (item.types.includes('ship')) {
+        item.geoStart = normalizeGeoPoint(nextMain.geoStart, getShipStartAddress(nextMain));
+        item.geoEnd = normalizeGeoPoint(nextMain.geoEnd, getShipEndAddress(nextMain));
+      } else {
+        item.geo = normalizeGeoPoint(nextMain.geo, getPlanItemPrimaryAddress(nextMain));
+      }
+      applyGeoFieldsToRecord(item);
       item.alternatives = dir > 0 ? [...alts.slice(1), currentAsAlt] : [currentAsAlt, ...alts.slice(0, -1)];
       nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
       return nextData;
@@ -5788,6 +5999,7 @@ const App = () => {
       price: Number(item.price) || 0,
       memo: item.memo || '',
       receipt,
+      ...cloneGeoForRecord(item),
       startPoint: item.startPoint,
       endPoint: item.endPoint,
       endAddress: item.endAddress,
@@ -6284,11 +6496,17 @@ const App = () => {
             }
             const patchedDays = (sharedData.days || []).map(d => ({
               ...d,
-              plan: (d.plan || []).map(p => ({ ...p }))
+              plan: (d.plan || []).map((p) => {
+                const nextItem = { ...p };
+                if (!nextItem.receipt) nextItem.receipt = { address: nextItem.address || '', items: [] };
+                if (!Array.isArray(nextItem.receipt.items)) nextItem.receipt.items = [];
+                applyGeoFieldsToRecord(nextItem);
+                return nextItem;
+              })
             }));
             setItinerary({
               days: patchedDays,
-              places: sharedData.places || [],
+              places: (sharedData.places || []).map((place) => normalizeLibraryPlace({ ...place })),
               maxBudget: sharedData.maxBudget || 1500000,
               share: sharedConfig,
               planTitle: sharedData.planTitle || `${sharedData.tripRegion || '공유'} 일정`,
@@ -6344,6 +6562,8 @@ const App = () => {
             ...d,
             plan: (d.plan || []).map(p => {
               let updatedP = { ...p };
+              if (!updatedP.receipt) updatedP.receipt = { address: updatedP.address || '', items: [] };
+              if (!Array.isArray(updatedP.receipt.items)) updatedP.receipt.items = [];
               if (updatedP.types?.includes('ship')) {
                 const defaultStart = d.day === 1 ? '목포항' : '제주항';
                 const defaultEnd = d.day === 1 ? '제주항' : '목포항';
@@ -6364,12 +6584,13 @@ const App = () => {
               if (updatedP.receipt?.items) {
                 updatedP.price = updatedP.receipt.items.reduce((sum, m) => sum + (m.selected ? getMenuLineTotal(m) : 0), 0);
               }
+              applyGeoFieldsToRecord(updatedP);
               return updatedP;
             })
           }));
           setItinerary({
             days: patchedDays,
-            places: finalData.places || [],
+            places: (finalData.places || []).map((place) => normalizeLibraryPlace({ ...place })),
             maxBudget: finalData.maxBudget || 1500000,
             share: normalizeShare(finalData.share || {}),
             planTitle: finalData.planTitle || `${finalData.tripRegion || tripRegion || '여행'} 일정`,
@@ -6396,7 +6617,7 @@ const App = () => {
 
       setItinerary({
         days: calculatedDays,
-        places: initialData.places || [],
+        places: (initialData.places || []).map((place) => normalizeLibraryPlace({ ...place })),
         maxBudget: initialData.maxBudget || 1500000,
         share: normalizeShare(initialData.share || {}),
         planTitle: initialData.planTitle || `${initialData.tripRegion || '여행'} 일정`,

@@ -1824,6 +1824,86 @@ const latestUpdate = updateLog.lastUpdates[0] || { version: '0.0.0', timestamp: 
 const APP_VERSION = latestUpdate.version;
 const LAST_PUSH_TIME = latestUpdate.timestamp;
 const ROUTE_PREVIEW_COLORS = ['#34C759', '#FF8A3D', '#8B5CF6', '#3182F6', '#EF4444', '#14B8A6'];
+const TIME_WHEEL_ITEM_HEIGHT = 36;
+
+const TimeWheelColumn = ({
+  label = '',
+  value = 0,
+  values = [],
+  onChange,
+  formatter = (next) => String(next).padStart(2, '0'),
+  accentClass = 'text-slate-900',
+}) => {
+  const listRef = React.useRef(null);
+  const settleTimerRef = React.useRef(null);
+  const isProgrammaticRef = React.useRef(false);
+
+  React.useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const currentIndex = Math.max(0, values.indexOf(value));
+    const targetTop = currentIndex * TIME_WHEEL_ITEM_HEIGHT;
+    if (Math.abs(list.scrollTop - targetTop) < 2) return;
+    isProgrammaticRef.current = true;
+    list.scrollTop = targetTop;
+    requestAnimationFrame(() => {
+      isProgrammaticRef.current = false;
+    });
+  }, [value, values]);
+
+  React.useEffect(() => () => {
+    if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+  }, []);
+
+  const commitClosestValue = React.useCallback(() => {
+    const list = listRef.current;
+    if (!list || !values.length) return;
+    const nextIndex = Math.max(0, Math.min(values.length - 1, Math.round(list.scrollTop / TIME_WHEEL_ITEM_HEIGHT)));
+    const snappedTop = nextIndex * TIME_WHEEL_ITEM_HEIGHT;
+    if (Math.abs(list.scrollTop - snappedTop) > 1) {
+      isProgrammaticRef.current = true;
+      list.scrollTo({ top: snappedTop, behavior: 'smooth' });
+      setTimeout(() => {
+        isProgrammaticRef.current = false;
+      }, 140);
+    }
+    if (values[nextIndex] !== value) onChange?.(values[nextIndex]);
+  }, [onChange, value, values]);
+
+  const handleScroll = React.useCallback(() => {
+    if (isProgrammaticRef.current) return;
+    if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+    settleTimerRef.current = setTimeout(commitClosestValue, 90);
+  }, [commitClosestValue]);
+
+  return (
+    <div className="min-w-[70px]">
+      <p className="mb-1 text-center text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
+      <div className="relative rounded-[18px] border border-slate-200 bg-white/92">
+        <div className="pointer-events-none absolute inset-x-2 top-1/2 h-9 -translate-y-1/2 rounded-[12px] border border-slate-200 bg-slate-50/92 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-8 rounded-t-[18px] bg-gradient-to-b from-white via-white/88 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 rounded-b-[18px] bg-gradient-to-t from-white via-white/88 to-transparent" />
+        <div
+          ref={listRef}
+          onScroll={handleScroll}
+          className="relative h-[180px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[72px]"
+        >
+          {values.map((entry) => {
+            const active = entry === value;
+            return (
+              <div
+                key={`${label}-${entry}`}
+                className={`flex h-9 snap-start items-center justify-center text-[22px] font-black tabular-nums transition-all ${active ? `${accentClass} scale-100` : 'scale-[0.88] text-slate-300'}`}
+              >
+                {formatter(entry)}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const loadKakaoMapSdk = (() => {
   let sdkPromise = null;
@@ -4612,6 +4692,18 @@ const App = () => {
       } catch (e) { return prev; }
     });
   };
+  const timeModalHistoryKeyRef = useRef('');
+
+  useEffect(() => {
+    if (timeControllerTarget?.kind !== 'plan-time') {
+      timeModalHistoryKeyRef.current = '';
+      return;
+    }
+    const nextKey = `${timeControllerTarget.dayIdx}:${timeControllerTarget.pIdx}`;
+    if (timeModalHistoryKeyRef.current === nextKey) return;
+    timeModalHistoryKeyRef.current = nextKey;
+    saveHistory();
+  }, [timeControllerTarget]);
 
   const triggerUndoToast = (msg = "변경 사항이 저장되었습니다.") => {
     setUndoMessage(msg);
@@ -5012,7 +5104,7 @@ const App = () => {
     updateStartTime(dayIdx, pIdx, deltaMinute);
   };
 
-  const setStartTimeValue = (dayIdx, pIdx, nextLabel) => {
+  const setStartTimeValue = (dayIdx, pIdx, nextLabel, options = {}) => {
     const normalized = String(nextLabel || '').trim();
     if (!/^\d{2}:\d{2}$/.test(normalized)) {
       setLastAction('시작 시간 형식이 올바르지 않습니다.');
@@ -5023,7 +5115,7 @@ const App = () => {
       setLastAction('시작 시간 형식이 올바르지 않습니다.');
       return;
     }
-    saveHistory();
+    if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const dayPlan = nextData.days?.[dayIdx]?.plan;
@@ -5141,9 +5233,9 @@ const App = () => {
     setLastAction("소요 시간을 변경했습니다.");
   };
 
-  const setDurationValue = (dayIdx, pIdx, minutes) => {
+  const setDurationValue = (dayIdx, pIdx, minutes, options = {}) => {
     const nextMinutes = Math.max(0, Number(minutes) || 0);
-    saveHistory();
+    if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const dayPlan = nextData.days[dayIdx].plan;
@@ -5155,7 +5247,7 @@ const App = () => {
     setLastAction(`소요 시간을 ${nextMinutes}분으로 설정했습니다.`);
   };
 
-  const setPlanEndTimeValue = (dayIdx, pIdx, nextLabel) => {
+  const setPlanEndTimeValue = (dayIdx, pIdx, nextLabel, options = {}) => {
     const normalized = String(nextLabel || '').trim();
     if (!/^\d{2}:\d{2}$/.test(normalized)) {
       setLastAction('종료 시간 형식이 올바르지 않습니다.');
@@ -5166,7 +5258,7 @@ const App = () => {
       setLastAction('종료 시간 형식이 올바르지 않습니다.');
       return;
     }
-    saveHistory();
+    if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const dayPlan = nextData.days?.[dayIdx]?.plan;
@@ -5307,28 +5399,42 @@ const App = () => {
     setLastAction("이동 시간을 기본값으로 초기화했습니다.");
   };
 
-  const toggleTimeFix = (dayIdx, pIdx) => {
+  const toggleTimeFix = (dayIdx, pIdx, options = {}) => {
+    if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
       const draft = JSON.parse(JSON.stringify(prev));
-      draft.days[dayIdx].plan[pIdx].isTimeFixed = !draft.days[dayIdx].plan[pIdx].isTimeFixed;
+      const dayPlan = draft.days?.[dayIdx]?.plan || [];
+      const item = dayPlan?.[pIdx];
+      if (!item) return prev;
+      item.isTimeFixed = !item.isTimeFixed;
+      draft.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      recalculateLodgeDurations(draft.days);
       return draft;
     });
   };
-  const toggleDurationFix = (dayIdx, pIdx) => {
+  const toggleDurationFix = (dayIdx, pIdx, options = {}) => {
+    if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
       const draft = JSON.parse(JSON.stringify(prev));
+      const dayPlan = draft.days?.[dayIdx]?.plan || [];
       const p = draft.days[dayIdx].plan[pIdx];
       p.isDurationFixed = !p.isDurationFixed;
       if (p.isDurationFixed) p.isEndTimeFixed = false;
+      draft.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      recalculateLodgeDurations(draft.days);
       return draft;
     });
   };
-  const toggleEndTimeFix = (dayIdx, pIdx) => {
+  const toggleEndTimeFix = (dayIdx, pIdx, options = {}) => {
+    if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
       const draft = JSON.parse(JSON.stringify(prev));
+      const dayPlan = draft.days?.[dayIdx]?.plan || [];
       const p = draft.days[dayIdx].plan[pIdx];
       p.isEndTimeFixed = !p.isEndTimeFixed;
       if (p.isEndTimeFixed) p.isDurationFixed = false;
+      draft.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      recalculateLodgeDurations(draft.days);
       return draft;
     });
   };
@@ -10437,7 +10543,7 @@ const App = () => {
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[12px] font-black text-slate-800">{item.activity || '일정 시간 조절'}</p>
-                    <p className="mt-0.5 text-[10px] font-bold text-slate-400">드래그로 시작시간, 종료시간, 소요시간을 조정합니다.</p>
+                    <p className="mt-0.5 text-[10px] font-bold text-slate-400">시/분 휠을 위아래로 드래그해서 시간을 조정합니다.</p>
                   </div>
                   <button
                     type="button"
@@ -10450,74 +10556,90 @@ const App = () => {
 
                 <div className="space-y-3">
                   <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-3 py-3">
-                    <div className="mb-1.5 flex items-center justify-between">
+                    <div className="mb-2 flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">시작 시간</span>
                       <button
                         type="button"
-                        onClick={() => toggleTimeFix(dayIdx, pIdx)}
+                        onClick={() => toggleTimeFix(dayIdx, pIdx, { skipHistory: true })}
                         className={`rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${item.isTimeFixed ? 'border-blue-200 bg-white text-[#3182F6]' : 'border-blue-100 bg-blue-50 text-blue-400'}`}
                       >
                         {item.isTimeFixed ? '고정됨' : '유동'}
                       </button>
                     </div>
-                    <div className="text-[24px] font-black tabular-nums text-slate-900">{minutesToTime(startMinutes)}</div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1435"
-                      step={timeControlStep}
-                      value={startMinutes}
-                      onChange={(e) => setStartTimeValue(dayIdx, pIdx, minutesToTime(Number(e.target.value)))}
-                      className="mt-3 w-full accent-[#3182F6]"
-                    />
+                    <div className="mb-2 text-[24px] font-black tabular-nums text-slate-900">{minutesToTime(startMinutes)}</div>
+                    <div className="flex items-center justify-center gap-3">
+                      <TimeWheelColumn
+                        label="시"
+                        value={Math.floor(startMinutes / 60)}
+                        values={Array.from({ length: 24 }, (_, idx) => idx)}
+                        onChange={(nextHour) => setStartTimeValue(dayIdx, pIdx, minutesToTime(nextHour * 60 + (startMinutes % 60)), { skipHistory: true })}
+                        accentClass="text-[#1f5fd6]"
+                      />
+                      <TimeWheelColumn
+                        label="분"
+                        value={startMinutes % 60}
+                        values={Array.from({ length: Math.floor(60 / timeControlStep) }, (_, idx) => idx * timeControlStep)}
+                        onChange={(nextMinute) => setStartTimeValue(dayIdx, pIdx, minutesToTime(Math.floor(startMinutes / 60) * 60 + nextMinute), { skipHistory: true })}
+                        accentClass="text-[#1f5fd6]"
+                      />
+                    </div>
                   </div>
 
                   <div className="rounded-[20px] border border-orange-200 bg-orange-50/75 px-3 py-3">
-                    <div className="mb-1.5 flex items-center justify-between">
+                    <div className="mb-2 flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-500">소요 시간</span>
                       <button
                         type="button"
-                        onClick={() => { if (!isAutoLocked) toggleDurationFix(dayIdx, pIdx); }}
+                        onClick={() => { if (!isAutoLocked) toggleDurationFix(dayIdx, pIdx, { skipHistory: true }); }}
                         disabled={isAutoLocked}
                         className={`rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors disabled:opacity-50 ${isDurationLocked ? 'border-orange-200 bg-white text-orange-600' : 'border-orange-100 bg-orange-50 text-orange-400'}`}
                       >
                         {isDurationLocked ? '고정됨' : '유동'}
                       </button>
                     </div>
-                    <div className="text-[24px] font-black tabular-nums text-slate-900">{fmtDur(durationMinutes)}</div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="720"
-                      step={timeControlStep}
-                      value={durationMinutes}
-                      onChange={(e) => setDurationValue(dayIdx, pIdx, Number(e.target.value))}
-                      className="mt-3 w-full accent-[#ff8a1a]"
-                    />
+                    <div className="mb-3 text-[24px] font-black tabular-nums text-slate-900">{fmtDur(durationMinutes)}</div>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => setDurationValue(dayIdx, pIdx, durationMinutes - 10, { skipHistory: true })} className="h-9 w-9 rounded-xl border border-orange-200 bg-white text-orange-500 hover:bg-orange-50">
+                        <Minus size={14} />
+                      </button>
+                      <div className="flex-1 rounded-[16px] border border-orange-200 bg-white/80 px-3 py-2 text-center text-[11px] font-black text-orange-500">
+                        종료시간도 함께 다시 계산됩니다
+                      </div>
+                      <button type="button" onClick={() => setDurationValue(dayIdx, pIdx, durationMinutes + 10, { skipHistory: true })} className="h-9 w-9 rounded-xl border border-orange-200 bg-white text-orange-500 hover:bg-orange-50">
+                        <Plus size={14} />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="rounded-[20px] border border-slate-200 bg-slate-50/85 px-3 py-3">
-                    <div className="mb-1.5 flex items-center justify-between">
+                    <div className="mb-2 flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">종료 시간</span>
                       <button
                         type="button"
-                        onClick={() => { if (!isAutoLocked) toggleEndTimeFix(dayIdx, pIdx); }}
+                        onClick={() => { if (!isAutoLocked) toggleEndTimeFix(dayIdx, pIdx, { skipHistory: true }); }}
                         disabled={isAutoLocked}
                         className={`rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors disabled:opacity-50 ${isEndTimeFixed ? 'border-amber-200 bg-white text-amber-600' : 'border-slate-200 bg-white text-slate-400'}`}
                       >
                         {isEndTimeFixed ? '고정됨' : '유동'}
                       </button>
                     </div>
-                    <div className="text-[24px] font-black tabular-nums text-slate-500">{minutesToTime(endMinutesOfDay)}</div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1435"
-                      step={timeControlStep}
-                      value={endMinutesOfDay}
-                      onChange={(e) => setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(Number(e.target.value)))}
-                      className="mt-3 w-full accent-slate-500"
-                    />
+                    <div className="mb-2 text-[24px] font-black tabular-nums text-slate-500">{minutesToTime(endMinutesOfDay)}</div>
+                    <div className="flex items-center justify-center gap-3">
+                      <TimeWheelColumn
+                        label="시"
+                        value={Math.floor(endMinutesOfDay / 60)}
+                        values={Array.from({ length: 24 }, (_, idx) => idx)}
+                        onChange={(nextHour) => setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextHour * 60 + (endMinutesOfDay % 60)), { skipHistory: true })}
+                        accentClass="text-slate-600"
+                      />
+                      <TimeWheelColumn
+                        label="분"
+                        value={endMinutesOfDay % 60}
+                        values={Array.from({ length: Math.floor(60 / timeControlStep) }, (_, idx) => idx * timeControlStep)}
+                        onChange={(nextMinute) => setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(Math.floor(endMinutesOfDay / 60) * 60 + nextMinute), { skipHistory: true })}
+                        accentClass="text-slate-600"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

@@ -1836,17 +1836,23 @@ const TimeWheelColumn = ({
   accentClass = 'text-slate-900',
   cyclic = false,
   onDragStateChange,
+  liveOnDrag = false,
 }) => {
   const listRef = React.useRef(null);
   const settleTimerRef = React.useRef(null);
   const isProgrammaticRef = React.useRef(false);
   const pointerDragRef = React.useRef({ active: false, pointerId: null, startY: 0, startTop: 0 });
   const touchDragRef = React.useRef({ active: false, startY: 0, startTop: 0 });
+  const lastEmittedValueRef = React.useRef(value);
 
   const renderedValues = React.useMemo(() => {
     if (!cyclic) return values;
     return [...values, ...values, ...values];
   }, [cyclic, values]);
+
+  React.useEffect(() => {
+    lastEmittedValueRef.current = value;
+  }, [value]);
 
   React.useEffect(() => {
     const list = listRef.current;
@@ -1867,6 +1873,19 @@ const TimeWheelColumn = ({
     if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
   }, []);
 
+  const getClosestValue = React.useCallback(() => {
+    const list = listRef.current;
+    if (!list || !values.length) return null;
+    const renderedLength = renderedValues.length;
+    if (!renderedLength) return null;
+    const rawIndex = Math.max(0, Math.min(renderedLength - 1, Math.round(list.scrollTop / TIME_WHEEL_ITEM_HEIGHT)));
+    const normalizedIndex = cyclic
+      ? ((rawIndex % values.length) + values.length) % values.length
+      : rawIndex;
+    const nextIndex = Math.max(0, Math.min(values.length - 1, normalizedIndex));
+    return values[nextIndex];
+  }, [cyclic, renderedValues.length, values]);
+
   const commitClosestValue = React.useCallback(() => {
     const list = listRef.current;
     if (!list || !values.length) return;
@@ -1886,7 +1905,10 @@ const TimeWheelColumn = ({
         isProgrammaticRef.current = false;
       }, 140);
     }
-    if (values[nextIndex] !== value) onChange?.(values[nextIndex]);
+    if (values[nextIndex] !== lastEmittedValueRef.current) {
+      lastEmittedValueRef.current = values[nextIndex];
+      onChange?.(values[nextIndex]);
+    }
   }, [cyclic, onChange, renderedValues.length, value, values]);
 
   const handleScroll = React.useCallback(() => {
@@ -1922,9 +1944,16 @@ const TimeWheelColumn = ({
     if (!list || !state.active || state.pointerId !== e.pointerId) return;
     const deltaY = e.clientY - state.startY;
     list.scrollTop = state.startTop - deltaY;
+    if (liveOnDrag) {
+      const nextValue = getClosestValue();
+      if (nextValue !== null && nextValue !== lastEmittedValueRef.current) {
+        lastEmittedValueRef.current = nextValue;
+        onChange?.(nextValue);
+      }
+    }
     e.preventDefault();
     e.stopPropagation();
-  }, []);
+  }, [getClosestValue, liveOnDrag, onChange]);
 
   const handlePointerUp = React.useCallback((e) => {
     if (e.pointerType === 'touch') return;
@@ -1964,9 +1993,16 @@ const TimeWheelColumn = ({
     if (!touch) return;
     const deltaY = touch.clientY - state.startY;
     list.scrollTop = state.startTop - deltaY;
+    if (liveOnDrag) {
+      const nextValue = getClosestValue();
+      if (nextValue !== null && nextValue !== lastEmittedValueRef.current) {
+        lastEmittedValueRef.current = nextValue;
+        onChange?.(nextValue);
+      }
+    }
     e.preventDefault();
     e.stopPropagation();
-  }, []);
+  }, [getClosestValue, liveOnDrag, onChange]);
 
   const handleTouchEnd = React.useCallback((e) => {
     if (!touchDragRef.current.active) return;
@@ -5499,7 +5535,7 @@ const App = () => {
       });
       const startMinutes = timeToMinutes(item.time || '00:00');
       const endMinutesRaw = timeToMinutes(normalized);
-      const endMinutes = endMinutesRaw <= startMinutes ? endMinutesRaw + 1440 : endMinutesRaw;
+      const endMinutes = endMinutesRaw < startMinutes ? endMinutesRaw + 1440 : endMinutesRaw;
       item.duration = Math.max(0, endMinutes - startMinutes);
 
       // 종료 시각을 직접 조정하면 뒤 일정은 하드 고정(페리/숙박) 전까지 유동으로 풀어 밀리게 한다.
@@ -10846,6 +10882,10 @@ const App = () => {
               return (nextHour * 60) + nextMinute;
             };
             const normalizeDayMinute = (value) => ((value % 1440) + 1440) % 1440;
+            const clampEndNotBeforeStart = (candidateMinutes) => {
+              const normalized = normalizeDayMinute(candidateMinutes);
+              return Math.max(startMinutes, normalized);
+            };
             return (
               <div
                 data-time-modal="true"
@@ -10880,6 +10920,7 @@ const App = () => {
                         value={currentStartMinute}
                         values={Array.from({ length: 60 }, (_, idx) => idx)}
                         cyclic
+                        liveOnDrag
                         onDragStateChange={setIsTimeWheelDragging}
                         onChange={(nextMinute) => {
                           const wrapped = buildWrappedTotalMinutes(currentStartHour, currentStartMinute, nextMinute);
@@ -10921,7 +10962,10 @@ const App = () => {
                         value={currentEndHour}
                         values={endHourValues}
                         onDragStateChange={setIsTimeWheelDragging}
-                        onChange={(nextHour) => setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentEndMinute)), { skipHistory: true })}
+                        onChange={(nextHour) => {
+                          const nextTotal = clampEndNotBeforeStart((nextHour * 60) + currentEndMinute);
+                          setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
+                        }}
                         accentClass="text-slate-600"
                       />
                       <TimeWheelColumn
@@ -10929,10 +10973,12 @@ const App = () => {
                         value={currentEndMinute}
                         values={Array.from({ length: 60 }, (_, idx) => idx)}
                         cyclic
+                        liveOnDrag
                         onDragStateChange={setIsTimeWheelDragging}
                         onChange={(nextMinute) => {
                           const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);
-                          setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(wrapped)), { skipHistory: true });
+                          const nextTotal = clampEndNotBeforeStart(wrapped);
+                          setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
                         }}
                         accentClass="text-slate-600"
                       />

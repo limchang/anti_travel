@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.62",
+      "timestamp": "2026-03-12T13:57:15+09:00",
+      "message": "동일 시작/종료 시 소요시간 0분 계산으로 보정"
+    },
+    {
       "version": "1.3.61",
       "timestamp": "2026-03-12T13:50:16+09:00",
       "message": "시간 휠 드래그 중 값 리셋 이슈 수정(동기화 잠금/터치-포인터 충돌 제거)"
@@ -144,11 +149,6 @@
       "version": "1.3.33",
       "timestamp": "2026-03-12T11:40:10+09:00",
       "message": "style: toggle time locks from time cards"
-    },
-    {
-      "version": "1.3.32",
-      "timestamp": "2026-03-12T11:36:50+09:00",
-      "message": "style: match expanded time cell to reference"
     }
   ]
 }

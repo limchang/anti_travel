@@ -2039,7 +2039,7 @@ const TimeWheelColumn = ({
     >
       <p className="mb-0.5 text-center text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
       <div className="relative rounded-[18px] border border-slate-200 bg-white/92">
-        <div className="pointer-events-none absolute inset-x-1.5 top-1/2 h-[28px] -translate-y-1/2 rounded-[10px] border border-[#bfd7ff] bg-[#eef5ff] shadow-[0_8px_18px_-16px_rgba(49,130,246,0.5),inset_0_1px_0_rgba(255,255,255,0.95)]" />
+        <div className="pointer-events-none absolute inset-x-1.5 top-1/2 h-[28px] -translate-y-1/2 rounded-[10px] border border-slate-300 bg-slate-100 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,0.95)]" />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-5 rounded-t-[18px] bg-gradient-to-b from-white via-white/88 to-transparent" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-5 rounded-b-[18px] bg-gradient-to-t from-white via-white/88 to-transparent" />
         <div
@@ -5270,17 +5270,35 @@ const App = () => {
       }
 
       const travel = parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
-      const buffer = parseMinsLabel(item.bufferTimeOverride, DEFAULT_BUFFER_MINS);
-      const earliestStart = prevEndMinutes + travel + buffer;
+      const currentBuffer = parseMinsLabel(item.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+      const manualBufferBase = item._isBufferCoordinated
+        ? parseMinsLabel(item._manualBufferTimeOverride, DEFAULT_BUFFER_MINS)
+        : currentBuffer;
+      if (!item._manualBufferTimeOverride) item._manualBufferTimeOverride = `${manualBufferBase}분`;
+      let effectiveBuffer = manualBufferBase;
+      const earliestStart = prevEndMinutes + travel + manualBufferBase;
 
       let startMinutes = earliestStart;
       if (item.isTimeFixed) {
         startMinutes = timeToMinutes(item.time || '00:00');
+        const fixedGap = startMinutes - (prevEndMinutes + travel + manualBufferBase);
+        if (fixedGap > 0) {
+          effectiveBuffer = manualBufferBase + fixedGap;
+          item.bufferTimeOverride = `${effectiveBuffer}분`;
+          item._isBufferCoordinated = true;
+        } else {
+          item.bufferTimeOverride = `${manualBufferBase}분`;
+          item._isBufferCoordinated = false;
+        }
         if (startMinutes < earliestStart) {
           item._timingConflict = true;
           item._timingConflictReason = '고정 시작 시간이 이동/보정 도착 시간보다 이릅니다.';
         }
       } else {
+        if (item._isBufferCoordinated) {
+          item.bufferTimeOverride = `${manualBufferBase}분`;
+          item._isBufferCoordinated = false;
+        }
         item.time = minutesToTime(startMinutes);
       }
 
@@ -9888,7 +9906,7 @@ const App = () => {
                                     }
                                 ));
                               }}
-                              className={`relative flex flex-col shrink-0 border-r border-slate-100 flex-none overflow-hidden cursor-pointer group/tower ${isCompactTimeline ? 'w-[30%] items-center justify-center py-2' : 'w-[30%] items-center justify-center py-3 px-2 sm:px-3'} ${p.isTimeFixed ? 'bg-blue-50/20' : 'bg-transparent'}`}
+                              className={`relative flex flex-col shrink-0 border-r border-slate-100 flex-none overflow-hidden cursor-pointer group/tower ${isCompactTimeline ? 'w-[30%] items-center justify-center py-2' : 'w-[30%] items-center justify-center py-3 px-2 sm:px-3'} bg-transparent`}
                             >
                               {/* 시간 조절 */}
                               <div
@@ -9902,8 +9920,8 @@ const App = () => {
                                     const [ehh, emm] = minutesToTime(endMins).split(':');
                                     return (
                                       <div className="flex w-full select-none flex-col items-center justify-center gap-2 px-2 py-1">
-                                        <div className={`relative flex h-[44px] w-full items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-[#bfd7ff] bg-[#eef5ff]' : 'border-slate-200 bg-white/92 group-hover/tower:border-[#bfd7ff] group-hover/tower:bg-[#f3f8ff]'}`}>
-                                          <span className={`text-[39px] font-black tabular-nums tracking-[-0.08em] leading-none transition-colors ${p.isTimeFixed ? 'text-[#1f5fd6]' : 'text-slate-900 group-hover/tower:text-[#244f9e]'}`}>
+                                        <div className={`relative flex h-[44px] w-full items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 group-hover/tower:border-slate-300 group-hover/tower:bg-white'}`}>
+                                          <span className="text-[39px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-900">
                                             {hh}<span className="mx-[1px] opacity-72">:</span>{mm}
                                           </span>
                                         </div>
@@ -9915,7 +9933,7 @@ const App = () => {
                                               ? 'bg-red-500 text-white'
                                               : isDurationLocked
                                                 ? 'bg-[#ff8a1a] text-white'
-                                                : 'border border-[#bfd7ff] bg-[#eef5ff] text-[#1f5fd6] hover:border-[#9fc3ff]'
+                                                : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
                                               }`}
                                             onClick={(e) => e.stopPropagation()}
                                           >
@@ -9925,7 +9943,7 @@ const App = () => {
                                           </button>
                                         </div>
 
-                                        <div className="flex h-[44px] w-full items-center justify-center rounded-[14px] border border-[#d8e4f5] bg-[#f6f9ff] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-[#bfd7ff] group-hover/tower:bg-[#eef5ff]">
+                                        <div className="flex h-[44px] w-full items-center justify-center rounded-[14px] border border-slate-200 bg-slate-50 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100">
                                           <span className="text-[39px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-400">
                                             {ehh}<span className="mx-[1px] opacity-70">:</span>{emm}
                                           </span>
@@ -10899,51 +10917,60 @@ const App = () => {
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="grid h-full grid-cols-3 gap-1.5 items-stretch">
-                  <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-1.5 py-2">
+                  <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
                     <div className="mb-1 h-[14px]" />
-                    <div className="flex w-full items-center justify-center gap-1">
-                      <TimeWheelColumn
-                        label="시"
-                        value={currentStartHour}
-                        values={startHourValues}
-                        onDragStateChange={setIsTimeWheelDragging}
-                        onChange={(nextHour) => setStartTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentStartMinute)), { skipHistory: true })}
-                        accentClass="text-[#1f5fd6]"
-                      />
-                      <TimeWheelColumn
-                        label="분"
-                        value={currentStartMinute}
-                        values={Array.from({ length: 60 }, (_, idx) => idx)}
-                        cyclic
-                        liveOnDrag
-                        onDragStateChange={setIsTimeWheelDragging}
-                        onChange={(nextMinute) => {
-                          const wrapped = buildWrappedTotalMinutes(currentStartHour, currentStartMinute, nextMinute);
-                          setStartTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(wrapped)), { skipHistory: true });
-                        }}
-                        accentClass="text-[#1f5fd6]"
-                      />
+                    <div className="flex h-[calc(100%-14px)] w-full flex-col items-center justify-center gap-2">
+                      <div className="flex w-full items-center justify-center gap-1">
+                        <TimeWheelColumn
+                          label="시"
+                          value={currentStartHour}
+                          values={startHourValues}
+                          onDragStateChange={setIsTimeWheelDragging}
+                          onChange={(nextHour) => setStartTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentStartMinute)), { skipHistory: true })}
+                          accentClass="text-slate-800"
+                        />
+                        <TimeWheelColumn
+                          label="분"
+                          value={currentStartMinute}
+                          values={Array.from({ length: 60 }, (_, idx) => idx)}
+                          cyclic
+                          liveOnDrag
+                          onDragStateChange={setIsTimeWheelDragging}
+                          onChange={(nextMinute) => {
+                            const wrapped = buildWrappedTotalMinutes(currentStartHour, currentStartMinute, nextMinute);
+                            setStartTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(wrapped)), { skipHistory: true });
+                          }}
+                          accentClass="text-slate-800"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleTimeFix(dayIdx, pIdx, { skipHistory: true })}
+                        className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${item.isTimeFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
+                      >
+                        시작시간 잠금
+                      </button>
                     </div>
                   </div>
 
-                  <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-1.5 py-2">
+                  <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
                     <div className="mb-1 h-[14px]" />
                     <div className="flex h-[calc(100%-14px)] w-full flex-col items-center justify-center gap-2">
-                      <div className="relative flex min-h-[44px] w-full items-center justify-center rounded-[14px] border border-[#bfd7ff] bg-[#eef5ff] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
-                        <span className="text-[34px] leading-none font-black tabular-nums tracking-[-0.03em] text-[#1f5fd6]">{fmtDur(durationMinutes).replace('분', '')}</span>
-                        <span className="ml-1 mt-3 text-[11px] font-black text-[#3182F6]">분</span>
+                      <div className="relative flex min-h-[44px] w-full items-center justify-center rounded-[14px] border border-slate-300 bg-white px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
+                        <span className="text-[34px] leading-none font-black tabular-nums tracking-[-0.03em] text-slate-800">{fmtDur(durationMinutes).replace('분', '')}</span>
+                        <span className="ml-1 mt-3 text-[11px] font-black text-slate-500">분</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => toggleDurationFix(dayIdx, pIdx, { skipHistory: true })}
-                        className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${item.isDurationFixed ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-[#bfd7ff] bg-white text-[#3182F6]'}`}
+                        className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${item.isDurationFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
                       >
                         소요시간 잠금
                       </button>
                     </div>
                   </div>
 
-                  <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-1.5 py-2">
+                  <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
                     <div className="mb-1 h-[14px]" />
                     <div className="flex w-full items-center justify-center gap-1">
                       <TimeWheelColumn
@@ -10955,7 +10982,7 @@ const App = () => {
                           const nextTotal = clampEndNotBeforeStart((nextHour * 60) + currentEndMinute);
                           setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
                         }}
-                        accentClass="text-[#1f5fd6]"
+                        accentClass="text-slate-800"
                       />
                       <TimeWheelColumn
                         label="분"
@@ -10969,7 +10996,7 @@ const App = () => {
                           const nextTotal = clampEndNotBeforeStart(wrapped);
                           setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
                         }}
-                        accentClass="text-[#1f5fd6]"
+                        accentClass="text-slate-800"
                       />
                     </div>
                   </div>

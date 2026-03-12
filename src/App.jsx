@@ -5436,6 +5436,18 @@ const App = () => {
       const endMinutesRaw = timeToMinutes(normalized);
       const endMinutes = endMinutesRaw <= startMinutes ? endMinutesRaw + 1440 : endMinutesRaw;
       item.duration = Math.max(0, endMinutes - startMinutes);
+
+      // 종료 시각을 직접 조정하면 뒤 일정은 하드 고정(페리/숙박) 전까지 유동으로 풀어 밀리게 한다.
+      for (let idx = pIdx + 1; idx < dayPlan.length; idx += 1) {
+        const nextItem = dayPlan[idx];
+        if (!nextItem || nextItem.type === 'backup') continue;
+        const isShipFixed = nextItem.types?.includes('ship');
+        const isLodgeBarrier = isLodgeStay(nextItem.types);
+        if (isShipFixed || isLodgeBarrier) break;
+        nextItem.isTimeFixed = false;
+        nextItem.isEndTimeFixed = false;
+      }
+
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
     });

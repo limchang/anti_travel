@@ -104,14 +104,31 @@ const geocodeWithNominatim = async ({ address }) => {
 const requestDirection = async ({ origin, destination, restKey, priority }) => {
   const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${origin.lon},${origin.lat}&destination=${destination.lon},${destination.lat}&priority=${priority}`;
   const json = await fetchKakaoJson(url, restKey);
-  const summary = json?.routes?.[0]?.summary;
+  const route = json?.routes?.[0];
+  const summary = route?.summary;
   if (!summary) throw new Error(`kakao directions empty (${priority})`);
   const distanceKm = Number(summary.distance || 0) / 1000;
   const durationMins = Math.ceil(Number(summary.duration || 0) / 60);
+  const path = (route?.sections || []).flatMap((section) => (
+    Array.isArray(section?.roads)
+      ? section.roads.flatMap((road) => {
+        const vertices = Array.isArray(road?.vertexes) ? road.vertexes : [];
+        const points = [];
+        for (let idx = 0; idx < vertices.length; idx += 2) {
+          const lon = toNum(vertices[idx]);
+          const lat = toNum(vertices[idx + 1]);
+          if (lat == null || lon == null) continue;
+          points.push({ lat, lon });
+        }
+        return points;
+      })
+      : []
+  ));
   return {
     priority,
     distanceKm: Math.max(0, distanceKm),
     durationMins: Math.max(1, durationMins),
+    path,
   };
 };
 
@@ -178,6 +195,7 @@ export default async function handler(req, res) {
       provider: 'kakao',
       distanceKm: +baseDistance.toFixed(1),
       durationMins: verifiedDuration,
+      path: Array.isArray(primary.path) ? primary.path : [],
       review: {
         primary,
         secondary,

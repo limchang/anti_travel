@@ -1935,112 +1935,119 @@ const loadKakaoMapSdk = (() => {
 
 const RoutePreviewCanvas = ({ routePreviewMap = [], height = 240, className = '' }) => {
   const mapRef = React.useRef(null);
-  const [useFallback, setUseFallback] = React.useState(false);
+  const mapInstanceRef = React.useRef(null);
+  const overlaysRef = React.useRef([]);
+  const [renderError, setRenderError] = React.useState('');
 
   React.useEffect(() => {
     let cancelled = false;
-    let overlays = [];
+
+    const clearOverlays = () => {
+      overlaysRef.current.forEach((overlay) => overlay?.setMap?.(null));
+      overlaysRef.current = [];
+    };
 
     const render = async () => {
-      if (!mapRef.current || !routePreviewMap.length) return;
-      if (!cancelled) setUseFallback(false);
+      const firstPoint = routePreviewMap.flatMap((day) => day.points || []).find((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon)));
+      if (!mapRef.current || !firstPoint) {
+        clearOverlays();
+        return;
+      }
+      setRenderError('');
       try {
         const kakao = await loadKakaoMapSdk(KAKAO_API_KEY);
         if (cancelled || !mapRef.current) return;
 
-        const map = new kakao.maps.Map(mapRef.current, {
-          center: new kakao.maps.LatLng(routePreviewMap[0].points[0].lat, routePreviewMap[0].points[0].lon),
-          level: 10,
-        });
+        if (!mapInstanceRef.current) {
+          mapInstanceRef.current = new kakao.maps.Map(mapRef.current, {
+            center: new kakao.maps.LatLng(firstPoint.lat, firstPoint.lon),
+            level: 9,
+          });
+        }
+        const map = mapInstanceRef.current;
+        clearOverlays();
+        map.relayout();
 
         const bounds = new kakao.maps.LatLngBounds();
         routePreviewMap.forEach((day) => {
-          const path = day.points.map((point) => {
-            const latLng = new kakao.maps.LatLng(point.lat, point.lon);
-            bounds.extend(latLng);
-            return latLng;
+          const segments = Array.isArray(day.segments) ? day.segments : [];
+          segments.forEach((segment) => {
+            const vertices = Array.isArray(segment.path) && segment.path.length
+              ? segment.path
+              : [segment.fromPoint, segment.toPoint].filter(Boolean);
+            const path = vertices
+              .filter((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon)))
+              .map((point) => {
+                const latLng = new kakao.maps.LatLng(point.lat, point.lon);
+                bounds.extend(latLng);
+                return latLng;
+              });
+            if (path.length < 2) return;
+            const polyline = new kakao.maps.Polyline({
+              path,
+              strokeWeight: 5,
+              strokeColor: day.color,
+              strokeOpacity: 0.96,
+              strokeStyle: 'solid',
+            });
+            polyline.setMap(map);
+            overlaysRef.current.push(polyline);
           });
-
-          const polyline = new kakao.maps.Polyline({
-            path,
-            strokeWeight: 4,
-            strokeColor: day.color,
-            strokeOpacity: 0.95,
-            strokeStyle: 'solid',
-          });
-          polyline.setMap(map);
-          overlays.push(polyline);
 
           day.points.forEach((point, index) => {
+            const latLng = new kakao.maps.LatLng(point.lat, point.lon);
+            bounds.extend(latLng);
             const marker = new kakao.maps.Circle({
-              center: new kakao.maps.LatLng(point.lat, point.lon),
+              center: latLng,
               radius: 110,
-              strokeWeight: 2,
+              strokeWeight: 3,
               strokeColor: '#FFFFFF',
               strokeOpacity: 1,
               fillColor: day.color,
-              fillOpacity: 0.95,
+              fillOpacity: 0.98,
             });
             marker.setMap(map);
-            overlays.push(marker);
+            overlaysRef.current.push(marker);
 
             const label = new kakao.maps.CustomOverlay({
-              position: new kakao.maps.LatLng(point.lat, point.lon),
-              yAnchor: 2.2,
-              content: `<div style="padding:2px 6px;border-radius:999px;background:white;border:1px solid rgba(226,232,240,0.95);font-size:10px;font-weight:800;color:#334155;box-shadow:0 8px 16px -14px rgba(15,23,42,0.35)">D${day.day}-${index + 1}</div>`,
+              position: latLng,
+              yAnchor: 2.25,
+              content: `<div style="padding:2px 7px;border-radius:999px;background:white;border:1px solid rgba(226,232,240,0.96);font-size:10px;font-weight:800;color:#334155;box-shadow:0 12px 18px -16px rgba(15,23,42,0.4)">Day ${day.day}-${index + 1}</div>`,
             });
             label.setMap(map);
-            overlays.push(label);
+            overlaysRef.current.push(label);
           });
         });
 
-        if (!bounds.isEmpty()) map.setBounds(bounds, 40, 40, 40, 40);
+        requestAnimationFrame(() => {
+          if (cancelled || !mapInstanceRef.current) return;
+          mapInstanceRef.current.relayout();
+          if (!bounds.isEmpty()) {
+            mapInstanceRef.current.setBounds(bounds, 48, 48, 48, 48);
+          }
+        });
       } catch (error) {
-        console.warn('Route preview map fallback:', error);
-        if (!cancelled) setUseFallback(true);
+        console.warn('Route preview map render failed:', error);
+        if (!cancelled) setRenderError('카카오 지도를 불러오지 못했습니다. 경로를 다시 불러와 주세요.');
       }
     };
 
     void render();
     return () => {
       cancelled = true;
-      overlays.forEach((overlay) => overlay.setMap?.(null));
-      overlays = [];
+      clearOverlays();
     };
   }, [routePreviewMap]);
 
-  if (useFallback) {
+  if (renderError) {
     return (
-      <svg viewBox="0 0 100 100" className={`w-full ${className}`} style={{ height }}>
-        <path d="M10 58 C18 42, 34 30, 52 28 C69 26, 86 35, 92 50 C95 59, 90 72, 79 79 C66 87, 44 89, 26 83 C15 79, 8 69, 10 58Z" fill="rgba(187,247,208,0.82)" stroke="rgba(110,231,183,0.95)" strokeWidth="1.2" />
-        <path d="M21 40 C28 47, 31 56, 30 67" stroke="rgba(255,255,255,0.88)" strokeWidth="0.7" strokeDasharray="2 2" />
-        <path d="M39 33 C46 42, 49 54, 48 71" stroke="rgba(255,255,255,0.84)" strokeWidth="0.7" strokeDasharray="2 2" />
-        <path d="M60 31 C67 43, 69 56, 67 76" stroke="rgba(255,255,255,0.84)" strokeWidth="0.7" strokeDasharray="2 2" />
-        <path d="M76 39 C81 48, 83 60, 81 70" stroke="rgba(255,255,255,0.82)" strokeWidth="0.7" strokeDasharray="2 2" />
-        {routePreviewMap.map((day) => (
-          <g key={`fallback-route-${day.day}`}>
-            <polyline
-              points={day.points.map((point) => `${point.x},${point.y}`).join(' ')}
-              fill="none"
-              stroke={day.color}
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity="0.95"
-            />
-            {day.points.map((point, idx) => (
-              <g key={`${day.day}-fallback-${point.id}-${idx}`}>
-                <circle cx={point.x} cy={point.y} r="2.7" fill={day.color} />
-                <circle cx={point.x} cy={point.y} r="1.1" fill="white" />
-              </g>
-            ))}
-          </g>
-        ))}
-      </svg>
+      <div className={`flex w-full items-center justify-center rounded-[18px] border border-slate-200 bg-slate-50 text-center text-[12px] font-bold text-slate-400 ${className}`.trim()} style={{ height }}>
+        {renderError}
+      </div>
     );
   }
 
-  return <div ref={mapRef} className={`w-full rounded-[18px] ${className}`.trim()} style={{ height }} />;
+  return <div ref={mapRef} className={`w-full rounded-[18px] overflow-hidden bg-slate-100 ${className}`.trim()} style={{ height }} />;
 };
 
 // ── AI 자동입력 학습 지침 모달 ───────────────────────────────────────────────
@@ -2463,12 +2470,17 @@ const App = () => {
     const handleEsc = (e) => {
       if (e.key === 'Escape') close();
     };
+    const handleScrollClose = (e) => {
+      const target = e?.target;
+      if (target instanceof Element && target.closest('[data-time-modal="true"]')) return;
+      close();
+    };
     window.addEventListener('resize', close);
-    window.addEventListener('scroll', close, true);
+    window.addEventListener('scroll', handleScrollClose, true);
     document.addEventListener('keydown', handleEsc);
     return () => {
       window.removeEventListener('resize', close);
-      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('scroll', handleScrollClose, true);
       document.removeEventListener('keydown', handleEsc);
     };
   }, [timeControllerTarget]);
@@ -2796,6 +2808,7 @@ const App = () => {
   const [routeCalcProgress, setRouteCalcProgress] = useState(0);
   const [routePreviewDays, setRoutePreviewDays] = useState([]);
   const [routePreviewLoading, setRoutePreviewLoading] = useState(false);
+  const routePreviewSegmentCacheRef = useRef({});
   const [showRoutePreviewModal, setShowRoutePreviewModal] = useState(false);
   const [hiddenRoutePreviewEndpoints, setHiddenRoutePreviewEndpoints] = useState({});
   const routeRetryCooldownMs = 45000;
@@ -4261,6 +4274,9 @@ const App = () => {
       }))
       .filter((entry) => entry.points.length >= 1)
   ), [routePreviewPointSource]);
+  const buildRoutePreviewSegmentKey = useCallback((fromPoint, toPoint) => (
+    `${String(fromPoint?.address || fromPoint?.id || '').trim()}__${String(toPoint?.address || toPoint?.id || '').trim()}`
+  ), []);
   const routePreviewNeedsLookup = useMemo(() => (
     routePreviewPointSource.some((entry) => (
       (entry.points || []).some((point) => {
@@ -4296,11 +4312,61 @@ const App = () => {
         });
       }
       if (coords.length >= 1) {
-        nextDays.push({ ...entry, points: coords });
+        nextDays.push({ ...entry, points: coords, segments: [] });
       }
     }
     return nextDays;
   }, [geocodeAddress, routePreviewPointSource]);
+
+  const attachRoutePreviewSegments = useCallback(async (days = [], { forceRefresh = false } = {}) => {
+    if (!Array.isArray(days) || !days.length) return [];
+    const nextDays = [];
+    for (const day of days) {
+      const points = Array.isArray(day.points) ? day.points : [];
+      const segments = [];
+      for (let idx = 1; idx < points.length; idx += 1) {
+        const fromPoint = points[idx - 1];
+        const toPoint = points[idx];
+        const cacheKey = buildRoutePreviewSegmentKey(fromPoint, toPoint);
+        let segment = !forceRefresh ? routePreviewSegmentCacheRef.current[cacheKey] : null;
+        if (segment && (!Array.isArray(segment.path) || (!segment.path.length && !Number.isFinite(Number(segment.distance))))) segment = null;
+        if (!segment) {
+          try {
+            const route = await fetchKakaoVerifiedRoute({
+              fromAddress: fromPoint.address,
+              toAddress: toPoint.address,
+            });
+            segment = {
+              id: cacheKey,
+              fromId: fromPoint.id,
+              toId: toPoint.id,
+              fromPoint: { lat: Number(fromPoint.lat), lon: Number(fromPoint.lon) },
+              toPoint: { lat: Number(toPoint.lat), lon: Number(toPoint.lon) },
+              distance: route.distance,
+              durationMins: route.durationMins,
+              path: Array.isArray(route.path) ? route.path.filter((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon))) : [],
+            };
+            routePreviewSegmentCacheRef.current[cacheKey] = segment;
+          } catch (error) {
+            console.warn('route preview segment failed:', fromPoint.address, toPoint.address, error);
+            segment = {
+              id: cacheKey,
+              fromId: fromPoint.id,
+              toId: toPoint.id,
+              fromPoint: { lat: Number(fromPoint.lat), lon: Number(fromPoint.lon) },
+              toPoint: { lat: Number(toPoint.lat), lon: Number(toPoint.lon) },
+              distance: null,
+              durationMins: null,
+              path: [],
+            };
+          }
+        }
+        segments.push(segment);
+      }
+      nextDays.push({ ...day, segments });
+    }
+    return nextDays;
+  }, [buildRoutePreviewSegmentKey, fetchKakaoVerifiedRoute]);
 
   const refreshRoutePreviewMap = useCallback(async () => {
     setRoutePreviewLoading(true);
@@ -4308,11 +4374,13 @@ const App = () => {
     try {
       const nextDays = await resolveRoutePreviewDays({ forceRefresh: true });
       setRoutePreviewDays(nextDays);
-      setLastAction(nextDays.length ? '메인 경로 지도를 새로 불러왔습니다.' : '지도에 표시할 경로를 아직 찾지 못했습니다.');
+      const routeDays = await attachRoutePreviewSegments(nextDays, { forceRefresh: true });
+      setRoutePreviewDays(routeDays);
+      setLastAction(routeDays.length ? '메인 경로 지도를 새로 불러왔습니다.' : '지도에 표시할 경로를 아직 찾지 못했습니다.');
     } finally {
       setRoutePreviewLoading(false);
     }
-  }, [resolveRoutePreviewDays]);
+  }, [attachRoutePreviewSegments, resolveRoutePreviewDays]);
 
   useEffect(() => {
     let cancelled = false;
@@ -4423,18 +4491,12 @@ const App = () => {
         if (!cancelled) setRoutePreviewDays([]);
         return;
       }
-      if (!routePreviewNeedsLookup) {
-        if (!cancelled) {
-          setRoutePreviewDays(routePreviewStoredDays);
-          setRoutePreviewLoading(false);
-        }
-        return;
-      }
-
       setRoutePreviewLoading(true);
       try {
-        const nextDays = await resolveRoutePreviewDays();
-        if (!cancelled) setRoutePreviewDays(nextDays);
+        const baseDays = routePreviewNeedsLookup ? await resolveRoutePreviewDays() : routePreviewStoredDays;
+        if (!cancelled) setRoutePreviewDays(baseDays);
+        const routeDays = await attachRoutePreviewSegments(baseDays);
+        if (!cancelled) setRoutePreviewDays(routeDays);
       } finally {
         if (!cancelled) setRoutePreviewLoading(false);
       }
@@ -4444,30 +4506,16 @@ const App = () => {
     return () => {
       cancelled = true;
     };
-  }, [routePreviewNeedsLookup, routePreviewPointSource, routePreviewStoredDays, resolveRoutePreviewDays]);
+  }, [attachRoutePreviewSegments, routePreviewNeedsLookup, routePreviewPointSource, routePreviewStoredDays, resolveRoutePreviewDays]);
 
-  const routePreviewMap = useMemo(() => {
-    const allPoints = routePreviewDays.flatMap((day) => day.points || []);
-    if (!allPoints.length) return [];
-
-    const lats = allPoints.map((point) => point.lat);
-    const lons = allPoints.map((point) => point.lon);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLon = Math.min(...lons);
-    const maxLon = Math.max(...lons);
-    const latRange = Math.max(0.01, maxLat - minLat);
-    const lonRange = Math.max(0.01, maxLon - minLon);
-
-    return routePreviewDays.map((day) => ({
-      ...day,
-      points: day.points.map((point) => ({
-        ...point,
-        x: 12 + ((point.lon - minLon) / lonRange) * 76,
-        y: 12 + (1 - ((point.lat - minLat) / latRange)) * 76,
-      })),
-    }));
-  }, [routePreviewDays]);
+  const routePreviewMap = useMemo(() => (
+    routePreviewDays
+      .filter((day) => Array.isArray(day.points) && day.points.length >= 1)
+      .map((day) => ({
+        ...day,
+        segments: Array.isArray(day.segments) ? day.segments : [],
+      }))
+  ), [routePreviewDays]);
   const routePreviewPointCount = useMemo(
     () => routePreviewPointSource.reduce((sum, day) => sum + ((day.points || []).length), 0),
     [routePreviewPointSource]
@@ -6556,7 +6604,7 @@ const App = () => {
     setLastAction(`'${suggestion.name}'이(가) 대안 일정으로 등록되었습니다.`);
   };
 
-  const fetchKakaoVerifiedRoute = async ({ fromAddress, toAddress }) => {
+  async function fetchKakaoVerifiedRoute({ fromAddress, toAddress }) {
     const endpoints = getRouteVerifyEndpointCandidates(aiSmartFillConfig?.proxyBaseUrl);
     let lastError = null;
     for (const endpoint of endpoints) {
@@ -6580,6 +6628,7 @@ const App = () => {
           distance: +Number(data.distanceKm).toFixed(1),
           durationMins: Math.max(1, Math.round(Number(data.durationMins))),
           provider: data.provider || 'kakao',
+          path: Array.isArray(data.path) ? data.path : [],
           review: data.review || null,
           geocode: data.geocode || null,
         };
@@ -6588,7 +6637,7 @@ const App = () => {
       }
     }
     throw lastError || new Error('kakao verify failed');
-  };
+  }
 
   const autoCalculateRouteFor = async (dayIdx, targetIdx, options = {}) => {
     const silent = !!options.silent;
@@ -7489,12 +7538,19 @@ const App = () => {
                   ))}
                 </div>
                 <div className="relative overflow-hidden rounded-[22px] border border-sky-100 bg-[linear-gradient(180deg,rgba(186,230,253,0.75),rgba(239,246,255,0.9))] p-3">
-                  {routePreviewLoading ? (
+                  {routePreviewMap.length > 0 ? (
+                    <>
+                      <RoutePreviewCanvas routePreviewMap={routePreviewMap} height={300} />
+                      {routePreviewLoading && (
+                        <div className="pointer-events-none absolute left-5 top-5 rounded-full border border-white/80 bg-white/90 px-3 py-1 text-[10px] font-black text-[#3182F6] shadow-sm">
+                          경로 다시 확인 중...
+                        </div>
+                      )}
+                    </>
+                  ) : routePreviewLoading ? (
                     <div className="flex h-[300px] items-center justify-center text-[11px] font-bold text-slate-400">
-                      지도 좌표 계산 중...
+                      카카오 경로 불러오는 중...
                     </div>
-                  ) : routePreviewMap.length > 0 ? (
-                    <RoutePreviewCanvas routePreviewMap={routePreviewMap} height={300} />
                   ) : (
                     <div className="flex h-[300px] flex-col items-center justify-center gap-1 text-center">
                       <MapIcon size={20} className="text-slate-300" />
@@ -9226,12 +9282,19 @@ const App = () => {
                                   ))}
                                 </div>
                                 <div className="relative overflow-hidden rounded-[22px] border border-white/70 bg-slate-100/70 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-                                  {routePreviewLoading ? (
+                                  {routePreviewMap.length > 0 ? (
+                                    <>
+                                      <RoutePreviewCanvas routePreviewMap={routePreviewMap} height={280} />
+                                      {routePreviewLoading && (
+                                        <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/80 bg-white/90 px-3 py-1 text-[10px] font-black text-[#3182F6] shadow-sm">
+                                          경로 다시 확인 중...
+                                        </div>
+                                      )}
+                                    </>
+                                  ) : routePreviewLoading ? (
                                     <div className="flex items-center justify-center h-[280px] text-[11px] font-bold text-slate-400">
-                                      지도 좌표 계산 중...
+                                      카카오 경로 불러오는 중...
                                     </div>
-                                  ) : routePreviewMap.length > 0 ? (
-                                    <RoutePreviewCanvas routePreviewMap={routePreviewMap} height={280} />
                                   ) : (
                                     <div className="h-[280px] flex flex-col items-center justify-center gap-1 text-center">
                                       <MapIcon size={20} className="text-slate-300" />

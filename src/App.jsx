@@ -6770,6 +6770,27 @@ const App = () => {
         lastError = error;
       }
     }
+    // 서버 경로검증 API 실패 시: 주소 문자열을 카카오 주소 조회로 직접 좌표화 후 즉시 계산
+    const fromGeo = await geocodeAddress(fromAddress, { forceRefresh: true });
+    const toGeo = await geocodeAddress(toAddress, { forceRefresh: true });
+    if (fromGeo?.lat && fromGeo?.lon && toGeo?.lat && toGeo?.lon) {
+      const straightKm = haversineKm(Number(fromGeo.lat), Number(fromGeo.lon), Number(toGeo.lat), Number(toGeo.lon));
+      const roadAdjustedKm = Math.max(straightKm, straightKm * 1.28);
+      const durationMins = verifyRouteDurationMins({
+        distanceKm: roadAdjustedKm,
+        straightKm,
+        rawDurationMins: Math.max(1, Math.round((roadAdjustedKm / 35) * 60)),
+        isSameAddress: String(fromAddress || '').trim() === String(toAddress || '').trim(),
+      });
+      return {
+        distance: +roadAdjustedKm.toFixed(1),
+        durationMins: Math.max(1, Math.round(durationMins)),
+        provider: 'kakao-address-fallback',
+        path: [],
+        review: lastError ? { fallbackReason: String(lastError?.message || lastError) } : null,
+        geocode: { from: fromGeo, to: toGeo },
+      };
+    }
     throw lastError || new Error('kakao verify failed');
   }
 
@@ -9592,6 +9613,9 @@ const App = () => {
                 const isDurationLocked = !!p.isDurationFixed || isAutoLocked;
                 const isDurationControlBlocked = isAutoLocked;
                 const isEndTimeFixed = !!p.isEndTimeFixed;
+                const isTimeCellExpanded = timeControllerTarget?.kind === 'plan-time'
+                  && timeControllerTarget?.dayIdx === dIdx
+                  && timeControllerTarget?.pIdx === pIdx;
                 // Plan B 캐러셀 — 즉시 교체
                 const totalPlans = planBCount + 1;
                 const cyclePlan = (dir) => {
@@ -9816,22 +9840,22 @@ const App = () => {
                                     }
                                 ));
                               }}
-                              className={`relative flex flex-col shrink-0 border-r border-slate-100 flex-none overflow-hidden cursor-pointer group/tower ${isCompactTimeline ? 'w-[30%] items-center justify-center py-2' : 'w-[30%] items-center justify-center py-3 px-2 sm:px-3'} bg-transparent`}
+                              className={`relative flex flex-col shrink-0 border-r border-slate-100 flex-none overflow-hidden cursor-pointer group/tower ${isCompactTimeline ? 'w-[30%] items-center justify-center py-1.5' : 'w-[30%] items-center justify-center py-2 px-2 sm:px-2.5'} bg-transparent`}
                             >
                               {/* 시간 조절 */}
                               <div
                                 data-time-trigger="true"
                                 className="relative z-10 w-full rounded-2xl px-1 py-1 select-none transition-all group-hover/tower:bg-slate-100/30"
                               >
-                                <div className="relative z-10 flex w-full flex-col items-center justify-center gap-2">
+                                <div className={`relative z-10 flex w-full flex-col items-center justify-center ${isTimeCellExpanded ? 'gap-2' : 'gap-1.5'}`}>
                                   {(() => {
                                     const endMins = timeToMinutes(p.time || '00:00') + (p.duration || 0);
                                     const [hh, mm] = (p.time || '00:00').split(':');
                                     const [ehh, emm] = minutesToTime(endMins).split(':');
                                     return (
-                                      <div className="flex w-full select-none flex-col items-center justify-center gap-2 px-2 py-1">
-                                        <div className={`relative flex h-[44px] w-full items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 group-hover/tower:border-slate-300 group-hover/tower:bg-white'}`}>
-                                          <span className="text-[39px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-900">
+                                      <div className={`flex w-full select-none flex-col items-center justify-center px-2 ${isTimeCellExpanded ? 'gap-2 py-1' : 'gap-1.5 py-0.5'}`}>
+                                        <div className={`relative flex w-full items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${isTimeCellExpanded ? 'h-[44px]' : 'h-[40px]'} ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 group-hover/tower:border-slate-300 group-hover/tower:bg-white'}`}>
+                                          <span className={`font-black tabular-nums tracking-[-0.08em] leading-none text-slate-900 ${isTimeCellExpanded ? 'text-[39px]' : 'text-[34px]'}`}>
                                             {hh}<span className="mx-[1px] opacity-72">:</span>{mm}
                                           </span>
                                         </div>
@@ -9839,7 +9863,7 @@ const App = () => {
                                         <div className="relative flex w-full items-center justify-center">
                                           <button
                                             type="button"
-                                            className={`relative z-10 flex h-[30px] min-w-[94px] items-center justify-center gap-2 rounded-[12px] border px-2.5 py-1 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
+                                            className={`relative z-10 flex min-w-[88px] items-center justify-center gap-2 rounded-[12px] border px-2 py-0.5 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isTimeCellExpanded ? 'h-[30px]' : 'h-[28px]'} ${isAutoLocked
                                               ? 'bg-red-500 text-white'
                                               : isDurationLocked
                                                 ? 'bg-[#ff8a1a] text-white'
@@ -9848,13 +9872,13 @@ const App = () => {
                                             onClick={(e) => e.stopPropagation()}
                                           >
                                             <ChevronLeft size={11} />
-                                            <span className="text-[12px] font-black tabular-nums tracking-[0.16em]">{fmtDur(p.duration).replace('분', '')}</span>
+                                            <span className={`font-black tabular-nums tracking-[0.16em] ${isTimeCellExpanded ? 'text-[12px]' : 'text-[11px]'}`}>{fmtDur(p.duration).replace('분', '')}</span>
                                             <ChevronRight size={11} />
                                           </button>
                                         </div>
 
-                                        <div className="flex h-[44px] w-full items-center justify-center rounded-[14px] border border-slate-200 bg-slate-50 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100">
-                                          <span className="text-[39px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-400">
+                                        <div className={`flex w-full items-center justify-center rounded-[14px] border border-slate-200 bg-slate-50 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100 ${isTimeCellExpanded ? 'h-[44px]' : 'h-[40px]'}`}>
+                                          <span className={`font-black tabular-nums tracking-[-0.08em] leading-none text-slate-400 ${isTimeCellExpanded ? 'text-[39px]' : 'text-[34px]'}`}>
                                             {ehh}<span className="mx-[1px] opacity-70">:</span>{emm}
                                           </span>
                                         </div>

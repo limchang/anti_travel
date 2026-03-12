@@ -1841,6 +1841,7 @@ const TimeWheelColumn = ({
   const settleTimerRef = React.useRef(null);
   const isProgrammaticRef = React.useRef(false);
   const pointerDragRef = React.useRef({ active: false, pointerId: null, startY: 0, startTop: 0 });
+  const touchDragRef = React.useRef({ active: false, startY: 0, startTop: 0 });
 
   const renderedValues = React.useMemo(() => {
     if (!cyclic) return values;
@@ -1937,6 +1938,40 @@ const TimeWheelColumn = ({
     e.stopPropagation();
   }, [commitClosestValue, onDragStateChange]);
 
+  const handleTouchStart = React.useCallback((e) => {
+    const list = listRef.current;
+    if (!list) return;
+    const touch = e.touches?.[0];
+    if (!touch) return;
+    touchDragRef.current = {
+      active: true,
+      startY: touch.clientY,
+      startTop: list.scrollTop,
+    };
+    onDragStateChange?.(true);
+    e.stopPropagation();
+  }, [onDragStateChange]);
+
+  const handleTouchMove = React.useCallback((e) => {
+    const list = listRef.current;
+    const state = touchDragRef.current;
+    if (!list || !state.active) return;
+    const touch = e.touches?.[0];
+    if (!touch) return;
+    const deltaY = touch.clientY - state.startY;
+    list.scrollTop = state.startTop - deltaY;
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleTouchEnd = React.useCallback((e) => {
+    if (!touchDragRef.current.active) return;
+    touchDragRef.current = { active: false, startY: 0, startTop: 0 };
+    onDragStateChange?.(false);
+    commitClosestValue();
+    e.stopPropagation();
+  }, [commitClosestValue, onDragStateChange]);
+
   React.useEffect(() => {
     const onWindowPointerMove = (e) => handlePointerMove(e);
     const onWindowPointerUp = (e) => handlePointerUp(e);
@@ -1957,6 +1992,10 @@ const TimeWheelColumn = ({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
     >
       <p className="mb-1 text-center text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
       <div className="relative rounded-[18px] border border-slate-200 bg-white/92">

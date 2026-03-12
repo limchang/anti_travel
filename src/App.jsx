@@ -10644,7 +10644,6 @@ const App = () => {
             const left = Math.max(12, Math.min(window.innerWidth - panelWidth - 12, Number(timeControllerTarget.left || 0)));
             const top = Math.max(12, Math.min(window.innerHeight - 220, Number(timeControllerTarget.top || 0) - 6));
             const isAutoLocked = item.types?.includes('ship') || item._isBufferCoordinated;
-            const isDurationLocked = !!item.isDurationFixed;
             const isEndTimeFixed = !!item.isEndTimeFixed;
             const maxStartMinutes = Math.max(0, 1439 - durationMinutes);
             const startHourValues = Array.from({ length: Math.floor(maxStartMinutes / 60) + 1 }, (_, idx) => idx);
@@ -10722,26 +10721,13 @@ const App = () => {
                   <div className="rounded-[20px] border border-orange-200 bg-orange-50/75 px-2.5 py-2">
                     <div className="mb-1 flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-500">소요 시간</span>
-                      <button
-                        type="button"
-                        onClick={() => { if (!isAutoLocked) toggleDurationFix(dayIdx, pIdx, { skipHistory: true }); }}
-                        disabled={isAutoLocked}
-                        className={`rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors disabled:opacity-50 ${isDurationLocked ? 'border-orange-200 bg-white text-orange-600' : 'border-orange-100 bg-orange-50 text-orange-400'}`}
-                      >
-                        {isDurationLocked ? '고정됨' : '유동'}
-                      </button>
+                      <span className="rounded-full border border-orange-200 bg-white px-2 py-0.5 text-[9px] font-black text-orange-500">
+                        계산값
+                      </span>
                     </div>
                     <div className="mb-2 text-[22px] leading-none font-black tabular-nums text-slate-900">{fmtDur(durationMinutes)}</div>
-                    <div className="flex items-center gap-1.5">
-                      <button type="button" onClick={() => setDurationValue(dayIdx, pIdx, durationMinutes - 10, { skipHistory: true })} className="h-8 w-8 rounded-xl border border-orange-200 bg-white text-orange-500 hover:bg-orange-50">
-                        <Minus size={14} />
-                      </button>
-                      <div className="flex-1 rounded-[14px] border border-orange-200 bg-white/80 px-2 py-1.5 text-center text-[10px] font-black text-orange-500">
-                        종료 자동 재계산
-                      </div>
-                      <button type="button" onClick={() => setDurationValue(dayIdx, pIdx, durationMinutes + 10, { skipHistory: true })} className="h-8 w-8 rounded-xl border border-orange-200 bg-white text-orange-500 hover:bg-orange-50">
-                        <Plus size={14} />
-                      </button>
+                    <div className="rounded-[14px] border border-orange-200 bg-white/80 px-2 py-1.5 text-center text-[10px] font-black text-orange-500">
+                      시작/종료 변경 시 자동 계산
                     </div>
                   </div>
 

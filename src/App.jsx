@@ -3622,8 +3622,9 @@ const App = () => {
   }, []);
 
   useEffect(() => {
+    if (user && !user.isGuest) return;
     safeLocalStorageSet('trip_region_hint', tripRegion);
-  }, [tripRegion]);
+  }, [tripRegion, user]);
 
   useEffect(() => {
     const conflicts = [];
@@ -3642,11 +3643,13 @@ const App = () => {
     setLastAction('시간 충돌: 고정/잠금 조건으로 자동 계산이 불가한 구간이 있습니다.');
   }, [itinerary.days]);
   useEffect(() => {
+    if (user && !user.isGuest) return;
     safeLocalStorageSet('trip_start_date', tripStartDate);
-  }, [tripStartDate]);
+  }, [tripStartDate, user]);
   useEffect(() => {
+    if (user && !user.isGuest) return;
     safeLocalStorageSet('trip_end_date', tripEndDate);
-  }, [tripEndDate]);
+  }, [tripEndDate, user]);
 
   useEffect(() => {
     if (!tripStartDate || !tripEndDate) return;

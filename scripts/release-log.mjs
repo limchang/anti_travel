@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -72,8 +73,9 @@ const collectPushTargets = async (db) => {
     targets.set(token, { token, refs: [docSnap.ref] });
   });
 
-  const legacyDocs = await db.collectionGroup('private').where(admin.firestore.FieldPath.documentId(), '==', 'push').get();
+  const legacyDocs = await db.collectionGroup('private').get();
   legacyDocs.forEach((docSnap) => {
+    if (docSnap.id !== 'push') return;
     const token = String(docSnap.data()?.token || '').trim();
     if (!token) return;
     const existing = targets.get(token);

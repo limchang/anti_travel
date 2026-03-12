@@ -5402,6 +5402,41 @@ const App = () => {
     setLastAction(`소요 시간을 ${nextMinutes}분으로 설정했습니다.`);
   };
 
+  const setDurationHourValue = (dayIdx, pIdx, nextHour, options = {}) => {
+    const targetHour = Math.max(0, Math.min(23, Number(nextHour) || 0));
+    if (!options?.skipHistory) saveHistory();
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const dayPlan = nextData.days?.[dayIdx]?.plan;
+      const item = dayPlan?.[pIdx];
+      if (!item) return prev;
+      const currentTotal = Math.max(0, Number(item.duration) || 0);
+      const currentMinute = ((currentTotal % 60) + 60) % 60;
+      item.duration = Math.max(0, Math.min(1439, (targetHour * 60) + currentMinute));
+      nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      return nextData;
+    });
+  };
+
+  const setDurationMinuteValue = (dayIdx, pIdx, nextMinute, options = {}) => {
+    const targetMinute = Math.max(0, Math.min(59, Number(nextMinute) || 0));
+    if (!options?.skipHistory) saveHistory();
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const dayPlan = nextData.days?.[dayIdx]?.plan;
+      const item = dayPlan?.[pIdx];
+      if (!item) return prev;
+      const currentTotal = Math.max(0, Number(item.duration) || 0);
+      const currentMinute = ((currentTotal % 60) + 60) % 60;
+      let delta = targetMinute - currentMinute;
+      if (delta > 30) delta -= 60;
+      if (delta < -30) delta += 60;
+      item.duration = Math.max(0, Math.min(1439, currentTotal + delta));
+      nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      return nextData;
+    });
+  };
+
   const setPlanEndTimeValue = (dayIdx, pIdx, nextLabel, options = {}) => {
     const normalized = String(nextLabel || '').trim();
     if (!/^\d{2}:\d{2}$/.test(normalized)) {
@@ -9924,10 +9959,7 @@ const App = () => {
                                               values={Array.from({ length: 24 }, (_, idx) => idx)}
                                               liveOnDrag
                                               onDragStateChange={setIsTimeWheelDragging}
-                                              onChange={(nextHour) => {
-                                                const nextDuration = clampDurationMinutes((nextHour * 60) + currentDurationMinute);
-                                                setDurationValue(dIdx, pIdx, nextDuration, { skipHistory: true });
-                                              }}
+                                              onChange={(nextHour) => setDurationHourValue(dIdx, pIdx, nextHour, { skipHistory: true })}
                                               accentClass="text-slate-800"
                                             />
                                             <TimeWheelColumn
@@ -9937,11 +9969,7 @@ const App = () => {
                                               cyclic
                                               liveOnDrag
                                               onDragStateChange={setIsTimeWheelDragging}
-                                              onChange={(nextMinute) => {
-                                                const wrapped = buildWrappedTotalMinutes(currentDurationHour, currentDurationMinute, nextMinute);
-                                                const nextDuration = clampDurationMinutes(wrapped);
-                                                setDurationValue(dIdx, pIdx, nextDuration, { skipHistory: true });
-                                              }}
+                                              onChange={(nextMinute) => setDurationMinuteValue(dIdx, pIdx, nextMinute, { skipHistory: true })}
                                               accentClass="text-slate-800"
                                             />
                                           </div>
@@ -11013,10 +11041,7 @@ const App = () => {
                           values={durationHourValues}
                           liveOnDrag
                           onDragStateChange={setIsTimeWheelDragging}
-                          onChange={(nextHour) => {
-                            const nextDuration = clampDurationMinutes((nextHour * 60) + currentDurationMinute);
-                            setDurationValue(dayIdx, pIdx, nextDuration, { skipHistory: true });
-                          }}
+                          onChange={(nextHour) => setDurationHourValue(dayIdx, pIdx, nextHour, { skipHistory: true })}
                           accentClass="text-slate-800"
                         />
                         <TimeWheelColumn
@@ -11026,11 +11051,7 @@ const App = () => {
                           cyclic
                           liveOnDrag
                           onDragStateChange={setIsTimeWheelDragging}
-                          onChange={(nextMinute) => {
-                            const wrapped = buildWrappedTotalMinutes(currentDurationHour, currentDurationMinute, nextMinute);
-                            const nextDuration = clampDurationMinutes(wrapped);
-                            setDurationValue(dayIdx, pIdx, nextDuration, { skipHistory: true });
-                          }}
+                          onChange={(nextMinute) => setDurationMinuteValue(dayIdx, pIdx, nextMinute, { skipHistory: true })}
                           accentClass="text-slate-800"
                         />
                       </div>

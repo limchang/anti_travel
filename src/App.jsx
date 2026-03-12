@@ -1832,7 +1832,6 @@ const TimeWheelColumn = ({
   value = 0,
   values = [],
   onChange,
-  onDragStateChange,
   formatter = (next) => String(next).padStart(2, '0'),
   accentClass = 'text-slate-900',
   cyclic = false,
@@ -1840,7 +1839,6 @@ const TimeWheelColumn = ({
   const listRef = React.useRef(null);
   const settleTimerRef = React.useRef(null);
   const isProgrammaticRef = React.useRef(false);
-  const dragStateRef = React.useRef({ active: false, startY: 0, startScrollTop: 0 });
 
   const renderedValues = React.useMemo(() => {
     if (!cyclic) return values;
@@ -1864,11 +1862,6 @@ const TimeWheelColumn = ({
   React.useEffect(() => () => {
     if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
   }, []);
-
-  React.useEffect(() => () => {
-    dragStateRef.current = { active: false, startY: 0, startScrollTop: 0 };
-    onDragStateChange?.(false);
-  }, [onDragStateChange]);
 
   const commitClosestValue = React.useCallback(() => {
     const list = listRef.current;
@@ -1898,75 +1891,6 @@ const TimeWheelColumn = ({
     settleTimerRef.current = setTimeout(commitClosestValue, 90);
   }, [commitClosestValue]);
 
-  const handleDragMove = React.useCallback((clientY) => {
-    const list = listRef.current;
-    const drag = dragStateRef.current;
-    if (!list || !drag.active) return;
-    const deltaY = clientY - drag.startY;
-    list.scrollTop = drag.startScrollTop - deltaY;
-  }, []);
-
-  const finishDrag = React.useCallback(() => {
-    const list = listRef.current;
-    const drag = dragStateRef.current;
-    if (!list || !drag.active) return;
-    onDragStateChange?.(false);
-    dragStateRef.current = { active: false, startY: 0, startScrollTop: 0 };
-    commitClosestValue();
-  }, [commitClosestValue, onDragStateChange]);
-
-  const beginDrag = React.useCallback((clientY) => {
-    const list = listRef.current;
-    if (!list) return;
-    onDragStateChange?.(true);
-    dragStateRef.current = {
-      active: true,
-      startY: clientY,
-      startScrollTop: list.scrollTop,
-    };
-  }, [onDragStateChange]);
-
-  const handleMouseDown = React.useCallback((e) => {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    beginDrag(e.clientY);
-  }, [beginDrag]);
-
-  const handleTouchStart = React.useCallback((e) => {
-    const touch = e.touches?.[0];
-    if (!touch) return;
-    beginDrag(touch.clientY);
-  }, [beginDrag]);
-
-  React.useEffect(() => {
-    const onMouseMove = (e) => {
-      if (!dragStateRef.current.active) return;
-      e.preventDefault();
-      handleDragMove(e.clientY);
-    };
-    const onMouseUp = () => finishDrag();
-    const onTouchMove = (e) => {
-      if (!dragStateRef.current.active) return;
-      const touch = e.touches?.[0];
-      if (!touch) return;
-      e.preventDefault();
-      handleDragMove(touch.clientY);
-    };
-    const onTouchEnd = () => finishDrag();
-    window.addEventListener('mousemove', onMouseMove, { passive: false });
-    window.addEventListener('mouseup', onMouseUp);
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
-    window.addEventListener('touchend', onTouchEnd);
-    window.addEventListener('touchcancel', onTouchEnd);
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      window.removeEventListener('touchmove', onTouchMove);
-      window.removeEventListener('touchend', onTouchEnd);
-      window.removeEventListener('touchcancel', onTouchEnd);
-    };
-  }, [finishDrag, handleDragMove]);
-
   return (
     <div className="min-w-[58px]">
       <p className="mb-1 text-center text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
@@ -1977,9 +1901,7 @@ const TimeWheelColumn = ({
         <div
           ref={listRef}
           onScroll={handleScroll}
-          onMouseDown={handleMouseDown}
-          onTouchStart={handleTouchStart}
-          className="relative h-[102px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[34px] cursor-grab active:cursor-grabbing"
+          className="relative h-[102px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[34px] touch-pan-y"
         >
           {renderedValues.map((entry, idx) => {
             const active = entry === value;
@@ -2541,7 +2463,6 @@ const App = () => {
   const [expandedPlaceId, setExpandedPlaceId] = useState(null);
   const [pendingPlanMenuFocus, setPendingPlanMenuFocus] = useState(null); // { dayIdx, pIdx, menuIdx }
   const [timeControllerTarget, setTimeControllerTarget] = useState(null); // { kind, dayIdx, pIdx, left, top, width }
-  const isTimeModalDraggingRef = useRef(false);
   const [timelineEndTimeDraft, setTimelineEndTimeDraft] = useState(null); // { key, value }
   const [lodgeCheckoutDraft, setLodgeCheckoutDraft] = useState(null); // { key, value }
   const [timeControlStep, setTimeControlStep] = useState(5);
@@ -2549,7 +2470,6 @@ const App = () => {
   useEffect(() => {
     const handleOutside = (e) => {
       if (!timeControllerTarget) return;
-      if (isTimeModalDraggingRef.current) return;
       if (e.target.closest('[data-time-trigger="true"]')) return;
       if (e.target.closest('[data-time-modal="true"]')) return;
       if (e.target.closest('.group\\/tower')) return;
@@ -5324,6 +5244,11 @@ const App = () => {
       const dayPlan = nextData.days?.[dayIdx]?.plan;
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
+      // 시간 모달 조정 시 레거시 소요시간 잠금은 무시한다.
+      dayPlan.forEach((entry) => {
+        if (!entry || entry.type === 'backup' || entry.types?.includes('ship')) return;
+        entry.isDurationFixed = false;
+      });
       item.time = normalized;
       item.isTimeFixed = true;
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
@@ -5467,6 +5392,11 @@ const App = () => {
       const dayPlan = nextData.days?.[dayIdx]?.plan;
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
+      // 시간 모달 조정 시 레거시 소요시간 잠금은 무시한다.
+      dayPlan.forEach((entry) => {
+        if (!entry || entry.type === 'backup' || entry.types?.includes('ship')) return;
+        entry.isDurationFixed = false;
+      });
       const startMinutes = timeToMinutes(item.time || '00:00');
       const endMinutesRaw = timeToMinutes(normalized);
       const endMinutes = endMinutesRaw <= startMinutes ? endMinutesRaw + 1440 : endMinutesRaw;
@@ -10726,16 +10656,6 @@ const App = () => {
                 style={{ left, top, width: panelWidth }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="mb-1 flex items-center justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setTimeControllerTarget(null)}
-                    className="h-8 w-8 rounded-xl border border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600 transition-colors"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-
                 <div className="grid grid-cols-3 gap-2 items-stretch">
                   <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-2.5 py-2">
                     <div className="mb-1 flex items-center justify-between">
@@ -10753,7 +10673,6 @@ const App = () => {
                         label="시"
                         value={currentStartHour}
                         values={startHourValues}
-                        onDragStateChange={(active) => { isTimeModalDraggingRef.current = !!active; }}
                         onChange={(nextHour) => setStartTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentStartMinute)), { skipHistory: true })}
                         accentClass="text-[#1f5fd6]"
                       />
@@ -10761,7 +10680,6 @@ const App = () => {
                         label="분"
                         value={currentStartMinute}
                         values={Array.from({ length: 60 }, (_, idx) => idx)}
-                        onDragStateChange={(active) => { isTimeModalDraggingRef.current = !!active; }}
                         cyclic
                         onChange={(nextMinute) => {
                           const wrapped = buildWrappedTotalMinutes(currentStartHour, currentStartMinute, nextMinute);
@@ -10802,7 +10720,6 @@ const App = () => {
                         label="시"
                         value={currentEndHour}
                         values={endHourValues}
-                        onDragStateChange={(active) => { isTimeModalDraggingRef.current = !!active; }}
                         onChange={(nextHour) => setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentEndMinute)), { skipHistory: true })}
                         accentClass="text-slate-600"
                       />
@@ -10810,7 +10727,6 @@ const App = () => {
                         label="분"
                         value={currentEndMinute}
                         values={Array.from({ length: 60 }, (_, idx) => idx)}
-                        onDragStateChange={(active) => { isTimeModalDraggingRef.current = !!active; }}
                         cyclic
                         onChange={(nextMinute) => {
                           const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);

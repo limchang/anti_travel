@@ -9083,7 +9083,7 @@ const App = () => {
                             {renderTimelineInsertGuide(dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === -1, dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === -1 && draggingFromLibrary ? getDropWarning(draggingFromLibrary, dIdx, -1) : '')}
                           </div>
                         ) : (
-                          <div className="flex items-center bg-slate-50/95 px-3 py-1.5 rounded-full border border-slate-300 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.45)] gap-2">
+                          <div className="flex w-full items-center justify-center rounded-[18px] border border-slate-200 bg-white px-4 py-2.5 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] gap-2">
                             {(() => {
                               const rid = `${dIdx}_${pIdx}`;
                               const busy = calculatingRouteId === rid;
@@ -9128,7 +9128,7 @@ const App = () => {
                                   </button>
 
                                   {/* 자동경로 */}
-                                  <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-[#3182F6]/10 text-[#3182F6] border-[#3182F6]/30' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
+                                  <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx, { forceRefresh: true }); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-[#3182F6]/10 text-[#3182F6] border-[#3182F6]/30' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
                                     {busy ? <LoaderCircle size={10} className="animate-spin" /> : <Sparkles size={10} />}
                                   </button>
 
@@ -9283,24 +9283,23 @@ const App = () => {
                                       const endMins = timeToMinutes(p.time || '00:00') + (p.duration || 0);
                                       const [ehh, emm] = minutesToTime(endMins).split(':');
                                       return (
-                                        <div className="flex w-full flex-col items-center justify-center gap-5 px-3 py-4 select-none">
-                                          <div className={`relative flex w-full items-center justify-center rounded-[18px] border px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-blue-100 bg-blue-50/60' : 'border-slate-200 bg-white/88 group-hover/tower:border-blue-100 group-hover/tower:bg-slate-50/95'}`}>
+                                        <div className="flex w-full flex-col items-center justify-center gap-3 px-3 py-2 select-none">
+                                          <div className={`relative flex w-full min-h-[78px] items-center justify-center rounded-[18px] border px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-blue-100 bg-blue-50/60' : 'border-slate-200 bg-white/88 group-hover/tower:border-blue-100 group-hover/tower:bg-slate-50/95'}`}>
                                             {p.isTimeFixed && (
-                                              <div className="absolute left-3 top-3 flex items-center gap-0.5">
+                                              <div className="absolute left-3 top-2.5 flex items-center gap-0.5">
                                                 <Lock size={8} className="text-[#3182F6]" />
                                                 <span className="text-[8px] font-bold text-[#3182F6] uppercase tracking-[0.14em]">FIXED</span>
                                               </div>
                                             )}
-                                            <span className={`text-[34px] font-black tabular-nums tracking-[-0.08em] leading-none transition-colors ${p.isTimeFixed ? 'text-[#1f5fd6]' : 'text-slate-900 group-hover/tower:text-[#244f9e]'}`}>
+                                            <span className={`text-[28px] font-black tabular-nums tracking-[-0.08em] leading-none transition-colors ${p.isTimeFixed ? 'text-[#1f5fd6]' : 'text-slate-900 group-hover/tower:text-[#244f9e]'}`}>
                                               {hh}<span className="mx-[-1px] opacity-80">:</span>{mm}
                                             </span>
                                           </div>
 
                                           <div className="relative flex w-full items-center justify-center">
-                                            <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-slate-200/80" />
                                             <button
                                               type="button"
-                                              className={`relative z-10 flex min-w-[112px] items-center justify-center gap-3 rounded-[10px] px-4 py-2.5 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.45)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
+                                              className={`relative z-10 flex min-h-[54px] min-w-[112px] items-center justify-center gap-3 rounded-[12px] border px-4 py-2 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
                                                 ? 'bg-red-500 text-white'
                                                 : isDurationLocked
                                                   ? 'bg-[#ff8a1a] text-white'
@@ -9316,13 +9315,13 @@ const App = () => {
                                               }}
                                             >
                                               <ChevronLeft size={12} />
-                                              <span className="text-[11px] font-black tabular-nums tracking-[0.14em]">{fmtDur(p.duration).replace('분', ' MIN')}</span>
+                                              <span className="text-[11px] font-black tabular-nums tracking-[0.18em]">{fmtDur(p.duration).replace('분', ' MIN')}</span>
                                               <ChevronRight size={12} />
                                             </button>
                                           </div>
 
-                                          <div className="flex w-full items-center justify-center rounded-[18px] border border-slate-200 bg-slate-50/92 px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100/95">
-                                            <span className="text-[34px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-400">
+                                          <div className="flex w-full min-h-[78px] items-center justify-center rounded-[18px] border border-slate-200 bg-slate-50/92 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100/95">
+                                            <span className="text-[28px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-400">
                                               {ehh}<span className="mx-[-1px] opacity-75">:</span>{emm}
                                             </span>
                                           </div>
@@ -10151,7 +10150,7 @@ const App = () => {
 
                             return (
                               <div id={`travel-chip-${dIdx}-${pIdx}`} className="z-10 flex items-center justify-center w-full">
-                                <div className="flex items-center bg-slate-50/95 px-3 py-1.5 rounded-full border border-slate-300 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.45)] gap-2">
+                              <div className="flex w-full items-center justify-center rounded-[18px] border border-slate-200 bg-white px-4 py-2.5 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] gap-2">
                                   {(() => {
                                     const rid = `${dIdx}_${pIdx + 1}`;
                                     const busy = calculatingRouteId === rid;
@@ -10188,7 +10187,7 @@ const App = () => {
                                           <span>{busy ? '계산중' : getRouteDistanceStatus(p, nextItem)}</span>
                                         </button>
                                         {/* 자동경로 */}
-                                        <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-[#3182F6]/10 text-[#3182F6] border-[#3182F6]/30' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
+                                        <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1, { forceRefresh: true }); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-[#3182F6]/10 text-[#3182F6] border-[#3182F6]/30' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
                                           {busy ? <LoaderCircle size={10} className="animate-spin" /> : <Sparkles size={10} />}
                                         </button>
                                         {/* 구분선 */}

@@ -1779,7 +1779,7 @@ const TimeWheelColumn = ({
   onDragStateChange,
   liveOnDrag = false,
 }) => {
-  const EDGE_PAD_COUNT = cyclic ? 0 : 1;
+  const EDGE_PAD_COUNT = cyclic ? 0 : 2;
   const listRef = React.useRef(null);
   const settleTimerRef = React.useRef(null);
   const isProgrammaticRef = React.useRef(false);
@@ -1793,7 +1793,7 @@ const TimeWheelColumn = ({
   }, [cyclic, values]);
   const renderedEntries = React.useMemo(() => {
     if (cyclic) return renderedValues;
-    return [null, ...renderedValues, null];
+    return [null, null, ...renderedValues, null, null];
   }, [cyclic, renderedValues]);
 
   React.useEffect(() => {

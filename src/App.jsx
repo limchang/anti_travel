@@ -10931,27 +10931,32 @@ const App = () => {
                     </div>
                   </div>
 
-                  <div className="rounded-[20px] border border-orange-200 bg-orange-50/75 px-2.5 py-2">
+                  <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-2.5 py-2">
                     <div className="mb-1 flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-500">소요 시간</span>
-                      <span className="rounded-full border border-orange-200 bg-white px-2 py-0.5 text-[9px] font-black text-orange-500">
+                      <span className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">소요 시간</span>
+                      <span className="rounded-full border border-blue-200 bg-white px-2 py-0.5 text-[9px] font-black text-[#3182F6]">
                         계산값
                       </span>
                     </div>
-                    <div className="mb-2 text-[22px] leading-none font-black tabular-nums text-slate-900">{fmtDur(durationMinutes)}</div>
-                    <div className="rounded-[14px] border border-orange-200 bg-white/80 px-2 py-1.5 text-center text-[10px] font-black text-orange-500">
-                      시작/종료 변경 시 자동 계산
+                    <div className="flex h-[102px] flex-col items-center justify-center gap-2">
+                      <div className="relative flex min-h-[44px] min-w-[124px] items-center justify-center rounded-[14px] border border-[#bfd7ff] bg-[#eef5ff] px-3 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
+                        <span className="text-[34px] leading-none font-black tabular-nums tracking-[-0.03em] text-[#1f5fd6]">{fmtDur(durationMinutes).replace('분', '')}</span>
+                        <span className="ml-1 mt-3 text-[11px] font-black text-[#3182F6]">분</span>
+                      </div>
+                      <div className="w-full rounded-[12px] border border-[#bfd7ff] bg-white px-2 py-1.5 text-center text-[10px] font-black text-[#3182F6]">
+                        시작/종료 변경 시 자동 계산
+                      </div>
                     </div>
                   </div>
 
-                  <div className="rounded-[20px] border border-slate-200 bg-slate-50/85 px-2.5 py-2">
+                  <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-2.5 py-2">
                     <div className="mb-1 flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">종료 시간</span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">종료 시간</span>
                       <button
                         type="button"
                         onClick={() => { if (!isAutoLocked) toggleEndTimeFix(dayIdx, pIdx, { skipHistory: true }); }}
                         disabled={isAutoLocked}
-                        className={`rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors disabled:opacity-50 ${isEndTimeFixed ? 'border-amber-200 bg-white text-amber-600' : 'border-slate-200 bg-white text-slate-400'}`}
+                        className={`rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors disabled:opacity-50 ${isEndTimeFixed ? 'border-blue-200 bg-white text-[#3182F6]' : 'border-blue-100 bg-blue-50 text-blue-400'}`}
                       >
                         {isEndTimeFixed ? '고정됨' : '유동'}
                       </button>
@@ -10966,7 +10971,7 @@ const App = () => {
                           const nextTotal = clampEndNotBeforeStart((nextHour * 60) + currentEndMinute);
                           setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
                         }}
-                        accentClass="text-slate-600"
+                        accentClass="text-[#1f5fd6]"
                       />
                       <TimeWheelColumn
                         label="분"
@@ -10980,7 +10985,7 @@ const App = () => {
                           const nextTotal = clampEndNotBeforeStart(wrapped);
                           setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
                         }}
-                        accentClass="text-slate-600"
+                        accentClass="text-[#1f5fd6]"
                       />
                     </div>
                   </div>

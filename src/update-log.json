@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.63",
+      "timestamp": "2026-03-12T13:59:44+09:00",
+      "message": "시간 편집 모달 3컬럼 디자인 통일 및 중앙 정렬 개선"
+    },
+    {
       "version": "1.3.62",
       "timestamp": "2026-03-12T13:57:15+09:00",
       "message": "동일 시작/종료 시 소요시간 0분 계산으로 보정"
@@ -144,11 +149,6 @@
       "version": "1.3.34",
       "timestamp": "2026-03-12T11:43:32+09:00",
       "message": "style: anchor time cell expansion and surface main route map"
-    },
-    {
-      "version": "1.3.33",
-      "timestamp": "2026-03-12T11:40:10+09:00",
-      "message": "style: toggle time locks from time cards"
     }
   ]
 }

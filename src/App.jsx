@@ -1839,6 +1839,7 @@ const TimeWheelColumn = ({
   const listRef = React.useRef(null);
   const settleTimerRef = React.useRef(null);
   const isProgrammaticRef = React.useRef(false);
+  const pointerDragRef = React.useRef({ active: false, pointerId: null, startY: 0, startTop: 0 });
 
   const renderedValues = React.useMemo(() => {
     if (!cyclic) return values;
@@ -1891,6 +1892,47 @@ const TimeWheelColumn = ({
     settleTimerRef.current = setTimeout(commitClosestValue, 90);
   }, [commitClosestValue]);
 
+  const handlePointerDown = React.useCallback((e) => {
+    const list = listRef.current;
+    if (!list) return;
+    pointerDragRef.current = {
+      active: true,
+      pointerId: e.pointerId,
+      startY: e.clientY,
+      startTop: list.scrollTop,
+    };
+    try {
+      list.setPointerCapture(e.pointerId);
+    } catch {
+      // no-op
+    }
+    e.stopPropagation();
+  }, []);
+
+  const handlePointerMove = React.useCallback((e) => {
+    const list = listRef.current;
+    const state = pointerDragRef.current;
+    if (!list || !state.active || state.pointerId !== e.pointerId) return;
+    const deltaY = e.clientY - state.startY;
+    list.scrollTop = state.startTop - deltaY;
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handlePointerUp = React.useCallback((e) => {
+    const list = listRef.current;
+    const state = pointerDragRef.current;
+    if (!list || !state.active || state.pointerId !== e.pointerId) return;
+    pointerDragRef.current = { active: false, pointerId: null, startY: 0, startTop: 0 };
+    try {
+      list.releasePointerCapture(e.pointerId);
+    } catch {
+      // no-op
+    }
+    commitClosestValue();
+    e.stopPropagation();
+  }, [commitClosestValue]);
+
   return (
     <div className="min-w-[58px]">
       <p className="mb-1 text-center text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
@@ -1901,6 +1943,10 @@ const TimeWheelColumn = ({
         <div
           ref={listRef}
           onScroll={handleScroll}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
           className="relative h-[102px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[34px] touch-pan-y"
         >
           {renderedValues.map((entry, idx) => {
@@ -9715,6 +9761,7 @@ const App = () => {
 
                           {!isShip && !isLodge && (
                             <div
+                              data-no-drag="true"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const rect = e.currentTarget.getBoundingClientRect();
@@ -10733,6 +10780,7 @@ const App = () => {
             return (
               <div
                 data-time-modal="true"
+                data-no-drag="true"
                 className="fixed z-[260] rounded-[26px] border border-slate-200 bg-white/96 p-3 shadow-[0_24px_50px_-24px_rgba(15,23,42,0.45)] backdrop-blur-xl animate-in"
                 style={{ left, top, width: panelWidth }}
                 onClick={(e) => e.stopPropagation()}

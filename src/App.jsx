@@ -9367,15 +9367,12 @@ const App = () => {
                                     const [endHour = '00', endMinute = '00'] = endLabel.split(':');
                                     return (
                                       <div className="flex w-full flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-300">
-                                        <div className={`relative rounded-[22px] border px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-blue-200 bg-blue-50/60' : 'border-slate-200 bg-white'}`} onClick={(e) => e.stopPropagation()}>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }}
-                                            className={`absolute right-2 top-2 inline-flex h-6 items-center gap-1 rounded-full border px-2 text-[8px] font-black transition-colors ${p.isTimeFixed ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
-                                          >
-                                            <Lock size={9} fill={p.isTimeFixed ? 'currentColor' : 'none'} />
-                                          </button>
-                                          <div className="grid grid-cols-[16px_1fr_16px] items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-2 py-2.5">
+                                        <div
+                                          className={`relative rounded-[18px] border px-2 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-blue-100 bg-blue-50/60' : 'border-slate-200 bg-white/88 group-hover/tower:border-blue-100 group-hover/tower:bg-slate-50/95'}`}
+                                          onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }}
+                                        >
+                                          {p.isTimeFixed && <Lock size={8} className="absolute right-2 top-2 text-[#3182F6]" />}
+                                          <div className="grid grid-cols-[16px_1fr_16px] items-center gap-2">
                                             <div className="flex flex-col items-center justify-center leading-none text-slate-900">
                                               <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, 1); }} className="h-4 text-slate-700 hover:text-[#3182F6]"><ChevronUp size={12} /></button>
                                               <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, -1); }} className="h-4 text-slate-700 hover:text-[#3182F6]"><ChevronDown size={12} /></button>
@@ -9390,14 +9387,10 @@ const App = () => {
                                           </div>
                                         </div>
 
-                                        <div className={`relative rounded-[18px] border px-2 py-1.5 shadow-[0_10px_20px_-14px_rgba(15,23,42,0.35)] transition-all ${isDurationLocked ? 'border-[#ff8a1a] bg-[#ff8a1a] text-white' : 'border-slate-200 bg-[#ff8a1a] text-white'}`} onClick={(e) => e.stopPropagation()}>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); toggleDurationFix(dIdx, pIdx); }}
-                                            className={`absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center rounded-full border ${isDurationLocked ? 'border-white/40 bg-white/10 text-white' : 'border-white/40 bg-white/10 text-white'}`}
-                                          >
-                                            <Lock size={8} fill={isDurationLocked ? 'currentColor' : 'none'} />
-                                          </button>
+                                        <div
+                                          className={`relative rounded-[12px] px-2 py-1.5 shadow-[0_10px_20px_-14px_rgba(15,23,42,0.35)] transition-all ${isDurationLocked ? 'bg-[#ff8a1a] text-white ring-1 ring-[#ff8a1a]/30' : 'bg-[#ff8a1a] text-white'}`}
+                                          onClick={(e) => { e.stopPropagation(); toggleDurationFix(dIdx, pIdx); }}
+                                        >
                                           <div className="grid grid-cols-[18px_1fr_18px] items-center gap-2 pr-6">
                                             <button onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, -TIME_UNIT); }} className="flex h-5 items-center justify-center text-white/90 hover:text-white"><ChevronLeft size={12} /></button>
                                             <div className="text-center text-[14px] font-black tabular-nums leading-none">{fmtDur(p.duration).replace('분', '')}</div>
@@ -9405,16 +9398,12 @@ const App = () => {
                                           </div>
                                         </div>
 
-                                        <div className={`relative rounded-[22px] border px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${isEndTimeFixed ? 'border-amber-300 bg-amber-50/70' : 'border-slate-200 bg-slate-50/92'}`} onClick={(e) => e.stopPropagation()}>
-                                          <button
-                                            type="button"
-                                            disabled={isAutoLocked}
-                                            onClick={(e) => { e.stopPropagation(); if (isAutoLocked) return; toggleEndTimeFix(dIdx, pIdx); }}
-                                            className={`absolute right-2 top-2 inline-flex h-6 items-center gap-1 rounded-full border px-2 text-[8px] font-black transition-colors ${isAutoLocked ? 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed' : isEndTimeFixed ? 'border-amber-400 bg-amber-400 text-white' : 'border-slate-200 bg-white text-slate-400 hover:border-amber-300 hover:text-amber-600'}`}
-                                          >
-                                            <Lock size={9} fill={isEndTimeFixed ? 'currentColor' : 'none'} />
-                                          </button>
-                                          <div className="grid grid-cols-[16px_1fr_16px] items-center gap-2 rounded-[18px] border border-slate-200 bg-white/85 px-2 py-2.5">
+                                        <div
+                                          className={`relative rounded-[18px] border px-2 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all ${isEndTimeFixed ? 'border-amber-200 bg-amber-50/55' : 'border-slate-200 bg-slate-50/92 group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100/95'} ${isAutoLocked ? 'cursor-not-allowed opacity-70' : ''}`}
+                                          onClick={(e) => { e.stopPropagation(); if (isAutoLocked) return; toggleEndTimeFix(dIdx, pIdx); }}
+                                        >
+                                          {isEndTimeFixed && <Lock size={8} className="absolute right-2 top-2 text-amber-500" />}
+                                          <div className="grid grid-cols-[16px_1fr_16px] items-center gap-2">
                                             <div className="flex flex-col items-center justify-center leading-none text-slate-900">
                                               <button onClick={(e) => { e.stopPropagation(); updatePlanEndTime(dIdx, pIdx, 60); }} className="h-4 text-slate-700 hover:text-amber-600"><ChevronUp size={12} /></button>
                                               <button onClick={(e) => { e.stopPropagation(); updatePlanEndTime(dIdx, pIdx, -60); }} className="h-4 text-slate-700 hover:text-amber-600"><ChevronDown size={12} /></button>

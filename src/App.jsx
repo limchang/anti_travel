@@ -3366,6 +3366,7 @@ const App = () => {
   const buildLibraryPayloadFromLodgeSegment = (place = {}, segment = {}) => {
     const segmentType = String(segment.type || 'rest').trim() || 'rest';
     const segmentMemo = extractLodgeSegmentMemo(place.memo || '', segmentType) || segment.note || '';
+    const sourceAddress = String(place.address || place.receipt?.address || '').trim();
     const baseTypes = segmentType === 'stay'
       ? ['lodge', 'stay']
       : segmentType === 'swim'
@@ -3375,15 +3376,16 @@ const App = () => {
       id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: `${place.name || place.activity || '숙소'} · ${segment.label || '내부 일정'}`,
       types: baseTypes,
-      address: place.address || place.receipt?.address || '',
+      address: sourceAddress,
       memo: segmentMemo,
       duration: Math.max(10, Number(segment.duration) || 30),
       time: normalizeLodgeSegmentTime(segment.time, place.time || '15:00'),
-      receipt: { address: place.address || place.receipt?.address || '', items: [] },
+      receipt: { address: sourceAddress, items: [] },
       business: normalizeBusiness(place.business || {}),
       revisit: typeof place.revisit === 'boolean' ? place.revisit : false,
       sourceLodgeId: place.id,
       sourceLodgeName: place.name || place.activity || '숙소',
+      sourceLodgeAddress: sourceAddress,
       segmentType,
       renderAsSegmentCard: true,
     });
@@ -4162,6 +4164,20 @@ const App = () => {
   };
   const getRouteAddress = (item, role = 'from') => {
     if (!item) return '';
+    const getSourceLodgeAddress = () => {
+      if (!isStandaloneLodgeSegmentItem(item)) return '';
+      const sourceId = String(item.sourceLodgeId || '').trim();
+      if (!sourceId) return '';
+      const fromPlaces = (itinerary.places || []).find((place) => String(place?.id || '').trim() === sourceId);
+      const placeAddress = String(fromPlaces?.receipt?.address || fromPlaces?.address || '').trim();
+      if (placeAddress) return placeAddress;
+      for (const day of (itinerary.days || [])) {
+        const found = (day?.plan || []).find((planItem) => String(planItem?.id || '').trim() === sourceId);
+        const foundAddress = String(found?.receipt?.address || found?.address || '').trim();
+        if (foundAddress) return foundAddress;
+      }
+      return String(item?.sourceLodgeAddress || '').trim();
+    };
     if (item.types?.includes('ship')) {
       if (role === 'from') {
         return String(
@@ -4181,6 +4197,7 @@ const App = () => {
     return String(
       item.receipt?.address
       || item.address
+      || getSourceLodgeAddress()
       || item.geo?.address
       || ''
     ).trim();
@@ -4366,7 +4383,7 @@ const App = () => {
               .filter((point) => point.address)
               .filter((point) => !hiddenRoutePreviewEndpoints[point.id]);
           }
-          const address = String(item.receipt?.address || item.address || '').trim();
+          const address = String(getRouteAddress(item, 'to') || '').trim();
           if (!address) return [];
           return [{
             id: item.id,

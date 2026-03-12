@@ -9770,12 +9770,12 @@ const App = () => {
                           </div>
                         )}
                         {/* planVariantPicker 팝업은 overflow-hidden 카드 밖 루트 레벨에서 렌더링 */}
-                        <div className={`relative border-b border-slate-100 border-dashed ${isTimeCellExpanded ? 'flex flex-col' : 'flex items-stretch'}`}>
+                        <div className="relative flex items-stretch border-b border-slate-100 border-dashed">
 
                           {!isShip && !isLodge && (
                             <div
                               data-no-drag="true"
-                              className={`flex flex-col group/tower ${isTimeCellExpanded ? 'w-full overflow-visible z-20 border-r-0 py-2 px-2 sm:px-2.5' : 'shrink-0 border-r border-slate-100 flex-none overflow-hidden'} ${!isTimeCellExpanded && isCompactTimeline ? 'w-[30%] items-center justify-center py-1.5' : ''} ${!isTimeCellExpanded && !isCompactTimeline ? 'w-[30%] items-center justify-center py-2 px-2 sm:px-2.5' : ''} bg-transparent`}
+                              className={`flex flex-col group/tower transition-[width] duration-300 ease-out ${isTimeCellExpanded ? 'w-full overflow-visible z-20 border-r-0 py-2 px-2 sm:px-2.5' : 'shrink-0 border-r border-slate-100 flex-none overflow-hidden'} ${!isTimeCellExpanded && isCompactTimeline ? 'w-[30%] items-center justify-center py-1.5' : ''} ${!isTimeCellExpanded && !isCompactTimeline ? 'w-[30%] items-center justify-center py-2 px-2 sm:px-2.5' : ''} bg-transparent`}
                             >
                               {(() => {
                                 const startMinutes = timeToMinutes(p.time || '00:00');

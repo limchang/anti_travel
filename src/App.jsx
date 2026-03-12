@@ -1787,11 +1787,6 @@ const TimeWheelColumn = ({
   const touchDragRef = React.useRef({ active: false, startY: 0, startTop: 0 });
   const dragMovedRef = React.useRef(false);
   const lastEmittedValueRef = React.useRef(value);
-  const getDragSpeedFactor = React.useCallback((delta) => {
-    const abs = Math.abs(delta);
-    if (abs < 18) return 1;
-    return 1 + Math.min(0.9, (abs - 18) / 180);
-  }, []);
 
   const renderedValues = React.useMemo(() => {
     if (!cyclic) return values;
@@ -1929,7 +1924,7 @@ const TimeWheelColumn = ({
     if (!list || !state.active || state.pointerId !== e.pointerId) return;
     const deltaY = e.clientY - state.startY;
     if (Math.abs(deltaY) >= 2) dragMovedRef.current = true;
-    list.scrollTop = state.startTop - (deltaY * getDragSpeedFactor(deltaY));
+    list.scrollTop = state.startTop - deltaY;
     if (liveOnDrag) {
       const nextValue = getClosestValue();
       if (nextValue !== null && nextValue !== lastEmittedValueRef.current) {
@@ -1939,7 +1934,7 @@ const TimeWheelColumn = ({
     }
     e.preventDefault();
     e.stopPropagation();
-  }, [getClosestValue, getDragSpeedFactor, liveOnDrag, onChange]);
+  }, [getClosestValue, liveOnDrag, onChange]);
 
   const handlePointerUp = React.useCallback((e) => {
     if (e.pointerType === 'touch') return;
@@ -1980,7 +1975,7 @@ const TimeWheelColumn = ({
     if (!touch) return;
     const deltaY = touch.clientY - state.startY;
     if (Math.abs(deltaY) >= 2) dragMovedRef.current = true;
-    list.scrollTop = state.startTop - (deltaY * getDragSpeedFactor(deltaY));
+    list.scrollTop = state.startTop - deltaY;
     if (liveOnDrag) {
       const nextValue = getClosestValue();
       if (nextValue !== null && nextValue !== lastEmittedValueRef.current) {
@@ -1990,7 +1985,7 @@ const TimeWheelColumn = ({
     }
     e.preventDefault();
     e.stopPropagation();
-  }, [getClosestValue, getDragSpeedFactor, liveOnDrag, onChange]);
+  }, [getClosestValue, liveOnDrag, onChange]);
 
   const handleTouchEnd = React.useCallback((e) => {
     if (!touchDragRef.current.active) return;

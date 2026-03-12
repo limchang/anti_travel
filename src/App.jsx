@@ -674,8 +674,9 @@ const extractMenusFromNaverLines = (lines = []) => {
     const fixedPrice = priceLine && /^[0-9][0-9,]*원$/.test(priceLine)
       ? Number(priceLine.replace(/[^0-9]/g, '')) || 0
       : 0;
+    const hasSuspiciousZeroPrice = priceLine === '0원';
     const name = block.find((line) => isLikelyMenuNameLine(line));
-    if (name && fixedPrice > 0 && !menus.find((item) => item.name === name)) {
+    if (name && (fixedPrice > 0 || hasSuspiciousZeroPrice) && !menus.find((item) => item.name === name)) {
       menus.push({ name, price: fixedPrice });
     }
     block = [];
@@ -777,7 +778,8 @@ const GEMINI_LINK_SYSTEM_PROMPT = `너는 대한민국 장소 정보를 추출�
    - 예: "스타벅스 성수점 카페" -> "스타벅스 성수점"
    - 예: "맛있는갈비 육류,고기요리" -> "맛있는갈비"
 2. **JSON 형식 엄수**: 응답은 오직 JSON 형식으로만 해. 다른 텍스트는 섞지 마.
-3. **분석 범위**: 주소뿐만 아니라 정확한 영업시간 스케줄을 "10:00~20:00" 같은 형태로 추출해.`;
+3. **분석 범위**: 주소뿐만 아니라 정확한 영업시간 스케줄을 "10:00~20:00" 같은 형태로 추출해.
+4. **메뉴 가격 규칙**: OCR 텍스트에 메뉴명 바로 뒤에 "0원"이 보이면 무료로 단정하지 마. 주변 숫자 문맥으로 가능한 실제 가격을 추정하고, 정확한 금액을 못 찾더라도 메뉴명은 유지해.`;
 
 const normalizeAiSmartFillConfig = (raw = {}) => ({
   apiKey: String(raw?.apiKey || '').trim(),
@@ -1095,6 +1097,9 @@ const runGroqSmartFill = async ({
         'Return strict JSON only.',
         `Current extraction mode: ${mode}.`,
         'Schema: {"name":"","address":"","business":{"open":"","close":"","breakStart":"","breakEnd":"","lastOrder":"","entryClose":"","closedDays":[]},"menus":[{"name":"","price":0}]}',
+        'For menu extraction, if OCR or copied text shows "0원", do not assume the menu is free.',
+        'When a menu name appears right before "0원", keep that menu in the result and infer the most plausible non-zero price from nearby context when possible.',
+        'If the exact non-zero price cannot be recovered, still keep the menu name with price 0 instead of dropping the menu.',
       ];
 
       if (instructions) {
@@ -2716,6 +2721,17 @@ const App = () => {
   const leftSidebarWidth = col1Collapsed ? leftCollapsedWidth : leftExpandedWidth;
   const rightSidebarWidth = col2Collapsed ? rightCollapsedWidth : rightExpandedWidth;
   const isCompactTimeline = isMobileLayout || viewportWidth < 1380 || (!col1Collapsed && !col2Collapsed && viewportWidth < 1720);
+  const calculatingRouteTarget = useMemo(() => {
+    if (!calculatingRouteId) return null;
+    const [dayIdxRaw, pIdxRaw] = String(calculatingRouteId).split('_');
+    const dayIdx = Number(dayIdxRaw);
+    const pIdx = Number(pIdxRaw);
+    if (!Number.isFinite(dayIdx) || !Number.isFinite(pIdx)) return null;
+    const day = itinerary.days?.[dayIdx];
+    const item = day?.plan?.[pIdx];
+    if (!day || !item) return null;
+    return { dayIdx, pIdx, dayNumber: day.day || dayIdx + 1, itemId: item.id, activity: item.activity || item.name || '일정' };
+  }, [calculatingRouteId, itinerary.days]);
   const timelineMaxClass = isCompactTimeline ? 'max-w-[500px]' : 'max-w-[560px]';
 
   const scrollIntervalRef = useRef(null);
@@ -3681,6 +3697,19 @@ const App = () => {
     return () => observers.forEach(o => o.disconnect());
   }, [itinerary.days]);
 
+  useEffect(() => {
+    if (!calculatingRouteTarget) return;
+    setActiveDay(calculatingRouteTarget.dayNumber);
+    setActiveItemId(calculatingRouteTarget.itemId);
+    setHighlightedItemId(calculatingRouteTarget.itemId);
+    const timer = setTimeout(() => setHighlightedItemId((prev) => (prev === calculatingRouteTarget.itemId ? null : prev)), 1200);
+    requestAnimationFrame(() => {
+      const navEl = document.getElementById(`nav-item-${calculatingRouteTarget.itemId}`);
+      navEl?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+    return () => clearTimeout(timer);
+  }, [calculatingRouteTarget]);
+
 
   useEffect(() => {
     if (!planVariantPicker) return;
@@ -4066,7 +4095,7 @@ const App = () => {
         color: ROUTE_PREVIEW_COLORS[index % ROUTE_PREVIEW_COLORS.length],
         points,
       };
-    }).filter((entry) => entry.points.length >= 2);
+    }).filter((entry) => entry.points.length >= 1);
   }, [itinerary.days, hiddenRoutePreviewEndpoints]);
 
   useEffect(() => {
@@ -4196,7 +4225,7 @@ const App = () => {
               lon: Number(geo.lon),
             });
           }
-          if (coords.length >= 2) {
+          if (coords.length >= 1) {
             nextDays.push({ ...entry, points: coords });
           }
         }
@@ -4234,6 +4263,10 @@ const App = () => {
       })),
     }));
   }, [routePreviewDays]);
+  const routePreviewPointCount = useMemo(
+    () => routePreviewPointSource.reduce((sum, day) => sum + ((day.points || []).length), 0),
+    [routePreviewPointSource]
+  );
 
   const normalizeAlternative = (alt = {}) => {
     const receipt = alt.receipt
@@ -7189,7 +7222,20 @@ const App = () => {
                   ))}
                 </div>
                 <div className="relative overflow-hidden rounded-[22px] border border-sky-100 bg-[linear-gradient(180deg,rgba(186,230,253,0.75),rgba(239,246,255,0.9))] p-3">
-                  <RoutePreviewCanvas routePreviewMap={routePreviewMap} height={300} />
+                  {routePreviewLoading ? (
+                    <div className="flex h-[300px] items-center justify-center text-[11px] font-bold text-slate-400">
+                      지도 좌표 계산 중...
+                    </div>
+                  ) : routePreviewMap.length > 0 ? (
+                    <RoutePreviewCanvas routePreviewMap={routePreviewMap} height={300} />
+                  ) : (
+                    <div className="flex h-[300px] flex-col items-center justify-center gap-1 text-center">
+                      <MapIcon size={20} className="text-slate-300" />
+                      <p className="text-[10px] font-bold text-slate-400">
+                        {routePreviewPointCount >= 2 ? '주소 좌표를 아직 확인하지 못했습니다. 잠시 후 다시 확인해 주세요.' : '주소가 있는 일정이 2개 이상 있어야 경로를 표시합니다.'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -7334,6 +7380,7 @@ const App = () => {
                               const isLastLodge = (isFullLodgeStayItem(p) || (Array.isArray(p.types) && p.types.includes('stay'))) && pIdx === arr.length - 1;
                               const navPrimaryType = getPreferredNavCategory(p.types, p.type || 'place');
                               const isFixedTimeNav = !!p.isTimeFixed || p.types?.includes('ship');
+                              const isRouteLoadingNav = calculatingRouteTarget?.itemId === p.id;
                               const navConflictRecommendation = getTimingConflictRecommendation(dNavIdx, pIdx);
                               const navBizWarn = !p.types?.includes('ship') ? getBusinessWarning(p, dNavIdx) : '';
                               const nextNavItem = arr[pIdx + 1];
@@ -7344,6 +7391,7 @@ const App = () => {
                                 <React.Fragment key={p.id}>
                                   {isLastLodge && <div className="mt-1.5 border-t border-dashed border-indigo-100/90" />}
                                   <button
+                                    id={`nav-item-${p.id}`}
                                     draggable={isEditMode}
                                     onTouchStart={(e) => {
                                       if (!isEditMode) return;
@@ -7392,6 +7440,12 @@ const App = () => {
                                         <div className="flex items-center gap-1.5 min-w-0">
                                           <div className={`shrink-0 scale-[0.88] origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-70'}`}>{getCategoryBadge(navPrimaryType)}</div>
                                           <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-600' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-500'}`}>{p.activity}</span>
+                                          {isRouteLoadingNav && (
+                                            <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[8px] font-black leading-none text-[#3182F6]">
+                                              <LoaderCircle size={8} className="animate-spin" />
+                                              경로
+                                            </span>
+                                          )}
                                           {(p.alternatives?.length || 0) > 0 && (
                                             <span className={`shrink-0 text-[8px] leading-none px-1.5 py-0.5 rounded border ${isActive ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-amber-500 bg-amber-50/70 border-amber-200/80'}`}>
                                               B {p.alternatives.length}
@@ -7405,6 +7459,12 @@ const App = () => {
                                         <div className="min-w-0 flex items-center gap-1.5 overflow-hidden">
                                           <div className={`shrink-0 scale-[0.88] origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-70'}`}>{getCategoryBadge(navPrimaryType)}</div>
                                           <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-600' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-500'}`}>{p.activity}</span>
+                                          {isRouteLoadingNav && (
+                                            <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[8px] font-black leading-none text-[#3182F6]">
+                                              <LoaderCircle size={8} className="animate-spin" />
+                                              경로
+                                            </span>
+                                          )}
                                           {(p.alternatives?.length || 0) > 0 && (
                                             <span className={`shrink-0 text-[8px] leading-none px-1.5 py-0.5 rounded border ${isActive ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-amber-500 bg-amber-50/70 border-amber-200/80'}`}>
                                               B {p.alternatives.length}
@@ -8898,7 +8958,9 @@ const App = () => {
                                   ) : (
                                     <div className="h-[280px] flex flex-col items-center justify-center gap-1 text-center">
                                       <MapIcon size={20} className="text-slate-300" />
-                                      <p className="text-[10px] font-bold text-slate-400">주소가 있는 일정이 2개 이상 있어야 경로를 표시합니다.</p>
+                                      <p className="text-[10px] font-bold text-slate-400">
+                                        {routePreviewPointCount >= 2 ? '주소 좌표를 아직 확인하지 못했습니다. 잠시 후 다시 확인해 주세요.' : '주소가 있는 일정이 2개 이상 있어야 경로를 표시합니다.'}
+                                      </p>
                                     </div>
                                   )}
                                 </div>

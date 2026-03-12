@@ -1824,6 +1824,11 @@ const TimeWheelColumn = ({
     if (!list || !values.length) return null;
     const renderedLength = renderedEntries.length;
     if (!renderedLength) return null;
+    const hasZeroPriority = !cyclic && values[0] === 0;
+    if (hasZeroPriority) {
+      const zeroPriorityCutoff = (EDGE_PAD_COUNT + 1) * TIME_WHEEL_ITEM_HEIGHT;
+      if (list.scrollTop <= zeroPriorityCutoff) return values[0];
+    }
     const rawIndex = Math.max(0, Math.min(renderedLength - 1, Math.round(list.scrollTop / TIME_WHEEL_ITEM_HEIGHT)));
     const normalizedIndex = cyclic
       ? ((rawIndex % values.length) + values.length) % values.length
@@ -1837,6 +1842,26 @@ const TimeWheelColumn = ({
     if (!list || !values.length) return;
     const renderedLength = renderedEntries.length;
     if (!renderedLength) return;
+    const hasZeroPriority = !cyclic && values[0] === 0;
+    if (hasZeroPriority) {
+      const zeroPriorityCutoff = (EDGE_PAD_COUNT + 1) * TIME_WHEEL_ITEM_HEIGHT;
+      if (list.scrollTop <= zeroPriorityCutoff) {
+        const centerIndex = EDGE_PAD_COUNT;
+        const targetTop = centerIndex * TIME_WHEEL_ITEM_HEIGHT;
+        if (Math.abs(list.scrollTop - targetTop) > 1) {
+          isProgrammaticRef.current = true;
+          list.scrollTo({ top: targetTop, behavior: 'smooth' });
+          setTimeout(() => {
+            isProgrammaticRef.current = false;
+          }, 140);
+        }
+        if (values[0] !== lastEmittedValueRef.current) {
+          lastEmittedValueRef.current = values[0];
+          onChange?.(values[0]);
+        }
+        return;
+      }
+    }
     const rawIndex = Math.max(0, Math.min(renderedLength - 1, Math.round(list.scrollTop / TIME_WHEEL_ITEM_HEIGHT)));
     const normalizedIndex = cyclic
       ? ((rawIndex % values.length) + values.length) % values.length

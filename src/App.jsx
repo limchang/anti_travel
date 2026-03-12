@@ -1788,6 +1788,7 @@ const TimeWheelColumn = ({
   const touchDragRef = React.useRef({ active: false, startY: 0, startTop: 0 });
   const dragMovedRef = React.useRef(false);
   const lastEmittedValueRef = React.useRef(value);
+  const [isDragging, setIsDragging] = React.useState(false);
 
   const renderedValues = React.useMemo(() => {
     if (!cyclic) return values;
@@ -1917,6 +1918,7 @@ const TimeWheelColumn = ({
       // no-op
     }
     onDragStateChange?.(true);
+    setIsDragging(true);
     e.stopPropagation();
   }, [onDragStateChange, onInteract]);
 
@@ -1953,6 +1955,7 @@ const TimeWheelColumn = ({
       // no-op
     }
     onDragStateChange?.(false);
+    setIsDragging(false);
     commitClosestValue();
     e.stopPropagation();
   }, [commitClosestValue, onDragStateChange, onInteract]);
@@ -1970,6 +1973,7 @@ const TimeWheelColumn = ({
       startTop: list.scrollTop,
     };
     onDragStateChange?.(true);
+    setIsDragging(true);
     e.stopPropagation();
   }, [onDragStateChange, onInteract]);
 
@@ -1983,7 +1987,7 @@ const TimeWheelColumn = ({
     const deltaY = touch.clientY - state.startY;
     if (Math.abs(deltaY) >= 2) dragMovedRef.current = true;
     list.scrollTop = state.startTop - deltaY;
-    if (liveOnDrag) {
+    if (liveOnDrag && !touchDragRef.current.active) {
       const nextValue = getClosestValue();
       if (nextValue !== null && nextValue !== lastEmittedValueRef.current) {
         lastEmittedValueRef.current = nextValue;
@@ -1999,6 +2003,7 @@ const TimeWheelColumn = ({
     onInteract?.();
     touchDragRef.current = { active: false, startY: 0, startTop: 0 };
     onDragStateChange?.(false);
+    setIsDragging(false);
     commitClosestValue();
     e.stopPropagation();
   }, [commitClosestValue, onDragStateChange, onInteract]);
@@ -2036,7 +2041,7 @@ const TimeWheelColumn = ({
         <div
           ref={listRef}
           onScroll={handleScroll}
-          className="relative h-[84px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[28px] touch-pan-y"
+          className={`relative h-[84px] overflow-y-auto no-scrollbar py-[28px] touch-pan-y ${isDragging ? 'snap-none' : 'snap-y snap-mandatory'}`}
         >
           {renderedEntries.map((entry, idx) => {
             if (entry === null) {
@@ -2053,7 +2058,7 @@ const TimeWheelColumn = ({
                   onInteract?.();
                   commitSpecificValue(entry);
                 }}
-                className={`flex h-[28px] w-full snap-start items-center justify-center text-[18px] font-black tabular-nums transition-all ${active ? `${accentClass} scale-100` : 'scale-[0.9] text-slate-300/90'}`}
+                className={`flex h-[28px] w-full snap-start items-center justify-center text-[18px] font-black tabular-nums ${isDragging ? 'transition-none' : 'transition-all'} ${active ? `${accentClass} scale-100` : 'scale-[0.9] text-slate-300/90'}`}
               >
                 {formatter(entry)}
               </button>

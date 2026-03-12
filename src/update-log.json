@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.43",
+      "timestamp": "2026-03-12T12:31:49+09:00",
+      "message": "fix: refine drag-based time modal controls"
+    },
+    {
       "version": "1.3.42",
       "timestamp": "2026-03-12T12:25:42+09:00",
       "message": "fix: rebuild kakao route preview map and time modal close behavior"
@@ -144,11 +149,6 @@
       "version": "1.3.14",
       "timestamp": "2026-03-12T10:25:53+09:00",
       "message": "fix: persist geo coordinates for itinerary and library places"
-    },
-    {
-      "version": "1.3.13",
-      "timestamp": "2026-03-12T10:15:40+09:00",
-      "message": "feat: move the day route map into the hero summary and add ferry endpoint exclusions"
     }
   ]
 }

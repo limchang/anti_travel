@@ -1837,6 +1837,7 @@ const TimeWheelColumn = ({
   const listRef = React.useRef(null);
   const settleTimerRef = React.useRef(null);
   const isProgrammaticRef = React.useRef(false);
+  const dragStateRef = React.useRef({ active: false, startY: 0, startScrollTop: 0, pointerId: null });
 
   React.useEffect(() => {
     const list = listRef.current;
@@ -1853,6 +1854,10 @@ const TimeWheelColumn = ({
 
   React.useEffect(() => () => {
     if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+  }, []);
+
+  React.useEffect(() => () => {
+    dragStateRef.current = { active: false, startY: 0, startScrollTop: 0, pointerId: null };
   }, []);
 
   const commitClosestValue = React.useCallback(() => {
@@ -1876,24 +1881,58 @@ const TimeWheelColumn = ({
     settleTimerRef.current = setTimeout(commitClosestValue, 90);
   }, [commitClosestValue]);
 
+  const handlePointerDown = React.useCallback((e) => {
+    const list = listRef.current;
+    if (!list) return;
+    dragStateRef.current = {
+      active: true,
+      startY: e.clientY,
+      startScrollTop: list.scrollTop,
+      pointerId: e.pointerId,
+    };
+    list.setPointerCapture?.(e.pointerId);
+  }, []);
+
+  const handlePointerMove = React.useCallback((e) => {
+    const list = listRef.current;
+    const drag = dragStateRef.current;
+    if (!list || !drag.active) return;
+    e.preventDefault();
+    const deltaY = e.clientY - drag.startY;
+    list.scrollTop = drag.startScrollTop - deltaY;
+  }, []);
+
+  const finishPointerDrag = React.useCallback((e) => {
+    const list = listRef.current;
+    const drag = dragStateRef.current;
+    if (!list || !drag.active) return;
+    dragStateRef.current = { active: false, startY: 0, startScrollTop: 0, pointerId: null };
+    if (e?.pointerId != null) list.releasePointerCapture?.(e.pointerId);
+    commitClosestValue();
+  }, [commitClosestValue]);
+
   return (
     <div className="min-w-[70px]">
       <p className="mb-1 text-center text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
       <div className="relative rounded-[18px] border border-slate-200 bg-white/92">
-        <div className="pointer-events-none absolute inset-x-2 top-1/2 h-9 -translate-y-1/2 rounded-[12px] border border-slate-200 bg-slate-50/92 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]" />
+        <div className="pointer-events-none absolute inset-x-2 top-1/2 h-9 -translate-y-1/2 rounded-[12px] border border-[#bfd7ff] bg-[#eef5ff] shadow-[0_8px_18px_-16px_rgba(49,130,246,0.5),inset_0_1px_0_rgba(255,255,255,0.95)]" />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-8 rounded-t-[18px] bg-gradient-to-b from-white via-white/88 to-transparent" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 rounded-b-[18px] bg-gradient-to-t from-white via-white/88 to-transparent" />
         <div
           ref={listRef}
           onScroll={handleScroll}
-          className="relative h-[180px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[72px]"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={finishPointerDrag}
+          onPointerCancel={finishPointerDrag}
+          className="relative h-[180px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[72px] cursor-grab active:cursor-grabbing touch-none"
         >
           {values.map((entry) => {
             const active = entry === value;
             return (
               <div
                 key={`${label}-${entry}`}
-                className={`flex h-9 snap-start items-center justify-center text-[22px] font-black tabular-nums transition-all ${active ? `${accentClass} scale-100` : 'scale-[0.88] text-slate-300'}`}
+                className={`flex h-9 snap-start items-center justify-center text-[22px] font-black tabular-nums transition-all ${active ? `${accentClass} scale-100` : 'scale-[0.88] text-slate-300/90'}`}
               >
                 {formatter(entry)}
               </div>
@@ -10685,11 +10724,7 @@ const App = () => {
                 style={{ left, top, width: panelWidth }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[12px] font-black text-slate-800">{item.activity || '일정 시간 조절'}</p>
-                    <p className="mt-0.5 text-[10px] font-bold text-slate-400">시/분 휠을 위아래로 드래그해서 시간을 조정합니다.</p>
-                  </div>
+                <div className="mb-2 flex items-center justify-end">
                   <button
                     type="button"
                     onClick={() => setTimeControllerTarget(null)}
@@ -10711,7 +10746,6 @@ const App = () => {
                         {item.isTimeFixed ? '고정됨' : '유동'}
                       </button>
                     </div>
-                    <div className="mb-2 text-[24px] font-black tabular-nums text-slate-900">{minutesToTime(startMinutes)}</div>
                     <div className="flex items-center justify-center gap-3">
                       <TimeWheelColumn
                         label="시"
@@ -10723,7 +10757,7 @@ const App = () => {
                       <TimeWheelColumn
                         label="분"
                         value={startMinutes % 60}
-                        values={Array.from({ length: Math.floor(60 / timeControlStep) }, (_, idx) => idx * timeControlStep)}
+                        values={Array.from({ length: 60 }, (_, idx) => idx)}
                         onChange={(nextMinute) => setStartTimeValue(dayIdx, pIdx, minutesToTime(Math.floor(startMinutes / 60) * 60 + nextMinute), { skipHistory: true })}
                         accentClass="text-[#1f5fd6]"
                       />
@@ -10768,7 +10802,6 @@ const App = () => {
                         {isEndTimeFixed ? '고정됨' : '유동'}
                       </button>
                     </div>
-                    <div className="mb-2 text-[24px] font-black tabular-nums text-slate-500">{minutesToTime(endMinutesOfDay)}</div>
                     <div className="flex items-center justify-center gap-3">
                       <TimeWheelColumn
                         label="시"
@@ -10780,7 +10813,7 @@ const App = () => {
                       <TimeWheelColumn
                         label="분"
                         value={endMinutesOfDay % 60}
-                        values={Array.from({ length: Math.floor(60 / timeControlStep) }, (_, idx) => idx * timeControlStep)}
+                        values={Array.from({ length: 60 }, (_, idx) => idx)}
                         onChange={(nextMinute) => setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(Math.floor(endMinutesOfDay / 60) * 60 + nextMinute), { skipHistory: true })}
                         accentClass="text-slate-600"
                       />

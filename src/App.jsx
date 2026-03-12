@@ -1829,7 +1829,7 @@ const loadKakaoMapSdk = (() => {
   let sdkPromise = null;
   return (appKey) => {
     if (typeof window === 'undefined') return Promise.reject(new Error('window unavailable'));
-    if (window.kakao?.maps?.load) {
+    if (window.kakao?.maps?.load && window.kakao?.maps?.services) {
       return new Promise((resolve) => {
         window.kakao.maps.load(() => resolve(window.kakao));
       });
@@ -1837,7 +1837,7 @@ const loadKakaoMapSdk = (() => {
     if (sdkPromise) return sdkPromise;
     sdkPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey=${appKey}`;
+      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&libraries=services&appkey=${appKey}`;
       script.async = true;
       script.onload = () => {
         if (!window.kakao?.maps?.load) {
@@ -3977,6 +3977,56 @@ const App = () => {
     const key = String(address || '').trim();
     if (!key) return null;
     if (geoCacheRef.current[key]) return geoCacheRef.current[key];
+    try {
+      const kakao = await loadKakaoMapSdk(KAKAO_API_KEY);
+      const services = kakao?.maps?.services;
+      if (services) {
+        const geocoder = new services.Geocoder();
+        const places = new services.Places();
+        const sdkAddressResult = await new Promise((resolve) => {
+          geocoder.addressSearch(key, (result, status) => {
+            if (status === services.Status.OK && result?.[0]) {
+              const first = result[0];
+              resolve({
+                address: String(first.road_address?.address_name || first.address?.address_name || key).trim(),
+                lat: parseFloat(first.y),
+                lon: parseFloat(first.x),
+                source: 'kakao-sdk-address',
+                updatedAt: new Date().toISOString(),
+              });
+              return;
+            }
+            resolve(null);
+          });
+        });
+        if (sdkAddressResult?.lat && sdkAddressResult?.lon) {
+          geoCacheRef.current[key] = sdkAddressResult;
+          return sdkAddressResult;
+        }
+        const sdkKeywordResult = await new Promise((resolve) => {
+          places.keywordSearch(key, (result, status) => {
+            if (status === services.Status.OK && result?.[0]) {
+              const first = result[0];
+              resolve({
+                address: String(first.road_address_name || first.address_name || key).trim(),
+                lat: parseFloat(first.y),
+                lon: parseFloat(first.x),
+                source: 'kakao-sdk-keyword',
+                updatedAt: new Date().toISOString(),
+              });
+              return;
+            }
+            resolve(null);
+          });
+        });
+        if (sdkKeywordResult?.lat && sdkKeywordResult?.lon) {
+          geoCacheRef.current[key] = sdkKeywordResult;
+          return sdkKeywordResult;
+        }
+      }
+    } catch {
+      // fallback below
+    }
     try {
       const result = await searchAddressFromPlaceName(key, tripRegion);
       if (result?.lat && result?.lon) {
@@ -7232,7 +7282,7 @@ const App = () => {
                     <div className="flex h-[300px] flex-col items-center justify-center gap-1 text-center">
                       <MapIcon size={20} className="text-slate-300" />
                       <p className="text-[10px] font-bold text-slate-400">
-                        {routePreviewPointCount >= 2 ? '주소 좌표를 아직 확인하지 못했습니다. 잠시 후 다시 확인해 주세요.' : '주소가 있는 일정이 2개 이상 있어야 경로를 표시합니다.'}
+                        {routePreviewPointCount >= 2 ? '주소를 지도 위치로 아직 확인하지 못했습니다. 잠시 후 다시 확인해 주세요.' : '주소가 있는 일정이 2개 이상 있어야 경로를 표시합니다.'}
                       </p>
                     </div>
                   )}
@@ -8959,7 +9009,7 @@ const App = () => {
                                     <div className="h-[280px] flex flex-col items-center justify-center gap-1 text-center">
                                       <MapIcon size={20} className="text-slate-300" />
                                       <p className="text-[10px] font-bold text-slate-400">
-                                        {routePreviewPointCount >= 2 ? '주소 좌표를 아직 확인하지 못했습니다. 잠시 후 다시 확인해 주세요.' : '주소가 있는 일정이 2개 이상 있어야 경로를 표시합니다.'}
+                                        {routePreviewPointCount >= 2 ? '주소를 지도 위치로 아직 확인하지 못했습니다. 잠시 후 다시 확인해 주세요.' : '주소가 있는 일정이 2개 이상 있어야 경로를 표시합니다.'}
                                       </p>
                                     </div>
                                   )}

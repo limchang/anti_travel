@@ -2037,7 +2037,7 @@ const TimeWheelColumn = ({
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
-      <p className="mb-0.5 text-center text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
+      {label ? <p className="mb-0.5 text-center text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p> : null}
       <div className="relative rounded-[18px] border border-slate-200 bg-white/92">
         <div className="pointer-events-none absolute inset-x-1.5 top-1/2 h-[28px] -translate-y-1/2 rounded-[10px] border border-slate-300 bg-slate-100 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,0.95)]" />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-5 rounded-t-[18px] bg-gradient-to-b from-white via-white/88 to-transparent" />
@@ -10918,11 +10918,17 @@ const App = () => {
               >
                 <div className="grid h-full grid-cols-3 gap-1.5 items-stretch">
                   <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
-                    <div className="mb-1 h-[14px]" />
-                    <div className="flex h-[calc(100%-14px)] w-full flex-col items-center justify-center gap-2">
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleTimeFix(dayIdx, pIdx, { skipHistory: true })}
+                        className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${item.isTimeFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
+                      >
+                        시작시간 잠금
+                      </button>
                       <div className="flex w-full items-center justify-center gap-1">
                         <TimeWheelColumn
-                          label="시"
+                          label=""
                           value={currentStartHour}
                           values={startHourValues}
                           onDragStateChange={setIsTimeWheelDragging}
@@ -10930,7 +10936,7 @@ const App = () => {
                           accentClass="text-slate-800"
                         />
                         <TimeWheelColumn
-                          label="분"
+                          label=""
                           value={currentStartMinute}
                           values={Array.from({ length: 60 }, (_, idx) => idx)}
                           cyclic
@@ -10943,23 +10949,11 @@ const App = () => {
                           accentClass="text-slate-800"
                         />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => toggleTimeFix(dayIdx, pIdx, { skipHistory: true })}
-                        className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${item.isTimeFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
-                      >
-                        시작시간 잠금
-                      </button>
                     </div>
                   </div>
 
                   <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
-                    <div className="mb-1 h-[14px]" />
-                    <div className="flex h-[calc(100%-14px)] w-full flex-col items-center justify-center gap-2">
-                      <div className="relative flex min-h-[44px] w-full items-center justify-center rounded-[14px] border border-slate-300 bg-white px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
-                        <span className="text-[34px] leading-none font-black tabular-nums tracking-[-0.03em] text-slate-800">{fmtDur(durationMinutes).replace('분', '')}</span>
-                        <span className="ml-1 mt-3 text-[11px] font-black text-slate-500">분</span>
-                      </div>
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-2">
                       <button
                         type="button"
                         onClick={() => toggleDurationFix(dayIdx, pIdx, { skipHistory: true })}
@@ -10967,14 +10961,25 @@ const App = () => {
                       >
                         소요시간 잠금
                       </button>
+                      <div className="relative flex min-h-[44px] w-full items-center justify-center rounded-[14px] border border-slate-300 bg-white px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
+                        <span className="text-[39px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-900">{fmtDur(durationMinutes).replace('분', '')}</span>
+                      </div>
                     </div>
                   </div>
 
                   <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
-                    <div className="mb-1 h-[14px]" />
-                    <div className="flex w-full items-center justify-center gap-1">
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { if (!isAutoLocked) toggleEndTimeFix(dayIdx, pIdx, { skipHistory: true }); }}
+                        disabled={isAutoLocked}
+                        className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors disabled:opacity-50 ${isEndTimeFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
+                      >
+                        종료시간 잠금
+                      </button>
+                      <div className="flex w-full items-center justify-center gap-1">
                       <TimeWheelColumn
-                        label="시"
+                        label=""
                         value={currentEndHour}
                         values={endHourValues}
                         onDragStateChange={setIsTimeWheelDragging}
@@ -10985,7 +10990,7 @@ const App = () => {
                         accentClass="text-slate-800"
                       />
                       <TimeWheelColumn
-                        label="분"
+                        label=""
                         value={currentEndMinute}
                         values={Array.from({ length: 60 }, (_, idx) => idx)}
                         cyclic
@@ -10998,6 +11003,7 @@ const App = () => {
                         }}
                         accentClass="text-slate-800"
                       />
+                      </div>
                     </div>
                   </div>
                 </div>

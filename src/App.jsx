@@ -9777,71 +9777,13 @@ const App = () => {
                               data-no-drag="true"
                               className={`relative flex flex-col shrink-0 border-r border-slate-100 flex-none group/tower ${isTimeCellExpanded ? 'overflow-visible z-20' : 'overflow-hidden'} ${isCompactTimeline ? 'w-[30%] items-center justify-center py-1.5' : 'w-[30%] items-center justify-center py-2 px-2 sm:px-2.5'} bg-transparent`}
                             >
-                              {/* 시간 조절 */}
-                              <div
-                                data-time-trigger="true"
-                                className="relative z-10 w-full rounded-2xl px-1 py-1 select-none transition-all group-hover/tower:bg-slate-100/30"
-                              >
-                                <div className="relative z-10 flex w-full flex-col items-center justify-center gap-1">
-                                  {(() => {
-                                    const [hh, mm] = (p.time || '00:00').split(':');
-                                    const endMins = timeToMinutes(p.time || '00:00') + (p.duration || 0);
-                                    const [ehh, emm] = minutesToTime(endMins).split(':');
-                                    return (
-                                      <div className="flex w-full select-none flex-col items-center justify-center gap-1 px-2 py-0.5">
-                                        <div className={`relative flex h-[54px] w-full items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 group-hover/tower:border-slate-300 group-hover/tower:bg-white'}`}>
-                                          <span className="text-[44px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-900">
-                                            {hh}<span className="mx-[1px] opacity-72">:</span>{mm}
-                                          </span>
-                                        </div>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setTimeControllerTarget((prev) => (
-                                              prev?.kind === 'plan-time' && prev?.dayIdx === dIdx && prev?.pIdx === pIdx
-                                                ? null
-                                                : { kind: 'plan-time', dayIdx: dIdx, pIdx, inline: true }
-                                            ));
-                                          }}
-                                          className={`relative z-10 flex min-w-[88px] items-center justify-center gap-2 rounded-[12px] border px-2 py-0.5 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] h-[28px] ${isAutoLocked
-                                            ? 'bg-red-500 text-white'
-                                            : isDurationLocked
-                                              ? 'bg-[#ff8a1a] text-white'
-                                              : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                            }`}
-                                        >
-                                          <ChevronLeft size={11} />
-                                          <span className="font-black tabular-nums tracking-[0.16em] text-[11px]">{fmtDur(p.duration).replace('분', '')}</span>
-                                          <ChevronRight size={11} />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setTimeControllerTarget((prev) => (
-                                              prev?.kind === 'plan-time' && prev?.dayIdx === dIdx && prev?.pIdx === pIdx
-                                                ? null
-                                                : { kind: 'plan-time', dayIdx: dIdx, pIdx, inline: true }
-                                            ));
-                                          }}
-                                          className="flex h-[46px] w-full items-center justify-center rounded-[14px] border border-slate-200 bg-slate-50 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100"
-                                        >
-                                          <span className="font-black tabular-nums tracking-[-0.08em] leading-none text-slate-400 text-[34px]">
-                                            {ehh}<span className="mx-[1px] opacity-70">:</span>{emm}
-                                          </span>
-                                        </button>
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
-
-                              {isTimeCellExpanded && (() => {
+                              {(() => {
                                 const startMinutes = timeToMinutes(p.time || '00:00');
                                 const durationMinutes = Math.max(0, Number(p.duration) || 0);
                                 const endMinutesAbsolute = startMinutes + durationMinutes;
                                 const currentEndMinutes = ((endMinutesAbsolute % 1440) + 1440) % 1440;
+                                const [hh, mm] = minutesToTime(startMinutes).split(':');
+                                const [ehh, emm] = minutesToTime(currentEndMinutes).split(':');
                                 const currentStartHour = Math.floor(startMinutes / 60);
                                 const currentStartMinute = startMinutes % 60;
                                 const currentDurationHour = Math.floor(durationMinutes / 60);
@@ -9861,14 +9803,61 @@ const App = () => {
                                   return Math.max(startMinutes, normalized);
                                 };
                                 const clampDurationMinutes = (candidateMinutes) => Math.max(0, Math.min(1439, Number(candidateMinutes) || 0));
+                                const toggleInline = (event) => {
+                                  event.stopPropagation();
+                                  setTimeControllerTarget((prev) => (
+                                    prev?.kind === 'plan-time' && prev?.dayIdx === dIdx && prev?.pIdx === pIdx
+                                      ? null
+                                      : { kind: 'plan-time', dayIdx: dIdx, pIdx, inline: true }
+                                  ));
+                                };
+
                                 return (
+                                  <>
+                                    <div
+                                      data-time-trigger="true"
+                                      className="relative z-10 w-full rounded-2xl px-1 py-1 select-none transition-all group-hover/tower:bg-slate-100/30"
+                                    >
+                                      <div className="flex w-full flex-col items-center gap-1 px-2 py-0.5">
+                                        <div className={`relative flex h-[52px] w-full items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 group-hover/tower:border-slate-300 group-hover/tower:bg-white'}`}>
+                                          <span className="text-[34px] font-black tabular-nums tracking-[-0.06em] leading-none text-slate-900">
+                                            {hh}<span className="mx-[1px] opacity-70">:</span>{mm}
+                                          </span>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={toggleInline}
+                                          className={`relative z-10 flex h-[28px] min-w-[90px] items-center justify-center gap-2 rounded-[12px] border px-2 py-0.5 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
+                                            ? 'bg-red-500 text-white'
+                                            : isDurationLocked
+                                              ? 'bg-[#ff8a1a] text-white'
+                                              : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                            }`}
+                                        >
+                                          <ChevronLeft size={10} />
+                                          <span className="font-black tabular-nums text-[11px] tracking-[0.14em]">{fmtDur(p.duration).replace('분', '')}</span>
+                                          <ChevronRight size={10} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={toggleInline}
+                                          className="flex h-[44px] w-full items-center justify-center rounded-[14px] border border-slate-200 bg-slate-50 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100"
+                                        >
+                                          <span className="text-[30px] font-black tabular-nums tracking-[-0.06em] leading-none text-slate-400">
+                                            {ehh}<span className="mx-[1px] opacity-65">:</span>{emm}
+                                          </span>
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {isTimeCellExpanded && (
                                   <div
                                     data-time-modal="true"
                                     onClick={(e) => e.stopPropagation()}
                                     className="absolute left-0 top-0 z-30 w-[560px] max-w-[calc(100vw-28px)] rounded-[22px] border border-slate-200 bg-white/98 p-2 shadow-[0_24px_50px_-24px_rgba(15,23,42,0.45)] backdrop-blur-xl"
                                   >
                                     <div className="grid h-full grid-cols-3 gap-1.5 items-stretch">
-                                      <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
+                                      <div className="rounded-[20px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
                                         <div className="flex h-full w-full flex-col items-center justify-center gap-2">
                                           <button
                                             type="button"
@@ -9903,7 +9892,7 @@ const App = () => {
                                         </div>
                                       </div>
 
-                                      <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
+                                      <div className="rounded-[20px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
                                         <div className="flex h-full w-full flex-col items-center justify-center gap-2">
                                           <button
                                             type="button"
@@ -9942,7 +9931,7 @@ const App = () => {
                                         </div>
                                       </div>
 
-                                      <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
+                                      <div className="rounded-[20px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
                                         <div className="flex h-full w-full flex-col items-center justify-center gap-2">
                                           <button
                                             type="button"
@@ -9983,6 +9972,8 @@ const App = () => {
                                       </div>
                                     </div>
                                   </div>
+                                    )}
+                                  </>
                                 );
                               })()}
 

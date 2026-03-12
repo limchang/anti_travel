@@ -9814,6 +9814,7 @@ const App = () => {
 
                                 return (
                                   <>
+                                    {!isTimeCellExpanded && (
                                     <div
                                       data-time-trigger="true"
                                       className="relative z-10 w-full rounded-2xl px-1 py-1 select-none transition-all group-hover/tower:bg-slate-100/30"
@@ -9855,14 +9856,15 @@ const App = () => {
                                         </button>
                                       </div>
                                     </div>
+                                    )}
 
                                     {isTimeCellExpanded && (
                                   <div
                                     data-time-modal="true"
                                     onClick={(e) => e.stopPropagation()}
-                                    className="mt-1.5 w-full z-30 rounded-[18px] bg-white/98 p-2 backdrop-blur-xl"
+                                    className="mt-1 w-full z-30"
                                   >
-                                    <div className="grid h-full grid-cols-3 gap-1.5 items-stretch rounded-[18px] border border-slate-200 bg-white p-1.5 shadow-[0_20px_34px_-24px_rgba(15,23,42,0.35)]">
+                                    <div className="grid h-full grid-cols-3 gap-2 items-stretch rounded-[16px] border border-slate-200 bg-white p-2">
                                       <div className="rounded-[16px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
                                         <div className="flex h-full w-full flex-col items-center justify-center gap-2">
                                           <button

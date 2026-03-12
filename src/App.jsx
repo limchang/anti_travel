@@ -1825,7 +1825,7 @@ const APP_VERSION = latestUpdate.version;
 const LAST_PUSH_TIME = latestUpdate.timestamp;
 const ROUTE_PREVIEW_ENABLED = false;
 const ROUTE_PREVIEW_COLORS = ['#34C759', '#FF8A3D', '#8B5CF6', '#3182F6', '#EF4444', '#14B8A6'];
-const TIME_WHEEL_ITEM_HEIGHT = 36;
+const TIME_WHEEL_ITEM_HEIGHT = 34;
 
 const TimeWheelColumn = ({
   label = '',
@@ -1913,12 +1913,12 @@ const TimeWheelColumn = ({
   }, [commitClosestValue]);
 
   return (
-    <div className="min-w-[70px]">
+    <div className="min-w-[58px]">
       <p className="mb-1 text-center text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
       <div className="relative rounded-[18px] border border-slate-200 bg-white/92">
-        <div className="pointer-events-none absolute inset-x-2 top-1/2 h-9 -translate-y-1/2 rounded-[12px] border border-[#bfd7ff] bg-[#eef5ff] shadow-[0_8px_18px_-16px_rgba(49,130,246,0.5),inset_0_1px_0_rgba(255,255,255,0.95)]" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-8 rounded-t-[18px] bg-gradient-to-b from-white via-white/88 to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 rounded-b-[18px] bg-gradient-to-t from-white via-white/88 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-1.5 top-1/2 h-[34px] -translate-y-1/2 rounded-[12px] border border-[#bfd7ff] bg-[#eef5ff] shadow-[0_8px_18px_-16px_rgba(49,130,246,0.5),inset_0_1px_0_rgba(255,255,255,0.95)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-6 rounded-t-[18px] bg-gradient-to-b from-white via-white/88 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-6 rounded-b-[18px] bg-gradient-to-t from-white via-white/88 to-transparent" />
         <div
           ref={listRef}
           onScroll={handleScroll}
@@ -1926,14 +1926,14 @@ const TimeWheelColumn = ({
           onPointerMove={handlePointerMove}
           onPointerUp={finishPointerDrag}
           onPointerCancel={finishPointerDrag}
-          className="relative h-[180px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[72px] cursor-grab active:cursor-grabbing touch-none"
+          className="relative h-[102px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[34px] cursor-grab active:cursor-grabbing touch-none"
         >
           {values.map((entry) => {
             const active = entry === value;
             return (
               <div
                 key={`${label}-${entry}`}
-                className={`flex h-9 snap-start items-center justify-center text-[22px] font-black tabular-nums transition-all ${active ? `${accentClass} scale-100` : 'scale-[0.88] text-slate-300/90'}`}
+                className={`flex h-[34px] snap-start items-center justify-center text-[20px] font-black tabular-nums transition-all ${active ? `${accentClass} scale-100` : 'scale-[0.9] text-slate-300/90'}`}
               >
                 {formatter(entry)}
               </div>
@@ -10639,9 +10639,10 @@ const App = () => {
             const durationMinutes = Math.max(0, Number(item.duration) || 0);
             const endMinutesAbsolute = startMinutes + durationMinutes;
             const clampedEndMinutes = Math.max(startMinutes, Math.min(1439, endMinutesAbsolute));
-            const panelWidth = Math.min(320, Math.max(280, Number(timeControllerTarget.width || 0) + 132));
+            const desiredWidth = Number(timeControllerTarget.width || 0) + 520;
+            const panelWidth = Math.min(window.innerWidth - 24, Math.max(560, desiredWidth));
             const left = Math.max(12, Math.min(window.innerWidth - panelWidth - 12, Number(timeControllerTarget.left || 0)));
-            const top = Math.max(12, Math.min(window.innerHeight - 260, Number(timeControllerTarget.top || 0) - 6));
+            const top = Math.max(12, Math.min(window.innerHeight - 220, Number(timeControllerTarget.top || 0) - 6));
             const isAutoLocked = item.types?.includes('ship') || item._isBufferCoordinated;
             const isDurationLocked = !!item.isDurationFixed;
             const isEndTimeFixed = !!item.isEndTimeFixed;
@@ -10670,11 +10671,11 @@ const App = () => {
             return (
               <div
                 data-time-modal="true"
-                className="fixed z-[260] rounded-[26px] border border-slate-200 bg-white/96 p-4 shadow-[0_24px_50px_-24px_rgba(15,23,42,0.45)] backdrop-blur-xl animate-in"
+                className="fixed z-[260] rounded-[26px] border border-slate-200 bg-white/96 p-3 shadow-[0_24px_50px_-24px_rgba(15,23,42,0.45)] backdrop-blur-xl animate-in"
                 style={{ left, top, width: panelWidth }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="mb-2 flex items-center justify-end">
+                <div className="mb-1 flex items-center justify-end">
                   <button
                     type="button"
                     onClick={() => setTimeControllerTarget(null)}
@@ -10684,9 +10685,9 @@ const App = () => {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 items-stretch">
-                  <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-3 py-3">
-                    <div className="mb-2 flex items-center justify-between">
+                <div className="grid grid-cols-3 gap-2 items-stretch">
+                  <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-2.5 py-2">
+                    <div className="mb-1 flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">시작 시간</span>
                       <button
                         type="button"
@@ -10696,7 +10697,7 @@ const App = () => {
                         {item.isTimeFixed ? '고정됨' : '유동'}
                       </button>
                     </div>
-                    <div className="flex items-center justify-center gap-3">
+                    <div className="flex items-center justify-center gap-2">
                       <TimeWheelColumn
                         label="시"
                         value={currentStartHour}
@@ -10718,8 +10719,8 @@ const App = () => {
                     </div>
                   </div>
 
-                  <div className="rounded-[20px] border border-orange-200 bg-orange-50/75 px-3 py-3">
-                    <div className="mb-2 flex items-center justify-between">
+                  <div className="rounded-[20px] border border-orange-200 bg-orange-50/75 px-2.5 py-2">
+                    <div className="mb-1 flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-500">소요 시간</span>
                       <button
                         type="button"
@@ -10730,22 +10731,22 @@ const App = () => {
                         {isDurationLocked ? '고정됨' : '유동'}
                       </button>
                     </div>
-                    <div className="mb-3 text-[24px] font-black tabular-nums text-slate-900">{fmtDur(durationMinutes)}</div>
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => setDurationValue(dayIdx, pIdx, durationMinutes - 10, { skipHistory: true })} className="h-9 w-9 rounded-xl border border-orange-200 bg-white text-orange-500 hover:bg-orange-50">
+                    <div className="mb-2 text-[22px] leading-none font-black tabular-nums text-slate-900">{fmtDur(durationMinutes)}</div>
+                    <div className="flex items-center gap-1.5">
+                      <button type="button" onClick={() => setDurationValue(dayIdx, pIdx, durationMinutes - 10, { skipHistory: true })} className="h-8 w-8 rounded-xl border border-orange-200 bg-white text-orange-500 hover:bg-orange-50">
                         <Minus size={14} />
                       </button>
-                      <div className="flex-1 rounded-[16px] border border-orange-200 bg-white/80 px-3 py-2 text-center text-[11px] font-black text-orange-500">
-                        종료시간도 함께 다시 계산됩니다
+                      <div className="flex-1 rounded-[14px] border border-orange-200 bg-white/80 px-2 py-1.5 text-center text-[10px] font-black text-orange-500">
+                        종료 자동 재계산
                       </div>
-                      <button type="button" onClick={() => setDurationValue(dayIdx, pIdx, durationMinutes + 10, { skipHistory: true })} className="h-9 w-9 rounded-xl border border-orange-200 bg-white text-orange-500 hover:bg-orange-50">
+                      <button type="button" onClick={() => setDurationValue(dayIdx, pIdx, durationMinutes + 10, { skipHistory: true })} className="h-8 w-8 rounded-xl border border-orange-200 bg-white text-orange-500 hover:bg-orange-50">
                         <Plus size={14} />
                       </button>
                     </div>
                   </div>
 
-                  <div className="rounded-[20px] border border-slate-200 bg-slate-50/85 px-3 py-3">
-                    <div className="mb-2 flex items-center justify-between">
+                  <div className="rounded-[20px] border border-slate-200 bg-slate-50/85 px-2.5 py-2">
+                    <div className="mb-1 flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">종료 시간</span>
                       <button
                         type="button"
@@ -10756,7 +10757,7 @@ const App = () => {
                         {isEndTimeFixed ? '고정됨' : '유동'}
                       </button>
                     </div>
-                    <div className="flex items-center justify-center gap-3">
+                    <div className="flex items-center justify-center gap-2">
                       <TimeWheelColumn
                         label="시"
                         value={currentEndHour}

@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.45",
+      "timestamp": "2026-03-12T12:41:18+09:00",
+      "message": "style: widen time modal and tighten wheel viewport"
+    },
+    {
       "version": "1.3.44",
       "timestamp": "2026-03-12T12:36:29+09:00",
       "message": "fix: simplify time modal and disable route preview"
@@ -144,11 +149,6 @@
       "version": "1.3.16",
       "timestamp": "2026-03-12T10:37:04+09:00",
       "message": "fix: force kakao route verify and preload api key status"
-    },
-    {
-      "version": "1.3.15",
-      "timestamp": "2026-03-12T10:29:26+09:00",
-      "message": "fix: use persisted geo for route calculation fallback"
     }
   ]
 }

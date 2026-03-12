@@ -8085,7 +8085,8 @@ const App = () => {
                               const navConflictRecommendation = getTimingConflictRecommendation(dNavIdx, pIdx);
                               const navBizWarn = !p.types?.includes('ship') ? getBusinessWarning(p, dNavIdx) : '';
                               const nextNavItem = arr[pIdx + 1];
-                              const showBufferConnector = !!nextNavItem?._isBufferCoordinated;
+                              const nextNavBufferMins = nextNavItem ? parseMinsLabel(nextNavItem.bufferTimeOverride, DEFAULT_BUFFER_MINS) : 0;
+                              const showBufferConnector = !!nextNavItem && (nextNavItem?._isBufferCoordinated || nextNavBufferMins >= 30);
                               const navDropWarn = draggingFromLibrary ? getDropWarning(draggingFromLibrary, dNavIdx, pIdx) : '';
                               const navDragPayload = { dayIdx: dNavIdx, pIdx };
                               return (

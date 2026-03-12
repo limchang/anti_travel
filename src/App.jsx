@@ -9820,27 +9820,7 @@ const App = () => {
                           {!isShip && !isLodge && (
                             <div
                               data-no-drag="true"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const towerRect = e.currentTarget.getBoundingClientRect();
-                                const shellRect = e.currentTarget.closest('[data-plan-card-shell="true"]')?.getBoundingClientRect();
-                                const rect = shellRect || towerRect;
-                                setTimeControllerTarget((prev) => (
-                                  prev?.kind === 'plan-time' && prev?.dayIdx === dIdx && prev?.pIdx === pIdx
-                                    ? null
-                                    : {
-                                      kind: 'plan-time',
-                                      dayIdx: dIdx,
-                                      pIdx,
-                                      left: rect.left,
-                                      top: rect.top,
-                                      width: rect.width,
-                                      height: rect.height,
-                                      replaceMode: true,
-                                    }
-                                ));
-                              }}
-                              className={`relative flex flex-col shrink-0 border-r border-slate-100 flex-none overflow-hidden cursor-pointer group/tower ${isCompactTimeline ? 'w-[30%] items-center justify-center py-1.5' : 'w-[30%] items-center justify-center py-2 px-2 sm:px-2.5'} bg-transparent`}
+                              className={`relative flex flex-col shrink-0 border-r border-slate-100 flex-none group/tower ${isTimeCellExpanded ? 'overflow-visible z-20' : 'overflow-hidden'} ${isCompactTimeline ? 'w-[30%] items-center justify-center py-1.5' : 'w-[30%] items-center justify-center py-2 px-2 sm:px-2.5'} bg-transparent`}
                             >
                               {/* 시간 조절 */}
                               <div
@@ -9850,18 +9830,206 @@ const App = () => {
                                 <div className="relative z-10 flex w-full flex-col items-center justify-center gap-1">
                                   {(() => {
                                     const [hh, mm] = (p.time || '00:00').split(':');
+                                    const endMins = timeToMinutes(p.time || '00:00') + (p.duration || 0);
+                                    const [ehh, emm] = minutesToTime(endMins).split(':');
                                     return (
-                                      <div className="flex w-full select-none items-center justify-center px-2 py-0.5">
+                                      <div className="flex w-full select-none flex-col items-center justify-center gap-1 px-2 py-0.5">
                                         <div className={`relative flex h-[54px] w-full items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 group-hover/tower:border-slate-300 group-hover/tower:bg-white'}`}>
                                           <span className="text-[44px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-900">
                                             {hh}<span className="mx-[1px] opacity-72">:</span>{mm}
                                           </span>
                                         </div>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setTimeControllerTarget((prev) => (
+                                              prev?.kind === 'plan-time' && prev?.dayIdx === dIdx && prev?.pIdx === pIdx
+                                                ? null
+                                                : { kind: 'plan-time', dayIdx: dIdx, pIdx, inline: true }
+                                            ));
+                                          }}
+                                          className={`relative z-10 flex min-w-[88px] items-center justify-center gap-2 rounded-[12px] border px-2 py-0.5 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] h-[28px] ${isAutoLocked
+                                            ? 'bg-red-500 text-white'
+                                            : isDurationLocked
+                                              ? 'bg-[#ff8a1a] text-white'
+                                              : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                            }`}
+                                        >
+                                          <ChevronLeft size={11} />
+                                          <span className="font-black tabular-nums tracking-[0.16em] text-[11px]">{fmtDur(p.duration).replace('분', '')}</span>
+                                          <ChevronRight size={11} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setTimeControllerTarget((prev) => (
+                                              prev?.kind === 'plan-time' && prev?.dayIdx === dIdx && prev?.pIdx === pIdx
+                                                ? null
+                                                : { kind: 'plan-time', dayIdx: dIdx, pIdx, inline: true }
+                                            ));
+                                          }}
+                                          className="flex h-[46px] w-full items-center justify-center rounded-[14px] border border-slate-200 bg-slate-50 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100"
+                                        >
+                                          <span className="font-black tabular-nums tracking-[-0.08em] leading-none text-slate-400 text-[34px]">
+                                            {ehh}<span className="mx-[1px] opacity-70">:</span>{emm}
+                                          </span>
+                                        </button>
                                       </div>
                                     );
                                   })()}
                                 </div>
                               </div>
+
+                              {isTimeCellExpanded && (() => {
+                                const startMinutes = timeToMinutes(p.time || '00:00');
+                                const durationMinutes = Math.max(0, Number(p.duration) || 0);
+                                const endMinutesAbsolute = startMinutes + durationMinutes;
+                                const currentEndMinutes = ((endMinutesAbsolute % 1440) + 1440) % 1440;
+                                const currentStartHour = Math.floor(startMinutes / 60);
+                                const currentStartMinute = startMinutes % 60;
+                                const currentDurationHour = Math.floor(durationMinutes / 60);
+                                const currentDurationMinute = durationMinutes % 60;
+                                const currentEndHour = Math.floor(currentEndMinutes / 60);
+                                const currentEndMinute = currentEndMinutes % 60;
+                                const buildWrappedTotalMinutes = (baseHour, baseMinute, nextMinute) => {
+                                  let nextHour = baseHour;
+                                  const delta = nextMinute - baseMinute;
+                                  if (delta >= 30) nextHour -= 1;
+                                  if (delta <= -30) nextHour += 1;
+                                  return (nextHour * 60) + nextMinute;
+                                };
+                                const normalizeDayMinute = (value) => ((value % 1440) + 1440) % 1440;
+                                const clampEndNotBeforeStart = (candidateMinutes) => {
+                                  const normalized = normalizeDayMinute(candidateMinutes);
+                                  return Math.max(startMinutes, normalized);
+                                };
+                                const clampDurationMinutes = (candidateMinutes) => Math.max(0, Math.min(1439, Number(candidateMinutes) || 0));
+                                return (
+                                  <div
+                                    data-time-modal="true"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="absolute left-0 top-0 z-30 w-[560px] max-w-[calc(100vw-28px)] rounded-[22px] border border-slate-200 bg-white/98 p-2 shadow-[0_24px_50px_-24px_rgba(15,23,42,0.45)] backdrop-blur-xl"
+                                  >
+                                    <div className="grid h-full grid-cols-3 gap-1.5 items-stretch">
+                                      <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
+                                        <div className="flex h-full w-full flex-col items-center justify-center gap-2">
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleTimeFix(dIdx, pIdx, { skipHistory: true })}
+                                            className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${p.isTimeFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
+                                          >
+                                            시작시간 잠금
+                                          </button>
+                                          <div className="flex w-full items-center justify-center gap-1">
+                                            <TimeWheelColumn
+                                              label=""
+                                              value={currentStartHour}
+                                              values={Array.from({ length: 24 }, (_, idx) => idx)}
+                                              onDragStateChange={setIsTimeWheelDragging}
+                                              onChange={(nextHour) => setStartTimeValue(dIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentStartMinute)), { skipHistory: true })}
+                                              accentClass="text-slate-800"
+                                            />
+                                            <TimeWheelColumn
+                                              label=""
+                                              value={currentStartMinute}
+                                              values={Array.from({ length: 60 }, (_, idx) => idx)}
+                                              cyclic
+                                              liveOnDrag
+                                              onDragStateChange={setIsTimeWheelDragging}
+                                              onChange={(nextMinute) => {
+                                                const wrapped = buildWrappedTotalMinutes(currentStartHour, currentStartMinute, nextMinute);
+                                                setStartTimeValue(dIdx, pIdx, minutesToTime(normalizeDayMinute(wrapped)), { skipHistory: true });
+                                              }}
+                                              accentClass="text-slate-800"
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
+                                        <div className="flex h-full w-full flex-col items-center justify-center gap-2">
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleDurationFix(dIdx, pIdx, { skipHistory: true })}
+                                            className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${p.isDurationFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
+                                          >
+                                            소요시간 잠금
+                                          </button>
+                                          <div className="flex w-full items-center justify-center gap-1">
+                                            <TimeWheelColumn
+                                              label=""
+                                              value={currentDurationHour}
+                                              values={Array.from({ length: 24 }, (_, idx) => idx)}
+                                              onDragStateChange={setIsTimeWheelDragging}
+                                              onChange={(nextHour) => {
+                                                const nextDuration = clampDurationMinutes((nextHour * 60) + currentDurationMinute);
+                                                setDurationValue(dIdx, pIdx, nextDuration, { skipHistory: true });
+                                              }}
+                                              accentClass="text-slate-800"
+                                            />
+                                            <TimeWheelColumn
+                                              label=""
+                                              value={currentDurationMinute}
+                                              values={Array.from({ length: 60 }, (_, idx) => idx)}
+                                              cyclic
+                                              liveOnDrag
+                                              onDragStateChange={setIsTimeWheelDragging}
+                                              onChange={(nextMinute) => {
+                                                const wrapped = buildWrappedTotalMinutes(currentDurationHour, currentDurationMinute, nextMinute);
+                                                const nextDuration = clampDurationMinutes(wrapped);
+                                                setDurationValue(dIdx, pIdx, nextDuration, { skipHistory: true });
+                                              }}
+                                              accentClass="text-slate-800"
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
+                                        <div className="flex h-full w-full flex-col items-center justify-center gap-2">
+                                          <button
+                                            type="button"
+                                            onClick={() => { if (!isAutoLocked) toggleEndTimeFix(dIdx, pIdx, { skipHistory: true }); }}
+                                            disabled={isAutoLocked}
+                                            className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors disabled:opacity-50 ${isEndTimeFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
+                                          >
+                                            종료시간 잠금
+                                          </button>
+                                          <div className="flex w-full items-center justify-center gap-1">
+                                            <TimeWheelColumn
+                                              label=""
+                                              value={currentEndHour}
+                                              values={Array.from({ length: 24 }, (_, idx) => idx)}
+                                              onDragStateChange={setIsTimeWheelDragging}
+                                              onChange={(nextHour) => {
+                                                const nextTotal = clampEndNotBeforeStart((nextHour * 60) + currentEndMinute);
+                                                setPlanEndTimeValue(dIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
+                                              }}
+                                              accentClass="text-slate-800"
+                                            />
+                                            <TimeWheelColumn
+                                              label=""
+                                              value={currentEndMinute}
+                                              values={Array.from({ length: 60 }, (_, idx) => idx)}
+                                              cyclic
+                                              liveOnDrag
+                                              onDragStateChange={setIsTimeWheelDragging}
+                                              onChange={(nextMinute) => {
+                                                const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);
+                                                const nextTotal = clampEndNotBeforeStart(wrapped);
+                                                setPlanEndTimeValue(dIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
+                                              }}
+                                              accentClass="text-slate-800"
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
 
                             </div>
                           )}
@@ -10775,6 +10943,7 @@ const App = () => {
           }
 
           {timeControllerTarget?.kind === 'plan-time' && (() => {
+            if (timeControllerTarget?.inline) return null;
             const dayIdx = timeControllerTarget.dayIdx;
             const pIdx = timeControllerTarget.pIdx;
             const item = itinerary.days?.[dayIdx]?.plan?.[pIdx];

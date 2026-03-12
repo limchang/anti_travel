@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.102",
+      "timestamp": "2026-03-12T20:57:00+09:00",
+      "message": "fix: rollback travel chip step buttons and restore 1min controls"
+    },
+    {
       "version": "1.3.101",
       "timestamp": "2026-03-12T20:51:46+09:00",
       "message": "모바일 시간휠 안정화: 드래그 중 snap/transition/live 반영 완화"
@@ -144,11 +149,6 @@
       "version": "1.3.73",
       "timestamp": "2026-03-12T14:41:14+09:00",
       "message": "시간셀 기본 축소(시작시간만) 및 클릭 확장 전환 적용"
-    },
-    {
-      "version": "1.3.72",
-      "timestamp": "2026-03-12T14:36:07+09:00",
-      "message": "카카오 주소 직조회 fallback으로 자동경로 복구 및 시간모달 휠 구조 정리"
     }
   ]
 }

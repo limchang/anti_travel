@@ -2616,7 +2616,6 @@ const App = () => {
   const [timeControllerTarget, setTimeControllerTarget] = useState(null); // { kind, dayIdx, pIdx, left, top, width }
   const [timelineEndTimeDraft, setTimelineEndTimeDraft] = useState(null); // { key, value }
   const [lodgeCheckoutDraft, setLodgeCheckoutDraft] = useState(null); // { key, value }
-  const [timeControlStep, setTimeControlStep] = useState(5);
   const [isTimeWheelDragging, setIsTimeWheelDragging] = useState(false);
   const timeControllerAutoCloseTimerRef = useRef(null);
   const saveQueueRef = useRef({ inFlight: false, pending: null });
@@ -4055,10 +4054,10 @@ const App = () => {
   const CAR_EFFICIENCY = 13;
   // 코드 오류 수정 및 3일차 일정 변경 키
   const STORAGE_KEY = 'travel_planner_v105_fix_syntax_day3';
-  const TIME_UNIT = timeControlStep;
+  const TIME_UNIT = 1;
   const DEFAULT_TRAVEL_MINS = 15;
   const DEFAULT_BUFFER_MINS = 10;
-  const BUFFER_STEP = timeControlStep;
+  const BUFFER_STEP = 1;
   const SHOW_HERO_COMPACT_BAR = true;
   const getMenuQty = (menu) => {
     const parsed = Number(menu?.qty);
@@ -9799,21 +9798,6 @@ const App = () => {
                                   {/* 구분선 */}
                                   <div className="w-px h-4 bg-slate-200 mx-0.5" />
 
-                                  {/* 조절 단위 */}
-                                  <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-1 py-0.5">
-                                    {[1, 5, 15, 30].map((step) => (
-                                      <button
-                                        key={`step-a-${step}`}
-                                        type="button"
-                                        onClick={(e) => { e.stopPropagation(); setTimeControlStep(step); }}
-                                        className={`h-5 min-w-[24px] rounded-full px-1 text-[10px] font-black transition-colors ${timeControlStep === step ? 'bg-[#3182F6] text-white' : 'text-slate-500 hover:bg-slate-200/70'}`}
-                                        title={`${step}분 단위`}
-                                      >
-                                        {step}
-                                      </button>
-                                    ))}
-                                  </div>
-
                                   {/* 여유 시간 */}
                                   <div className="flex items-center gap-1.5">
                                     <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
@@ -10315,7 +10299,7 @@ const App = () => {
                                     const lodgeCheckinKey = `${dIdx}-${pIdx}-lodge-in`;
                                     const checkoutTarget = timeControllerTarget?.key === lodgeCheckoutKey;
                                     const checkinTarget = timeControllerTarget?.key === lodgeCheckinKey;
-                                    const lodgeStep = timeControlStep;
+                                    const lodgeStep = 1;
                                     const nextDay = itinerary.days[dIdx + 1];
                                     const nextItem = nextDay?.plan?.find(candidate => candidate?.type !== 'backup');
                                     const rawCheckoutMins = p.lodgeCheckoutTime
@@ -10893,20 +10877,6 @@ const App = () => {
                                         </button>
                                         {/* 구분선 */}
                                         <div className="w-px h-4 bg-slate-200 mx-0.5" />
-                                        {/* 조절 단위 */}
-                                        <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-1 py-0.5">
-                                          {[1, 5, 15, 30].map((step) => (
-                                            <button
-                                              key={`step-b-${step}`}
-                                              type="button"
-                                              onClick={(e) => { e.stopPropagation(); setTimeControlStep(step); }}
-                                              className={`h-5 min-w-[24px] rounded-full px-1 text-[10px] font-black transition-colors ${timeControlStep === step ? 'bg-[#3182F6] text-white' : 'text-slate-500 hover:bg-slate-200/70'}`}
-                                              title={`${step}분 단위`}
-                                            >
-                                              {step}
-                                            </button>
-                                          ))}
-                                        </div>
                                         <div className="flex items-center gap-1.5">
                                           <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
                                           <div className="flex flex-col items-center">

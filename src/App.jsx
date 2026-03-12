@@ -3854,6 +3854,17 @@ const App = () => {
     }
     return (item.receipt?.address || item.address || '').trim();
   };
+  const getRouteGeoPoint = (item, role = 'from') => {
+    if (!item) return null;
+    if (item.types?.includes('ship')) {
+      const geo = role === 'from'
+        ? normalizeGeoPoint(item.geoEnd, getShipEndAddress(item))
+        : normalizeGeoPoint(item.geoStart, getShipStartAddress(item));
+      return hasGeoCoords(geo) ? geo : null;
+    }
+    const geo = normalizeGeoPoint(item.geo, getPlanItemPrimaryAddress(item));
+    return hasGeoCoords(geo) ? geo : null;
+  };
   const getRouteCacheKey = (fromAddress = '', toAddress = '') => `${String(fromAddress || '').trim()}|${String(toAddress || '').trim()}`;
   const summarizeRouteFailureReason = (errorMessage = '') => {
     const normalized = String(errorMessage || '').trim();
@@ -6277,23 +6288,23 @@ const App = () => {
       }
 
       // 2) 대체(OSRM + 하한 검수)
-      const getCoords = async (addr, name = '') => {
-        const candidates = [
-          String(addr || '').trim(),
-        ].filter(Boolean);
-        for (const raw of candidates) {
-          const q = raw.split(/\s+/).slice(0, 8).join(' ');
-          const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`);
-          const data = await r.json();
-          if (data && data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
+      const getCoords = async (item, addr) => {
+        const normalizedAddr = String(addr || '').trim();
+        const stored = getRouteGeoPoint(item, item === prevItem ? 'from' : 'to');
+        if (hasGeoCoords(stored) && !isGeoStaleForAddress(stored, normalizedAddr)) {
+          return { lat: Number(stored.lat), lon: Number(stored.lon) };
+        }
+        const resolved = await geocodeAddress(normalizedAddr);
+        if (hasGeoCoords(resolved)) {
+          return { lat: Number(resolved.lat), lon: Number(resolved.lon) };
         }
         return null;
       };
 
-      const c1 = await getCoords(addr1, prevItem?.activity);
+      const c1 = await getCoords(prevItem, addr1);
       if (!c1) throw new Error("출발지 좌표를 찾지 못했습니다.");
       await new Promise(r => setTimeout(r, 1000)); // Respect OpenStreetMaps limits
-      const c2 = await getCoords(addr2, targetItem?.activity);
+      const c2 = await getCoords(targetItem, addr2);
       if (!c2) throw new Error("도착지 좌표를 찾지 못했습니다.");
 
       const r2 = await fetch(`https://router.project-osrm.org/route/v1/driving/${c1.lon},${c1.lat};${c2.lon},${c2.lat}?overview=false`);

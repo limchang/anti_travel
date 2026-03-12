@@ -9773,6 +9773,7 @@ const App = () => {
                     )}
 
                     <div
+                      data-plan-card-shell="true"
                       data-dropitem={`${dIdx}-${pIdx}`}
                       draggable={isEditMode}
                       onTouchStart={(e) => {
@@ -9869,7 +9870,9 @@ const App = () => {
                               data-no-drag="true"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                const rect = e.currentTarget.getBoundingClientRect();
+                                const towerRect = e.currentTarget.getBoundingClientRect();
+                                const shellRect = e.currentTarget.closest('[data-plan-card-shell="true"]')?.getBoundingClientRect();
+                                const rect = shellRect || towerRect;
                                 setTimeControllerTarget((prev) => (
                                   prev?.kind === 'plan-time' && prev?.dayIdx === dIdx && prev?.pIdx === pIdx
                                     ? null
@@ -9880,6 +9883,7 @@ const App = () => {
                                       left: rect.left,
                                       top: rect.top,
                                       width: rect.width,
+                                      replaceMode: true,
                                     }
                                 ));
                               }}
@@ -10862,10 +10866,16 @@ const App = () => {
             const durationMinutes = Math.max(0, Number(item.duration) || 0);
             const endMinutesAbsolute = startMinutes + durationMinutes;
             const currentEndMinutes = ((endMinutesAbsolute % 1440) + 1440) % 1440;
-            const desiredWidth = Number(timeControllerTarget.width || 0) + 520;
-            const panelWidth = Math.min(window.innerWidth - 24, Math.max(560, desiredWidth));
+            const replaceMode = !!timeControllerTarget.replaceMode;
+            const triggerWidth = Number(timeControllerTarget.width || 0);
+            const desiredWidth = replaceMode ? triggerWidth : (triggerWidth + 520);
+            const panelWidth = replaceMode
+              ? Math.min(window.innerWidth - 24, Math.max(420, desiredWidth))
+              : Math.min(window.innerWidth - 24, Math.max(560, desiredWidth));
             const left = Math.max(12, Math.min(window.innerWidth - panelWidth - 12, Number(timeControllerTarget.left || 0)));
-            const top = Math.max(12, Math.min(window.innerHeight - 220, Number(timeControllerTarget.top || 0) - 6));
+            const top = replaceMode
+              ? Math.max(12, Math.min(window.innerHeight - 220, Number(timeControllerTarget.top || 0) + 4))
+              : Math.max(12, Math.min(window.innerHeight - 220, Number(timeControllerTarget.top || 0) - 6));
             const isAutoLocked = item.types?.includes('ship') || item._isBufferCoordinated;
             const isEndTimeFixed = !!item.isEndTimeFixed;
             const startHourValues = Array.from({ length: 24 }, (_, idx) => idx);

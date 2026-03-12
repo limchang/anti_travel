@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.66",
+      "timestamp": "2026-03-12T14:06:10+09:00",
+      "message": "시간 편집 모달을 일정 카드 폭 기준 대체형으로 조정"
+    },
+    {
       "version": "1.3.65",
       "timestamp": "2026-03-12T14:03:00+09:00",
       "message": "시간 휠 세로 밀도 추가 축소(높이/피치 타이트 조정)"
@@ -144,11 +149,6 @@
       "version": "1.3.37",
       "timestamp": "2026-03-12T11:53:50+09:00",
       "message": "fix: use kakao sdk geocoder for route preview map"
-    },
-    {
-      "version": "1.3.36",
-      "timestamp": "2026-03-12T11:51:37+09:00",
-      "message": "style: add subtle borders to inactive nav items"
     }
   ]
 }

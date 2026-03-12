@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.40",
+      "timestamp": "2026-03-12T12:09:57+09:00",
+      "message": "feat: add manual route preview refresh"
+    },
+    {
       "version": "1.3.39",
       "timestamp": "2026-03-12T12:08:01+09:00",
       "message": "feat: replace time sliders with wheel pickers"
@@ -144,11 +149,6 @@
       "version": "1.3.11",
       "timestamp": "2026-03-12T10:04:09+09:00",
       "message": "design: remove connector lines from the time cell and keep a simple vertical stack"
-    },
-    {
-      "version": "1.3.10",
-      "timestamp": "2026-03-12T09:57:44+09:00",
-      "message": "design: center the duration button cell between start and end times"
     }
   ]
 }

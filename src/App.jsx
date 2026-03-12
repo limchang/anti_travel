@@ -4066,10 +4066,12 @@ const App = () => {
     const hasTravelAuto = String(targetItem.travelTimeAuto || '').trim() !== '';
     return !hasDistance || !hasTravelAuto;
   };
-  const geocodeAddress = useCallback(async (address) => {
+  const geocodeAddress = useCallback(async (address, options = {}) => {
     const key = String(address || '').trim();
+    const forceRefresh = !!options?.forceRefresh;
     if (!key) return null;
-    if (geoCacheRef.current[key]) return geoCacheRef.current[key];
+    if (!forceRefresh && geoCacheRef.current[key]) return geoCacheRef.current[key];
+    if (forceRefresh) delete geoCacheRef.current[key];
     try {
       const kakao = await loadKakaoMapSdk(KAKAO_API_KEY);
       const services = kakao?.maps?.services;
@@ -4241,6 +4243,42 @@ const App = () => {
     }).filter((entry) => entry.points.length >= 1);
   }, [itinerary.days, hiddenRoutePreviewEndpoints]);
 
+  const resolveRoutePreviewDays = useCallback(async ({ forceRefresh = false } = {}) => {
+    const dayEntries = routePreviewPointSource;
+    if (!dayEntries.length) return [];
+    const nextDays = [];
+    for (const entry of dayEntries) {
+      const coords = [];
+      for (const point of entry.points) {
+        const geo = !forceRefresh && hasGeoCoords(point.geo) && !isGeoStaleForAddress(point.geo, point.address)
+          ? point.geo
+          : await geocodeAddress(point.address, { forceRefresh });
+        if (!geo?.lat || !geo?.lon) continue;
+        coords.push({
+          ...point,
+          lat: Number(geo.lat),
+          lon: Number(geo.lon),
+        });
+      }
+      if (coords.length >= 1) {
+        nextDays.push({ ...entry, points: coords });
+      }
+    }
+    return nextDays;
+  }, [geocodeAddress, routePreviewPointSource]);
+
+  const refreshRoutePreviewMap = useCallback(async () => {
+    setRoutePreviewLoading(true);
+    setLastAction('메인 경로 지도를 현재 주소 기준으로 다시 불러오는 중입니다...');
+    try {
+      const nextDays = await resolveRoutePreviewDays({ forceRefresh: true });
+      setRoutePreviewDays(nextDays);
+      setLastAction(nextDays.length ? '메인 경로 지도를 새로 불러왔습니다.' : '지도에 표시할 경로를 아직 찾지 못했습니다.');
+    } finally {
+      setRoutePreviewLoading(false);
+    }
+  }, [resolveRoutePreviewDays]);
+
   useEffect(() => {
     let cancelled = false;
     const jobs = [];
@@ -4346,32 +4384,14 @@ const App = () => {
     let cancelled = false;
 
     const buildRoutePreview = async () => {
-      const dayEntries = routePreviewPointSource;
-      if (!dayEntries.length) {
+      if (!routePreviewPointSource.length) {
         if (!cancelled) setRoutePreviewDays([]);
         return;
       }
 
       setRoutePreviewLoading(true);
       try {
-        const nextDays = [];
-        for (const entry of dayEntries) {
-          const coords = [];
-          for (const point of entry.points) {
-            const geo = hasGeoCoords(point.geo) && !isGeoStaleForAddress(point.geo, point.address)
-              ? point.geo
-              : await geocodeAddress(point.address);
-            if (!geo?.lat || !geo?.lon) continue;
-            coords.push({
-              ...point,
-              lat: Number(geo.lat),
-              lon: Number(geo.lon),
-            });
-          }
-          if (coords.length >= 1) {
-            nextDays.push({ ...entry, points: coords });
-          }
-        }
+        const nextDays = await resolveRoutePreviewDays();
         if (!cancelled) setRoutePreviewDays(nextDays);
       } finally {
         if (!cancelled) setRoutePreviewLoading(false);
@@ -4382,7 +4402,7 @@ const App = () => {
     return () => {
       cancelled = true;
     };
-  }, [routePreviewPointSource, geocodeAddress]);
+  }, [routePreviewPointSource, resolveRoutePreviewDays]);
 
   const routePreviewMap = useMemo(() => {
     const allPoints = routePreviewDays.flatMap((day) => day.points || []);
@@ -7389,9 +7409,19 @@ const App = () => {
                 <p className="text-[14px] font-black text-slate-800">전체 동선 지도 보기</p>
                 <p className="mt-1 text-[10px] font-bold text-slate-400">Day별 이동 흐름 요약</p>
               </div>
-              <button type="button" onClick={() => setShowRoutePreviewModal(false)} className="w-8 h-8 rounded-xl border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors">
-                <X size={14} />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => void refreshRoutePreviewMap()}
+                  disabled={routePreviewLoading}
+                  className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors disabled:opacity-50"
+                >
+                  {routePreviewLoading ? '불러오는 중' : '경로 새로 불러오기'}
+                </button>
+                <button type="button" onClick={() => setShowRoutePreviewModal(false)} className="w-8 h-8 rounded-xl border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors">
+                  <X size={14} />
+                </button>
+              </div>
             </div>
             <div className="p-5">
               <div className="rounded-[24px] border border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(191,219,254,0.35),_rgba(255,255,255,0.96)_55%)] p-4">
@@ -9109,13 +9139,23 @@ const App = () => {
                                   <p className="text-[14px] font-black text-slate-800 truncate">Main Route Map</p>
                                   <p className="mt-0.5 text-[10px] font-bold text-slate-400">Day 1 · Day 2 · Day 3 실제 카카오 지도 경로</p>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => setShowRoutePreviewModal(true)}
-                                  className="shrink-0 px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                                >
-                                  크게 보기
-                                </button>
+                                <div className="shrink-0 flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => void refreshRoutePreviewMap()}
+                                    disabled={routePreviewLoading}
+                                    className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors disabled:opacity-50"
+                                  >
+                                    {routePreviewLoading ? '불러오는 중' : '경로 새로 불러오기'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowRoutePreviewModal(true)}
+                                    className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                  >
+                                    크게 보기
+                                  </button>
+                                </div>
                               </div>
                               <div className="p-4">
                                 <div className="mb-3 flex flex-wrap gap-1.5 justify-start">

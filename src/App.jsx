@@ -6266,7 +6266,7 @@ const App = () => {
     setLastAction(`'${suggestion.name}'이(가) 대안 일정으로 등록되었습니다.`);
   };
 
-  const fetchKakaoVerifiedRoute = async ({ fromAddress, toAddress, fromCoord = null, toCoord = null }) => {
+  const fetchKakaoVerifiedRoute = async ({ fromAddress, toAddress }) => {
     const endpoints = getRouteVerifyEndpointCandidates(aiSmartFillConfig?.proxyBaseUrl);
     let lastError = null;
     for (const endpoint of endpoints) {
@@ -6277,8 +6277,6 @@ const App = () => {
           body: JSON.stringify({
             fromAddress,
             toAddress,
-            fromCoord: hasGeoCoords(fromCoord) ? { lat: Number(fromCoord.lat), lon: Number(fromCoord.lon) } : null,
-            toCoord: hasGeoCoords(toCoord) ? { lat: Number(toCoord.lat), lon: Number(toCoord.lon) } : null,
           }),
         });
         const data = await r.json().catch(() => ({}));
@@ -6348,13 +6346,9 @@ const App = () => {
     if (!silent) setLastAction("경로와 거리를 자동 계산 중입니다...");
 
     try {
-      const fromCoord = getRouteGeoPoint(prevItem, 'from');
-      const toCoord = getRouteGeoPoint(targetItem, 'to');
       const kakaoRoute = await fetchKakaoVerifiedRoute({
         fromAddress: addr1,
         toAddress: addr2,
-        fromCoord,
-        toCoord,
       });
       setRouteCache(prev => ({ ...prev, [key]: kakaoRoute }));
       applyRoute(dayIdx, targetIdx, kakaoRoute);
@@ -9013,7 +9007,7 @@ const App = () => {
             );
           })()}
           <div ref={heroTriggerRef} className="h-px w-full" />
-          <div className={`w-full mx-auto flex flex-col relative z-0 ${timelineMaxClass} ${isCompactTimeline ? 'gap-4' : 'gap-6'}`}>
+          <div className={`w-full mx-auto flex flex-col relative z-0 ${timelineMaxClass} gap-0`}>
             {totalTimelineItems === 0 && (
               <div
                 data-droptarget="empty-timeline"

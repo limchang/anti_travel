@@ -393,8 +393,6 @@ exports.routeVerify = onRequest({ invoker: 'public' }, async (req, res) => {
   const {
     fromAddress = '',
     toAddress = '',
-    fromCoord: rawFromCoord = null,
-    toCoord: rawToCoord = null,
   } = req.body || {};
 
   if (!String(fromAddress).trim() || !String(toAddress).trim()) {
@@ -402,16 +400,9 @@ exports.routeVerify = onRequest({ invoker: 'public' }, async (req, res) => {
   }
 
   try {
-    const clientFromCoord = rawFromCoord && toNum(rawFromCoord.lat) != null && toNum(rawFromCoord.lon) != null
-      ? { lat: toNum(rawFromCoord.lat), lon: toNum(rawFromCoord.lon), source: 'client-geo', query: String(fromAddress || '').trim() }
-      : null;
-    const clientToCoord = rawToCoord && toNum(rawToCoord.lat) != null && toNum(rawToCoord.lon) != null
-      ? { lat: toNum(rawToCoord.lat), lon: toNum(rawToCoord.lon), source: 'client-geo', query: String(toAddress || '').trim() }
-      : null;
-
     const [fromCoord, toCoord] = await Promise.all([
-      clientFromCoord ? Promise.resolve(clientFromCoord) : geocodeWithKakao({ address: fromAddress, restKey }),
-      clientToCoord ? Promise.resolve(clientToCoord) : geocodeWithKakao({ address: toAddress, restKey }),
+      geocodeWithKakao({ address: fromAddress, restKey }),
+      geocodeWithKakao({ address: toAddress, restKey }),
     ]);
 
     if (!fromCoord || !toCoord) {

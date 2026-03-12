@@ -1779,6 +1779,7 @@ const TimeWheelColumn = ({
   onDragStateChange,
   liveOnDrag = false,
 }) => {
+  const EDGE_PAD_COUNT = cyclic ? 0 : 1;
   const listRef = React.useRef(null);
   const settleTimerRef = React.useRef(null);
   const isProgrammaticRef = React.useRef(false);
@@ -1790,6 +1791,10 @@ const TimeWheelColumn = ({
     if (!cyclic) return values;
     return [...values, ...values, ...values];
   }, [cyclic, values]);
+  const renderedEntries = React.useMemo(() => {
+    if (cyclic) return renderedValues;
+    return [null, ...renderedValues, null];
+  }, [cyclic, renderedValues]);
 
   React.useEffect(() => {
     lastEmittedValueRef.current = value;
@@ -1800,7 +1805,7 @@ const TimeWheelColumn = ({
     if (!list) return;
     if (pointerDragRef.current.active || touchDragRef.current.active) return;
     const baseIndex = Math.max(0, values.indexOf(value));
-    const currentIndex = cyclic ? (baseIndex + values.length) : baseIndex;
+    const currentIndex = cyclic ? (baseIndex + values.length) : (baseIndex + EDGE_PAD_COUNT);
     const targetTop = currentIndex * TIME_WHEEL_ITEM_HEIGHT;
     if (Math.abs(list.scrollTop - targetTop) < 2) return;
     isProgrammaticRef.current = true;
@@ -1817,27 +1822,27 @@ const TimeWheelColumn = ({
   const getClosestValue = React.useCallback(() => {
     const list = listRef.current;
     if (!list || !values.length) return null;
-    const renderedLength = renderedValues.length;
+    const renderedLength = renderedEntries.length;
     if (!renderedLength) return null;
     const rawIndex = Math.max(0, Math.min(renderedLength - 1, Math.round(list.scrollTop / TIME_WHEEL_ITEM_HEIGHT)));
     const normalizedIndex = cyclic
       ? ((rawIndex % values.length) + values.length) % values.length
-      : rawIndex;
+      : (rawIndex - EDGE_PAD_COUNT);
     const nextIndex = Math.max(0, Math.min(values.length - 1, normalizedIndex));
     return values[nextIndex];
-  }, [cyclic, renderedValues.length, values]);
+  }, [EDGE_PAD_COUNT, cyclic, renderedEntries.length, values]);
 
   const commitClosestValue = React.useCallback(() => {
     const list = listRef.current;
     if (!list || !values.length) return;
-    const renderedLength = renderedValues.length;
+    const renderedLength = renderedEntries.length;
     if (!renderedLength) return;
     const rawIndex = Math.max(0, Math.min(renderedLength - 1, Math.round(list.scrollTop / TIME_WHEEL_ITEM_HEIGHT)));
     const normalizedIndex = cyclic
       ? ((rawIndex % values.length) + values.length) % values.length
-      : rawIndex;
+      : (rawIndex - EDGE_PAD_COUNT);
     let nextIndex = Math.max(0, Math.min(values.length - 1, normalizedIndex));
-    const centerIndex = cyclic ? (nextIndex + values.length) : nextIndex;
+    const centerIndex = cyclic ? (nextIndex + values.length) : (nextIndex + EDGE_PAD_COUNT);
     const targetTop = centerIndex * TIME_WHEEL_ITEM_HEIGHT;
     if (Math.abs(list.scrollTop - targetTop) > 1) {
       isProgrammaticRef.current = true;
@@ -1850,13 +1855,13 @@ const TimeWheelColumn = ({
       lastEmittedValueRef.current = values[nextIndex];
       onChange?.(values[nextIndex]);
     }
-  }, [cyclic, onChange, renderedValues.length, value, values]);
+  }, [EDGE_PAD_COUNT, cyclic, onChange, renderedEntries.length, value, values]);
 
   const commitSpecificValue = React.useCallback((nextValue) => {
     if (!values.length) return;
     const list = listRef.current;
     const baseIndex = Math.max(0, values.indexOf(nextValue));
-    const centerIndex = cyclic ? (baseIndex + values.length) : baseIndex;
+    const centerIndex = cyclic ? (baseIndex + values.length) : (baseIndex + EDGE_PAD_COUNT);
     const targetTop = centerIndex * TIME_WHEEL_ITEM_HEIGHT;
     if (list) {
       isProgrammaticRef.current = true;
@@ -1869,7 +1874,7 @@ const TimeWheelColumn = ({
       lastEmittedValueRef.current = nextValue;
       onChange?.(nextValue);
     }
-  }, [cyclic, onChange, values]);
+  }, [EDGE_PAD_COUNT, cyclic, onChange, values]);
 
   const handleScroll = React.useCallback(() => {
     if (pointerDragRef.current.active) return;
@@ -2007,7 +2012,10 @@ const TimeWheelColumn = ({
           onScroll={handleScroll}
           className="relative h-[84px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[28px] touch-pan-y"
         >
-          {renderedValues.map((entry, idx) => {
+          {renderedEntries.map((entry, idx) => {
+            if (entry === null) {
+              return <div key={`${label}-pad-${idx}`} className="h-[28px]" aria-hidden="true" />;
+            }
             const active = entry === value;
             return (
               <button

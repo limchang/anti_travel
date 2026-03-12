@@ -4013,51 +4013,6 @@ const App = () => {
   };
   const geoCacheRef = useRef({});
 
-  // 1) basePlanRef 변경 시 내 장소들의 거리를 계산
-  useEffect(() => {
-    if (!basePlanRef?.address) {
-      setPlaceDistanceMap({});
-      return;
-    }
-
-    const calc = async () => {
-      try {
-        setLastAction("내 장소 거리 계산 중...");
-        const baseRes = await searchAddressFromPlaceName(basePlanRef.address);
-        if (!baseRes?.lat || !baseRes?.lon) {
-          setLastAction("기준 일정의 좌표를 찾을 수 없습니다.");
-          return;
-        }
-        const bLat = parseFloat(baseRes.lat);
-        const bLon = parseFloat(baseRes.lon);
-
-        const newMap = {};
-        const places = itinerary.places || [];
-        for (const p of places) {
-          if (!p.receipt?.address && !p.address) continue;
-          const queryAddr = p.receipt?.address || p.address;
-          if (hasGeoCoords(p.geo) && !isGeoStaleForAddress(p.geo, queryAddr)) {
-            newMap[p.id] = +haversineKm(bLat, bLon, p.geo.lat, p.geo.lon).toFixed(1);
-          } else if (geoCacheRef.current[queryAddr]) {
-            const { lat, lon } = geoCacheRef.current[queryAddr];
-            newMap[p.id] = +haversineKm(bLat, bLon, lat, lon).toFixed(1);
-          } else {
-            const pRes = await searchAddressFromPlaceName(queryAddr);
-            if (pRes?.lat && pRes?.lon) {
-              geoCacheRef.current[queryAddr] = { lat: parseFloat(pRes.lat), lon: parseFloat(pRes.lon) };
-              newMap[p.id] = +haversineKm(bLat, bLon, parseFloat(pRes.lat), parseFloat(pRes.lon)).toFixed(1);
-            }
-          }
-        }
-        setPlaceDistanceMap(newMap);
-        setLastAction(`'${basePlanRef.name}' 기준으로 내 장소 거리를 업데이트했습니다.`);
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    calc();
-  }, [basePlanRef?.id, basePlanRef?.address, itinerary.places]);
-
   const formatDistanceText = (distance) => {
     const num = Number(distance);
     if (!Number.isFinite(num) || num < 0) return '미계산';

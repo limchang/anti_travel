@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.77",
+      "timestamp": "2026-03-12T15:11:30+09:00",
+      "message": "내장소 거리 계산 중복 효과 제거: 지오코딩 경로 단일화로 km 이상치 수정"
+    },
+    {
       "version": "1.3.76",
       "timestamp": "2026-03-12T15:06:58+09:00",
       "message": "시간영역 인라인 확장 적용: 조절영역 클릭 시 카드 내부 3컬럼 시간컨트롤 표시"
@@ -144,11 +149,6 @@
       "version": "1.3.48",
       "timestamp": "2026-03-12T12:54:05+09:00",
       "message": "fix: stabilize time modal drag and mark blocked ranges"
-    },
-    {
-      "version": "1.3.47",
-      "timestamp": "2026-03-12T12:47:52+09:00",
-      "message": "fix: enable minute wrap with hour carry in time modal"
     }
   ]
 }

@@ -1803,7 +1803,6 @@ const TimeWheelColumn = ({
   React.useEffect(() => {
     const list = listRef.current;
     if (!list) return;
-    if (pointerDragRef.current.active || touchDragRef.current.active) return;
     const baseIndex = Math.max(0, values.indexOf(value));
     const currentIndex = cyclic ? (baseIndex + values.length) : (baseIndex + EDGE_PAD_COUNT);
     const targetTop = currentIndex * TIME_WHEEL_ITEM_HEIGHT;
@@ -1824,11 +1823,6 @@ const TimeWheelColumn = ({
     if (!list || !values.length) return null;
     const renderedLength = renderedEntries.length;
     if (!renderedLength) return null;
-    const hasZeroPriority = !cyclic && values[0] === 0;
-    if (hasZeroPriority) {
-      const zeroPriorityCutoff = (EDGE_PAD_COUNT + 1) * TIME_WHEEL_ITEM_HEIGHT;
-      if (list.scrollTop <= zeroPriorityCutoff) return values[0];
-    }
     const rawIndex = Math.max(0, Math.min(renderedLength - 1, Math.round(list.scrollTop / TIME_WHEEL_ITEM_HEIGHT)));
     const normalizedIndex = cyclic
       ? ((rawIndex % values.length) + values.length) % values.length
@@ -1855,10 +1849,8 @@ const TimeWheelColumn = ({
             isProgrammaticRef.current = false;
           }, 140);
         }
-        if (values[0] !== lastEmittedValueRef.current) {
-          lastEmittedValueRef.current = values[0];
-          onChange?.(values[0]);
-        }
+        lastEmittedValueRef.current = values[0];
+        onChange?.(values[0]);
         return;
       }
     }
@@ -1876,10 +1868,8 @@ const TimeWheelColumn = ({
         isProgrammaticRef.current = false;
       }, 140);
     }
-    if (values[nextIndex] !== lastEmittedValueRef.current) {
-      lastEmittedValueRef.current = values[nextIndex];
-      onChange?.(values[nextIndex]);
-    }
+    lastEmittedValueRef.current = values[nextIndex];
+    onChange?.(values[nextIndex]);
   }, [EDGE_PAD_COUNT, cyclic, onChange, renderedEntries.length, value, values]);
 
   const commitSpecificValue = React.useCallback((nextValue) => {
@@ -1895,10 +1885,8 @@ const TimeWheelColumn = ({
         isProgrammaticRef.current = false;
       }, 140);
     }
-    if (nextValue !== lastEmittedValueRef.current) {
-      lastEmittedValueRef.current = nextValue;
-      onChange?.(nextValue);
-    }
+    lastEmittedValueRef.current = nextValue;
+    onChange?.(nextValue);
   }, [EDGE_PAD_COUNT, cyclic, onChange, values]);
 
   const handleScroll = React.useCallback(() => {

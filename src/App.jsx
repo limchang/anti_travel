@@ -9847,52 +9847,27 @@ const App = () => {
                                 data-time-trigger="true"
                                 className="relative z-10 w-full rounded-2xl px-1 py-1 select-none transition-all group-hover/tower:bg-slate-100/30"
                               >
-                                <div className={`relative z-10 flex w-full flex-col items-center justify-center ${isTimeCellExpanded ? 'gap-2' : 'gap-1.5'}`}>
+                                <div className="relative z-10 flex w-full flex-col items-center justify-center gap-1.5">
                                   {(() => {
-                                    const endMins = timeToMinutes(p.time || '00:00') + (p.duration || 0);
-                                    const [hh, mm] = (p.time || '00:00').split(':');
-                                    const [ehh, emm] = minutesToTime(endMins).split(':');
-                                    if (!isTimeCellExpanded) {
-                                      return (
-                                        <div className="flex w-full select-none flex-col items-center justify-center gap-1.5 px-2 py-1">
-                                          <div className={`relative flex h-[44px] w-full items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 group-hover/tower:border-slate-300 group-hover/tower:bg-white'}`}>
-                                            <span className="text-[34px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-900">
-                                              {hh}<span className="mx-[1px] opacity-72">:</span>{mm}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      );
-                                    }
+                                    const normalizeMinutes = (value) => ((value % 1440) + 1440) % 1440;
+                                    const startTotal = timeToMinutes(p.time || '00:00');
+                                    const prevStart = minutesToTime(normalizeMinutes(startTotal - 1));
+                                    const currentStart = minutesToTime(normalizeMinutes(startTotal));
+                                    const nextStart = minutesToTime(normalizeMinutes(startTotal + 1));
+                                    const [prevHour, prevMinute] = prevStart.split(':');
+                                    const [curHour, curMinute] = currentStart.split(':');
+                                    const [nextHour, nextMinute] = nextStart.split(':');
+                                    const miniColumn = (prevValue, curValue, nextValue) => (
+                                      <div className="flex w-[54px] flex-col items-center justify-center rounded-[12px] border border-slate-200 bg-white/90 px-1 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
+                                        <span className="text-[12px] leading-none font-black tabular-nums tracking-[-0.02em] text-slate-300">{prevValue}</span>
+                                        <span className="my-0.5 flex h-[28px] w-full items-center justify-center rounded-[10px] border border-[#3182F6]/35 bg-[#3182F6]/8 text-[18px] leading-none font-black tabular-nums tracking-[-0.02em] text-[#1e4fa3]">{curValue}</span>
+                                        <span className="text-[12px] leading-none font-black tabular-nums tracking-[-0.02em] text-slate-300">{nextValue}</span>
+                                      </div>
+                                    );
                                     return (
-                                      <div className={`flex w-full select-none flex-col items-center justify-center px-2 ${isTimeCellExpanded ? 'gap-2 py-1' : 'gap-1.5 py-0.5'}`}>
-                                        <div className={`relative flex w-full items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${isTimeCellExpanded ? 'h-[44px]' : 'h-[40px]'} ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 group-hover/tower:border-slate-300 group-hover/tower:bg-white'}`}>
-                                          <span className={`font-black tabular-nums tracking-[-0.08em] leading-none text-slate-900 ${isTimeCellExpanded ? 'text-[39px]' : 'text-[34px]'}`}>
-                                            {hh}<span className="mx-[1px] opacity-72">:</span>{mm}
-                                          </span>
-                                        </div>
-
-                                        <div className="relative flex w-full items-center justify-center">
-                                          <button
-                                            type="button"
-                                            className={`relative z-10 flex min-w-[88px] items-center justify-center gap-2 rounded-[12px] border px-2 py-0.5 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isTimeCellExpanded ? 'h-[30px]' : 'h-[28px]'} ${isAutoLocked
-                                              ? 'bg-red-500 text-white'
-                                              : isDurationLocked
-                                                ? 'bg-[#ff8a1a] text-white'
-                                                : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                              }`}
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            <ChevronLeft size={11} />
-                                            <span className={`font-black tabular-nums tracking-[0.16em] ${isTimeCellExpanded ? 'text-[12px]' : 'text-[11px]'}`}>{fmtDur(p.duration).replace('분', '')}</span>
-                                            <ChevronRight size={11} />
-                                          </button>
-                                        </div>
-
-                                        <div className={`flex w-full items-center justify-center rounded-[14px] border border-slate-200 bg-slate-50 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100 ${isTimeCellExpanded ? 'h-[44px]' : 'h-[40px]'}`}>
-                                          <span className={`font-black tabular-nums tracking-[-0.08em] leading-none text-slate-400 ${isTimeCellExpanded ? 'text-[39px]' : 'text-[34px]'}`}>
-                                            {ehh}<span className="mx-[1px] opacity-70">:</span>{emm}
-                                          </span>
-                                        </div>
+                                      <div className="flex w-full select-none items-center justify-center gap-1.5 px-1 py-0.5">
+                                        {miniColumn(prevHour, curHour, nextHour)}
+                                        {miniColumn(prevMinute, curMinute, nextMinute)}
                                       </div>
                                     );
                                   })()}

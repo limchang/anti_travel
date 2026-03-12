@@ -8681,7 +8681,7 @@ const App = () => {
                                       const endMins = timeToMinutes(p.time || '00:00') + (p.duration || 0);
                                       const [ehh, emm] = minutesToTime(endMins).split(':');
                                       return (
-                                        <div className="flex flex-col items-center justify-between w-full h-full min-h-[156px] select-none py-2">
+                                        <div className="flex flex-col items-center justify-center w-full h-full min-h-[156px] select-none gap-4 py-3">
                                           {/* 상단: 시작 시각 */}
                                           <div className="flex flex-col items-center">
                                             {p.isTimeFixed && (
@@ -8695,11 +8695,10 @@ const App = () => {
                                             </span>
                                           </div>
 
-                                          {/* 중단: 연결 라인 및 소요시간 뱃지 */}
-                                          <div className="relative flex flex-1 items-center justify-center w-full min-h-[52px]">
-                                            <div className="absolute inset-y-[-14px] left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-slate-100 via-slate-200 to-slate-100"></div>
+                                          {/* 중단: 소요시간 버튼 셀 */}
+                                          <div className="flex items-center justify-center w-full">
                                             <div
-                                              className={`relative z-10 min-w-[58px] flex items-center justify-center px-2.5 py-1 rounded-lg border shadow-[0_6px_14px_-10px_rgba(15,23,42,0.35)] transition-all hover:scale-[1.03] active:scale-[0.98] ${isAutoLocked ? 'bg-red-500 border-red-600 text-white' :
+                                              className={`min-w-[58px] flex items-center justify-center px-2.5 py-1 rounded-lg border transition-all hover:scale-[1.03] active:scale-[0.98] ${isAutoLocked ? 'bg-red-500 border-red-600 text-white' :
                                                 isDurationLocked ? 'bg-amber-400 border-amber-500 text-white' :
                                                   'bg-white border-slate-200 text-[#3182F6] hover:border-slate-300'
                                                 }`}

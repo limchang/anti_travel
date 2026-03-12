@@ -9329,8 +9329,8 @@ const App = () => {
                                                 <span className="text-[8px] font-bold text-[#3182F6] uppercase tracking-[0.14em]">FIXED</span>
                                               </div>
                                             )}
-                                            <span className={`text-[24px] font-black tabular-nums tracking-[-0.08em] leading-none transition-colors ${p.isTimeFixed ? 'text-[#1f5fd6]' : 'text-slate-900 group-hover/tower:text-[#244f9e]'}`}>
-                                              {hh}<span className="mx-[-1px] opacity-80">:</span>{mm}
+                                            <span className={`text-[24px] font-black tabular-nums tracking-[-0.04em] leading-none transition-colors ${p.isTimeFixed ? 'text-[#1f5fd6]' : 'text-slate-900 group-hover/tower:text-[#244f9e]'}`}>
+                                              {hh}<span className="mx-[1px] opacity-72">:</span>{mm}
                                             </span>
                                           </div>
 
@@ -9359,8 +9359,8 @@ const App = () => {
                                           </div>
 
                                           <div className="flex w-full min-h-[48px] items-center justify-center rounded-[18px] border border-slate-200 bg-slate-50/92 px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100/95">
-                                            <span className="text-[24px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-400">
-                                              {ehh}<span className="mx-[-1px] opacity-75">:</span>{emm}
+                                            <span className="text-[24px] font-black tabular-nums tracking-[-0.04em] leading-none text-slate-400">
+                                              {ehh}<span className="mx-[1px] opacity-70">:</span>{emm}
                                             </span>
                                           </div>
                                         </div>

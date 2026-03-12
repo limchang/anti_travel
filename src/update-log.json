@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.61",
+      "timestamp": "2026-03-12T13:50:16+09:00",
+      "message": "시간 휠 드래그 중 값 리셋 이슈 수정(동기화 잠금/터치-포인터 충돌 제거)"
+    },
+    {
       "version": "1.3.60",
       "timestamp": "2026-03-12T13:46:38+09:00",
       "message": "시간 휠 터치 전용 드래그 입력 추가로 반응성 안정화"
@@ -144,11 +149,6 @@
       "version": "1.3.32",
       "timestamp": "2026-03-12T11:36:50+09:00",
       "message": "style: match expanded time cell to reference"
-    },
-    {
-      "version": "1.3.31",
-      "timestamp": "2026-03-12T11:29:05+09:00",
-      "message": "feat: expand time cells with embedded controls"
     }
   ]
 }

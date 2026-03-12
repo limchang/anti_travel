@@ -1851,6 +1851,7 @@ const TimeWheelColumn = ({
   React.useEffect(() => {
     const list = listRef.current;
     if (!list) return;
+    if (pointerDragRef.current.active || touchDragRef.current.active) return;
     const baseIndex = Math.max(0, values.indexOf(value));
     const currentIndex = cyclic ? (baseIndex + values.length) : baseIndex;
     const targetTop = currentIndex * TIME_WHEEL_ITEM_HEIGHT;
@@ -1896,6 +1897,7 @@ const TimeWheelColumn = ({
   }, [commitClosestValue]);
 
   const handlePointerDown = React.useCallback((e) => {
+    if (e.pointerType === 'touch') return;
     const list = listRef.current;
     if (!list) return;
     pointerDragRef.current = {
@@ -1914,6 +1916,7 @@ const TimeWheelColumn = ({
   }, [onDragStateChange]);
 
   const handlePointerMove = React.useCallback((e) => {
+    if (e.pointerType === 'touch') return;
     const list = listRef.current;
     const state = pointerDragRef.current;
     if (!list || !state.active || state.pointerId !== e.pointerId) return;
@@ -1924,6 +1927,7 @@ const TimeWheelColumn = ({
   }, []);
 
   const handlePointerUp = React.useCallback((e) => {
+    if (e.pointerType === 'touch') return;
     const list = listRef.current;
     const state = pointerDragRef.current;
     if (!list || !state.active || state.pointerId !== e.pointerId) return;

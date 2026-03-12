@@ -1785,6 +1785,7 @@ const TimeWheelColumn = ({
   const isProgrammaticRef = React.useRef(false);
   const pointerDragRef = React.useRef({ active: false, pointerId: null, startY: 0, startTop: 0 });
   const touchDragRef = React.useRef({ active: false, startY: 0, startTop: 0 });
+  const dragMovedRef = React.useRef(false);
   const lastEmittedValueRef = React.useRef(value);
 
   const renderedValues = React.useMemo(() => {
@@ -1900,6 +1901,7 @@ const TimeWheelColumn = ({
     if (e.pointerType === 'touch') return;
     const list = listRef.current;
     if (!list) return;
+    dragMovedRef.current = false;
     pointerDragRef.current = {
       active: true,
       pointerId: e.pointerId,
@@ -1921,6 +1923,7 @@ const TimeWheelColumn = ({
     const state = pointerDragRef.current;
     if (!list || !state.active || state.pointerId !== e.pointerId) return;
     const deltaY = e.clientY - state.startY;
+    if (Math.abs(deltaY) >= 2) dragMovedRef.current = true;
     list.scrollTop = state.startTop - deltaY;
     if (liveOnDrag) {
       const nextValue = getClosestValue();
@@ -1954,6 +1957,7 @@ const TimeWheelColumn = ({
     if (!list) return;
     const touch = e.touches?.[0];
     if (!touch) return;
+    dragMovedRef.current = false;
     touchDragRef.current = {
       active: true,
       startY: touch.clientY,
@@ -1970,6 +1974,7 @@ const TimeWheelColumn = ({
     const touch = e.touches?.[0];
     if (!touch) return;
     const deltaY = touch.clientY - state.startY;
+    if (Math.abs(deltaY) >= 2) dragMovedRef.current = true;
     list.scrollTop = state.startTop - deltaY;
     if (liveOnDrag) {
       const nextValue = getClosestValue();
@@ -2034,17 +2039,9 @@ const TimeWheelColumn = ({
               <button
                 key={`${label}-${entry}-${idx}`}
                 type="button"
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                }}
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                }}
-                onTouchStart={(e) => {
-                  e.stopPropagation();
-                }}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (dragMovedRef.current) return;
                   commitSpecificValue(entry);
                 }}
                 className={`flex h-[28px] w-full snap-start items-center justify-center text-[18px] font-black tabular-nums transition-all ${active ? `${accentClass} scale-100` : 'scale-[0.9] text-slate-300/90'}`}

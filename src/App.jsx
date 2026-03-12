@@ -1835,6 +1835,7 @@ const TimeWheelColumn = ({
   formatter = (next) => String(next).padStart(2, '0'),
   accentClass = 'text-slate-900',
   cyclic = false,
+  onDragStateChange,
 }) => {
   const listRef = React.useRef(null);
   const settleTimerRef = React.useRef(null);
@@ -1906,8 +1907,9 @@ const TimeWheelColumn = ({
     } catch {
       // no-op
     }
+    onDragStateChange?.(true);
     e.stopPropagation();
-  }, []);
+  }, [onDragStateChange]);
 
   const handlePointerMove = React.useCallback((e) => {
     const list = listRef.current;
@@ -1929,9 +1931,10 @@ const TimeWheelColumn = ({
     } catch {
       // no-op
     }
+    onDragStateChange?.(false);
     commitClosestValue();
     e.stopPropagation();
-  }, [commitClosestValue]);
+  }, [commitClosestValue, onDragStateChange]);
 
   return (
     <div className="min-w-[58px]">
@@ -2513,6 +2516,7 @@ const App = () => {
   const [timelineEndTimeDraft, setTimelineEndTimeDraft] = useState(null); // { key, value }
   const [lodgeCheckoutDraft, setLodgeCheckoutDraft] = useState(null); // { key, value }
   const [timeControlStep, setTimeControlStep] = useState(5);
+  const [isTimeWheelDragging, setIsTimeWheelDragging] = useState(false);
   const saveQueueRef = useRef({ inFlight: false, pending: null });
   const latestSaveJobRef = useRef(null);
 
@@ -2540,6 +2544,11 @@ const App = () => {
       window.removeEventListener('resize', close);
       document.removeEventListener('keydown', handleEsc);
     };
+  }, [timeControllerTarget]);
+
+  useEffect(() => {
+    if (timeControllerTarget?.kind === 'plan-time') return;
+    setIsTimeWheelDragging(false);
   }, [timeControllerTarget]);
 
   useEffect(() => {
@@ -3675,6 +3684,7 @@ const App = () => {
   }, [tripRegion, user]);
 
   useEffect(() => {
+    if (timeControllerTarget?.kind === 'plan-time' || isTimeWheelDragging) return;
     const conflicts = [];
     (itinerary.days || []).forEach((d, dIdx) => {
       (d.plan || []).forEach((p, pIdx) => {
@@ -3689,7 +3699,7 @@ const App = () => {
     if (key === conflictAlertKeyRef.current) return;
     conflictAlertKeyRef.current = key;
     setLastAction('시간 충돌: 고정/잠금 조건으로 자동 계산이 불가한 구간이 있습니다.');
-  }, [itinerary.days]);
+  }, [itinerary.days, timeControllerTarget, isTimeWheelDragging]);
   useEffect(() => {
     if (user && !user.isGuest) return;
     safeLocalStorageSet('trip_start_date', tripStartDate);
@@ -10802,6 +10812,7 @@ const App = () => {
                         label="시"
                         value={currentStartHour}
                         values={startHourValues}
+                        onDragStateChange={setIsTimeWheelDragging}
                         onChange={(nextHour) => setStartTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentStartMinute)), { skipHistory: true })}
                         accentClass="text-[#1f5fd6]"
                       />
@@ -10810,6 +10821,7 @@ const App = () => {
                         value={currentStartMinute}
                         values={Array.from({ length: 60 }, (_, idx) => idx)}
                         cyclic
+                        onDragStateChange={setIsTimeWheelDragging}
                         onChange={(nextMinute) => {
                           const wrapped = buildWrappedTotalMinutes(currentStartHour, currentStartMinute, nextMinute);
                           setStartTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(wrapped)), { skipHistory: true });
@@ -10849,6 +10861,7 @@ const App = () => {
                         label="시"
                         value={currentEndHour}
                         values={endHourValues}
+                        onDragStateChange={setIsTimeWheelDragging}
                         onChange={(nextHour) => setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentEndMinute)), { skipHistory: true })}
                         accentClass="text-slate-600"
                       />
@@ -10857,6 +10870,7 @@ const App = () => {
                         value={currentEndMinute}
                         values={Array.from({ length: 60 }, (_, idx) => idx)}
                         cyclic
+                        onDragStateChange={setIsTimeWheelDragging}
                         onChange={(nextMinute) => {
                           const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);
                           setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(wrapped)), { skipHistory: true });

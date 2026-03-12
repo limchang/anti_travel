@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.58",
+      "timestamp": "2026-03-12T13:39:30+09:00",
+      "message": "시간 휠 드래그 중 충돌 알림 간섭 차단"
+    },
+    {
       "version": "1.3.57",
       "timestamp": "2026-03-12T13:35:40+09:00",
       "message": "시간 모달 휠 포인터 드래그 입력 복구 및 카드 드래그 충돌 제거"
@@ -144,11 +149,6 @@
       "version": "1.3.29",
       "timestamp": "2026-03-12T11:19:28+09:00",
       "message": "style: relax collapsed time colon spacing"
-    },
-    {
-      "version": "1.3.28",
-      "timestamp": "2026-03-12T11:18:27+09:00",
-      "message": "style: compress collapsed time cell height further"
     }
   ]
 }

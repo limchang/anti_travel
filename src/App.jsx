@@ -1823,6 +1823,7 @@ const DateRangePicker = ({ startDate, endDate, onStartChange, onEndChange, onClo
 const latestUpdate = updateLog.lastUpdates[0] || { version: '0.0.0', timestamp: new Date().toISOString() };
 const APP_VERSION = latestUpdate.version;
 const LAST_PUSH_TIME = latestUpdate.timestamp;
+const ROUTE_PREVIEW_ENABLED = false;
 const ROUTE_PREVIEW_COLORS = ['#34C759', '#FF8A3D', '#8B5CF6', '#3182F6', '#EF4444', '#14B8A6'];
 const TIME_WHEEL_ITEM_HEIGHT = 36;
 
@@ -3660,7 +3661,6 @@ const App = () => {
     if (key === conflictAlertKeyRef.current) return;
     conflictAlertKeyRef.current = key;
     setLastAction('시간 충돌: 고정/잠금 조건으로 자동 계산이 불가한 구간이 있습니다.');
-    window.alert('시간 충돌이 발생했습니다.\n소요시간 잠금 또는 시작시간 고정을 일부 해제해 주세요.');
   }, [itinerary.days]);
   useEffect(() => {
     safeLocalStorageSet('trip_start_date', tripStartDate);
@@ -4408,6 +4408,7 @@ const App = () => {
   }, [buildRoutePreviewSegmentKey, fetchKakaoVerifiedRoute]);
 
   const refreshRoutePreviewMap = useCallback(async () => {
+    if (!ROUTE_PREVIEW_ENABLED) return;
     setRoutePreviewLoading(true);
     setLastAction('메인 경로 지도를 현재 주소 기준으로 다시 불러오는 중입니다...');
     try {
@@ -4523,6 +4524,11 @@ const App = () => {
   }, [itinerary.days, itinerary.places, geocodeAddress]);
 
   useEffect(() => {
+    if (!ROUTE_PREVIEW_ENABLED) {
+      setRoutePreviewDays([]);
+      setRoutePreviewLoading(false);
+      return undefined;
+    }
     let cancelled = false;
 
     const buildRoutePreview = async () => {
@@ -7530,7 +7536,7 @@ const App = () => {
           </div>
         </div>
       )}
-      {showRoutePreviewModal && (
+      {ROUTE_PREVIEW_ENABLED && showRoutePreviewModal && (
         <div className="fixed inset-0 z-[210] flex items-center justify-center" onClick={() => setShowRoutePreviewModal(false)}>
           <div className="absolute inset-0 bg-black/35 backdrop-blur-sm" />
           <div className="relative w-[min(520px,92vw)] rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_60px_-24px_rgba(15,23,42,0.35)] overflow-hidden" onClick={(e) => e.stopPropagation()}>
@@ -9269,83 +9275,6 @@ const App = () => {
 
                         {/* 🌟 2. 여행 한눈에 보기 */}
                         <div className="flex flex-col gap-8 px-3 sm:px-0">
-                          <div className="w-full bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.04)] rounded-[32px] overflow-hidden flex flex-col pt-8 pb-7 px-8 items-center text-center">
-                            <div className="w-full rounded-[26px] border border-slate-200 bg-white/82 shadow-[0_16px_32px_-24px_rgba(15,23,42,0.4)] overflow-hidden">
-                              <div className="px-5 pt-4 pb-3 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
-                                <div className="min-w-0 text-left">
-                                  <p className="text-[14px] font-black text-slate-800 truncate">Main Route Map</p>
-                                  <p className="mt-0.5 text-[10px] font-bold text-slate-400">Day 1 · Day 2 · Day 3 실제 카카오 지도 경로</p>
-                                </div>
-                                <div className="shrink-0 flex items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => void refreshRoutePreviewMap()}
-                                    disabled={routePreviewLoading}
-                                    className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors disabled:opacity-50"
-                                  >
-                                    {routePreviewLoading ? '불러오는 중' : '경로 새로 불러오기'}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setShowRoutePreviewModal(true)}
-                                    className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                                  >
-                                    크게 보기
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="p-4">
-                                <div className="mb-3 flex flex-wrap gap-1.5 justify-start">
-                                  {routePreviewMap.length > 0 ? routePreviewMap.slice(0, 6).map((day) => (
-                                    <div key={`hero-day-${day.day}`} className="inline-flex items-center gap-1 rounded-full bg-white/90 border border-slate-200 px-2.5 py-1 text-[9px] font-black text-slate-600 shadow-sm">
-                                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: day.color }} />
-                                      <span>Day {day.day}</span>
-                                    </div>
-                                  )) : (
-                                    <div className="inline-flex items-center gap-1 rounded-full bg-white/90 border border-slate-200 px-2.5 py-1 text-[9px] font-black text-slate-400 shadow-sm">
-                                      경로 준비 중
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="mb-3 flex flex-wrap gap-1.5 justify-start">
-                                  {routePreviewEndpointActions.map((action) => (
-                                    <button
-                                      key={`hero-toggle-${action.id}`}
-                                      type="button"
-                                      onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
-                                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-black transition-colors ${action.hidden ? 'border-slate-200 bg-white text-slate-400' : 'border-amber-200 bg-amber-50 text-amber-600'}`}
-                                    >
-                                      {action.hidden ? '복원' : '제거'}
-                                      <span>{action.label}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                                <div className="relative overflow-hidden rounded-[22px] border border-white/70 bg-slate-100/70 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-                                  {routePreviewMap.length > 0 ? (
-                                    <>
-                                      <RoutePreviewCanvas routePreviewMap={routePreviewMap} height={280} />
-                                      {routePreviewLoading && (
-                                        <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/80 bg-white/90 px-3 py-1 text-[10px] font-black text-[#3182F6] shadow-sm">
-                                          경로 다시 확인 중...
-                                        </div>
-                                      )}
-                                    </>
-                                  ) : routePreviewLoading ? (
-                                    <div className="flex items-center justify-center h-[280px] text-[11px] font-bold text-slate-400">
-                                      카카오 경로 불러오는 중...
-                                    </div>
-                                  ) : (
-                                    <div className="h-[280px] flex flex-col items-center justify-center gap-1 text-center">
-                                      <MapIcon size={20} className="text-slate-300" />
-                                      <p className="text-[10px] font-bold text-slate-400">
-                                        {routePreviewPointCount >= 2 ? '주소를 지도 위치로 아직 확인하지 못했습니다. 잠시 후 다시 확인해 주세요.' : '주소가 있는 일정이 2개 이상 있어야 경로를 표시합니다.'}
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
                             <div className="relative mt-5 w-full grid grid-cols-1 sm:grid-cols-3 bg-white/50 rounded-2xl border border-white/20 overflow-visible min-h-[108px]">
                               <div className="p-4 flex flex-col items-center justify-center gap-1 border-b sm:border-b-0 sm:border-r border-slate-100">
                                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">예산 사용</p>
@@ -9440,7 +9369,6 @@ const App = () => {
                             )}
                           </div>
                         </div>
-                      </div>
                     </div>
                   </section>
                 )}
@@ -10710,13 +10638,35 @@ const App = () => {
             const startMinutes = timeToMinutes(item.time || '00:00');
             const durationMinutes = Math.max(0, Number(item.duration) || 0);
             const endMinutesAbsolute = startMinutes + durationMinutes;
-            const endMinutesOfDay = ((endMinutesAbsolute % 1440) + 1440) % 1440;
+            const clampedEndMinutes = Math.max(startMinutes, Math.min(1439, endMinutesAbsolute));
             const panelWidth = Math.min(320, Math.max(280, Number(timeControllerTarget.width || 0) + 132));
             const left = Math.max(12, Math.min(window.innerWidth - panelWidth - 12, Number(timeControllerTarget.left || 0)));
             const top = Math.max(12, Math.min(window.innerHeight - 260, Number(timeControllerTarget.top || 0) - 6));
             const isAutoLocked = item.types?.includes('ship') || item._isBufferCoordinated;
             const isDurationLocked = !!item.isDurationFixed;
             const isEndTimeFixed = !!item.isEndTimeFixed;
+            const maxStartMinutes = Math.max(0, 1439 - durationMinutes);
+            const startHourValues = Array.from({ length: Math.floor(maxStartMinutes / 60) + 1 }, (_, idx) => idx);
+            const getStartMinuteValues = (hour) => (
+              Array.from({ length: 60 }, (_, idx) => idx).filter((minute) => (hour * 60 + minute) <= maxStartMinutes)
+            );
+            const currentStartHour = Math.floor(startMinutes / 60);
+            const currentStartMinute = startMinutes % 60;
+            const startMinuteValues = getStartMinuteValues(currentStartHour);
+            const endHourValues = Array.from({ length: 24 }, (_, idx) => idx).filter((hour) => (
+              Array.from({ length: 60 }, (_, minute) => hour * 60 + minute).some((total) => total >= startMinutes)
+            ));
+            const currentEndHour = Math.floor(clampedEndMinutes / 60);
+            const getEndMinuteValues = (hour) => (
+              Array.from({ length: 60 }, (_, idx) => idx).filter((minute) => (hour * 60 + minute) >= startMinutes)
+            );
+            const currentEndMinute = clampedEndMinutes % 60;
+            const endMinuteValues = getEndMinuteValues(currentEndHour);
+            const pickNearestValue = (values, preferred) => {
+              if (!values.length) return 0;
+              if (values.includes(preferred)) return preferred;
+              return values[Math.max(0, Math.min(values.length - 1, values.findIndex((value) => value > preferred) === -1 ? values.length - 1 : values.findIndex((value) => value > preferred)))];
+            };
             return (
               <div
                 data-time-modal="true"
@@ -10734,7 +10684,7 @@ const App = () => {
                   </button>
                 </div>
 
-                <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-3 items-stretch">
                   <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-3 py-3">
                     <div className="mb-2 flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">시작 시간</span>
@@ -10749,16 +10699,20 @@ const App = () => {
                     <div className="flex items-center justify-center gap-3">
                       <TimeWheelColumn
                         label="시"
-                        value={Math.floor(startMinutes / 60)}
-                        values={Array.from({ length: 24 }, (_, idx) => idx)}
-                        onChange={(nextHour) => setStartTimeValue(dayIdx, pIdx, minutesToTime(nextHour * 60 + (startMinutes % 60)), { skipHistory: true })}
+                        value={currentStartHour}
+                        values={startHourValues}
+                        onChange={(nextHour) => {
+                          const nextMinuteValues = getStartMinuteValues(nextHour);
+                          const nextMinute = pickNearestValue(nextMinuteValues, currentStartMinute);
+                          setStartTimeValue(dayIdx, pIdx, minutesToTime(nextHour * 60 + nextMinute), { skipHistory: true });
+                        }}
                         accentClass="text-[#1f5fd6]"
                       />
                       <TimeWheelColumn
                         label="분"
-                        value={startMinutes % 60}
-                        values={Array.from({ length: 60 }, (_, idx) => idx)}
-                        onChange={(nextMinute) => setStartTimeValue(dayIdx, pIdx, minutesToTime(Math.floor(startMinutes / 60) * 60 + nextMinute), { skipHistory: true })}
+                        value={currentStartMinute}
+                        values={startMinuteValues}
+                        onChange={(nextMinute) => setStartTimeValue(dayIdx, pIdx, minutesToTime(currentStartHour * 60 + nextMinute), { skipHistory: true })}
                         accentClass="text-[#1f5fd6]"
                       />
                     </div>
@@ -10805,16 +10759,20 @@ const App = () => {
                     <div className="flex items-center justify-center gap-3">
                       <TimeWheelColumn
                         label="시"
-                        value={Math.floor(endMinutesOfDay / 60)}
-                        values={Array.from({ length: 24 }, (_, idx) => idx)}
-                        onChange={(nextHour) => setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextHour * 60 + (endMinutesOfDay % 60)), { skipHistory: true })}
+                        value={currentEndHour}
+                        values={endHourValues}
+                        onChange={(nextHour) => {
+                          const nextMinuteValues = getEndMinuteValues(nextHour);
+                          const nextMinute = pickNearestValue(nextMinuteValues, currentEndMinute);
+                          setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextHour * 60 + nextMinute), { skipHistory: true });
+                        }}
                         accentClass="text-slate-600"
                       />
                       <TimeWheelColumn
                         label="분"
-                        value={endMinutesOfDay % 60}
-                        values={Array.from({ length: 60 }, (_, idx) => idx)}
-                        onChange={(nextMinute) => setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(Math.floor(endMinutesOfDay / 60) * 60 + nextMinute), { skipHistory: true })}
+                        value={currentEndMinute}
+                        values={endMinuteValues}
+                        onChange={(nextMinute) => setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(currentEndHour * 60 + nextMinute), { skipHistory: true })}
                         accentClass="text-slate-600"
                       />
                     </div>

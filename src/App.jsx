@@ -5295,27 +5295,12 @@ const App = () => {
       if (item.isTimeFixed) {
         startMinutes = timeToMinutes(item.time || '00:00');
         const baseArrival = prevEndMinutes + travel;
-        const preserveBufferOnWarningFix = !!item._preserveBufferOnNextRecalc;
-        const fixedGap = startMinutes - (baseArrival + manualBufferBase);
-        if (fixedGap > 0) {
-          // 고정 시작이 더 늦으면 남는 시간을 보정시간으로 누적
-          effectiveBuffer = manualBufferBase + fixedGap;
-        } else if (fixedGap < 0) {
-          if (preserveBufferOnWarningFix) {
-            // 운영시작 경고 클릭 직후 1회는 보정시간 0분 강등을 막고 충돌만 표시
-            effectiveBuffer = manualBufferBase;
-          } else {
-            // 고정 시작이 더 이르면 보정시간을 먼저 차감해 흡수
-            const requiredPull = Math.abs(fixedGap);
-            const usableBuffer = Math.min(manualBufferBase, requiredPull);
-            effectiveBuffer = Math.max(0, manualBufferBase - usableBuffer);
-          }
-        } else {
-          effectiveBuffer = manualBufferBase;
-        }
+        // 고정 시작시간은 기준값으로 보고, 그 시각에 맞도록 보정시간을 다시 산정한다.
+        effectiveBuffer = Math.max(0, startMinutes - baseArrival);
         item.bufferTimeOverride = `${effectiveBuffer}분`;
+        item._manualBufferTimeOverride = `${effectiveBuffer}분`;
         item._isBufferCoordinated = effectiveBuffer !== manualBufferBase;
-        if (preserveBufferOnWarningFix) delete item._preserveBufferOnNextRecalc;
+        if (item._preserveBufferOnNextRecalc) delete item._preserveBufferOnNextRecalc;
 
         const earliestWithEffectiveBuffer = baseArrival + effectiveBuffer;
         if (startMinutes < earliestWithEffectiveBuffer) {

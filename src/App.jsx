@@ -9080,10 +9080,10 @@ const App = () => {
                     className={`relative group transition-all duration-300 ${highlightedItemId === p.id ? 'scale-[1.02]' : ''}`}
                   >
                     {d.day > 1 && pIdx === 0 && (
-                      <div className="flex items-center justify-center py-3 w-full">
+                      <div className="flex w-full items-center justify-center my-3">
                         {isTimelineDragActive ? (
                           <div
-                            className="z-10 w-full py-2 cursor-copy"
+                            className="z-10 w-full my-0.5 cursor-copy"
                             data-droptarget={`day-start-${dIdx}`}
                             onDragOver={(e) => { e.preventDefault(); setDropTarget({ dayIdx: dIdx, insertAfterPIdx: -1 }); }}
                             onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null); }}
@@ -10169,7 +10169,7 @@ const App = () => {
                             }
 
                             return (
-                              <div id={`travel-chip-${dIdx}-${pIdx}`} className="z-10 flex items-center justify-center w-full">
+                              <div id={`travel-chip-${dIdx}-${pIdx}`} className="z-10 my-3 flex w-full items-center justify-center">
                               <div className="flex w-full items-center justify-center rounded-[18px] border border-slate-200 bg-white px-4 py-2.5 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] gap-2">
                                   {(() => {
                                     const rid = `${dIdx}_${pIdx + 1}`;

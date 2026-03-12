@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.25",
+      "timestamp": "2026-03-12T11:10:05+09:00",
+      "message": "style: normalize travel chip vertical spacing"
+    },
+    {
       "version": "1.3.24",
       "timestamp": "2026-03-12T11:08:59+09:00",
       "message": "fix: use stored geo addresses for route chips"

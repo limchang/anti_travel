@@ -2027,7 +2027,7 @@ const TimeWheelColumn = ({
         >
           {renderedEntries.map((entry, idx) => {
             if (entry === null) {
-              return <div key={`${label}-pad-${idx}`} className="h-[28px]" aria-hidden="true" />;
+              return <div key={`${label}-pad-${idx}`} className="h-[28px] snap-start" aria-hidden="true" />;
             }
             const active = entry === value;
             return (

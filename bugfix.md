@@ -41,3 +41,19 @@
 ### Result
 - 수동 자동 경로 버튼은 직전 실패와 무관하게 즉시 다시 계산을 시도함.
 - 이동칩과 시간 셀 비율이 일정 카드 정보 셀과 더 비슷한 밀도로 정리됨.
+
+## 2026-03-12
+
+### Bug
+- 로컬 최신 코드에서도 이동칩이 계속 `주소확인`으로 남는 구간이 있었음.
+
+### Cause
+- 경로 계산 주소 판정이 `receipt.address`와 일부 문자열 필드만 보고 있었고, 기존 데이터에 남아 있던 `geo.address`, `geoStart.address`, `geoEnd.address`는 무시하고 있었음.
+- 그래서 좌표/주소가 DB에 저장돼 있어도 라벨 단계에서 주소 없음으로 판단하는 케이스가 남아 있었음.
+
+### Action
+- `getRouteAddress`가 일반 일정은 `geo.address`, 페리는 `geoStart.address`, `geoEnd.address`까지 fallback 하도록 수정.
+- 이동칩 라벨은 `targetItem.distance`가 아직 반영되기 전이라도 `routeCache.distance`가 있으면 바로 표시하도록 보강.
+
+### Result
+- 예전 문서 구조나 좌표 우선 저장 상태에서도 이동칩이 저장된 주소/좌표를 사용해 자동 경로 계산과 표시를 이어감.

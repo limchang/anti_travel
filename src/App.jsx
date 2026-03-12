@@ -3867,10 +3867,27 @@ const App = () => {
   const getRouteAddress = (item, role = 'from') => {
     if (!item) return '';
     if (item.types?.includes('ship')) {
-      if (role === 'from') return (item.endAddress || item.endPoint || '').trim();
-      return (item.receipt?.address || item.startPoint || '').trim();
+      if (role === 'from') {
+        return String(
+          item.endAddress
+          || item.geoEnd?.address
+          || item.endPoint
+          || ''
+        ).trim();
+      }
+      return String(
+        item.receipt?.address
+        || item.geoStart?.address
+        || item.startPoint
+        || ''
+      ).trim();
     }
-    return (item.receipt?.address || item.address || '').trim();
+    return String(
+      item.receipt?.address
+      || item.address
+      || item.geo?.address
+      || ''
+    ).trim();
   };
   const getRouteGeoPoint = (item, role = 'from') => {
     if (!item) return null;
@@ -3904,6 +3921,9 @@ const App = () => {
     const cacheKey = getRouteCacheKey(fromAddress, toAddress);
     const cachedRoute = routeCache[cacheKey];
     if (cachedRoute?.failed) return cachedRoute.failedReason || '경로실패';
+    if (Number.isFinite(Number(cachedRoute?.distance)) && Number(cachedRoute.distance) >= 0) {
+      return formatDistanceText(cachedRoute.distance);
+    }
     return formatDistanceText(targetItem?.distance);
   };
   const shouldAutoCalculateRoute = (dayIdx, targetIdx) => {

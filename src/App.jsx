@@ -9818,42 +9818,75 @@ const App = () => {
                                       data-time-trigger="true"
                                       className="relative z-10 w-full rounded-2xl px-1 py-1 select-none transition-all group-hover/tower:bg-slate-100/30"
                                     >
-                                      <div className="flex w-full flex-col items-center gap-1.5 px-2 py-0.5">
-                                        <button
-                                          type="button"
-                                          onClick={toggleInline}
-                                          className={`relative flex h-[52px] w-full items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 group-hover/tower:border-slate-300 group-hover/tower:bg-white'}`}
-                                        >
-                                          <span className="absolute left-2 top-1 text-[9px] font-black tracking-[0.08em] text-slate-400">시작</span>
-                                          <span className="text-[34px] font-black tabular-nums tracking-[-0.06em] leading-none text-slate-900">
-                                            {hh}<span className="mx-[1px] opacity-70">:</span>{mm}
-                                          </span>
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={toggleInline}
-                                          className={`relative z-10 flex h-[34px] w-full items-center justify-center gap-2 rounded-[12px] border px-2 py-0.5 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
-                                            ? 'bg-red-500 text-white'
-                                            : isDurationLocked
-                                              ? 'bg-[#ff8a1a] text-white'
-                                              : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                            }`}
-                                        >
-                                          <span className="absolute left-2 top-1 text-[9px] font-black tracking-[0.08em] opacity-80">소요</span>
-                                          <ChevronLeft size={10} />
-                                          <span className="font-black tabular-nums text-[12px] tracking-[0.14em]">{fmtDur(p.duration).replace('분', '')}</span>
-                                          <ChevronRight size={10} />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={toggleInline}
-                                          className="relative flex h-[44px] w-full items-center justify-center rounded-[14px] border border-slate-200 bg-slate-50 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100"
-                                        >
-                                          <span className="absolute left-2 top-1 text-[9px] font-black tracking-[0.08em] text-slate-400">종료</span>
-                                          <span className="text-[30px] font-black tabular-nums tracking-[-0.06em] leading-none text-slate-400">
-                                            {ehh}<span className="mx-[1px] opacity-65">:</span>{emm}
-                                          </span>
-                                        </button>
+                                      <div className="flex w-full flex-col items-center gap-1 px-1 py-0.5">
+                                        {(() => {
+                                          const pad2 = (value) => String(((Number(value) % 100) + 100) % 100).padStart(2, '0');
+                                          const getTriplet = (value, max) => {
+                                            const n = Number(value) || 0;
+                                            const prev = (n - 1 + max) % max;
+                                            const next = (n + 1) % max;
+                                            return [pad2(prev), pad2(n), pad2(next)];
+                                          };
+                                          const startHourTriplet = getTriplet(Number(hh), 24);
+                                          const startMinuteTriplet = getTriplet(Number(mm), 60);
+                                          const endHourTriplet = getTriplet(Number(ehh), 24);
+                                          const endMinuteTriplet = getTriplet(Number(emm), 60);
+                                          const durHour = Math.floor(durationMinutes / 60);
+                                          const durMinute = durationMinutes % 60;
+                                          const durHourTriplet = getTriplet(durHour, 24);
+                                          const durMinuteTriplet = getTriplet(durMinute, 60);
+                                          const miniRoll = (triplet, activeTone = 'text-slate-900') => (
+                                            <div className="flex h-[44px] w-[42px] flex-col items-center justify-center rounded-[11px] border border-slate-200 bg-white/92 px-1 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
+                                              <span className="text-[11px] leading-none font-black tabular-nums text-slate-300">{triplet[0]}</span>
+                                              <span className={`my-0.5 flex h-[16px] w-full items-center justify-center rounded-[8px] border border-slate-200 bg-slate-50 text-[15px] leading-none font-black tabular-nums ${activeTone}`}>{triplet[1]}</span>
+                                              <span className="text-[11px] leading-none font-black tabular-nums text-slate-300">{triplet[2]}</span>
+                                            </div>
+                                          );
+                                          return (
+                                            <>
+                                              <button
+                                                type="button"
+                                                onClick={toggleInline}
+                                                className={`relative flex w-full items-center justify-between rounded-[12px] border px-2 py-1 transition-all ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 hover:border-slate-300'}`}
+                                              >
+                                                <span className="absolute left-2 top-1 text-[9px] font-black tracking-[0.08em] text-slate-400">시작</span>
+                                                <div className="ml-auto mt-2 flex items-center gap-1.5">
+                                                  {miniRoll(startHourTriplet)}
+                                                  {miniRoll(startMinuteTriplet)}
+                                                </div>
+                                              </button>
+
+                                              <button
+                                                type="button"
+                                                onClick={toggleInline}
+                                                className={`relative z-10 flex w-full items-center justify-between rounded-[12px] border px-2 py-1 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
+                                                  ? 'border-red-400 bg-red-500 text-white'
+                                                  : isDurationLocked
+                                                    ? 'border-[#ff8a1a] bg-[#ff8a1a] text-white'
+                                                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                                  }`}
+                                              >
+                                                <span className="absolute left-2 top-1 text-[9px] font-black tracking-[0.08em] opacity-85">소요</span>
+                                                <div className="ml-auto mt-2 flex items-center gap-1.5">
+                                                  {miniRoll(durHourTriplet, isDurationLocked || isAutoLocked ? 'text-slate-900' : 'text-slate-800')}
+                                                  {miniRoll(durMinuteTriplet, isDurationLocked || isAutoLocked ? 'text-slate-900' : 'text-slate-800')}
+                                                </div>
+                                              </button>
+
+                                              <button
+                                                type="button"
+                                                onClick={toggleInline}
+                                                className="relative flex w-full items-center justify-between rounded-[12px] border border-slate-200 bg-slate-50/95 px-2 py-1 transition-all hover:border-slate-300"
+                                              >
+                                                <span className="absolute left-2 top-1 text-[9px] font-black tracking-[0.08em] text-slate-400">종료</span>
+                                                <div className="ml-auto mt-2 flex items-center gap-1.5">
+                                                  {miniRoll(endHourTriplet, 'text-slate-500')}
+                                                  {miniRoll(endMinuteTriplet, 'text-slate-500')}
+                                                </div>
+                                              </button>
+                                            </>
+                                          );
+                                        })()}
                                       </div>
                                     </div>
 

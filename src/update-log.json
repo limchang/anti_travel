@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.27",
+      "timestamp": "2026-03-12T11:17:32+09:00",
+      "message": "style: tighten collapsed time cell spacing"
+    },
+    {
       "version": "1.3.26",
       "timestamp": "2026-03-12T11:13:34+09:00",
       "message": "fix: retry routes after geo sync and rebalance chip spacing"

@@ -830,6 +830,7 @@ const getRouteVerifyEndpointCandidates = (proxyBase = '') => {
     normalizedProxyBase ? `${normalizedProxyBase}/api/route-verify` : '',
     envApiBase ? `${envApiBase}/api/route-verify` : '',
     import.meta.env.VITE_ROUTE_VERIFY_URL || '',
+    'https://asia-northeast3-anti-planer.cloudfunctions.net/routeVerify',
     typeof window !== 'undefined' && isLocalNetworkHost(window.location.hostname) ? '/api/route-verify' : '',
     '/api/route-verify',
   ].filter(Boolean)));

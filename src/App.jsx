@@ -1832,6 +1832,8 @@ const TimeWheelColumn = ({
   value = 0,
   values = [],
   onChange,
+  onDragStateChange,
+  isValueDisabled = () => false,
   formatter = (next) => String(next).padStart(2, '0'),
   accentClass = 'text-slate-900',
   cyclic = false,
@@ -1866,7 +1868,8 @@ const TimeWheelColumn = ({
 
   React.useEffect(() => () => {
     dragStateRef.current = { active: false, startY: 0, startScrollTop: 0, pointerId: null };
-  }, []);
+    onDragStateChange?.(false);
+  }, [onDragStateChange]);
 
   const commitClosestValue = React.useCallback(() => {
     const list = listRef.current;
@@ -1877,7 +1880,24 @@ const TimeWheelColumn = ({
     const normalizedIndex = cyclic
       ? ((rawIndex % values.length) + values.length) % values.length
       : rawIndex;
-    const nextIndex = Math.max(0, Math.min(values.length - 1, normalizedIndex));
+    let nextIndex = Math.max(0, Math.min(values.length - 1, normalizedIndex));
+    if (isValueDisabled(values[nextIndex])) {
+      let found = -1;
+      for (let delta = 1; delta < values.length; delta += 1) {
+        const lower = nextIndex - delta;
+        const upper = nextIndex + delta;
+        if (lower >= 0 && !isValueDisabled(values[lower])) {
+          found = lower;
+          break;
+        }
+        if (upper < values.length && !isValueDisabled(values[upper])) {
+          found = upper;
+          break;
+        }
+      }
+      if (found < 0) return;
+      nextIndex = found;
+    }
     const centerIndex = cyclic ? (nextIndex + values.length) : nextIndex;
     const targetTop = centerIndex * TIME_WHEEL_ITEM_HEIGHT;
     if (Math.abs(list.scrollTop - targetTop) > 1) {
@@ -1888,7 +1908,7 @@ const TimeWheelColumn = ({
       }, 140);
     }
     if (values[nextIndex] !== value) onChange?.(values[nextIndex]);
-  }, [cyclic, onChange, renderedValues.length, value, values]);
+  }, [cyclic, isValueDisabled, onChange, renderedValues.length, value, values]);
 
   const handleScroll = React.useCallback(() => {
     if (isProgrammaticRef.current) return;
@@ -1899,6 +1919,7 @@ const TimeWheelColumn = ({
   const handlePointerDown = React.useCallback((e) => {
     const list = listRef.current;
     if (!list) return;
+    onDragStateChange?.(true);
     dragStateRef.current = {
       active: true,
       startY: e.clientY,
@@ -1906,7 +1927,7 @@ const TimeWheelColumn = ({
       pointerId: e.pointerId,
     };
     list.setPointerCapture?.(e.pointerId);
-  }, []);
+  }, [onDragStateChange]);
 
   const handlePointerMove = React.useCallback((e) => {
     const list = listRef.current;
@@ -1921,10 +1942,11 @@ const TimeWheelColumn = ({
     const list = listRef.current;
     const drag = dragStateRef.current;
     if (!list || !drag.active) return;
+    onDragStateChange?.(false);
     dragStateRef.current = { active: false, startY: 0, startScrollTop: 0, pointerId: null };
     if (e?.pointerId != null) list.releasePointerCapture?.(e.pointerId);
     commitClosestValue();
-  }, [commitClosestValue]);
+  }, [commitClosestValue, onDragStateChange]);
 
   return (
     <div className="min-w-[58px]">
@@ -1944,10 +1966,11 @@ const TimeWheelColumn = ({
         >
           {renderedValues.map((entry, idx) => {
             const active = entry === value;
+            const disabled = isValueDisabled(entry);
             return (
               <div
                 key={`${label}-${entry}-${idx}`}
-                className={`flex h-[34px] snap-start items-center justify-center text-[20px] font-black tabular-nums transition-all ${active ? `${accentClass} scale-100` : 'scale-[0.9] text-slate-300/90'}`}
+                className={`flex h-[34px] snap-start items-center justify-center text-[20px] font-black tabular-nums transition-all ${disabled ? 'text-red-300/90' : (active ? `${accentClass} scale-100` : 'scale-[0.9] text-slate-300/90')}`}
               >
                 {formatter(entry)}
               </div>
@@ -2502,6 +2525,7 @@ const App = () => {
   const [expandedPlaceId, setExpandedPlaceId] = useState(null);
   const [pendingPlanMenuFocus, setPendingPlanMenuFocus] = useState(null); // { dayIdx, pIdx, menuIdx }
   const [timeControllerTarget, setTimeControllerTarget] = useState(null); // { kind, dayIdx, pIdx, left, top, width }
+  const isTimeModalDraggingRef = useRef(false);
   const [timelineEndTimeDraft, setTimelineEndTimeDraft] = useState(null); // { key, value }
   const [lodgeCheckoutDraft, setLodgeCheckoutDraft] = useState(null); // { key, value }
   const [timeControlStep, setTimeControlStep] = useState(5);
@@ -2509,6 +2533,7 @@ const App = () => {
   useEffect(() => {
     const handleOutside = (e) => {
       if (!timeControllerTarget) return;
+      if (isTimeModalDraggingRef.current) return;
       if (e.target.closest('[data-time-trigger="true"]')) return;
       if (e.target.closest('[data-time-modal="true"]')) return;
       if (e.target.closest('.group\\/tower')) return;
@@ -2524,17 +2549,10 @@ const App = () => {
     const handleEsc = (e) => {
       if (e.key === 'Escape') close();
     };
-    const handleScrollClose = (e) => {
-      const target = e?.target;
-      if (target instanceof Element && target.closest('[data-time-modal="true"]')) return;
-      close();
-    };
     window.addEventListener('resize', close);
-    window.addEventListener('scroll', handleScrollClose, true);
     document.addEventListener('keydown', handleEsc);
     return () => {
       window.removeEventListener('resize', close);
-      window.removeEventListener('scroll', handleScrollClose, true);
       document.removeEventListener('keydown', handleEsc);
     };
   }, [timeControllerTarget]);
@@ -9692,15 +9710,15 @@ const App = () => {
                                     const [hh, mm] = (p.time || '00:00').split(':');
                                     const [ehh, emm] = minutesToTime(endMins).split(':');
                                     return (
-                                      <div className="flex w-full flex-col items-center justify-center gap-1.5 px-3 py-1 select-none">
-                                        <div className={`relative flex w-full min-h-[48px] items-center justify-center rounded-[18px] border px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-blue-100 bg-blue-50/60' : 'border-slate-200 bg-white/88 group-hover/tower:border-blue-100 group-hover/tower:bg-slate-50/95'}`}>
+                                      <div className="flex w-full flex-col items-center justify-center gap-1.5 px-2 py-1 select-none">
+                                        <div className={`relative flex w-full min-h-[44px] items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-[#bfd7ff] bg-[#eef5ff]' : 'border-slate-200 bg-white/92 group-hover/tower:border-[#bfd7ff] group-hover/tower:bg-[#f3f8ff]'}`}>
                                           {p.isTimeFixed && (
                                             <div className="absolute left-3 top-2.5 flex items-center gap-0.5">
                                               <Lock size={8} className="text-[#3182F6]" />
                                               <span className="text-[8px] font-bold text-[#3182F6] uppercase tracking-[0.14em]">FIXED</span>
                                             </div>
                                           )}
-                                          <span className={`text-[24px] font-black tabular-nums tracking-[-0.04em] leading-none transition-colors ${p.isTimeFixed ? 'text-[#1f5fd6]' : 'text-slate-900 group-hover/tower:text-[#244f9e]'}`}>
+                                          <span className={`text-[23px] font-black tabular-nums tracking-[-0.02em] leading-none transition-colors ${p.isTimeFixed ? 'text-[#1f5fd6]' : 'text-slate-900 group-hover/tower:text-[#244f9e]'}`}>
                                             {hh}<span className="mx-[1px] opacity-72">:</span>{mm}
                                           </span>
                                         </div>
@@ -9708,11 +9726,11 @@ const App = () => {
                                         <div className="relative flex w-full items-center justify-center">
                                           <button
                                             type="button"
-                                            className={`relative z-10 flex min-h-[32px] min-w-[96px] items-center justify-center gap-2 rounded-[12px] border px-3 py-1 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
+                                            className={`relative z-10 flex min-h-[30px] min-w-[92px] items-center justify-center gap-2 rounded-[12px] border px-2.5 py-1 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
                                               ? 'bg-red-500 text-white'
                                               : isDurationLocked
                                                 ? 'bg-[#ff8a1a] text-white'
-                                                : 'border border-slate-200 bg-white text-[#244f9e] hover:border-slate-300'
+                                                : 'border border-[#bfd7ff] bg-[#eef5ff] text-[#1f5fd6] hover:border-[#9fc3ff]'
                                               }`}
                                             onClick={(e) => e.stopPropagation()}
                                           >
@@ -9722,8 +9740,8 @@ const App = () => {
                                           </button>
                                         </div>
 
-                                        <div className="flex w-full min-h-[48px] items-center justify-center rounded-[18px] border border-slate-200 bg-slate-50/92 px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100/95">
-                                          <span className="text-[24px] font-black tabular-nums tracking-[-0.04em] leading-none text-slate-400">
+                                        <div className="flex w-full min-h-[44px] items-center justify-center rounded-[14px] border border-[#d8e4f5] bg-[#f6f9ff] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-[#bfd7ff] group-hover/tower:bg-[#eef5ff]">
+                                          <span className="text-[23px] font-black tabular-nums tracking-[-0.02em] leading-none text-slate-400">
                                             {ehh}<span className="mx-[1px] opacity-70">:</span>{emm}
                                           </span>
                                         </div>
@@ -10660,20 +10678,22 @@ const App = () => {
             const isAutoLocked = item.types?.includes('ship') || item._isBufferCoordinated;
             const isEndTimeFixed = !!item.isEndTimeFixed;
             const maxStartMinutes = Math.max(0, 1439 - durationMinutes);
-            const startHourValues = Array.from({ length: Math.floor(maxStartMinutes / 60) + 1 }, (_, idx) => idx);
+            const startHourValues = Array.from({ length: 24 }, (_, idx) => idx);
             const getStartMinuteValues = (hour) => (
               Array.from({ length: 60 }, (_, idx) => idx).filter((minute) => (hour * 60 + minute) <= maxStartMinutes)
             );
             const currentStartHour = Math.floor(startMinutes / 60);
             const currentStartMinute = startMinutes % 60;
-            const endHourValues = Array.from({ length: 24 }, (_, idx) => idx).filter((hour) => (
-              Array.from({ length: 60 }, (_, minute) => hour * 60 + minute).some((total) => total >= startMinutes)
-            ));
+            const endHourValues = Array.from({ length: 24 }, (_, idx) => idx);
             const currentEndHour = Math.floor(clampedEndMinutes / 60);
             const getEndMinuteValues = (hour) => (
               Array.from({ length: 60 }, (_, idx) => idx).filter((minute) => (hour * 60 + minute) >= startMinutes)
             );
             const currentEndMinute = clampedEndMinutes % 60;
+            const isStartHourDisabled = (hour) => (hour * 60) > maxStartMinutes;
+            const isStartMinuteDisabled = (minute) => (currentStartHour * 60 + minute) > maxStartMinutes;
+            const isEndHourDisabled = (hour) => ((hour * 60) + 59) < startMinutes;
+            const isEndMinuteDisabled = (minute) => (currentEndHour * 60 + minute) < startMinutes;
             const pickNearestValue = (values, preferred) => {
               if (!values.length) return 0;
               if (values.includes(preferred)) return preferred;
@@ -10720,8 +10740,11 @@ const App = () => {
                         label="시"
                         value={currentStartHour}
                         values={startHourValues}
+                        isValueDisabled={isStartHourDisabled}
+                        onDragStateChange={(active) => { isTimeModalDraggingRef.current = !!active; }}
                         onChange={(nextHour) => {
                           const nextMinuteValues = getStartMinuteValues(nextHour);
+                          if (!nextMinuteValues.length) return;
                           const nextMinute = pickNearestValue(nextMinuteValues, currentStartMinute);
                           setStartTimeValue(dayIdx, pIdx, minutesToTime(nextHour * 60 + nextMinute), { skipHistory: true });
                         }}
@@ -10731,6 +10754,8 @@ const App = () => {
                         label="분"
                         value={currentStartMinute}
                         values={Array.from({ length: 60 }, (_, idx) => idx)}
+                        isValueDisabled={isStartMinuteDisabled}
+                        onDragStateChange={(active) => { isTimeModalDraggingRef.current = !!active; }}
                         cyclic
                         onChange={(nextMinute) => {
                           const wrapped = buildWrappedTotalMinutes(currentStartHour, currentStartMinute, nextMinute);
@@ -10772,8 +10797,11 @@ const App = () => {
                         label="시"
                         value={currentEndHour}
                         values={endHourValues}
+                        isValueDisabled={isEndHourDisabled}
+                        onDragStateChange={(active) => { isTimeModalDraggingRef.current = !!active; }}
                         onChange={(nextHour) => {
                           const nextMinuteValues = getEndMinuteValues(nextHour);
+                          if (!nextMinuteValues.length) return;
                           const nextMinute = pickNearestValue(nextMinuteValues, currentEndMinute);
                           setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextHour * 60 + nextMinute), { skipHistory: true });
                         }}
@@ -10783,6 +10811,8 @@ const App = () => {
                         label="분"
                         value={currentEndMinute}
                         values={Array.from({ length: 60 }, (_, idx) => idx)}
+                        isValueDisabled={isEndMinuteDisabled}
+                        onDragStateChange={(active) => { isTimeModalDraggingRef.current = !!active; }}
                         cyclic
                         onChange={(nextMinute) => {
                           const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);

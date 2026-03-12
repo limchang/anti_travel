@@ -2359,25 +2359,37 @@ const App = () => {
   const [expandedId, setExpandedId] = useState(null);
   const [expandedPlaceId, setExpandedPlaceId] = useState(null);
   const [pendingPlanMenuFocus, setPendingPlanMenuFocus] = useState(null); // { dayIdx, pIdx, menuIdx }
-  // durationControllerTarget 제거됨 — 시간 셀 확장으로 통합
-  const [timeControllerTarget, setTimeControllerTarget] = useState(null); // { dayIdx, pIdx }
+  const [timeControllerTarget, setTimeControllerTarget] = useState(null); // { kind, dayIdx, pIdx, left, top, width }
   const [timelineEndTimeDraft, setTimelineEndTimeDraft] = useState(null); // { key, value }
   const [lodgeCheckoutDraft, setLodgeCheckoutDraft] = useState(null); // { key, value }
   const [timeControlStep, setTimeControlStep] = useState(5);
 
-  // 시작 시간 컨트롤러 외부 클릭 시 닫기
   useEffect(() => {
     const handleOutside = (e) => {
       if (!timeControllerTarget) return;
-      // data-time-trigger가 붙은 요소(버튼)나 그 내부를 클릭했을 때는 토글 로직이 우선하므로 무시
       if (e.target.closest('[data-time-trigger="true"]')) return;
-      // 컨트롤 타워 자체를 클릭한 경우도 닫지 않음 (디테일 조절 중일 수 있으므로)
+      if (e.target.closest('[data-time-modal="true"]')) return;
       if (e.target.closest('.group\\/tower')) return;
-
       setTimeControllerTarget(null);
     };
     document.addEventListener('mousedown', handleOutside);
     return () => document.removeEventListener('mousedown', handleOutside);
+  }, [timeControllerTarget]);
+
+  useEffect(() => {
+    if (!timeControllerTarget) return;
+    const close = () => setTimeControllerTarget(null);
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') close();
+    };
+    window.addEventListener('resize', close);
+    window.addEventListener('scroll', close, true);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      window.removeEventListener('resize', close);
+      window.removeEventListener('scroll', close, true);
+      document.removeEventListener('keydown', handleEsc);
+    };
   }, [timeControllerTarget]);
 
   useEffect(() => {
@@ -2689,6 +2701,7 @@ const App = () => {
   };
   const [basePlanRef, setBasePlanRef] = useState(null); // { dayIdx, pIdx, id, name, address }
   const [placeDistanceMap, setPlaceDistanceMap] = useState({});
+  const [placeDistanceSync, setPlaceDistanceSync] = useState({ active: false, total: 0, done: 0, percent: 0, baseName: '' });
   const [col1Collapsed, setCol1Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
   const [col2Collapsed, setCol2Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));
@@ -4997,6 +5010,32 @@ const App = () => {
 
   const updateStartMinute = (dayIdx, pIdx, deltaMinute) => {
     updateStartTime(dayIdx, pIdx, deltaMinute);
+  };
+
+  const setStartTimeValue = (dayIdx, pIdx, nextLabel) => {
+    const normalized = String(nextLabel || '').trim();
+    if (!/^\d{2}:\d{2}$/.test(normalized)) {
+      setLastAction('시작 시간 형식이 올바르지 않습니다.');
+      return;
+    }
+    const [hours, minutes] = normalized.split(':').map(Number);
+    if (hours > 24 || minutes > 59 || (hours === 24 && minutes > 0)) {
+      setLastAction('시작 시간 형식이 올바르지 않습니다.');
+      return;
+    }
+    saveHistory();
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const dayPlan = nextData.days?.[dayIdx]?.plan;
+      const item = dayPlan?.[pIdx];
+      if (!item) return prev;
+      item.time = normalized;
+      item.isTimeFixed = true;
+      nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      recalculateLodgeDurations(nextData.days);
+      return nextData;
+    });
+    setLastAction('시작 시간을 조정했습니다.');
   };
 
   const updateLodgeCheckoutTime = (dayIdx, pIdx, delta) => {
@@ -9389,16 +9428,21 @@ const App = () => {
                             <div
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setTimeControllerTarget(prev => (
-                                  prev?.dayIdx === dIdx && prev?.pIdx === pIdx
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setTimeControllerTarget((prev) => (
+                                  prev?.kind === 'plan-time' && prev?.dayIdx === dIdx && prev?.pIdx === pIdx
                                     ? null
-                                    : { dayIdx: dIdx, pIdx }
+                                    : {
+                                      kind: 'plan-time',
+                                      dayIdx: dIdx,
+                                      pIdx,
+                                      left: rect.left,
+                                      top: rect.top,
+                                      width: rect.width,
+                                    }
                                 ));
                               }}
-                              className={`relative flex flex-col shrink-0 border-r border-slate-100 flex-none overflow-hidden transition-all duration-500 cursor-pointer group/tower ${timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx
-                                ? 'w-[170px] sm:w-[180px] items-start justify-start px-3 sm:px-4 py-3 bg-white shadow-[inset_0_2px_8px_rgba(0,0,0,0.02)]'
-                                : (isCompactTimeline ? 'w-[30%] items-center justify-center py-2' : 'w-[30%] items-center justify-center py-3 px-2 sm:px-3')
-                                } ${p.isTimeFixed ? 'bg-blue-50/20' : 'bg-transparent'}`}
+                              className={`relative flex flex-col shrink-0 border-r border-slate-100 flex-none overflow-hidden cursor-pointer group/tower ${isCompactTimeline ? 'w-[30%] items-center justify-center py-2' : 'w-[30%] items-center justify-center py-3 px-2 sm:px-3'} ${p.isTimeFixed ? 'bg-blue-50/20' : 'bg-transparent'}`}
                             >
                               {/* 락 상태일 때 컨트롤 타워 전체에 은은하게 깔리는 거대 자물쇠 */}
                               {p.isTimeFixed && (
@@ -9408,126 +9452,48 @@ const App = () => {
                               {/* 시간 조절 */}
                               <div
                                 data-time-trigger="true"
-                                className={`relative w-full rounded-2xl select-none z-10 transition-all ${timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx ? 'px-0 py-0 scale-100' : 'px-1 py-1 group-hover/tower:bg-slate-100/30'}`}
+                                className="relative w-full rounded-2xl select-none z-10 px-1 py-1 transition-all group-hover/tower:bg-slate-100/30"
                               >
-                                <div className={`relative flex w-full flex-col justify-center z-10 ${timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx ? 'items-start gap-2.5' : 'items-center gap-3'}`}>
+                                <div className="relative flex w-full flex-col items-center justify-center gap-3 z-10">
                                   {(() => {
-                                    const [hourStr = '00', minuteStr = '00'] = (p.time || '00:00').split(':');
-                                    const hour = parseInt(hourStr, 10);
-                                    const minute = parseInt(minuteStr, 10);
-
-                                    const btnTone = p.isTimeFixed
-                                      ? 'text-blue-400 hover:text-blue-600 hover:bg-blue-100/60'
-                                      : 'text-slate-400 hover:text-blue-500 hover:bg-blue-100/50';
-
-                                    const isExpanded = timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx;
-
-                                    if (!isExpanded) {
-                                      const [hh, mm] = (p.time || '00:00').split(':');
-                                      const endMins = timeToMinutes(p.time || '00:00') + (p.duration || 0);
-                                      const [ehh, emm] = minutesToTime(endMins).split(':');
-                                      return (
-                                        <div className="flex w-full flex-col items-center justify-center gap-1.5 px-3 py-1 select-none">
-                                          <div className={`relative flex w-full min-h-[48px] items-center justify-center rounded-[18px] border px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-blue-100 bg-blue-50/60' : 'border-slate-200 bg-white/88 group-hover/tower:border-blue-100 group-hover/tower:bg-slate-50/95'}`}>
-                                            {p.isTimeFixed && (
-                                              <div className="absolute left-3 top-2.5 flex items-center gap-0.5">
-                                                <Lock size={8} className="text-[#3182F6]" />
-                                                <span className="text-[8px] font-bold text-[#3182F6] uppercase tracking-[0.14em]">FIXED</span>
-                                              </div>
-                                            )}
-                                            <span className={`text-[24px] font-black tabular-nums tracking-[-0.04em] leading-none transition-colors ${p.isTimeFixed ? 'text-[#1f5fd6]' : 'text-slate-900 group-hover/tower:text-[#244f9e]'}`}>
-                                              {hh}<span className="mx-[1px] opacity-72">:</span>{mm}
-                                            </span>
-                                          </div>
-
-                                          <div className="relative flex w-full items-center justify-center">
-                                            <button
-                                              type="button"
-                                              className={`relative z-10 flex min-h-[32px] min-w-[96px] items-center justify-center gap-2 rounded-[12px] border px-3 py-1 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
-                                                ? 'bg-red-500 text-white'
-                                                : isDurationLocked
-                                                  ? 'bg-[#ff8a1a] text-white'
-                                                  : 'border border-slate-200 bg-white text-[#244f9e] hover:border-slate-300'
-                                                }`}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (isAutoLocked) {
-                                                  setLastAction('자동 연동 일정은 소요시간을 조절할 수 없습니다.');
-                                                  return;
-                                                }
-                                                setTimeControllerTarget({ dayIdx: dIdx, pIdx });
-                                              }}
-                                            >
-                                              <ChevronLeft size={12} />
-                                              <span className="text-[11px] font-black tabular-nums tracking-[0.12em]">{fmtDur(p.duration).replace('분', '')}</span>
-                                              <ChevronRight size={12} />
-                                            </button>
-                                          </div>
-
-                                          <div className="flex w-full min-h-[48px] items-center justify-center rounded-[18px] border border-slate-200 bg-slate-50/92 px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100/95">
-                                            <span className="text-[24px] font-black tabular-nums tracking-[-0.04em] leading-none text-slate-400">
-                                              {ehh}<span className="mx-[1px] opacity-70">:</span>{emm}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      );
-                                    }
-
-                                    const mStep = timeControlStep;
                                     const endMins = timeToMinutes(p.time || '00:00') + (p.duration || 0);
-                                    const endLabel = minutesToTime(endMins);
-                                    const [endHour = '00', endMinute = '00'] = endLabel.split(':');
+                                    const [hh, mm] = (p.time || '00:00').split(':');
+                                    const [ehh, emm] = minutesToTime(endMins).split(':');
                                     return (
-                                      <div className="flex w-full flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-300">
-                                        <div
-                                          className={`relative rounded-[18px] border px-2 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-blue-100 bg-blue-50/60' : 'border-slate-200 bg-white/88 group-hover/tower:border-blue-100 group-hover/tower:bg-slate-50/95'}`}
-                                          onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }}
-                                        >
-                                          {p.isTimeFixed && <Lock size={8} className="absolute right-2 top-2 text-[#3182F6]" />}
-                                          <div className="grid grid-cols-[16px_1fr_16px] items-center gap-2">
-                                            <div className="flex flex-col items-center justify-center leading-none text-slate-900">
-                                              <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, 1); }} className="h-4 text-slate-700 hover:text-[#3182F6]"><ChevronUp size={12} /></button>
-                                              <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, -1); }} className="h-4 text-slate-700 hover:text-[#3182F6]"><ChevronDown size={12} /></button>
+                                      <div className="flex w-full flex-col items-center justify-center gap-1.5 px-3 py-1 select-none">
+                                        <div className={`relative flex w-full min-h-[48px] items-center justify-center rounded-[18px] border px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-blue-100 bg-blue-50/60' : 'border-slate-200 bg-white/88 group-hover/tower:border-blue-100 group-hover/tower:bg-slate-50/95'}`}>
+                                          {p.isTimeFixed && (
+                                            <div className="absolute left-3 top-2.5 flex items-center gap-0.5">
+                                              <Lock size={8} className="text-[#3182F6]" />
+                                              <span className="text-[8px] font-bold text-[#3182F6] uppercase tracking-[0.14em]">FIXED</span>
                                             </div>
-                                            <div className={`text-center text-[20px] font-black tabular-nums leading-none ${p.isTimeFixed ? 'text-[#1f5fd6]' : 'text-slate-900'}`}>
-                                              {hourStr}<span className="mx-[2px] opacity-75">:</span>{minuteStr}
-                                            </div>
-                                            <div className="flex flex-col items-center justify-center leading-none text-slate-900">
-                                              <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, mStep); }} className="h-4 text-slate-700 hover:text-[#3182F6]"><ChevronUp size={12} /></button>
-                                              <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, -mStep); }} className="h-4 text-slate-700 hover:text-[#3182F6]"><ChevronDown size={12} /></button>
-                                            </div>
-                                          </div>
+                                          )}
+                                          <span className={`text-[24px] font-black tabular-nums tracking-[-0.04em] leading-none transition-colors ${p.isTimeFixed ? 'text-[#1f5fd6]' : 'text-slate-900 group-hover/tower:text-[#244f9e]'}`}>
+                                            {hh}<span className="mx-[1px] opacity-72">:</span>{mm}
+                                          </span>
                                         </div>
 
-                                        <div
-                                          className={`relative rounded-[12px] px-2 py-1.5 shadow-[0_10px_20px_-14px_rgba(15,23,42,0.35)] transition-all ${isDurationLocked ? 'bg-[#ff8a1a] text-white ring-1 ring-[#ff8a1a]/30' : 'bg-[#ff8a1a] text-white'}`}
-                                          onClick={(e) => { e.stopPropagation(); toggleDurationFix(dIdx, pIdx); }}
-                                        >
-                                          <div className="grid grid-cols-[18px_1fr_18px] items-center gap-2 pr-6">
-                                            <button onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, -TIME_UNIT); }} className="flex h-5 items-center justify-center text-white/90 hover:text-white"><ChevronLeft size={12} /></button>
-                                            <div className="text-center text-[14px] font-black tabular-nums leading-none">{fmtDur(p.duration).replace('분', '')}</div>
-                                            <button onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, TIME_UNIT); }} className="flex h-5 items-center justify-center text-white/90 hover:text-white"><ChevronRight size={12} /></button>
-                                          </div>
+                                        <div className="relative flex w-full items-center justify-center">
+                                          <button
+                                            type="button"
+                                            className={`relative z-10 flex min-h-[32px] min-w-[96px] items-center justify-center gap-2 rounded-[12px] border px-3 py-1 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
+                                              ? 'bg-red-500 text-white'
+                                              : isDurationLocked
+                                                ? 'bg-[#ff8a1a] text-white'
+                                                : 'border border-slate-200 bg-white text-[#244f9e] hover:border-slate-300'
+                                              }`}
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <ChevronLeft size={12} />
+                                            <span className="text-[11px] font-black tabular-nums tracking-[0.12em]">{fmtDur(p.duration).replace('분', '')}</span>
+                                            <ChevronRight size={12} />
+                                          </button>
                                         </div>
 
-                                        <div
-                                          className={`relative rounded-[18px] border px-2 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all ${isEndTimeFixed ? 'border-amber-200 bg-amber-50/55' : 'border-slate-200 bg-slate-50/92 group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100/95'} ${isAutoLocked ? 'cursor-not-allowed opacity-70' : ''}`}
-                                          onClick={(e) => { e.stopPropagation(); if (isAutoLocked) return; toggleEndTimeFix(dIdx, pIdx); }}
-                                        >
-                                          {isEndTimeFixed && <Lock size={8} className="absolute right-2 top-2 text-amber-500" />}
-                                          <div className="grid grid-cols-[16px_1fr_16px] items-center gap-2">
-                                            <div className="flex flex-col items-center justify-center leading-none text-slate-900">
-                                              <button onClick={(e) => { e.stopPropagation(); updatePlanEndTime(dIdx, pIdx, 60); }} className="h-4 text-slate-700 hover:text-amber-600"><ChevronUp size={12} /></button>
-                                              <button onClick={(e) => { e.stopPropagation(); updatePlanEndTime(dIdx, pIdx, -60); }} className="h-4 text-slate-700 hover:text-amber-600"><ChevronDown size={12} /></button>
-                                            </div>
-                                            <div className={`text-center text-[20px] font-black tabular-nums leading-none ${isEndTimeFixed ? 'text-amber-600' : 'text-slate-400'}`}>
-                                              {endHour}<span className="mx-[2px] opacity-75">:</span>{endMinute}
-                                            </div>
-                                            <div className="flex flex-col items-center justify-center leading-none text-slate-900">
-                                              <button onClick={(e) => { e.stopPropagation(); updatePlanEndTime(dIdx, pIdx, mStep); }} className="h-4 text-slate-700 hover:text-amber-600"><ChevronUp size={12} /></button>
-                                              <button onClick={(e) => { e.stopPropagation(); updatePlanEndTime(dIdx, pIdx, -mStep); }} className="h-4 text-slate-700 hover:text-amber-600"><ChevronDown size={12} /></button>
-                                            </div>
-                                          </div>
+                                        <div className="flex w-full min-h-[48px] items-center justify-center rounded-[18px] border border-slate-200 bg-slate-50/92 px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100/95">
+                                          <span className="text-[24px] font-black tabular-nums tracking-[-0.04em] leading-none text-slate-400">
+                                            {ehh}<span className="mx-[1px] opacity-70">:</span>{emm}
+                                          </span>
                                         </div>
                                       </div>
                                     );
@@ -10445,11 +10411,124 @@ const App = () => {
               </div>
             )
           }
+
+          {timeControllerTarget?.kind === 'plan-time' && (() => {
+            const dayIdx = timeControllerTarget.dayIdx;
+            const pIdx = timeControllerTarget.pIdx;
+            const item = itinerary.days?.[dayIdx]?.plan?.[pIdx];
+            if (!item || item.type === 'backup' || item.types?.includes('ship') || isLodgeStay(item.types)) return null;
+            const startMinutes = timeToMinutes(item.time || '00:00');
+            const durationMinutes = Math.max(0, Number(item.duration) || 0);
+            const endMinutesAbsolute = startMinutes + durationMinutes;
+            const endMinutesOfDay = ((endMinutesAbsolute % 1440) + 1440) % 1440;
+            const panelWidth = Math.min(320, Math.max(280, Number(timeControllerTarget.width || 0) + 132));
+            const left = Math.max(12, Math.min(window.innerWidth - panelWidth - 12, Number(timeControllerTarget.left || 0)));
+            const top = Math.max(12, Math.min(window.innerHeight - 260, Number(timeControllerTarget.top || 0) - 6));
+            const isAutoLocked = item.types?.includes('ship') || item._isBufferCoordinated;
+            const isDurationLocked = !!item.isDurationFixed;
+            const isEndTimeFixed = !!item.isEndTimeFixed;
+            return (
+              <div
+                data-time-modal="true"
+                className="fixed z-[260] rounded-[26px] border border-slate-200 bg-white/96 p-4 shadow-[0_24px_50px_-24px_rgba(15,23,42,0.45)] backdrop-blur-xl animate-in"
+                style={{ left, top, width: panelWidth }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[12px] font-black text-slate-800">{item.activity || '일정 시간 조절'}</p>
+                    <p className="mt-0.5 text-[10px] font-bold text-slate-400">드래그로 시작시간, 종료시간, 소요시간을 조정합니다.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTimeControllerTarget(null)}
+                    className="h-8 w-8 rounded-xl border border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-3 py-3">
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">시작 시간</span>
+                      <button
+                        type="button"
+                        onClick={() => toggleTimeFix(dayIdx, pIdx)}
+                        className={`rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${item.isTimeFixed ? 'border-blue-200 bg-white text-[#3182F6]' : 'border-blue-100 bg-blue-50 text-blue-400'}`}
+                      >
+                        {item.isTimeFixed ? '고정됨' : '유동'}
+                      </button>
+                    </div>
+                    <div className="text-[24px] font-black tabular-nums text-slate-900">{minutesToTime(startMinutes)}</div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1435"
+                      step={timeControlStep}
+                      value={startMinutes}
+                      onChange={(e) => setStartTimeValue(dayIdx, pIdx, minutesToTime(Number(e.target.value)))}
+                      className="mt-3 w-full accent-[#3182F6]"
+                    />
+                  </div>
+
+                  <div className="rounded-[20px] border border-orange-200 bg-orange-50/75 px-3 py-3">
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-500">소요 시간</span>
+                      <button
+                        type="button"
+                        onClick={() => { if (!isAutoLocked) toggleDurationFix(dayIdx, pIdx); }}
+                        disabled={isAutoLocked}
+                        className={`rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors disabled:opacity-50 ${isDurationLocked ? 'border-orange-200 bg-white text-orange-600' : 'border-orange-100 bg-orange-50 text-orange-400'}`}
+                      >
+                        {isDurationLocked ? '고정됨' : '유동'}
+                      </button>
+                    </div>
+                    <div className="text-[24px] font-black tabular-nums text-slate-900">{fmtDur(durationMinutes)}</div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="720"
+                      step={timeControlStep}
+                      value={durationMinutes}
+                      onChange={(e) => setDurationValue(dayIdx, pIdx, Number(e.target.value))}
+                      className="mt-3 w-full accent-[#ff8a1a]"
+                    />
+                  </div>
+
+                  <div className="rounded-[20px] border border-slate-200 bg-slate-50/85 px-3 py-3">
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">종료 시간</span>
+                      <button
+                        type="button"
+                        onClick={() => { if (!isAutoLocked) toggleEndTimeFix(dayIdx, pIdx); }}
+                        disabled={isAutoLocked}
+                        className={`rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors disabled:opacity-50 ${isEndTimeFixed ? 'border-amber-200 bg-white text-amber-600' : 'border-slate-200 bg-white text-slate-400'}`}
+                      >
+                        {isEndTimeFixed ? '고정됨' : '유동'}
+                      </button>
+                    </div>
+                    <div className="text-[24px] font-black tabular-nums text-slate-500">{minutesToTime(endMinutesOfDay)}</div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1435"
+                      step={timeControlStep}
+                      value={endMinutesOfDay}
+                      onChange={(e) => setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(Number(e.target.value)))}
+                      className="mt-3 w-full accent-slate-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div >
 
         <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;900&display=swap');
-        body { font-family: 'Pretendard', -apple-system, sans-serif; letter-spacing: -0.02em; margin: 0; background-color: #F2F4F6; }
+        body { font-family: 'Pretendard', -apple-system, sans-serif; letter-spacing: -0.02em; margin: 0; background-color: #F2F4F6; user-select: none; -webkit-user-select: none; }
+        input, textarea, [contenteditable="true"], [data-allow-select="true"] { user-select: text; -webkit-user-select: text; }
         .animate-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

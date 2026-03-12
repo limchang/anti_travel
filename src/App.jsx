@@ -1943,6 +1943,7 @@ const RoutePreviewCanvas = ({ routePreviewMap = [], height = 240, className = ''
 
     const render = async () => {
       if (!mapRef.current || !routePreviewMap.length) return;
+      if (!cancelled) setUseFallback(false);
       try {
         const kakao = await loadKakaoMapSdk(KAKAO_API_KEY);
         if (cancelled || !mapRef.current) return;
@@ -4242,6 +4243,40 @@ const App = () => {
       };
     }).filter((entry) => entry.points.length >= 1);
   }, [itinerary.days, hiddenRoutePreviewEndpoints]);
+  const routePreviewStoredDays = useMemo(() => (
+    routePreviewPointSource
+      .map((entry) => ({
+        ...entry,
+        points: (entry.points || [])
+          .map((point) => {
+            const geo = normalizeGeoPoint(point.geo, point.address);
+            if (!hasGeoCoords(geo) || isGeoStaleForAddress(geo, point.address)) return null;
+            return {
+              ...point,
+              lat: Number(geo.lat),
+              lon: Number(geo.lon),
+            };
+          })
+          .filter(Boolean),
+      }))
+      .filter((entry) => entry.points.length >= 1)
+  ), [routePreviewPointSource]);
+  const routePreviewNeedsLookup = useMemo(() => (
+    routePreviewPointSource.some((entry) => (
+      (entry.points || []).some((point) => {
+        const geo = normalizeGeoPoint(point.geo, point.address);
+        return !hasGeoCoords(geo) || isGeoStaleForAddress(geo, point.address);
+      })
+    ))
+  ), [routePreviewPointSource]);
+
+  useEffect(() => {
+    if (!routePreviewStoredDays.length) return;
+    setRoutePreviewDays((prev) => {
+      if (!prev.length) return routePreviewStoredDays;
+      return prev;
+    });
+  }, [routePreviewStoredDays]);
 
   const resolveRoutePreviewDays = useCallback(async ({ forceRefresh = false } = {}) => {
     const dayEntries = routePreviewPointSource;
@@ -4388,6 +4423,13 @@ const App = () => {
         if (!cancelled) setRoutePreviewDays([]);
         return;
       }
+      if (!routePreviewNeedsLookup) {
+        if (!cancelled) {
+          setRoutePreviewDays(routePreviewStoredDays);
+          setRoutePreviewLoading(false);
+        }
+        return;
+      }
 
       setRoutePreviewLoading(true);
       try {
@@ -4402,7 +4444,7 @@ const App = () => {
     return () => {
       cancelled = true;
     };
-  }, [routePreviewPointSource, resolveRoutePreviewDays]);
+  }, [routePreviewNeedsLookup, routePreviewPointSource, routePreviewStoredDays, resolveRoutePreviewDays]);
 
   const routePreviewMap = useMemo(() => {
     const allPoints = routePreviewDays.flatMap((day) => day.points || []);

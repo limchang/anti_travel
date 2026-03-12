@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.41",
+      "timestamp": "2026-03-12T12:15:06+09:00",
+      "message": "fix: render route map immediately from stored coords"
+    },
+    {
       "version": "1.3.40",
       "timestamp": "2026-03-12T12:09:57+09:00",
       "message": "feat: add manual route preview refresh"
@@ -144,11 +149,6 @@
       "version": "1.3.12",
       "timestamp": "2026-03-12T10:08:05+09:00",
       "message": "feat: add a day-by-day route preview map to the library sidebar"
-    },
-    {
-      "version": "1.3.11",
-      "timestamp": "2026-03-12T10:04:09+09:00",
-      "message": "design: remove connector lines from the time cell and keep a simple vertical stack"
     }
   ]
 }

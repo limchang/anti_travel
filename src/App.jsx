@@ -2013,6 +2013,15 @@ const TimeWheelColumn = ({
               <button
                 key={`${label}-${entry}-${idx}`}
                 type="button"
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                }}
                 onClick={(e) => {
                   e.stopPropagation();
                   commitSpecificValue(entry);

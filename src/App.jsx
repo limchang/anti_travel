@@ -2467,6 +2467,8 @@ const App = () => {
   const [timelineEndTimeDraft, setTimelineEndTimeDraft] = useState(null); // { key, value }
   const [lodgeCheckoutDraft, setLodgeCheckoutDraft] = useState(null); // { key, value }
   const [timeControlStep, setTimeControlStep] = useState(5);
+  const saveQueueRef = useRef({ inFlight: false, pending: null });
+  const latestSaveJobRef = useRef(null);
 
   useEffect(() => {
     const handleOutside = (e) => {
@@ -6856,6 +6858,25 @@ const App = () => {
     setLastAction("별도 일정이 추가되었습니다.");
   };
 
+  const enqueueItinerarySave = useCallback(async (planId, payload) => {
+    if (!user || user.isGuest || isSharedReadOnly) return;
+    const queue = saveQueueRef.current;
+    queue.pending = { planId: planId || 'main', payload };
+    if (queue.inFlight) return;
+    queue.inFlight = true;
+    try {
+      while (queue.pending) {
+        const job = queue.pending;
+        queue.pending = null;
+        await setDoc(doc(db, 'users', user.uid, 'itinerary', job.planId), job.payload);
+      }
+    } catch (e) {
+      console.error('Firestore 저장 실패:', e);
+    } finally {
+      queue.inFlight = false;
+    }
+  }, [user, isSharedReadOnly]);
+
   // Firestore 저장 (1초 디바운스, 사용자 UID 기준)
   useEffect(() => {
     if (!user || loading || !itinerary || !itinerary.days || itinerary.days.length === 0) return;
@@ -6864,6 +6885,7 @@ const App = () => {
       safeLocalStorageSet('guest_itinerary', JSON.stringify(itinerary));
       return;
     }
+    const planId = currentPlanId || 'main';
     const timer = setTimeout(() => {
       const payload = {
         ...itinerary,
@@ -6875,11 +6897,28 @@ const App = () => {
         share: normalizeShare(itinerary.share || shareSettings),
         updatedAt: Date.now(),
       };
-      setDoc(doc(db, 'users', user.uid, 'itinerary', currentPlanId || 'main'), payload)
-        .catch(e => console.error('Firestore 저장 실패:', e));
-    }, 1000);
+      latestSaveJobRef.current = { planId, payload };
+      void enqueueItinerarySave(planId, payload);
+    }, 350);
     return () => clearTimeout(timer);
-  }, [itinerary, loading, user, currentPlanId, tripRegion, tripStartDate, tripEndDate, isSharedReadOnly, shareSettings]);
+  }, [itinerary, loading, user, currentPlanId, tripRegion, tripStartDate, tripEndDate, isSharedReadOnly, shareSettings, enqueueItinerarySave]);
+
+  useEffect(() => {
+    const flushSave = () => {
+      const job = latestSaveJobRef.current;
+      if (!job) return;
+      void enqueueItinerarySave(job.planId, job.payload);
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') flushSave();
+    };
+    window.addEventListener('pagehide', flushSave);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('pagehide', flushSave);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [enqueueItinerarySave]);
 
   // Firestore 로드 (사용자 UID 기준 + 마이그레이션 로직)
   useEffect(() => {

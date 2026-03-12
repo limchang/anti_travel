@@ -1,6 +1,16 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.65",
+      "timestamp": "2026-03-12T14:03:00+09:00",
+      "message": "시간 휠 세로 밀도 추가 축소(높이/피치 타이트 조정)"
+    },
+    {
+      "version": "1.3.64",
+      "timestamp": "2026-03-12T14:01:33+09:00",
+      "message": "시간 편집 모달 좌우 여백 축소 및 컬럼 폭 타이트 조정"
+    },
+    {
       "version": "1.3.63",
       "timestamp": "2026-03-12T13:59:44+09:00",
       "message": "시간 편집 모달 3컬럼 디자인 통일 및 중앙 정렬 개선"
@@ -139,16 +149,6 @@
       "version": "1.3.36",
       "timestamp": "2026-03-12T11:51:37+09:00",
       "message": "style: add subtle borders to inactive nav items"
-    },
-    {
-      "version": "1.3.35",
-      "timestamp": "2026-03-12T11:50:39+09:00",
-      "message": "fix: follow auto-route progress and recover route map points"
-    },
-    {
-      "version": "1.3.34",
-      "timestamp": "2026-03-12T11:43:32+09:00",
-      "message": "style: anchor time cell expansion and surface main route map"
     }
   ]
 }

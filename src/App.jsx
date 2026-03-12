@@ -1825,7 +1825,7 @@ const APP_VERSION = latestUpdate.version;
 const LAST_PUSH_TIME = latestUpdate.timestamp;
 const ROUTE_PREVIEW_ENABLED = false;
 const ROUTE_PREVIEW_COLORS = ['#34C759', '#FF8A3D', '#8B5CF6', '#3182F6', '#EF4444', '#14B8A6'];
-const TIME_WHEEL_ITEM_HEIGHT = 34;
+const TIME_WHEEL_ITEM_HEIGHT = 28;
 
 const TimeWheelColumn = ({
   label = '',
@@ -2027,7 +2027,7 @@ const TimeWheelColumn = ({
 
   return (
     <div
-      className="min-w-[58px] touch-none select-none"
+      className="flex-1 min-w-0 touch-none select-none"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -2037,22 +2037,22 @@ const TimeWheelColumn = ({
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
-      <p className="mb-1 text-center text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
+      <p className="mb-0.5 text-center text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
       <div className="relative rounded-[18px] border border-slate-200 bg-white/92">
-        <div className="pointer-events-none absolute inset-x-1.5 top-1/2 h-[34px] -translate-y-1/2 rounded-[12px] border border-[#bfd7ff] bg-[#eef5ff] shadow-[0_8px_18px_-16px_rgba(49,130,246,0.5),inset_0_1px_0_rgba(255,255,255,0.95)]" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-6 rounded-t-[18px] bg-gradient-to-b from-white via-white/88 to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-6 rounded-b-[18px] bg-gradient-to-t from-white via-white/88 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-1.5 top-1/2 h-[28px] -translate-y-1/2 rounded-[10px] border border-[#bfd7ff] bg-[#eef5ff] shadow-[0_8px_18px_-16px_rgba(49,130,246,0.5),inset_0_1px_0_rgba(255,255,255,0.95)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-5 rounded-t-[18px] bg-gradient-to-b from-white via-white/88 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-5 rounded-b-[18px] bg-gradient-to-t from-white via-white/88 to-transparent" />
         <div
           ref={listRef}
           onScroll={handleScroll}
-          className="relative h-[102px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[34px] touch-pan-y"
+          className="relative h-[84px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[28px] touch-pan-y"
         >
           {renderedValues.map((entry, idx) => {
             const active = entry === value;
             return (
               <div
                 key={`${label}-${entry}-${idx}`}
-                className={`flex h-[34px] snap-start items-center justify-center text-[20px] font-black tabular-nums transition-all ${active ? `${accentClass} scale-100` : 'scale-[0.9] text-slate-300/90'}`}
+                className={`flex h-[28px] snap-start items-center justify-center text-[18px] font-black tabular-nums transition-all ${active ? `${accentClass} scale-100` : 'scale-[0.9] text-slate-300/90'}`}
               >
                 {formatter(entry)}
               </div>
@@ -10894,8 +10894,8 @@ const App = () => {
                 style={{ left, top, width: panelWidth }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="grid grid-cols-3 gap-2 items-stretch">
-                  <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-2.5 py-2">
+                <div className="grid grid-cols-3 gap-1.5 items-stretch">
+                  <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-1.5 py-2">
                     <div className="mb-1 flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">시작 시간</span>
                       <button
@@ -10906,7 +10906,7 @@ const App = () => {
                         {item.isTimeFixed ? '고정됨' : '유동'}
                       </button>
                     </div>
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex w-full items-center justify-center gap-1">
                       <TimeWheelColumn
                         label="시"
                         value={currentStartHour}
@@ -10931,15 +10931,15 @@ const App = () => {
                     </div>
                   </div>
 
-                  <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-2.5 py-2">
+                  <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-1.5 py-2">
                     <div className="mb-1 flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">소요 시간</span>
                       <span className="rounded-full border border-blue-200 bg-white px-2 py-0.5 text-[9px] font-black text-[#3182F6]">
                         계산값
                       </span>
                     </div>
-                    <div className="flex h-[102px] flex-col items-center justify-center gap-2">
-                      <div className="relative flex min-h-[44px] min-w-[124px] items-center justify-center rounded-[14px] border border-[#bfd7ff] bg-[#eef5ff] px-3 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
+                    <div className="flex h-[102px] w-full flex-col items-center justify-center gap-2">
+                      <div className="relative flex min-h-[44px] w-full items-center justify-center rounded-[14px] border border-[#bfd7ff] bg-[#eef5ff] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
                         <span className="text-[34px] leading-none font-black tabular-nums tracking-[-0.03em] text-[#1f5fd6]">{fmtDur(durationMinutes).replace('분', '')}</span>
                         <span className="ml-1 mt-3 text-[11px] font-black text-[#3182F6]">분</span>
                       </div>
@@ -10949,7 +10949,7 @@ const App = () => {
                     </div>
                   </div>
 
-                  <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-2.5 py-2">
+                  <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-1.5 py-2">
                     <div className="mb-1 flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">종료 시간</span>
                       <button
@@ -10961,7 +10961,7 @@ const App = () => {
                         {isEndTimeFixed ? '고정됨' : '유동'}
                       </button>
                     </div>
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex w-full items-center justify-center gap-1">
                       <TimeWheelColumn
                         label="시"
                         value={currentEndHour}

@@ -5725,28 +5725,61 @@ const App = () => {
     setLastAction("버퍼 시간을 조정했습니다.");
   };
 
-  const resetBufferTimeById = (dayIdx, itemId, minutes = DEFAULT_BUFFER_MINS) => {
-    const nextMinutes = Math.max(0, Number(minutes) || 0);
+  const applyAutoBufferTimeById = (dayIdx, itemId) => {
+    let applied = false;
+    let computedBufferMins = 0;
     saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const dayPlan = nextData.days[dayIdx]?.plan || [];
-      const item = dayPlan.find((entry) => entry?.id === itemId);
+      const currentIdx = dayPlan.findIndex((entry) => entry?.id === itemId);
+      if (currentIdx < 0) return prev;
+      const item = dayPlan[currentIdx];
       if (!item) return prev;
-      const wasBufferCoordinated = !!item._isBufferCoordinated;
 
-      item.bufferTimeOverride = `${nextMinutes}분`;
-      item._manualBufferTimeOverride = `${nextMinutes}분`;
-      item._isBufferCoordinated = false;
-      if (wasBufferCoordinated && item.isTimeFixed) {
-        item.isTimeFixed = false;
+      let prevItem = null;
+      for (let idx = currentIdx - 1; idx >= 0; idx -= 1) {
+        const candidate = dayPlan[idx];
+        if (candidate && candidate.type !== 'backup') {
+          prevItem = candidate;
+          break;
+        }
       }
+      if (!prevItem && dayIdx > 0) {
+        const prevDayPlan = nextData.days?.[dayIdx - 1]?.plan || [];
+        for (let idx = prevDayPlan.length - 1; idx >= 0; idx -= 1) {
+          const candidate = prevDayPlan[idx];
+          if (candidate && candidate.type !== 'backup') {
+            prevItem = candidate;
+            break;
+          }
+        }
+      }
+
+      const prevEnd = prevItem
+        ? (prevItem.types?.includes('ship')
+          ? getShipTimeline(prevItem).disembark
+          : timeToMinutes(prevItem.time || '00:00')
+            + Math.max(0, Number(prevItem.waitingTime) || 0)
+            + Math.max(0, Number(prevItem.duration) || 0))
+        : 0;
+      const travelMins = parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
+      const currentStart = timeToMinutes(item.time || '00:00');
+      const autoBufferMins = Math.max(0, currentStart - (prevEnd + travelMins));
+
+      item.bufferTimeOverride = `${autoBufferMins}분`;
+      item._manualBufferTimeOverride = `${autoBufferMins}분`;
+      item._isBufferCoordinated = false;
+      computedBufferMins = autoBufferMins;
+      applied = true;
 
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       recalculateLodgeDurations(nextData.days);
       return nextData;
     });
-    setLastAction(`보정 시간을 ${nextMinutes}분으로 초기화하고 주변 일정을 다시 계산했습니다.`);
+    setLastAction(applied
+      ? `남은 시간 기준으로 보정 시간을 ${computedBufferMins}분으로 자동 반영했습니다.`
+      : '자동 반영할 보정 시간을 찾지 못했습니다.');
   };
 
   const resetTravelTime = (dayIdx, pIdx) => {
@@ -10949,9 +10982,9 @@ const App = () => {
                                               className={`min-w-[3rem] cursor-pointer text-center tracking-tight text-xs font-black transition-colors ${nextItem._isBufferCoordinated ? 'text-orange-500 hover:text-orange-600' : 'text-slate-500 hover:text-slate-700'}`}
                                               onClick={(e) => {
                                                 e.stopPropagation();
-                                                resetBufferTimeById(dIdx, nextItem.id, DEFAULT_BUFFER_MINS);
+                                                applyAutoBufferTimeById(dIdx, nextItem.id);
                                               }}
-                                              title="클릭하여 보정 시간을 10분으로 초기화"
+                                              title="클릭하여 남은 시간 기준 보정시간 자동 반영"
                                             >
                                               {nextItem.bufferTimeOverride || '10분'}
                                             </span>

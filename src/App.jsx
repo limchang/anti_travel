@@ -9321,8 +9321,8 @@ const App = () => {
                                       const endMins = timeToMinutes(p.time || '00:00') + (p.duration || 0);
                                       const [ehh, emm] = minutesToTime(endMins).split(':');
                                       return (
-                                        <div className="flex w-full flex-col items-center justify-center gap-2 px-3 py-1.5 select-none">
-                                          <div className={`relative flex w-full min-h-[66px] items-center justify-center rounded-[18px] border px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-blue-100 bg-blue-50/60' : 'border-slate-200 bg-white/88 group-hover/tower:border-blue-100 group-hover/tower:bg-slate-50/95'}`}>
+                                        <div className="flex w-full flex-col items-center justify-center gap-1.5 px-3 py-1 select-none">
+                                          <div className={`relative flex w-full min-h-[48px] items-center justify-center rounded-[18px] border px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-blue-100 bg-blue-50/60' : 'border-slate-200 bg-white/88 group-hover/tower:border-blue-100 group-hover/tower:bg-slate-50/95'}`}>
                                             {p.isTimeFixed && (
                                               <div className="absolute left-3 top-2.5 flex items-center gap-0.5">
                                                 <Lock size={8} className="text-[#3182F6]" />
@@ -9337,7 +9337,7 @@ const App = () => {
                                           <div className="relative flex w-full items-center justify-center">
                                             <button
                                               type="button"
-                                              className={`relative z-10 flex min-h-[46px] min-w-[104px] items-center justify-center gap-2.5 rounded-[12px] border px-3.5 py-1.5 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
+                                              className={`relative z-10 flex min-h-[32px] min-w-[96px] items-center justify-center gap-2 rounded-[12px] border px-3 py-1 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
                                                 ? 'bg-red-500 text-white'
                                                 : isDurationLocked
                                                   ? 'bg-[#ff8a1a] text-white'
@@ -9358,7 +9358,7 @@ const App = () => {
                                             </button>
                                           </div>
 
-                                          <div className="flex w-full min-h-[66px] items-center justify-center rounded-[18px] border border-slate-200 bg-slate-50/92 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100/95">
+                                          <div className="flex w-full min-h-[48px] items-center justify-center rounded-[18px] border border-slate-200 bg-slate-50/92 px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)] transition-all group-hover/tower:border-slate-300 group-hover/tower:bg-slate-100/95">
                                             <span className="text-[24px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-400">
                                               {ehh}<span className="mx-[-1px] opacity-75">:</span>{emm}
                                             </span>

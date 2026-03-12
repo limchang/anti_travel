@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.28",
+      "timestamp": "2026-03-12T11:18:27+09:00",
+      "message": "style: compress collapsed time cell height further"
+    },
+    {
       "version": "1.3.27",
       "timestamp": "2026-03-12T11:17:32+09:00",
       "message": "style: tighten collapsed time cell spacing"

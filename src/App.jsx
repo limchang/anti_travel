@@ -1773,6 +1773,7 @@ const TimeWheelColumn = ({
   value = 0,
   values = [],
   onChange,
+  onInteract,
   formatter = (next) => String(next).padStart(2, '0'),
   accentClass = 'text-slate-900',
   cyclic = false,
@@ -1804,6 +1805,7 @@ const TimeWheelColumn = ({
   React.useEffect(() => {
     const list = listRef.current;
     if (!list) return;
+    if (pointerDragRef.current.active || touchDragRef.current.active) return;
     const baseIndex = Math.max(0, values.indexOf(value));
     const currentIndex = cyclic ? (baseIndex + values.length) : (baseIndex + EDGE_PAD_COUNT);
     const targetTop = currentIndex * TIME_WHEEL_ITEM_HEIGHT;
@@ -1901,6 +1903,7 @@ const TimeWheelColumn = ({
     if (e.pointerType === 'touch') return;
     const list = listRef.current;
     if (!list) return;
+    onInteract?.();
     dragMovedRef.current = false;
     pointerDragRef.current = {
       active: true,
@@ -1915,13 +1918,14 @@ const TimeWheelColumn = ({
     }
     onDragStateChange?.(true);
     e.stopPropagation();
-  }, [onDragStateChange]);
+  }, [onDragStateChange, onInteract]);
 
   const handlePointerMove = React.useCallback((e) => {
     if (e.pointerType === 'touch') return;
     const list = listRef.current;
     const state = pointerDragRef.current;
     if (!list || !state.active || state.pointerId !== e.pointerId) return;
+    onInteract?.();
     const deltaY = e.clientY - state.startY;
     if (Math.abs(deltaY) >= 2) dragMovedRef.current = true;
     list.scrollTop = state.startTop - deltaY;
@@ -1934,13 +1938,14 @@ const TimeWheelColumn = ({
     }
     e.preventDefault();
     e.stopPropagation();
-  }, [getClosestValue, liveOnDrag, onChange]);
+  }, [getClosestValue, liveOnDrag, onChange, onInteract]);
 
   const handlePointerUp = React.useCallback((e) => {
     if (e.pointerType === 'touch') return;
     const list = listRef.current;
     const state = pointerDragRef.current;
     if (!list || !state.active || state.pointerId !== e.pointerId) return;
+    onInteract?.();
     pointerDragRef.current = { active: false, pointerId: null, startY: 0, startTop: 0 };
     try {
       list.releasePointerCapture(e.pointerId);
@@ -1950,13 +1955,14 @@ const TimeWheelColumn = ({
     onDragStateChange?.(false);
     commitClosestValue();
     e.stopPropagation();
-  }, [commitClosestValue, onDragStateChange]);
+  }, [commitClosestValue, onDragStateChange, onInteract]);
 
   const handleTouchStart = React.useCallback((e) => {
     const list = listRef.current;
     if (!list) return;
     const touch = e.touches?.[0];
     if (!touch) return;
+    onInteract?.();
     dragMovedRef.current = false;
     touchDragRef.current = {
       active: true,
@@ -1965,7 +1971,7 @@ const TimeWheelColumn = ({
     };
     onDragStateChange?.(true);
     e.stopPropagation();
-  }, [onDragStateChange]);
+  }, [onDragStateChange, onInteract]);
 
   const handleTouchMove = React.useCallback((e) => {
     const list = listRef.current;
@@ -1973,6 +1979,7 @@ const TimeWheelColumn = ({
     if (!list || !state.active) return;
     const touch = e.touches?.[0];
     if (!touch) return;
+    onInteract?.();
     const deltaY = touch.clientY - state.startY;
     if (Math.abs(deltaY) >= 2) dragMovedRef.current = true;
     list.scrollTop = state.startTop - deltaY;
@@ -1985,15 +1992,16 @@ const TimeWheelColumn = ({
     }
     e.preventDefault();
     e.stopPropagation();
-  }, [getClosestValue, liveOnDrag, onChange]);
+  }, [getClosestValue, liveOnDrag, onChange, onInteract]);
 
   const handleTouchEnd = React.useCallback((e) => {
     if (!touchDragRef.current.active) return;
+    onInteract?.();
     touchDragRef.current = { active: false, startY: 0, startTop: 0 };
     onDragStateChange?.(false);
     commitClosestValue();
     e.stopPropagation();
-  }, [commitClosestValue, onDragStateChange]);
+  }, [commitClosestValue, onDragStateChange, onInteract]);
 
   React.useEffect(() => {
     const onWindowPointerMove = (e) => handlePointerMove(e);
@@ -2042,6 +2050,7 @@ const TimeWheelColumn = ({
                 onClick={(e) => {
                   e.stopPropagation();
                   if (dragMovedRef.current) return;
+                  onInteract?.();
                   commitSpecificValue(entry);
                 }}
                 className={`flex h-[28px] w-full snap-start items-center justify-center text-[18px] font-black tabular-nums transition-all ${active ? `${accentClass} scale-100` : 'scale-[0.9] text-slate-300/90'}`}
@@ -2604,8 +2613,22 @@ const App = () => {
   const [lodgeCheckoutDraft, setLodgeCheckoutDraft] = useState(null); // { key, value }
   const [timeControlStep, setTimeControlStep] = useState(5);
   const [isTimeWheelDragging, setIsTimeWheelDragging] = useState(false);
+  const timeControllerAutoCloseTimerRef = useRef(null);
   const saveQueueRef = useRef({ inFlight: false, pending: null });
   const latestSaveJobRef = useRef(null);
+  const clearTimeControllerAutoClose = useCallback(() => {
+    if (timeControllerAutoCloseTimerRef.current) {
+      clearTimeout(timeControllerAutoCloseTimerRef.current);
+      timeControllerAutoCloseTimerRef.current = null;
+    }
+  }, []);
+  const bumpTimeControllerAutoClose = useCallback(() => {
+    if (timeControllerTarget?.kind !== 'plan-time') return;
+    clearTimeControllerAutoClose();
+    timeControllerAutoCloseTimerRef.current = setTimeout(() => {
+      setTimeControllerTarget((prev) => (prev?.kind === 'plan-time' ? null : prev));
+    }, 3000);
+  }, [clearTimeControllerAutoClose, timeControllerTarget?.kind]);
 
   useEffect(() => {
     const handleOutside = (e) => {
@@ -2632,6 +2655,18 @@ const App = () => {
       document.removeEventListener('keydown', handleEsc);
     };
   }, [timeControllerTarget]);
+
+  useEffect(() => {
+    if (timeControllerTarget?.kind === 'plan-time') {
+      bumpTimeControllerAutoClose();
+      return;
+    }
+    clearTimeControllerAutoClose();
+  }, [timeControllerTarget, bumpTimeControllerAutoClose, clearTimeControllerAutoClose]);
+
+  useEffect(() => () => {
+    clearTimeControllerAutoClose();
+  }, [clearTimeControllerAutoClose]);
 
   useEffect(() => {
     if (timeControllerTarget?.kind === 'plan-time') return;
@@ -9971,6 +10006,11 @@ const App = () => {
                                   <div
                                     data-time-modal="true"
                                     onClick={(e) => e.stopPropagation()}
+                                    onPointerDown={bumpTimeControllerAutoClose}
+                                    onPointerMove={bumpTimeControllerAutoClose}
+                                    onTouchStart={bumpTimeControllerAutoClose}
+                                    onTouchMove={bumpTimeControllerAutoClose}
+                                    onWheel={bumpTimeControllerAutoClose}
                                     className="mt-1 w-full z-30"
                                   >
                                     <div className="grid h-full grid-cols-3 gap-2 items-stretch p-1">
@@ -9988,6 +10028,7 @@ const App = () => {
                                               label=""
                                               value={currentStartHour}
                                               values={Array.from({ length: 24 }, (_, idx) => idx)}
+                                              onInteract={bumpTimeControllerAutoClose}
                                               onDragStateChange={setIsTimeWheelDragging}
                                               onChange={(nextHour) => setStartTimeValue(dIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentStartMinute)), { skipHistory: true })}
                                               accentClass="text-slate-800"
@@ -9998,6 +10039,7 @@ const App = () => {
                                               values={Array.from({ length: 60 }, (_, idx) => idx)}
                                               cyclic
                                               liveOnDrag
+                                              onInteract={bumpTimeControllerAutoClose}
                                               onDragStateChange={setIsTimeWheelDragging}
                                               onChange={(nextMinute) => {
                                                 const wrapped = buildWrappedTotalMinutes(currentStartHour, currentStartMinute, nextMinute);
@@ -10024,6 +10066,7 @@ const App = () => {
                                               value={currentDurationHour}
                                               values={Array.from({ length: 24 }, (_, idx) => idx)}
                                               liveOnDrag
+                                              onInteract={bumpTimeControllerAutoClose}
                                               onDragStateChange={setIsTimeWheelDragging}
                                               onChange={(nextHour) => setDurationHourValue(dIdx, pIdx, nextHour, { skipHistory: true })}
                                               accentClass="text-slate-800"
@@ -10034,6 +10077,7 @@ const App = () => {
                                               values={Array.from({ length: 60 }, (_, idx) => idx)}
                                               cyclic
                                               liveOnDrag
+                                              onInteract={bumpTimeControllerAutoClose}
                                               onDragStateChange={setIsTimeWheelDragging}
                                               onChange={(nextMinute) => setDurationMinuteValue(dIdx, pIdx, nextMinute, { skipHistory: true })}
                                               accentClass="text-slate-800"
@@ -10057,6 +10101,7 @@ const App = () => {
                                               label=""
                                               value={currentEndHour}
                                               values={Array.from({ length: 24 }, (_, idx) => idx)}
+                                              onInteract={bumpTimeControllerAutoClose}
                                               onDragStateChange={setIsTimeWheelDragging}
                                               onChange={(nextHour) => {
                                                 const nextTotal = clampEndNotBeforeStart((nextHour * 60) + currentEndMinute);
@@ -10070,6 +10115,7 @@ const App = () => {
                                               values={Array.from({ length: 60 }, (_, idx) => idx)}
                                               cyclic
                                               liveOnDrag
+                                              onInteract={bumpTimeControllerAutoClose}
                                               onDragStateChange={setIsTimeWheelDragging}
                                               onChange={(nextMinute) => {
                                                 const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);
@@ -11068,6 +11114,11 @@ const App = () => {
                 className={`fixed z-[260] rounded-[24px] border border-slate-200 bg-white/96 p-2.5 backdrop-blur-xl animate-in ${replaceMode ? 'shadow-[0_12px_26px_-18px_rgba(15,23,42,0.26)]' : 'shadow-[0_24px_50px_-24px_rgba(15,23,42,0.45)]'}`}
                 style={{ left, top, width: panelWidth, height: panelHeight }}
                 onClick={(e) => e.stopPropagation()}
+                onPointerDown={bumpTimeControllerAutoClose}
+                onPointerMove={bumpTimeControllerAutoClose}
+                onTouchStart={bumpTimeControllerAutoClose}
+                onTouchMove={bumpTimeControllerAutoClose}
+                onWheel={bumpTimeControllerAutoClose}
               >
                 <div className="grid h-full grid-cols-3 gap-1.5 items-stretch">
                   <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
@@ -11084,6 +11135,7 @@ const App = () => {
                           label=""
                           value={currentStartHour}
                           values={startHourValues}
+                          onInteract={bumpTimeControllerAutoClose}
                           onDragStateChange={setIsTimeWheelDragging}
                           onChange={(nextHour) => setStartTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentStartMinute)), { skipHistory: true })}
                           accentClass="text-slate-800"
@@ -11094,6 +11146,7 @@ const App = () => {
                           values={Array.from({ length: 60 }, (_, idx) => idx)}
                           cyclic
                           liveOnDrag
+                          onInteract={bumpTimeControllerAutoClose}
                           onDragStateChange={setIsTimeWheelDragging}
                           onChange={(nextMinute) => {
                             const wrapped = buildWrappedTotalMinutes(currentStartHour, currentStartMinute, nextMinute);
@@ -11120,6 +11173,7 @@ const App = () => {
                           value={currentDurationHour}
                           values={durationHourValues}
                           liveOnDrag
+                          onInteract={bumpTimeControllerAutoClose}
                           onDragStateChange={setIsTimeWheelDragging}
                           onChange={(nextHour) => setDurationHourValue(dayIdx, pIdx, nextHour, { skipHistory: true })}
                           accentClass="text-slate-800"
@@ -11130,6 +11184,7 @@ const App = () => {
                           values={Array.from({ length: 60 }, (_, idx) => idx)}
                           cyclic
                           liveOnDrag
+                          onInteract={bumpTimeControllerAutoClose}
                           onDragStateChange={setIsTimeWheelDragging}
                           onChange={(nextMinute) => setDurationMinuteValue(dayIdx, pIdx, nextMinute, { skipHistory: true })}
                           accentClass="text-slate-800"
@@ -11153,6 +11208,7 @@ const App = () => {
                         label=""
                         value={currentEndHour}
                         values={endHourValues}
+                        onInteract={bumpTimeControllerAutoClose}
                         onDragStateChange={setIsTimeWheelDragging}
                         onChange={(nextHour) => {
                           const nextTotal = clampEndNotBeforeStart((nextHour * 60) + currentEndMinute);
@@ -11166,6 +11222,7 @@ const App = () => {
                         values={Array.from({ length: 60 }, (_, idx) => idx)}
                         cyclic
                         liveOnDrag
+                        onInteract={bumpTimeControllerAutoClose}
                         onDragStateChange={setIsTimeWheelDragging}
                         onChange={(nextMinute) => {
                           const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);

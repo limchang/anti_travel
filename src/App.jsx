@@ -1833,7 +1833,6 @@ const TimeWheelColumn = ({
   values = [],
   onChange,
   onDragStateChange,
-  isValueDisabled = () => false,
   formatter = (next) => String(next).padStart(2, '0'),
   accentClass = 'text-slate-900',
   cyclic = false,
@@ -1881,23 +1880,6 @@ const TimeWheelColumn = ({
       ? ((rawIndex % values.length) + values.length) % values.length
       : rawIndex;
     let nextIndex = Math.max(0, Math.min(values.length - 1, normalizedIndex));
-    if (isValueDisabled(values[nextIndex])) {
-      let found = -1;
-      for (let delta = 1; delta < values.length; delta += 1) {
-        const lower = nextIndex - delta;
-        const upper = nextIndex + delta;
-        if (lower >= 0 && !isValueDisabled(values[lower])) {
-          found = lower;
-          break;
-        }
-        if (upper < values.length && !isValueDisabled(values[upper])) {
-          found = upper;
-          break;
-        }
-      }
-      if (found < 0) return;
-      nextIndex = found;
-    }
     const centerIndex = cyclic ? (nextIndex + values.length) : nextIndex;
     const targetTop = centerIndex * TIME_WHEEL_ITEM_HEIGHT;
     if (Math.abs(list.scrollTop - targetTop) > 1) {
@@ -1908,7 +1890,7 @@ const TimeWheelColumn = ({
       }, 140);
     }
     if (values[nextIndex] !== value) onChange?.(values[nextIndex]);
-  }, [cyclic, isValueDisabled, onChange, renderedValues.length, value, values]);
+  }, [cyclic, onChange, renderedValues.length, value, values]);
 
   const handleScroll = React.useCallback(() => {
     if (isProgrammaticRef.current) return;
@@ -1966,11 +1948,10 @@ const TimeWheelColumn = ({
         >
           {renderedValues.map((entry, idx) => {
             const active = entry === value;
-            const disabled = isValueDisabled(entry);
             return (
               <div
                 key={`${label}-${entry}-${idx}`}
-                className={`flex h-[34px] snap-start items-center justify-center text-[20px] font-black tabular-nums transition-all ${disabled ? 'text-red-300/90' : (active ? `${accentClass} scale-100` : 'scale-[0.9] text-slate-300/90')}`}
+                className={`flex h-[34px] snap-start items-center justify-center text-[20px] font-black tabular-nums transition-all ${active ? `${accentClass} scale-100` : 'scale-[0.9] text-slate-300/90'}`}
               >
                 {formatter(entry)}
               </div>
@@ -10670,35 +10651,19 @@ const App = () => {
             const startMinutes = timeToMinutes(item.time || '00:00');
             const durationMinutes = Math.max(0, Number(item.duration) || 0);
             const endMinutesAbsolute = startMinutes + durationMinutes;
-            const clampedEndMinutes = Math.max(startMinutes, Math.min(1439, endMinutesAbsolute));
+            const currentEndMinutes = ((endMinutesAbsolute % 1440) + 1440) % 1440;
             const desiredWidth = Number(timeControllerTarget.width || 0) + 520;
             const panelWidth = Math.min(window.innerWidth - 24, Math.max(560, desiredWidth));
             const left = Math.max(12, Math.min(window.innerWidth - panelWidth - 12, Number(timeControllerTarget.left || 0)));
             const top = Math.max(12, Math.min(window.innerHeight - 220, Number(timeControllerTarget.top || 0) - 6));
             const isAutoLocked = item.types?.includes('ship') || item._isBufferCoordinated;
             const isEndTimeFixed = !!item.isEndTimeFixed;
-            const maxStartMinutes = Math.max(0, 1439 - durationMinutes);
             const startHourValues = Array.from({ length: 24 }, (_, idx) => idx);
-            const getStartMinuteValues = (hour) => (
-              Array.from({ length: 60 }, (_, idx) => idx).filter((minute) => (hour * 60 + minute) <= maxStartMinutes)
-            );
             const currentStartHour = Math.floor(startMinutes / 60);
             const currentStartMinute = startMinutes % 60;
             const endHourValues = Array.from({ length: 24 }, (_, idx) => idx);
-            const currentEndHour = Math.floor(clampedEndMinutes / 60);
-            const getEndMinuteValues = (hour) => (
-              Array.from({ length: 60 }, (_, idx) => idx).filter((minute) => (hour * 60 + minute) >= startMinutes)
-            );
-            const currentEndMinute = clampedEndMinutes % 60;
-            const isStartHourDisabled = (hour) => (hour * 60) > maxStartMinutes;
-            const isStartMinuteDisabled = (minute) => (currentStartHour * 60 + minute) > maxStartMinutes;
-            const isEndHourDisabled = (hour) => ((hour * 60) + 59) < startMinutes;
-            const isEndMinuteDisabled = (minute) => (currentEndHour * 60 + minute) < startMinutes;
-            const pickNearestValue = (values, preferred) => {
-              if (!values.length) return 0;
-              if (values.includes(preferred)) return preferred;
-              return values[Math.max(0, Math.min(values.length - 1, values.findIndex((value) => value > preferred) === -1 ? values.length - 1 : values.findIndex((value) => value > preferred)))];
-            };
+            const currentEndHour = Math.floor(currentEndMinutes / 60);
+            const currentEndMinute = currentEndMinutes % 60;
             const buildWrappedTotalMinutes = (baseHour, baseMinute, nextMinute) => {
               let nextHour = baseHour;
               const delta = nextMinute - baseMinute;
@@ -10706,6 +10671,7 @@ const App = () => {
               if (delta <= -30) nextHour += 1;
               return (nextHour * 60) + nextMinute;
             };
+            const normalizeDayMinute = (value) => ((value % 1440) + 1440) % 1440;
             return (
               <div
                 data-time-modal="true"
@@ -10740,27 +10706,19 @@ const App = () => {
                         label="시"
                         value={currentStartHour}
                         values={startHourValues}
-                        isValueDisabled={isStartHourDisabled}
                         onDragStateChange={(active) => { isTimeModalDraggingRef.current = !!active; }}
-                        onChange={(nextHour) => {
-                          const nextMinuteValues = getStartMinuteValues(nextHour);
-                          if (!nextMinuteValues.length) return;
-                          const nextMinute = pickNearestValue(nextMinuteValues, currentStartMinute);
-                          setStartTimeValue(dayIdx, pIdx, minutesToTime(nextHour * 60 + nextMinute), { skipHistory: true });
-                        }}
+                        onChange={(nextHour) => setStartTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentStartMinute)), { skipHistory: true })}
                         accentClass="text-[#1f5fd6]"
                       />
                       <TimeWheelColumn
                         label="분"
                         value={currentStartMinute}
                         values={Array.from({ length: 60 }, (_, idx) => idx)}
-                        isValueDisabled={isStartMinuteDisabled}
                         onDragStateChange={(active) => { isTimeModalDraggingRef.current = !!active; }}
                         cyclic
                         onChange={(nextMinute) => {
                           const wrapped = buildWrappedTotalMinutes(currentStartHour, currentStartMinute, nextMinute);
-                          const clamped = Math.max(0, Math.min(maxStartMinutes, wrapped));
-                          setStartTimeValue(dayIdx, pIdx, minutesToTime(clamped), { skipHistory: true });
+                          setStartTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(wrapped)), { skipHistory: true });
                         }}
                         accentClass="text-[#1f5fd6]"
                       />
@@ -10797,27 +10755,19 @@ const App = () => {
                         label="시"
                         value={currentEndHour}
                         values={endHourValues}
-                        isValueDisabled={isEndHourDisabled}
                         onDragStateChange={(active) => { isTimeModalDraggingRef.current = !!active; }}
-                        onChange={(nextHour) => {
-                          const nextMinuteValues = getEndMinuteValues(nextHour);
-                          if (!nextMinuteValues.length) return;
-                          const nextMinute = pickNearestValue(nextMinuteValues, currentEndMinute);
-                          setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextHour * 60 + nextMinute), { skipHistory: true });
-                        }}
+                        onChange={(nextHour) => setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentEndMinute)), { skipHistory: true })}
                         accentClass="text-slate-600"
                       />
                       <TimeWheelColumn
                         label="분"
                         value={currentEndMinute}
                         values={Array.from({ length: 60 }, (_, idx) => idx)}
-                        isValueDisabled={isEndMinuteDisabled}
                         onDragStateChange={(active) => { isTimeModalDraggingRef.current = !!active; }}
                         cyclic
                         onChange={(nextMinute) => {
                           const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);
-                          const clamped = Math.max(startMinutes, Math.min(1439, wrapped));
-                          setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(clamped), { skipHistory: true });
+                          setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(wrapped)), { skipHistory: true });
                         }}
                         accentClass="text-slate-600"
                       />

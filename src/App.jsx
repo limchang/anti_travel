@@ -8848,7 +8848,64 @@ const App = () => {
                         {/* 🌟 2. 여행 한눈에 보기 */}
                         <div className="flex flex-col gap-8 px-3 sm:px-0">
                           <div className="w-full bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.04)] rounded-[32px] overflow-hidden flex flex-col pt-8 pb-7 px-8 items-center text-center">
-                            <div className="relative w-full grid grid-cols-1 sm:grid-cols-3 bg-white/50 rounded-2xl border border-white/20 overflow-visible min-h-[108px]">
+                            <div className="w-full rounded-[26px] border border-slate-200 bg-white/82 shadow-[0_16px_32px_-24px_rgba(15,23,42,0.4)] overflow-hidden">
+                              <div className="px-5 pt-4 pb-3 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
+                                <div className="min-w-0 text-left">
+                                  <p className="text-[14px] font-black text-slate-800 truncate">Main Route Map</p>
+                                  <p className="mt-0.5 text-[10px] font-bold text-slate-400">Day 1 · Day 2 · Day 3 실제 카카오 지도 경로</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowRoutePreviewModal(true)}
+                                  className="shrink-0 px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                >
+                                  크게 보기
+                                </button>
+                              </div>
+                              <div className="p-4">
+                                <div className="mb-3 flex flex-wrap gap-1.5 justify-start">
+                                  {routePreviewMap.length > 0 ? routePreviewMap.slice(0, 6).map((day) => (
+                                    <div key={`hero-day-${day.day}`} className="inline-flex items-center gap-1 rounded-full bg-white/90 border border-slate-200 px-2.5 py-1 text-[9px] font-black text-slate-600 shadow-sm">
+                                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: day.color }} />
+                                      <span>Day {day.day}</span>
+                                    </div>
+                                  )) : (
+                                    <div className="inline-flex items-center gap-1 rounded-full bg-white/90 border border-slate-200 px-2.5 py-1 text-[9px] font-black text-slate-400 shadow-sm">
+                                      경로 준비 중
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="mb-3 flex flex-wrap gap-1.5 justify-start">
+                                  {routePreviewEndpointActions.map((action) => (
+                                    <button
+                                      key={`hero-toggle-${action.id}`}
+                                      type="button"
+                                      onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
+                                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-black transition-colors ${action.hidden ? 'border-slate-200 bg-white text-slate-400' : 'border-amber-200 bg-amber-50 text-amber-600'}`}
+                                    >
+                                      {action.hidden ? '복원' : '제거'}
+                                      <span>{action.label}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                                <div className="relative overflow-hidden rounded-[22px] border border-white/70 bg-slate-100/70 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+                                  {routePreviewLoading ? (
+                                    <div className="flex items-center justify-center h-[280px] text-[11px] font-bold text-slate-400">
+                                      지도 좌표 계산 중...
+                                    </div>
+                                  ) : routePreviewMap.length > 0 ? (
+                                    <RoutePreviewCanvas routePreviewMap={routePreviewMap} height={280} />
+                                  ) : (
+                                    <div className="h-[280px] flex flex-col items-center justify-center gap-1 text-center">
+                                      <MapIcon size={20} className="text-slate-300" />
+                                      <p className="text-[10px] font-bold text-slate-400">주소가 있는 일정이 2개 이상 있어야 경로를 표시합니다.</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="relative mt-5 w-full grid grid-cols-1 sm:grid-cols-3 bg-white/50 rounded-2xl border border-white/20 overflow-visible min-h-[108px]">
                               <div className="p-4 flex flex-col items-center justify-center gap-1 border-b sm:border-b-0 sm:border-r border-slate-100">
                                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">예산 사용</p>
                                 <p className="text-[28px] leading-none font-black text-[#3182F6] tabular-nums">{usedPct}%</p>
@@ -8888,63 +8945,6 @@ const App = () => {
                                 </p>
                                 <p className="text-[28px] leading-none font-black text-slate-700 text-center tabular-nums">{visitPerHour.toFixed(1)}개/h</p>
                                 <p className="text-[11px] font-bold text-slate-500 text-center">방문 일정 {visitPlanCount}개 기준</p>
-                              </div>
-                            </div>
-
-                            <div className="mt-4 w-full rounded-[24px] border border-slate-200 bg-white/72 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.32)] overflow-hidden">
-                              <div className="px-4 pt-3 pb-2 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
-                                <div className="min-w-0">
-                                  <p className="text-[12px] font-black text-slate-800 truncate">Day Route Map</p>
-                                  <p className="mt-0.5 text-[9px] font-bold text-slate-400">Day 1 · Day 2 · Day 3 경로 확인</p>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => setShowRoutePreviewModal(true)}
-                                  className="shrink-0 px-2.5 py-1 rounded-full border border-slate-200 bg-white text-[9px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                                >
-                                  크게 보기
-                                </button>
-                              </div>
-                              <div className="p-3">
-                                <div className="mb-2 flex flex-wrap gap-1.5">
-                                  {routePreviewMap.length > 0 ? routePreviewMap.slice(0, 4).map((day) => (
-                                    <div key={`hero-day-${day.day}`} className="inline-flex items-center gap-1 rounded-full bg-white/90 border border-slate-200 px-2 py-0.5 text-[9px] font-black text-slate-600 shadow-sm">
-                                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: day.color }} />
-                                      <span>Day {day.day}</span>
-                                    </div>
-                                  )) : (
-                                    <div className="inline-flex items-center gap-1 rounded-full bg-white/90 border border-slate-200 px-2 py-0.5 text-[9px] font-black text-slate-400 shadow-sm">
-                                      경로 준비 중
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="mb-2 flex flex-wrap gap-1.5">
-                                  {routePreviewEndpointActions.map((action) => (
-                                    <button
-                                      key={`hero-toggle-${action.id}`}
-                                      type="button"
-                                      onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
-                                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${action.hidden ? 'border-slate-200 bg-white text-slate-400' : 'border-amber-200 bg-amber-50 text-amber-600'}`}
-                                    >
-                                      {action.hidden ? '복원' : '제거'}
-                                      <span>{action.label}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                                <div className="relative overflow-hidden rounded-[18px] border border-white/70 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.8),_rgba(219,234,254,0.35)_72%)] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-                                  {routePreviewLoading ? (
-                                    <div className="flex items-center justify-center h-[220px] text-[11px] font-bold text-slate-400">
-                                      지도 좌표 계산 중...
-                                    </div>
-                                  ) : routePreviewMap.length > 0 ? (
-                                    <RoutePreviewCanvas routePreviewMap={routePreviewMap} height={220} />
-                                  ) : (
-                                    <div className="h-[220px] flex flex-col items-center justify-center gap-1 text-center">
-                                      <MapIcon size={18} className="text-slate-300" />
-                                      <p className="text-[10px] font-bold text-slate-400">주소가 있는 일정이 2개 이상 있어야 경로를 표시합니다.</p>
-                                    </div>
-                                  )}
-                                </div>
                               </div>
                             </div>
 
@@ -9283,9 +9283,9 @@ const App = () => {
                                     : { dayIdx: dIdx, pIdx }
                                 ));
                               }}
-                              className={`relative flex flex-col items-center justify-center shrink-0 border-r border-slate-100 flex-none overflow-hidden transition-all duration-500 cursor-pointer group/tower ${timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx
-                                ? 'w-[170px] sm:w-[180px] bg-white shadow-[inset_0_2px_8px_rgba(0,0,0,0.02)]'
-                                : (isCompactTimeline ? 'w-[30%] py-2' : 'w-[30%] py-3 px-2 sm:px-3')
+                              className={`relative flex flex-col shrink-0 border-r border-slate-100 flex-none overflow-hidden transition-all duration-500 cursor-pointer group/tower ${timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx
+                                ? 'w-[170px] sm:w-[180px] items-start justify-start px-3 sm:px-4 py-3 bg-white shadow-[inset_0_2px_8px_rgba(0,0,0,0.02)]'
+                                : (isCompactTimeline ? 'w-[30%] items-center justify-center py-2' : 'w-[30%] items-center justify-center py-3 px-2 sm:px-3')
                                 } ${p.isTimeFixed ? 'bg-blue-50/20' : 'bg-transparent'}`}
                             >
                               {/* 락 상태일 때 컨트롤 타워 전체에 은은하게 깔리는 거대 자물쇠 */}
@@ -9296,9 +9296,9 @@ const App = () => {
                               {/* 시간 조절 */}
                               <div
                                 data-time-trigger="true"
-                                className={`relative w-full px-1 py-1 rounded-2xl select-none z-10 transition-all ${timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx ? 'scale-100' : 'group-hover/tower:bg-slate-100/30'}`}
+                                className={`relative w-full rounded-2xl select-none z-10 transition-all ${timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx ? 'px-0 py-0 scale-100' : 'px-1 py-1 group-hover/tower:bg-slate-100/30'}`}
                               >
-                                <div className="relative flex flex-col items-center justify-center gap-3 z-10">
+                                <div className={`relative flex w-full flex-col justify-center z-10 ${timeControllerTarget?.dayIdx === dIdx && timeControllerTarget?.pIdx === pIdx ? 'items-start gap-2.5' : 'items-center gap-3'}`}>
                                   {(() => {
                                     const [hourStr = '00', minuteStr = '00'] = (p.time || '00:00').split(':');
                                     const hour = parseInt(hourStr, 10);

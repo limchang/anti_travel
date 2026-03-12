@@ -9852,6 +9852,17 @@ const App = () => {
                                     const endMins = timeToMinutes(p.time || '00:00') + (p.duration || 0);
                                     const [hh, mm] = (p.time || '00:00').split(':');
                                     const [ehh, emm] = minutesToTime(endMins).split(':');
+                                    if (!isTimeCellExpanded) {
+                                      return (
+                                        <div className="flex w-full select-none flex-col items-center justify-center gap-1.5 px-2 py-1">
+                                          <div className={`relative flex h-[44px] w-full items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 group-hover/tower:border-slate-300 group-hover/tower:bg-white'}`}>
+                                            <span className="text-[34px] font-black tabular-nums tracking-[-0.08em] leading-none text-slate-900">
+                                              {hh}<span className="mx-[1px] opacity-72">:</span>{mm}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      );
+                                    }
                                     return (
                                       <div className={`flex w-full select-none flex-col items-center justify-center px-2 ${isTimeCellExpanded ? 'gap-2 py-1' : 'gap-1.5 py-0.5'}`}>
                                         <div className={`relative flex w-full items-center justify-center rounded-[14px] border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition-all ${isTimeCellExpanded ? 'h-[44px]' : 'h-[40px]'} ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 group-hover/tower:border-slate-300 group-hover/tower:bg-white'}`}>

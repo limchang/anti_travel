@@ -5301,12 +5301,6 @@ const App = () => {
         item._manualBufferTimeOverride = `${effectiveBuffer}분`;
         item._isBufferCoordinated = effectiveBuffer !== manualBufferBase;
         if (item._preserveBufferOnNextRecalc) delete item._preserveBufferOnNextRecalc;
-
-        const earliestWithEffectiveBuffer = baseArrival + effectiveBuffer;
-        if (startMinutes < earliestWithEffectiveBuffer) {
-          item._timingConflict = true;
-          item._timingConflictReason = '고정 시작 시간이 이동/보정 도착 시간보다 이릅니다.';
-        }
       } else {
         if (item._isBufferCoordinated) {
           item.bufferTimeOverride = `${manualBufferBase}분`;

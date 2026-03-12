@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.110",
+      "timestamp": "2026-03-13T07:40:20+09:00",
+      "message": "fix: remove fixed-time calculation-blocking conflict and rely on buffer alignment"
+    },
+    {
       "version": "1.3.109",
       "timestamp": "2026-03-13T07:32:58+09:00",
       "message": "fix: recompute buffer from fixed start time instead of zeroing it"
@@ -144,11 +149,6 @@
       "version": "1.3.81",
       "timestamp": "2026-03-12T15:59:35+09:00",
       "message": "시간요약셀 단순화 및 TOTAL형 확장 편집판 적용"
-    },
-    {
-      "version": "1.3.80",
-      "timestamp": "2026-03-12T15:48:29+09:00",
-      "message": "일정셀 시간표시 롤형 디자인 적용(시/분 분리)"
     }
   ]
 }

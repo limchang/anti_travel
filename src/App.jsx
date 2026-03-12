@@ -13,7 +13,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info
+  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, MoreHorizontal
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -2400,6 +2400,7 @@ const App = () => {
   const [draggingFromLibrary, setDraggingFromLibrary] = useState(null);
   const [placeFilterTags, setPlaceFilterTags] = useState([]); // 내 장소 필터링 태그
   const [showPlaceCategoryManager, setShowPlaceCategoryManager] = useState(false);
+  const [showPlaceMenu, setShowPlaceMenu] = useState(false);
   const [draggingFromTimeline, setDraggingFromTimeline] = useState(null);
   const [isDroppingOnDeleteZone, setIsDroppingOnDeleteZone] = useState(false);
   const [dragBottomTarget, setDragBottomTarget] = useState('');
@@ -2503,6 +2504,16 @@ const App = () => {
     }
     setPendingPlanMenuFocus(null);
   }, [pendingPlanMenuFocus, itinerary.days]);
+
+  useEffect(() => {
+    if (!showPlaceMenu) return;
+    const handleOutside = (e) => {
+      if (e.target.closest('[data-place-menu="true"]')) return;
+      setShowPlaceMenu(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [showPlaceMenu]);
 
   useEffect(() => {
     safeLocalStorageSet('use_ai_smart_fill', useAiSmartFill ? 'true' : 'false');
@@ -5068,95 +5079,64 @@ const App = () => {
 
   const recalculateSchedule = (dayPlan) => {
     if (!Array.isArray(dayPlan)) return [];
+    const mainIndices = [];
+    for (let idx = 0; idx < dayPlan.length; idx += 1) {
+      const item = dayPlan[idx];
+      if (!item || item.type === 'backup') continue;
+      mainIndices.push(idx);
+    }
+    if (!mainIndices.length) return dayPlan;
 
-    let currentEndMinutes = 0;
-    let lastMainItemIndex = -1;
+    let prevEndMinutes = 0;
+    for (let seq = 0; seq < mainIndices.length; seq += 1) {
+      const planIdx = mainIndices[seq];
+      const item = dayPlan[planIdx];
+      if (!item) continue;
 
-    for (let i = 0; i < dayPlan.length; i++) {
-      const currentItem = dayPlan[i];
-      if (!currentItem || currentItem.type === 'backup') continue;
+      item._timingConflict = false;
+      item._timingConflictReason = '';
 
-      if (lastMainItemIndex === -1) {
-        const waiting = currentItem.waitingTime || 0;
-        if (currentItem.types?.includes('ship')) {
-          const shipTimeline = getShipTimeline(currentItem);
-          currentEndMinutes = shipTimeline.disembark;
+      const waiting = Math.max(0, Number(item.waitingTime) || 0);
+      const duration = Math.max(0, Number(item.duration) || 0);
+
+      if (seq === 0) {
+        const start = timeToMinutes(item.time || '00:00');
+        if (!item.time) item.time = minutesToTime(start);
+        if (item.types?.includes('ship')) {
+          const shipTimeline = getShipTimeline(item);
+          item.time = minutesToTime(shipTimeline.loadStart);
+          item.duration = Math.max(0, shipTimeline.disembark - shipTimeline.loadStart);
+          prevEndMinutes = shipTimeline.disembark;
         } else {
-          currentEndMinutes = timeToMinutes(currentItem.time) + waiting + (currentItem.duration || 0);
+          prevEndMinutes = start + waiting + duration;
         }
-        lastMainItemIndex = i;
         continue;
       }
 
-      const travelMinutes = parseMinsLabel(currentItem.travelTimeOverride, DEFAULT_TRAVEL_MINS);
-      const displayedBufferMinutes = parseMinsLabel(currentItem.bufferTimeOverride, DEFAULT_BUFFER_MINS);
-      const manualBufferLabel = currentItem._manualBufferTimeOverride
-        || (!currentItem._isBufferCoordinated ? currentItem.bufferTimeOverride : null)
-        || `${DEFAULT_BUFFER_MINS}분`;
-      const baseBufferMinutes = parseMinsLabel(manualBufferLabel, DEFAULT_BUFFER_MINS);
-      const coordinatedExtraMinutes = currentItem._isBufferCoordinated
-        ? Math.max(0, displayedBufferMinutes - baseBufferMinutes)
-        : 0;
-      currentItem._manualBufferTimeOverride = `${baseBufferMinutes}분`;
-      currentItem.bufferTimeOverride = `${baseBufferMinutes}분`;
-      currentItem._isBufferCoordinated = false;
-      const bufferMinutes = baseBufferMinutes;
-      const waiting = currentItem.waitingTime || 0;
+      const travel = parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
+      const buffer = parseMinsLabel(item.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+      const earliestStart = prevEndMinutes + travel + buffer;
 
-      const naturalArrivalMinutes = currentEndMinutes + travelMinutes + bufferMinutes;
-      currentItem._timingConflict = false;
-      currentItem._timingConflictReason = '';
-
-      if (currentItem.isTimeFixed) {
-        const fixedStartMinutes = timeToMinutes(currentItem.time);
-        const requiredArrivalMinutes = fixedStartMinutes - waiting;
-        const diff = requiredArrivalMinutes - naturalArrivalMinutes;
-
-        if (diff !== 0 && lastMainItemIndex !== -1) {
-          const prevItem = dayPlan[lastMainItemIndex];
-          if (diff > 0) {
-            // 여분 시간이 생김 -> 버퍼 타임으로 흡수 (이동칩 옆 보정 수치)
-            const newBuffer = baseBufferMinutes + diff;
-            currentItem.bufferTimeOverride = `${newBuffer}분`;
-            currentItem._isBufferCoordinated = true;
-            currentEndMinutes += diff; // 스케줄 동기화
-          } else {
-            // 시간이 부족함 -> 1순위로 주황 보정 버퍼를 먼저 소진하고, 남으면 이전 일정 소요시간 축소
-            let remainingShortage = Math.abs(diff);
-            if (coordinatedExtraMinutes > 0) {
-              const consumed = Math.min(coordinatedExtraMinutes, remainingShortage);
-              const nextBuffer = displayedBufferMinutes - consumed;
-              currentItem.bufferTimeOverride = `${Math.max(baseBufferMinutes, nextBuffer)}분`;
-              currentItem._isBufferCoordinated = nextBuffer > baseBufferMinutes;
-              remainingShortage -= consumed;
-            }
-
-            if (remainingShortage > 0 && !prevItem.types?.includes('ship') && !prevItem.isTimeFixed && !prevItem.isDurationFixed) {
-              const oldDuration = prevItem.duration || 0;
-              const newDuration = Math.max(30, oldDuration - remainingShortage);
-              prevItem.duration = newDuration;
-              const actualDiff = newDuration - oldDuration;
-              currentEndMinutes += actualDiff;
-            } else if (remainingShortage > 0) {
-              currentItem._timingConflict = true;
-              currentItem._timingConflictReason = '고정/잠금 조건으로 시간 보정 불가';
-            }
-          }
+      let startMinutes = earliestStart;
+      if (item.isTimeFixed) {
+        startMinutes = timeToMinutes(item.time || '00:00');
+        if (startMinutes < earliestStart) {
+          item._timingConflict = true;
+          item._timingConflictReason = '고정 시작 시간이 이동/보정 도착 시간보다 이릅니다.';
         }
       } else {
-        const actualStartMinutes = naturalArrivalMinutes + waiting;
-        currentItem.time = minutesToTime(actualStartMinutes);
+        item.time = minutesToTime(startMinutes);
       }
 
-      const currentStartMinutes = timeToMinutes(currentItem.time);
-      const currentWaiting = currentItem.waitingTime || 0;
-      if (currentItem.types?.includes('ship')) {
-        const shipTimeline = getShipTimeline(currentItem);
-        currentEndMinutes = shipTimeline.disembark;
+      if (item.types?.includes('ship')) {
+        const shipTimeline = getShipTimeline(item);
+        prevEndMinutes = shipTimeline.disembark;
+        item.duration = Math.max(0, shipTimeline.disembark - timeToMinutes(item.time || '00:00'));
       } else {
-        currentEndMinutes = currentStartMinutes + currentWaiting + (currentItem.duration || 0);
+        const effectiveDuration = Math.max(0, Number(item.duration) || 0);
+        item.duration = effectiveDuration;
+        prevEndMinutes = startMinutes + waiting + effectiveDuration;
       }
-      lastMainItemIndex = i;
     }
     return dayPlan;
   };
@@ -5722,6 +5702,41 @@ const App = () => {
     setPlaceFilterTags((prev) => prev.filter((tag) => tag !== targetTag));
     setLastAction(`'${targetTag}' 카테고리를 전체 데이터에서 제거했습니다.`);
     showInfoToast(`'${targetTag}' 카테고리를 삭제했습니다.`);
+  };
+
+  const resetAllPlanTimeSettings = () => {
+    saveHistory();
+    setItinerary((prev) => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      if (!Array.isArray(nextData.days)) return prev;
+      let updatedCount = 0;
+
+      nextData.days.forEach((day) => {
+        day.plan = (day.plan || []).map((item) => {
+          if (!item || item.type === 'backup') return item;
+          if (item.types?.includes('ship')) return item;
+          updatedCount += 1;
+          return {
+            ...item,
+            isTimeFixed: false,
+            isDurationFixed: false,
+            isEndTimeFixed: false,
+            lodgeCheckoutFixed: false,
+            lodgeCheckoutTime: undefined,
+            _timingConflict: false,
+            _timingConflictReason: '',
+          };
+        });
+        day.plan = recalculateSchedule(day.plan || []);
+      });
+
+      recalculateLodgeDurations(nextData.days);
+      if (updatedCount === 0) return prev;
+      return nextData;
+    });
+    setShowPlaceMenu(false);
+    setLastAction('일정 전체의 시작/소요/종료 시간 설정을 초기화했습니다.');
+    showInfoToast('일정 시간 고정값을 초기화하고 다시 계산했습니다.');
   };
 
   const updateMenuData = (dayIdx, pIdx, menuIdx, field, value) => {
@@ -8082,6 +8097,30 @@ const App = () => {
                     </span>
                   ) : null;
                 })()}
+                <div className="relative shrink-0" data-place-menu="true">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowPlaceMenu((prev) => !prev);
+                    }}
+                    className={`w-6 h-6 flex items-center justify-center rounded-full border transition-colors ${showPlaceMenu ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600'}`}
+                    title="내 장소 메뉴"
+                  >
+                    <MoreHorizontal size={12} />
+                  </button>
+                  {showPlaceMenu && (
+                    <div className="absolute right-0 top-8 z-20 min-w-[186px] rounded-[12px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
+                      <button
+                        type="button"
+                        onClick={resetAllPlanTimeSettings}
+                        className="w-full rounded-[10px] border border-transparent px-2.5 py-2 text-left text-[11px] font-black text-slate-700 transition-colors hover:border-blue-100 hover:bg-blue-50 hover:text-[#3182F6]"
+                      >
+                        시작/소요/종료 시간 전체 초기화
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={() => {
                     if (isAddingPlace) resetNewPlaceDraft();

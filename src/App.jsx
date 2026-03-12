@@ -9883,6 +9883,7 @@ const App = () => {
                                       left: rect.left,
                                       top: rect.top,
                                       width: rect.width,
+                                      height: rect.height,
                                       replaceMode: true,
                                     }
                                 ));
@@ -10868,14 +10869,18 @@ const App = () => {
             const currentEndMinutes = ((endMinutesAbsolute % 1440) + 1440) % 1440;
             const replaceMode = !!timeControllerTarget.replaceMode;
             const triggerWidth = Number(timeControllerTarget.width || 0);
+            const triggerHeight = Number(timeControllerTarget.height || 0);
             const desiredWidth = replaceMode ? triggerWidth : (triggerWidth + 520);
             const panelWidth = replaceMode
               ? Math.min(window.innerWidth - 24, Math.max(420, desiredWidth))
               : Math.min(window.innerWidth - 24, Math.max(560, desiredWidth));
+            const panelHeight = replaceMode
+              ? Math.max(178, triggerHeight - 8)
+              : 220;
             const left = Math.max(12, Math.min(window.innerWidth - panelWidth - 12, Number(timeControllerTarget.left || 0)));
             const top = replaceMode
-              ? Math.max(12, Math.min(window.innerHeight - 220, Number(timeControllerTarget.top || 0) + 4))
-              : Math.max(12, Math.min(window.innerHeight - 220, Number(timeControllerTarget.top || 0) - 6));
+              ? Math.max(12, Math.min(window.innerHeight - panelHeight - 12, Number(timeControllerTarget.top || 0) + 4))
+              : Math.max(12, Math.min(window.innerHeight - panelHeight - 12, Number(timeControllerTarget.top || 0) - 6));
             const isAutoLocked = item.types?.includes('ship') || item._isBufferCoordinated;
             const isEndTimeFixed = !!item.isEndTimeFixed;
             const startHourValues = Array.from({ length: 24 }, (_, idx) => idx);
@@ -10900,22 +10905,13 @@ const App = () => {
               <div
                 data-time-modal="true"
                 data-no-drag="true"
-                className="fixed z-[260] rounded-[26px] border border-slate-200 bg-white/96 p-3 shadow-[0_24px_50px_-24px_rgba(15,23,42,0.45)] backdrop-blur-xl animate-in"
-                style={{ left, top, width: panelWidth }}
+                className={`fixed z-[260] rounded-[24px] border border-slate-200 bg-white/96 p-2.5 backdrop-blur-xl animate-in ${replaceMode ? 'shadow-[0_12px_26px_-18px_rgba(15,23,42,0.26)]' : 'shadow-[0_24px_50px_-24px_rgba(15,23,42,0.45)]'}`}
+                style={{ left, top, width: panelWidth, height: panelHeight }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="grid grid-cols-3 gap-1.5 items-stretch">
+                <div className="grid h-full grid-cols-3 gap-1.5 items-stretch">
                   <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-1.5 py-2">
-                    <div className="mb-1 flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">시작 시간</span>
-                      <button
-                        type="button"
-                        onClick={() => toggleTimeFix(dayIdx, pIdx, { skipHistory: true })}
-                        className={`rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${item.isTimeFixed ? 'border-blue-200 bg-white text-[#3182F6]' : 'border-blue-100 bg-blue-50 text-blue-400'}`}
-                      >
-                        {item.isTimeFixed ? '고정됨' : '유동'}
-                      </button>
-                    </div>
+                    <div className="mb-1 h-[14px]" />
                     <div className="flex w-full items-center justify-center gap-1">
                       <TimeWheelColumn
                         label="시"
@@ -10942,35 +10938,24 @@ const App = () => {
                   </div>
 
                   <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-1.5 py-2">
-                    <div className="mb-1 flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">소요 시간</span>
-                      <span className="rounded-full border border-blue-200 bg-white px-2 py-0.5 text-[9px] font-black text-[#3182F6]">
-                        계산값
-                      </span>
-                    </div>
-                    <div className="flex h-[102px] w-full flex-col items-center justify-center gap-2">
+                    <div className="mb-1 h-[14px]" />
+                    <div className="flex h-[calc(100%-14px)] w-full flex-col items-center justify-center gap-2">
                       <div className="relative flex min-h-[44px] w-full items-center justify-center rounded-[14px] border border-[#bfd7ff] bg-[#eef5ff] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
                         <span className="text-[34px] leading-none font-black tabular-nums tracking-[-0.03em] text-[#1f5fd6]">{fmtDur(durationMinutes).replace('분', '')}</span>
                         <span className="ml-1 mt-3 text-[11px] font-black text-[#3182F6]">분</span>
                       </div>
-                      <div className="w-full rounded-[12px] border border-[#bfd7ff] bg-white px-2 py-1.5 text-center text-[10px] font-black text-[#3182F6]">
-                        시작/종료 변경 시 자동 계산
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleDurationFix(dayIdx, pIdx, { skipHistory: true })}
+                        className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${item.isDurationFixed ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-[#bfd7ff] bg-white text-[#3182F6]'}`}
+                      >
+                        소요시간 잠금
+                      </button>
                     </div>
                   </div>
 
                   <div className="rounded-[20px] border border-blue-100 bg-blue-50/55 px-1.5 py-2">
-                    <div className="mb-1 flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">종료 시간</span>
-                      <button
-                        type="button"
-                        onClick={() => { if (!isAutoLocked) toggleEndTimeFix(dayIdx, pIdx, { skipHistory: true }); }}
-                        disabled={isAutoLocked}
-                        className={`rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors disabled:opacity-50 ${isEndTimeFixed ? 'border-blue-200 bg-white text-[#3182F6]' : 'border-blue-100 bg-blue-50 text-blue-400'}`}
-                      >
-                        {isEndTimeFixed ? '고정됨' : '유동'}
-                      </button>
-                    </div>
+                    <div className="mb-1 h-[14px]" />
                     <div className="flex w-full items-center justify-center gap-1">
                       <TimeWheelColumn
                         label="시"

@@ -9922,6 +9922,7 @@ const App = () => {
                                               label=""
                                               value={currentDurationHour}
                                               values={Array.from({ length: 24 }, (_, idx) => idx)}
+                                              liveOnDrag
                                               onDragStateChange={setIsTimeWheelDragging}
                                               onChange={(nextHour) => {
                                                 const nextDuration = clampDurationMinutes((nextHour * 60) + currentDurationMinute);
@@ -11010,6 +11011,7 @@ const App = () => {
                           label=""
                           value={currentDurationHour}
                           values={durationHourValues}
+                          liveOnDrag
                           onDragStateChange={setIsTimeWheelDragging}
                           onChange={(nextHour) => {
                             const nextDuration = clampDurationMinutes((nextHour * 60) + currentDurationMinute);

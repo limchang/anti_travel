@@ -4812,9 +4812,12 @@ const App = () => {
   const applyBusinessWarningFix = (dayIdx, pIdx) => {
     saveHistory();
     let applied = false;
+    let correctionMins = 0;
+    let correctedBufferMins = null;
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
-      const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
+      const dayPlan = nextData.days?.[dayIdx]?.plan || [];
+      const item = dayPlan?.[pIdx];
       if (!item) return prev;
       const business = normalizeBusiness(item.business || {});
       if (!business.open) return prev;
@@ -4823,14 +4826,40 @@ const App = () => {
       const openMins = timeToMinutes(business.open);
       if (start >= openMins) return prev;
 
+      const prevMainIdx = (() => {
+        for (let idx = pIdx - 1; idx >= 0; idx -= 1) {
+          const candidate = dayPlan[idx];
+          if (candidate && candidate.type !== 'backup') return idx;
+        }
+        return -1;
+      })();
+      const beforeBufferMins = parseMinsLabel(item.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+
       item.time = business.open;
       item.isTimeFixed = true;
-      nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
+      nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       recalculateLodgeDurations(nextData.days);
+
+      if (prevMainIdx >= 0) {
+        const updatedItem = nextData.days?.[dayIdx]?.plan?.[pIdx];
+        const afterBufferMins = parseMinsLabel(updatedItem?.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+        correctionMins = Math.max(0, afterBufferMins - beforeBufferMins);
+        correctedBufferMins = afterBufferMins;
+      }
       applied = true;
       return nextData;
     });
-    setLastAction(applied ? "운영 시작 시간으로 일정을 보정했습니다." : "보정할 운영 시작 전 경고가 없습니다.");
+    if (!applied) {
+      setLastAction("보정할 운영 시작 전 경고가 없습니다.");
+      return;
+    }
+    if (Number.isFinite(correctedBufferMins) && correctedBufferMins !== null) {
+      setLastAction(correctionMins > 0
+        ? `운영 시작 시간으로 보정하고 오차 ${correctionMins}분을 이동칩 보정시간(${correctedBufferMins}분)에 반영했습니다.`
+        : `운영 시작 시간으로 보정했습니다. 이동칩 보정시간 ${correctedBufferMins}분으로 정렬되었습니다.`);
+      return;
+    }
+    setLastAction("운영 시작 시간으로 일정을 보정했습니다.");
   };
   const getDropWarning = (place, dIdx, insertAfterPIdx) => {
     if (!place?.business) return '';

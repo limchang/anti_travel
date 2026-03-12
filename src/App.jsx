@@ -1888,6 +1888,7 @@ const TimeWheelColumn = ({
   }, [cyclic, onChange, renderedValues.length, value, values]);
 
   const handleScroll = React.useCallback(() => {
+    if (pointerDragRef.current.active) return;
     if (isProgrammaticRef.current) return;
     if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
     settleTimerRef.current = setTimeout(commitClosestValue, 90);
@@ -1936,8 +1937,27 @@ const TimeWheelColumn = ({
     e.stopPropagation();
   }, [commitClosestValue, onDragStateChange]);
 
+  React.useEffect(() => {
+    const onWindowPointerMove = (e) => handlePointerMove(e);
+    const onWindowPointerUp = (e) => handlePointerUp(e);
+    window.addEventListener('pointermove', onWindowPointerMove, { passive: false });
+    window.addEventListener('pointerup', onWindowPointerUp, { passive: true });
+    window.addEventListener('pointercancel', onWindowPointerUp, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', onWindowPointerMove);
+      window.removeEventListener('pointerup', onWindowPointerUp);
+      window.removeEventListener('pointercancel', onWindowPointerUp);
+    };
+  }, [handlePointerMove, handlePointerUp]);
+
   return (
-    <div className="min-w-[58px]">
+    <div
+      className="min-w-[58px] touch-none select-none"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+    >
       <p className="mb-1 text-center text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
       <div className="relative rounded-[18px] border border-slate-200 bg-white/92">
         <div className="pointer-events-none absolute inset-x-1.5 top-1/2 h-[34px] -translate-y-1/2 rounded-[12px] border border-[#bfd7ff] bg-[#eef5ff] shadow-[0_8px_18px_-16px_rgba(49,130,246,0.5),inset_0_1px_0_rgba(255,255,255,0.95)]" />
@@ -1946,10 +1966,6 @@ const TimeWheelColumn = ({
         <div
           ref={listRef}
           onScroll={handleScroll}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
           className="relative h-[102px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[34px] touch-pan-y"
         >
           {renderedValues.map((entry, idx) => {

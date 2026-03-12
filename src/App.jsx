@@ -5146,16 +5146,24 @@ const App = () => {
       let startMinutes = earliestStart;
       if (item.isTimeFixed) {
         startMinutes = timeToMinutes(item.time || '00:00');
-        const fixedGap = startMinutes - (prevEndMinutes + travel + manualBufferBase);
+        const baseArrival = prevEndMinutes + travel;
+        const fixedGap = startMinutes - (baseArrival + manualBufferBase);
         if (fixedGap > 0) {
+          // 고정 시작이 더 늦으면 남는 시간을 보정시간으로 누적
           effectiveBuffer = manualBufferBase + fixedGap;
-          item.bufferTimeOverride = `${effectiveBuffer}분`;
-          item._isBufferCoordinated = true;
+        } else if (fixedGap < 0) {
+          // 고정 시작이 더 이르면 보정시간을 먼저 차감해 흡수
+          const requiredPull = Math.abs(fixedGap);
+          const usableBuffer = Math.min(manualBufferBase, requiredPull);
+          effectiveBuffer = Math.max(0, manualBufferBase - usableBuffer);
         } else {
-          item.bufferTimeOverride = `${manualBufferBase}분`;
-          item._isBufferCoordinated = false;
+          effectiveBuffer = manualBufferBase;
         }
-        if (startMinutes < earliestStart) {
+        item.bufferTimeOverride = `${effectiveBuffer}분`;
+        item._isBufferCoordinated = effectiveBuffer !== manualBufferBase;
+
+        const earliestWithEffectiveBuffer = baseArrival + effectiveBuffer;
+        if (startMinutes < earliestWithEffectiveBuffer) {
           item._timingConflict = true;
           item._timingConflictReason = '고정 시작 시간이 이동/보정 도착 시간보다 이릅니다.';
         }
@@ -9864,7 +9872,7 @@ const App = () => {
                                     onClick={(e) => e.stopPropagation()}
                                     className="mt-1 w-full z-30"
                                   >
-                                    <div className="grid h-full grid-cols-3 gap-2 items-stretch rounded-[16px] border border-slate-200 bg-white p-2">
+                                    <div className="grid h-full grid-cols-3 gap-2 items-stretch p-1">
                                       <div className="rounded-[16px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
                                         <div className="flex h-full w-full flex-col items-center justify-center gap-2">
                                           <button

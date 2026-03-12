@@ -1852,6 +1852,25 @@ const TimeWheelColumn = ({
     }
   }, [cyclic, onChange, renderedValues.length, value, values]);
 
+  const commitSpecificValue = React.useCallback((nextValue) => {
+    if (!values.length) return;
+    const list = listRef.current;
+    const baseIndex = Math.max(0, values.indexOf(nextValue));
+    const centerIndex = cyclic ? (baseIndex + values.length) : baseIndex;
+    const targetTop = centerIndex * TIME_WHEEL_ITEM_HEIGHT;
+    if (list) {
+      isProgrammaticRef.current = true;
+      list.scrollTo({ top: targetTop, behavior: 'smooth' });
+      setTimeout(() => {
+        isProgrammaticRef.current = false;
+      }, 140);
+    }
+    if (nextValue !== lastEmittedValueRef.current) {
+      lastEmittedValueRef.current = nextValue;
+      onChange?.(nextValue);
+    }
+  }, [cyclic, onChange, values]);
+
   const handleScroll = React.useCallback(() => {
     if (pointerDragRef.current.active) return;
     if (isProgrammaticRef.current) return;
@@ -1991,12 +2010,17 @@ const TimeWheelColumn = ({
           {renderedValues.map((entry, idx) => {
             const active = entry === value;
             return (
-              <div
+              <button
                 key={`${label}-${entry}-${idx}`}
-                className={`flex h-[28px] snap-start items-center justify-center text-[18px] font-black tabular-nums transition-all ${active ? `${accentClass} scale-100` : 'scale-[0.9] text-slate-300/90'}`}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  commitSpecificValue(entry);
+                }}
+                className={`flex h-[28px] w-full snap-start items-center justify-center text-[18px] font-black tabular-nums transition-all ${active ? `${accentClass} scale-100` : 'scale-[0.9] text-slate-300/90'}`}
               >
                 {formatter(entry)}
-              </div>
+              </button>
             );
           })}
         </div>

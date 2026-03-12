@@ -4834,6 +4834,17 @@ const App = () => {
         return -1;
       })();
       const beforeBufferMins = parseMinsLabel(item.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+      if (prevMainIdx >= 0) {
+        const prevItem = dayPlan[prevMainIdx];
+        const prevEnd = prevItem?.types?.includes('ship')
+          ? getShipTimeline(prevItem).disembark
+          : timeToMinutes(prevItem?.time || '00:00') + Math.max(0, Number(prevItem?.waitingTime) || 0) + Math.max(0, Number(prevItem?.duration) || 0);
+        const travelMins = parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
+        const requiredBuffer = Math.max(0, openMins - (prevEnd + travelMins));
+        item._manualBufferTimeOverride = `${requiredBuffer}분`;
+        item.bufferTimeOverride = `${requiredBuffer}분`;
+        item._isBufferCoordinated = requiredBuffer !== beforeBufferMins;
+      }
 
       item.time = business.open;
       item.isTimeFixed = true;
@@ -10647,7 +10658,7 @@ const App = () => {
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      if (businessWarning.includes('운영 시작 전 방문')) {
+                                      if (businessWarning.includes('운영 시작 전 방문') || businessWarning.includes('영업 전')) {
                                         applyBusinessWarningFix(dIdx, pIdx);
                                       }
                                     }}

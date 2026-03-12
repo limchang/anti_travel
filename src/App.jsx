@@ -1840,7 +1840,7 @@ const TimeWheelColumn = ({
   const listRef = React.useRef(null);
   const settleTimerRef = React.useRef(null);
   const isProgrammaticRef = React.useRef(false);
-  const dragStateRef = React.useRef({ active: false, startY: 0, startScrollTop: 0, pointerId: null });
+  const dragStateRef = React.useRef({ active: false, startY: 0, startScrollTop: 0 });
 
   const renderedValues = React.useMemo(() => {
     if (!cyclic) return values;
@@ -1866,7 +1866,7 @@ const TimeWheelColumn = ({
   }, []);
 
   React.useEffect(() => () => {
-    dragStateRef.current = { active: false, startY: 0, startScrollTop: 0, pointerId: null };
+    dragStateRef.current = { active: false, startY: 0, startScrollTop: 0 };
     onDragStateChange?.(false);
   }, [onDragStateChange]);
 
@@ -1898,37 +1898,74 @@ const TimeWheelColumn = ({
     settleTimerRef.current = setTimeout(commitClosestValue, 90);
   }, [commitClosestValue]);
 
-  const handlePointerDown = React.useCallback((e) => {
+  const handleDragMove = React.useCallback((clientY) => {
+    const list = listRef.current;
+    const drag = dragStateRef.current;
+    if (!list || !drag.active) return;
+    const deltaY = clientY - drag.startY;
+    list.scrollTop = drag.startScrollTop - deltaY;
+  }, []);
+
+  const finishDrag = React.useCallback(() => {
+    const list = listRef.current;
+    const drag = dragStateRef.current;
+    if (!list || !drag.active) return;
+    onDragStateChange?.(false);
+    dragStateRef.current = { active: false, startY: 0, startScrollTop: 0 };
+    commitClosestValue();
+  }, [commitClosestValue, onDragStateChange]);
+
+  const beginDrag = React.useCallback((clientY) => {
     const list = listRef.current;
     if (!list) return;
     onDragStateChange?.(true);
     dragStateRef.current = {
       active: true,
-      startY: e.clientY,
+      startY: clientY,
       startScrollTop: list.scrollTop,
-      pointerId: e.pointerId,
     };
-    list.setPointerCapture?.(e.pointerId);
   }, [onDragStateChange]);
 
-  const handlePointerMove = React.useCallback((e) => {
-    const list = listRef.current;
-    const drag = dragStateRef.current;
-    if (!list || !drag.active) return;
+  const handleMouseDown = React.useCallback((e) => {
+    if (e.button !== 0) return;
     e.preventDefault();
-    const deltaY = e.clientY - drag.startY;
-    list.scrollTop = drag.startScrollTop - deltaY;
-  }, []);
+    beginDrag(e.clientY);
+  }, [beginDrag]);
 
-  const finishPointerDrag = React.useCallback((e) => {
-    const list = listRef.current;
-    const drag = dragStateRef.current;
-    if (!list || !drag.active) return;
-    onDragStateChange?.(false);
-    dragStateRef.current = { active: false, startY: 0, startScrollTop: 0, pointerId: null };
-    if (e?.pointerId != null) list.releasePointerCapture?.(e.pointerId);
-    commitClosestValue();
-  }, [commitClosestValue, onDragStateChange]);
+  const handleTouchStart = React.useCallback((e) => {
+    const touch = e.touches?.[0];
+    if (!touch) return;
+    beginDrag(touch.clientY);
+  }, [beginDrag]);
+
+  React.useEffect(() => {
+    const onMouseMove = (e) => {
+      if (!dragStateRef.current.active) return;
+      e.preventDefault();
+      handleDragMove(e.clientY);
+    };
+    const onMouseUp = () => finishDrag();
+    const onTouchMove = (e) => {
+      if (!dragStateRef.current.active) return;
+      const touch = e.touches?.[0];
+      if (!touch) return;
+      e.preventDefault();
+      handleDragMove(touch.clientY);
+    };
+    const onTouchEnd = () => finishDrag();
+    window.addEventListener('mousemove', onMouseMove, { passive: false });
+    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
+    window.addEventListener('touchcancel', onTouchEnd);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [finishDrag, handleDragMove]);
 
   return (
     <div className="min-w-[58px]">
@@ -1940,11 +1977,9 @@ const TimeWheelColumn = ({
         <div
           ref={listRef}
           onScroll={handleScroll}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={finishPointerDrag}
-          onPointerCancel={finishPointerDrag}
-          className="relative h-[102px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[34px] cursor-grab active:cursor-grabbing touch-none"
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
+          className="relative h-[102px] overflow-y-auto no-scrollbar snap-y snap-mandatory py-[34px] cursor-grab active:cursor-grabbing"
         >
           {renderedValues.map((entry, idx) => {
             const active = entry === value;

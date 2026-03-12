@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.13",
+      "timestamp": "2026-03-12T10:15:40+09:00",
+      "message": "feat: move the day route map into the hero summary and add ferry endpoint exclusions"
+    },
+    {
       "version": "1.3.12",
       "timestamp": "2026-03-12T10:08:05+09:00",
       "message": "feat: add a day-by-day route preview map to the library sidebar"

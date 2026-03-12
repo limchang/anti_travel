@@ -1787,7 +1787,11 @@ const TimeWheelColumn = ({
   const touchDragRef = React.useRef({ active: false, startY: 0, startTop: 0 });
   const dragMovedRef = React.useRef(false);
   const lastEmittedValueRef = React.useRef(value);
-  const getDragSpeedFactor = React.useCallback((delta) => 1 + Math.min(2.5, Math.abs(delta) / 56), []);
+  const getDragSpeedFactor = React.useCallback((delta) => {
+    const abs = Math.abs(delta);
+    if (abs < 18) return 1;
+    return 1 + Math.min(0.9, (abs - 18) / 180);
+  }, []);
 
   const renderedValues = React.useMemo(() => {
     if (!cyclic) return values;

@@ -2236,6 +2236,15 @@ const RoutePreviewCanvas = ({ routePreviewMap = [], height = 240, className = ''
 
 // ── AI 자동입력 학습 지침 모달 ───────────────────────────────────────────────
 const GUIDE_DOC_PATH = 'meta/smartFillGuide';
+const isLegacySmartFillGuideContent = (content = '') => {
+  const text = String(content || '');
+  if (!text.trim()) return false;
+  return (
+    text.includes('프롬프트 적용 이력')
+    || text.includes('기술 오류 및 대응 지침')
+    || text.includes('Claude Sonnet 4.6')
+  );
+};
 const SmartFillGuideModal = ({ onClose }) => {
   const [guideContent, setGuideContent] = React.useState('');
   const [editContent, setEditContent] = React.useState('');
@@ -2249,16 +2258,25 @@ const SmartFillGuideModal = ({ onClose }) => {
 
   React.useEffect(() => {
     const load = async () => {
+      const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+      let fallbackContent = '';
+      try {
+        const response = await fetch(`${base}/SMART_FILL_FEEDBACK.md`);
+        if (response.ok) {
+          fallbackContent = await response.text();
+        }
+      } catch { /* ignore */ }
       try {
         const snap = await getDoc(doc(db, GUIDE_DOC_PATH));
-        const stored = snap.data()?.content;
-        if (stored) { setGuideContent(stored); setGuideLoading(false); return; }
+        const stored = String(snap.data()?.content || '').trim();
+        if (stored && !isLegacySmartFillGuideContent(stored)) {
+          setGuideContent(stored);
+          setGuideLoading(false);
+          return;
+        }
       } catch { /* ignore */ }
-      const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
-      fetch(`${base}/SMART_FILL_FEEDBACK.md`)
-        .then((r) => r.ok ? r.text() : Promise.reject(r))
-        .then((t) => { setGuideContent(t); setGuideLoading(false); })
-        .catch(() => { setGuideContent('학습 지침 파일을 불러오지 못했습니다.'); setGuideLoading(false); });
+      setGuideContent(fallbackContent || '학습 지침 파일을 불러오지 못했습니다.');
+      setGuideLoading(false);
     };
     load();
   }, []);
@@ -10193,14 +10211,15 @@ const App = () => {
                               return (
                                 <>
                                   {/* 이동 시간 */}
-                                  <div className="flex flex-col items-center">
+                                  <div className="flex items-center gap-1.5">
+                                    <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
                                     <span
                                       className={`min-w-[3rem] text-center tracking-tight text-xs font-black transition-colors ${busy ? 'text-[#3182F6]' : (p._isBufferCoordinated ? 'text-orange-500' : (p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800'))}`}
                                       onClick={(e) => { e.stopPropagation(); if (p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto) resetTravelTime(dIdx, pIdx); }}
                                       title={p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? '클릭하여 경로 계산 시간으로 초기화' : undefined}
                                     >{p.travelTimeOverride || '15분'}</span>
-                                  </div>
                                   <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
+                                  </div>
 
                                   {/* 거리 */}
                                   <button

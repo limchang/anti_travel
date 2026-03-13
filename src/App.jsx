@@ -10276,21 +10276,17 @@ const App = () => {
                         </div>
 
                         {/* 🌟 2. 여행 한눈에 보기 */}
-                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-3 px-2 sm:px-0' : 'gap-3 px-3 sm:px-0'}`}>
-                            <div className={`relative w-full border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 ${heroPinnedCompact ? 'mt-0 rounded-[24px] px-3 py-3 sm:px-4 sm:py-4' : 'mt-1 rounded-[24px] px-4 py-4 sm:px-6 sm:py-6'}`}>
+                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-2 px-2 sm:px-0' : 'gap-3 px-3 sm:px-0'}`}>
+                            <div className={`relative w-full border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 ${heroPinnedCompact ? 'mt-0 rounded-[24px] px-3 pb-3 pt-2.5 sm:px-4 sm:pb-3 sm:pt-2.5' : 'mt-1 rounded-[24px] px-4 py-4 sm:px-6 sm:py-6'}`}>
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
                               <div className={`${heroPinnedCompact ? 'flex w-full' : 'grid grid-cols-3 gap-3 sm:gap-3'}`}>
                                 {heroPinnedCompact ? (
-                                  <div className="w-full rounded-[18px] border border-white/24 bg-white/16 px-3 py-2.5 backdrop-blur-md shadow-[0_18px_34px_-24px_rgba(15,23,42,0.45),inset_0_1px_0_rgba(255,255,255,0.28)]">
-                                    <div className="flex items-center justify-between gap-3">
-                                      <div className="flex items-baseline gap-2 text-white">
-                                        <span className="text-[10px] font-black tracking-[0.18em] text-white/68">예산</span>
-                                        <span className="text-[20px] font-black leading-none tabular-nums">{usedPct}%</span>
-                                      </div>
-                                      <p className="shrink-0 text-[11px] font-black text-white/88 tabular-nums">₩{budgetSummary.total.toLocaleString()}</p>
+                                  <div className="relative w-full">
+                                    <div className="flex items-center justify-end">
+                                      <p className="shrink-0 text-[11px] font-black text-slate-700/88 tabular-nums">₩{budgetSummary.total.toLocaleString()}</p>
                                     </div>
-                                    <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/18">
-                                      <div className="h-full rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.92),rgba(147,197,253,0.95),rgba(96,165,250,0.98))] transition-all duration-300" style={{ width: `${Math.min(100, usedPct)}%` }} />
+                                    <div className="mt-2 h-[5px] w-full overflow-hidden rounded-full bg-slate-200/85">
+                                      <div className="h-full rounded-full bg-[linear-gradient(90deg,#3182F6_0%,#60A5FA_55%,#93C5FD_100%)] transition-all duration-300" style={{ width: `${Math.min(100, usedPct)}%` }} />
                                     </div>
                                   </div>
                                 ) : (

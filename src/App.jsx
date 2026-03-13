@@ -1629,6 +1629,10 @@ function minutesToTime(minutes) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+function getNextDayClockMinutes(timeStr) {
+  return timeToMinutes(timeStr) + 1440;
+}
+
 const getShipLoadingRange = (item = {}) => {
   const times = extractTimesFromText(String(item?.receipt?.shipDetails?.loading || ''));
   return {
@@ -4300,6 +4304,10 @@ const App = () => {
     && !!String(item?.segmentType || '').trim()
   );
   const isFullLodgeStayItem = (item = {}) => isLodgeStay(item?.types) && !isStandaloneLodgeSegmentItem(item);
+  const isOvernightLodgeTimelineItem = (item = {}) => (
+    isFullLodgeStayItem(item)
+    || (isStandaloneLodgeSegmentItem(item) && String(item?.segmentType || '').trim() === 'stay')
+  );
   const getPlanReceiptSelectedTotal = (item = {}) => {
     const receiptItems = Array.isArray(item?.receipt?.items) ? item.receipt.items : null;
     if (!receiptItems?.length) return Number(item?.price || 0);
@@ -5441,7 +5449,7 @@ const App = () => {
       const mainItems = day.plan.filter(p => p.type !== 'backup');
       if (!mainItems.length) continue;
       const lastMain = mainItems[mainItems.length - 1];
-      if (!isFullLodgeStayItem(lastMain)) continue;
+      if (!isOvernightLodgeTimelineItem(lastMain)) continue;
       const nextDay = days[dIdx + 1];
       const nextMain = (nextDay?.plan || []).filter(p => p.type !== 'backup');
       if (!nextMain.length) continue;
@@ -5450,9 +5458,10 @@ const App = () => {
       const derivedCheckoutMins = timeToMinutes(nextFirst.time)
         - parseMinsLabel(nextFirst.travelTimeOverride, DEFAULT_TRAVEL_MINS)
         - parseMinsLabel(nextFirst.bufferTimeOverride, DEFAULT_BUFFER_MINS);
-      const checkoutMins = lastMain.lodgeCheckoutFixed && lastMain.lodgeCheckoutTime
-        ? timeToMinutes(lastMain.lodgeCheckoutTime)
-        : derivedCheckoutMins;
+      const checkoutClockLabel = lastMain.lodgeCheckoutFixed && lastMain.lodgeCheckoutTime
+        ? lastMain.lodgeCheckoutTime
+        : minutesToTime(derivedCheckoutMins);
+      const checkoutMins = getNextDayClockMinutes(checkoutClockLabel);
       if (lastMain.lodgeCheckoutFixed && lastMain.lodgeCheckoutTime) {
         const nextStart = checkoutMins
           + parseMinsLabel(nextFirst.travelTimeOverride, DEFAULT_TRAVEL_MINS)
@@ -5461,9 +5470,7 @@ const App = () => {
       } else if (lastMain.lodgeCheckoutTime) {
         lastMain.lodgeCheckoutTime = minutesToTime(derivedCheckoutMins);
       }
-      // 숙소는 항상 다음 날 체크아웃이므로 +1440(24h) 보정
-      const actualCheckout = checkoutMins <= checkinMins ? checkoutMins + 1440 : checkoutMins;
-      const duration = Math.max(30, actualCheckout - checkinMins);
+      const duration = Math.max(30, checkoutMins - checkinMins);
       const lodgeItem = day.plan.find(p => p.id === lastMain.id);
       if (lodgeItem) {
         lodgeItem.duration = duration;
@@ -5484,7 +5491,7 @@ const App = () => {
 
       let lastLodgeIdx = -1;
       day.plan.forEach((item, idx) => {
-        if (item?.type !== 'backup' && isFullLodgeStayItem(item)) lastLodgeIdx = idx;
+        if (item?.type !== 'backup' && isOvernightLodgeTimelineItem(item)) lastLodgeIdx = idx;
       });
       if (lastLodgeIdx === -1) continue;
       if (lastLodgeIdx >= day.plan.length - 1) continue;
@@ -5516,7 +5523,7 @@ const App = () => {
       if (!Array.isArray(day?.plan) || day.plan.length === 0) continue;
       let lastLodgeIdx = -1;
       day.plan.forEach((item, idx) => {
-        if (item?.type !== 'backup' && isFullLodgeStayItem(item)) lastLodgeIdx = idx;
+        if (item?.type !== 'backup' && isOvernightLodgeTimelineItem(item)) lastLodgeIdx = idx;
       });
       if (lastLodgeIdx !== -1 && lastLodgeIdx < day.plan.length - 1) return true;
     }
@@ -5965,14 +5972,18 @@ const App = () => {
       const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
       const nextDayPlan = nextData.days?.[dayIdx + 1]?.plan || [];
       const nextFirstIdx = nextDayPlan.findIndex(candidate => candidate?.type !== 'backup');
-      if (!item || nextFirstIdx < 0) return prev;
+      if (!item || !isOvernightLodgeTimelineItem(item) || nextFirstIdx < 0) return prev;
 
       const nextFirst = nextDayPlan[nextFirstIdx];
       const baseCheckout = item.lodgeCheckoutTime
-        ? timeToMinutes(item.lodgeCheckoutTime)
-        : timeToMinutes(nextFirst.time)
-        - parseMinsLabel(nextFirst.travelTimeOverride, DEFAULT_TRAVEL_MINS)
-        - parseMinsLabel(nextFirst.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+        ? getNextDayClockMinutes(item.lodgeCheckoutTime)
+        : getNextDayClockMinutes(
+          minutesToTime(
+            timeToMinutes(nextFirst.time)
+            - parseMinsLabel(nextFirst.travelTimeOverride, DEFAULT_TRAVEL_MINS)
+            - parseMinsLabel(nextFirst.bufferTimeOverride, DEFAULT_BUFFER_MINS)
+          )
+        );
       const nextCheckout = baseCheckout + delta;
 
       item.lodgeCheckoutTime = minutesToTime(nextCheckout);
@@ -6008,10 +6019,10 @@ const App = () => {
       const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
       const nextDayPlan = nextData.days?.[dayIdx + 1]?.plan || [];
       const nextFirstIdx = nextDayPlan.findIndex(candidate => candidate?.type !== 'backup');
-      if (!item || nextFirstIdx < 0) return prev;
+      if (!item || !isOvernightLodgeTimelineItem(item) || nextFirstIdx < 0) return prev;
 
       const nextFirst = nextDayPlan[nextFirstIdx];
-      const checkoutMinutes = timeToMinutes(normalized);
+      const checkoutMinutes = getNextDayClockMinutes(normalized);
       item.lodgeCheckoutTime = normalized;
       item.lodgeCheckoutFixed = true;
       nextFirst.time = minutesToTime(
@@ -11349,19 +11360,23 @@ const App = () => {
                                     const checkoutTarget = timeControllerTarget?.key === lodgeCheckoutKey;
                                     const checkinTarget = timeControllerTarget?.key === lodgeCheckinKey;
                                     const lodgeStep = 1;
+                                    const isOvernightLodgeItem = isOvernightLodgeTimelineItem(p);
                                     const nextDay = itinerary.days[dIdx + 1];
                                     const nextItem = nextDay?.plan?.find(candidate => candidate?.type !== 'backup');
                                     const rawCheckoutMins = p.lodgeCheckoutTime
-                                      ? timeToMinutes(p.lodgeCheckoutTime)
-                                      : nextItem
-                                        ? timeToMinutes(nextItem.time) - parseMinsLabel(nextItem.travelTimeOverride, DEFAULT_TRAVEL_MINS) - parseMinsLabel(nextItem.bufferTimeOverride, DEFAULT_BUFFER_MINS)
-                                        : timeToMinutes(p.time || '00:00') + (p.duration || 0);
+                                      ? (isOvernightLodgeItem ? getNextDayClockMinutes(p.lodgeCheckoutTime) : timeToMinutes(p.lodgeCheckoutTime))
+                                      : isOvernightLodgeItem && nextItem
+                                        ? getNextDayClockMinutes(
+                                          minutesToTime(
+                                            timeToMinutes(nextItem.time) - parseMinsLabel(nextItem.travelTimeOverride, DEFAULT_TRAVEL_MINS) - parseMinsLabel(nextItem.bufferTimeOverride, DEFAULT_BUFFER_MINS)
+                                          )
+                                        )
+                                        : timeToMinutes(p.time || '00:00') + Math.max(0, Number(p.duration) || 0);
                                     const checkoutLabel = minutesToTime(rawCheckoutMins);
                                     const stayDurationMins = (() => {
                                       const checkinMins = timeToMinutes(p.time || '15:00');
-                                      const checkoutMins = timeToMinutes(checkoutLabel);
-                                      const overnightCheckout = checkoutMins <= checkinMins ? checkoutMins + 1440 : checkoutMins;
-                                      return Math.max(0, overnightCheckout - checkinMins);
+                                      if (isOvernightLodgeItem) return Math.max(0, rawCheckoutMins - checkinMins);
+                                      return Math.max(0, Number(p.duration) || 0);
                                     })();
                                     const [checkinHour = '00', checkinMinute = '00'] = String(p.time || '00:00').split(':');
                                     const [checkoutHour = '00', checkoutMinute = '00'] = String(checkoutLabel).split(':');
@@ -11375,7 +11390,7 @@ const App = () => {
                                             <button onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${lodgeButtonTone}`}>
                                               {p.isTimeFixed ? <Lock size={10} /> : <Unlock size={10} />} 체크인 {p.isTimeFixed ? '고정' : '해제'}
                                             </button>
-                                            <button onClick={(e) => { e.stopPropagation(); if (!nextItem) return; toggleLodgeCheckoutFix(dIdx, pIdx); }} disabled={!nextItem} className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black transition-all disabled:opacity-40 ${lodgeCheckoutButtonTone}`}>
+                                            <button onClick={(e) => { e.stopPropagation(); if (!nextItem || !isOvernightLodgeItem) return; toggleLodgeCheckoutFix(dIdx, pIdx); }} disabled={!nextItem || !isOvernightLodgeItem} className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black transition-all disabled:opacity-40 ${lodgeCheckoutButtonTone}`}>
                                               {p.lodgeCheckoutFixed ? <Lock size={10} /> : <Unlock size={10} />} 체크아웃 {p.lodgeCheckoutFixed ? '고정' : '해제'}
                                             </button>
                                           </div>
@@ -11436,7 +11451,7 @@ const App = () => {
                                                 onFocus={() => setLodgeCheckoutDraft({ key: lodgeCheckoutKey, value: checkoutLabel })}
                                                 onBlurExtra={() => {
                                                   const draftValue = lodgeCheckoutDraft?.key === lodgeCheckoutKey ? lodgeCheckoutDraft.value : checkoutLabel;
-                                                  if (nextItem && /^\d{2}:\d{2}$/.test(draftValue || '')) {
+                                                  if (isOvernightLodgeItem && nextItem && /^\d{2}:\d{2}$/.test(draftValue || '')) {
                                                     setLodgeCheckoutTimeValue(dIdx, pIdx, draftValue);
                                                   }
                                                   setLodgeCheckoutDraft(null);
@@ -11468,10 +11483,10 @@ const App = () => {
                                                   key={value}
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    if (!nextItem) return;
+                                                    if (!nextItem || !isOvernightLodgeItem) return;
                                                     updateLodgeCheckoutTime(dIdx, pIdx, value);
                                                   }}
-                                                  disabled={!nextItem}
+                                                  disabled={!nextItem || !isOvernightLodgeItem}
                                                   className="rounded-lg border border-violet-100 bg-violet-50/70 py-1.5 text-[10px] font-black text-violet-600 transition-colors hover:bg-violet-500 hover:text-white disabled:opacity-40"
                                                 >
                                                   +{value}m

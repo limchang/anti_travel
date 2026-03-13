@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.178",
+      "timestamp": "2026-03-14T02:25:23+09:00",
+      "message": "fix: apply next-day checkout only to stay lodge segments"
+    },
+    {
       "version": "1.3.177",
       "timestamp": "2026-03-14T02:10:55+09:00",
       "message": "fix: recalculate timeline continuously across day boundaries"
@@ -144,11 +149,6 @@
       "version": "1.3.149",
       "timestamp": "2026-03-13T19:48:24+09:00",
       "message": "fix: freeze original hero overview block like excel panes"
-    },
-    {
-      "version": "1.3.148",
-      "timestamp": "2026-03-13T19:44:50+09:00",
-      "message": "fix: freeze original hero block instead of floating compact header"
     }
   ]
 }

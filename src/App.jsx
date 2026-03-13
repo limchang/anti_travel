@@ -1764,6 +1764,25 @@ const DateRangePicker = ({ startDate, endDate, onStartChange, onEndChange, onClo
 const latestUpdate = updateLog.lastUpdates[0] || { version: '0.0.0', timestamp: new Date().toISOString() };
 const APP_VERSION = latestUpdate.version;
 const LAST_PUSH_TIME = latestUpdate.timestamp;
+const formatPushTimestampLabel = (timestamp) => {
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) return '날짜 미확인';
+  const yyyy = parsed.getFullYear();
+  const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+  const dd = String(parsed.getDate()).padStart(2, '0');
+  const hh = String(parsed.getHours()).padStart(2, '0');
+  const min = String(parsed.getMinutes()).padStart(2, '0');
+  const diff = Date.now() - parsed.getTime();
+  const absDiff = Math.abs(diff);
+  const mins = Math.floor(absDiff / 60000);
+  const hrs = Math.floor(mins / 60);
+  const days = Math.floor(hrs / 24);
+  let relative = '방금 전';
+  if (mins >= 1 && mins < 60) relative = `${mins}분 전`;
+  else if (hrs < 24) relative = `${hrs}시간 전`;
+  else relative = `${days}일 전`;
+  return `${yyyy}.${mm}.${dd} ${hh}:${min} (${relative})`;
+};
 const ROUTE_PREVIEW_ENABLED = false;
 const ROUTE_PREVIEW_COLORS = ['#34C759', '#FF8A3D', '#8B5CF6', '#3182F6', '#EF4444', '#14B8A6'];
 const TIME_WHEEL_ITEM_HEIGHT = 28;
@@ -2410,18 +2429,10 @@ const App = () => {
   const [authError, setAuthError] = useState('');
 
   // ── 업데이트 정보 (버전 & 경과 시간) ──
-  const [timeSincePush, setTimeSincePush] = useState('');
+  const [pushTimeLabel, setPushTimeLabel] = useState('');
   useEffect(() => {
     const update = () => {
-      const diff = Date.now() - new Date(LAST_PUSH_TIME).getTime();
-      const absDiff = Math.abs(diff); // 혹시 모를 시차 대비
-      const mins = Math.floor(absDiff / 60000);
-      const hrs = Math.floor(mins / 60);
-      const days = Math.floor(hrs / 24);
-      if (mins < 1) setTimeSincePush('방금 전');
-      else if (mins < 60) setTimeSincePush(`${mins}분 전`);
-      else if (hrs < 24) setTimeSincePush(`${hrs}시간 전`);
-      else setTimeSincePush(`${days}일 전`);
+      setPushTimeLabel(formatPushTimestampLabel(LAST_PUSH_TIME));
     };
     update();
     const timer = setInterval(update, 60000);
@@ -7974,7 +7985,7 @@ const App = () => {
                 </div>
                 <div className="min-w-0">
                   <h2 className="text-[13px] font-black tracking-[0.18em] text-slate-800 uppercase leading-none">Anti Planer</h2>
-                  <p className="mt-1 text-[10px] font-bold text-slate-400 leading-none">v{APP_VERSION} · {timeSincePush}</p>
+                  <p className="mt-1 text-[10px] font-bold text-slate-400 leading-none">v{APP_VERSION} · {pushTimeLabel}</p>
                 </div>
               </div>
             </div>

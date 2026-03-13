@@ -10118,9 +10118,16 @@ const App = () => {
               ? `${(averageTravelMinutes / 60).toFixed(1)}시간`
               : `${Math.round(averageTravelMinutes)}분`;
             return (
-              <div className="sticky top-0 z-[120] mb-8 relative -mx-4 -mt-8">
+              <div className="mb-8 relative" style={{ height: dashboardHeight }}>
                 {/* 풀 카드 (최상단) */}
-                <section className="mb-10">
+                <div
+                  className="fixed top-0 z-[120] px-4 pt-8"
+                  style={{
+                    left: leftSidebarWidth,
+                    right: isMobileLayout ? rightSidebarWidth : (col2Collapsed ? 44 : 300),
+                  }}
+                >
+                  <section ref={dashboardRef} className="mb-10">
                     <div className="w-full relative overflow-hidden bg-transparent">
                       {canManagePlan && <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                         <button
@@ -10330,6 +10337,7 @@ const App = () => {
                       </div>
                     </div>
                   </section>
+                </div>
               </div>
             );
           })()}

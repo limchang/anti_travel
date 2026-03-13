@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.151",
+      "timestamp": "2026-03-13T20:00:49+09:00",
+      "message": "fix: pin original overview block with fixed hero container"
+    },
+    {
       "version": "1.3.150",
       "timestamp": "2026-03-13T19:57:14+09:00",
       "message": "fix: make original hero block actually sticky by moving sticky wrapper"
@@ -144,11 +149,6 @@
       "version": "1.3.122",
       "timestamp": "2026-03-13T11:49:44+09:00",
       "message": "feat: add mobile place long-press selection and tap insert slots"
-    },
-    {
-      "version": "1.3.121",
-      "timestamp": "2026-03-13T10:54:52+09:00",
-      "message": "fix: extend drag lock toast action and restore default buffer on unlock"
     }
   ]
 }

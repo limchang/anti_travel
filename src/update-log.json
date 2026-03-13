@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.133",
+      "timestamp": "2026-03-13T15:12:29+09:00",
+      "message": "fix: restore day-boundary travel chips and clarify special schedule addresses"
+    },
+    {
       "version": "1.3.132",
       "timestamp": "2026-03-13T15:06:40+09:00",
       "message": "fix: scan route neighbors across multiple days"
@@ -144,11 +149,6 @@
       "version": "1.3.104",
       "timestamp": "2026-03-12T21:10:05+09:00",
       "message": "fix: apply business warning auto-adjust delta into travel buffer"
-    },
-    {
-      "version": "1.3.103",
-      "timestamp": "2026-03-12T21:03:12+09:00",
-      "message": "fix: recognize lodge segment addresses via source-lodge fallback"
     }
   ]
 }

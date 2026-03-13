@@ -3451,7 +3451,7 @@ const App = () => {
     });
   };
 
-  const getPlanItemPrimaryAddress = (item = {}) => String(item?.receipt?.address || item?.address || '').trim();
+  const getPlanItemPrimaryAddress = (item = {}) => String(item?.receipt?.address || item?.address || item?.sourceLodgeAddress || '').trim();
   const getShipStartAddress = (item = {}) => String(item?.receipt?.address || item?.startPoint || '').trim();
   const getShipEndAddress = (item = {}) => String(item?.endAddress || item?.endPoint || '').trim();
   const applyGeoFieldsToRecord = (record = {}) => {
@@ -4226,22 +4226,24 @@ const App = () => {
     if (!query) return;
     window.open(`https://map.naver.com/v5/search/${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
   };
+  const getSourceLodgeAddressForItem = (item = {}) => {
+    if (!isStandaloneLodgeSegmentItem(item)) return String(item?.sourceLodgeAddress || '').trim();
+    const directSourceAddress = String(item?.sourceLodgeAddress || '').trim();
+    if (directSourceAddress) return directSourceAddress;
+    const sourceId = String(item.sourceLodgeId || '').trim();
+    if (!sourceId) return '';
+    const fromPlaces = (itinerary.places || []).find((place) => String(place?.id || '').trim() === sourceId);
+    const placeAddress = String(fromPlaces?.receipt?.address || fromPlaces?.address || '').trim();
+    if (placeAddress) return placeAddress;
+    for (const day of (itinerary.days || [])) {
+      const found = (day?.plan || []).find((planItem) => String(planItem?.id || '').trim() === sourceId);
+      const foundAddress = String(found?.receipt?.address || found?.address || found?.sourceLodgeAddress || '').trim();
+      if (foundAddress) return foundAddress;
+    }
+    return '';
+  };
   const getRouteAddress = (item, role = 'from') => {
     if (!item) return '';
-    const getSourceLodgeAddress = () => {
-      if (!isStandaloneLodgeSegmentItem(item)) return '';
-      const sourceId = String(item.sourceLodgeId || '').trim();
-      if (!sourceId) return '';
-      const fromPlaces = (itinerary.places || []).find((place) => String(place?.id || '').trim() === sourceId);
-      const placeAddress = String(fromPlaces?.receipt?.address || fromPlaces?.address || '').trim();
-      if (placeAddress) return placeAddress;
-      for (const day of (itinerary.days || [])) {
-        const found = (day?.plan || []).find((planItem) => String(planItem?.id || '').trim() === sourceId);
-        const foundAddress = String(found?.receipt?.address || found?.address || '').trim();
-        if (foundAddress) return foundAddress;
-      }
-      return String(item?.sourceLodgeAddress || '').trim();
-    };
     if (item.types?.includes('ship')) {
       if (role === 'from') {
         return String(
@@ -4261,7 +4263,7 @@ const App = () => {
     return String(
       item.receipt?.address
       || item.address
-      || getSourceLodgeAddress()
+      || getSourceLodgeAddressForItem(item)
       || item.geo?.address
       || ''
     ).trim();
@@ -4274,7 +4276,7 @@ const App = () => {
         : normalizeGeoPoint(item.geoStart, getShipStartAddress(item));
       return hasGeoCoords(geo) ? geo : null;
     }
-    const geo = normalizeGeoPoint(item.geo, getPlanItemPrimaryAddress(item));
+    const geo = normalizeGeoPoint(item.geo, getRouteAddress(item, role === 'from' ? 'from' : 'to'));
     return hasGeoCoords(geo) ? geo : null;
   };
   const getRouteCacheKey = (fromAddress = '', toAddress = '') => `${String(fromAddress || '').trim()}|${String(toAddress || '').trim()}`;
@@ -5437,6 +5439,17 @@ const App = () => {
         if (candidate && candidate.type !== 'backup') {
           return false;
         }
+      }
+    }
+    return true;
+  };
+
+  const isFirstMainPlanItemOfDayByIndex = (days = [], dayIdx, targetIdx) => {
+    const dayPlan = days?.[dayIdx]?.plan || [];
+    for (let idx = targetIdx - 1; idx >= 0; idx -= 1) {
+      const candidate = dayPlan[idx];
+      if (candidate && candidate.type !== 'backup') {
+        return false;
       }
     }
     return true;
@@ -10249,7 +10262,7 @@ const App = () => {
                 const isShip = p.types?.includes('ship');
                 const prevMainItem = getPreviousMainPlanItemByIndex(itinerary.days || [], dIdx, pIdx);
                 const nextMainItem = getNextMainPlanItemByIndex(itinerary.days || [], dIdx, pIdx);
-                const isFirstMainItem = isFirstMainPlanItemByIndex(itinerary.days || [], dIdx, pIdx);
+                const isFirstMainItem = isFirstMainPlanItemOfDayByIndex(itinerary.days || [], dIdx, pIdx);
                 const isTimelineDragActive = Boolean(draggingFromLibrary || draggingFromTimeline);
                 const planBCount = p.alternatives?.length || 0;
                 const hasPlanB = planBCount > 0;
@@ -10711,6 +10724,11 @@ const App = () => {
                           <div className={`${isTimeCellExpanded && !isShip && !isLodge ? 'hidden' : ''} ${(isShip || isLodge) ? 'flex-1' : 'w-[70%] flex-none'} min-w-0 flex flex-col justify-start transition-all duration-500 overflow-hidden ${isTimelineDragActive ? 'gap-1.5 p-2.5 sm:p-3' : isCompactTimeline ? 'gap-2 p-2.5 sm:p-3' : 'gap-2 p-3 sm:p-4'}`}>
                             {isShip ? (
                               <div className="flex flex-col gap-2 py-0.5" onClick={(e) => e.stopPropagation()}>
+                                {(() => {
+                                  const shipStartAddress = getShipStartAddress(p);
+                                  const shipEndAddress = getShipEndAddress(p);
+                                  return (
+                                    <>
                                 {/* 페리 이름 */}
                                 <div className="flex items-center gap-1.5">
                                   <Anchor size={11} className="text-blue-400 shrink-0" />
@@ -10775,6 +10793,61 @@ const App = () => {
                                       className="text-[9px] text-blue-200/80 bg-transparent outline-none w-24 text-right focus:border-b focus:border-white/30 truncate cursor-pointer"
                                     />
                                   </div>
+                                </div>
+                                <div className="grid gap-1.5 md:grid-cols-2">
+                                  <SharedAddressRow
+                                    value={shipStartAddress}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      setItinerary((prev) => {
+                                        const next = JSON.parse(JSON.stringify(prev));
+                                        next.days[dIdx].plan[pIdx].receipt = {
+                                          ...(next.days[dIdx].plan[pIdx].receipt || {}),
+                                          address: e.target.value,
+                                        };
+                                        return next;
+                                      });
+                                    }}
+                                    placeholder="출발 항구 주소"
+                                    leading={<span className="shrink-0 rounded-md bg-blue-50 px-1.5 py-0.5 text-[9px] font-black text-blue-600">출발</span>}
+                                    actions={
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openNaverPlaceSearch(p.startPoint || '출발 항구', shipStartAddress);
+                                        }}
+                                        className="rounded-md border border-slate-200 bg-white p-1 text-slate-400 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                                        title="출발지 지도 검색"
+                                      >
+                                        <MapPin size={9} />
+                                      </button>
+                                    }
+                                    onContainerClick={(e) => e.stopPropagation()}
+                                  />
+                                  <SharedAddressRow
+                                    value={shipEndAddress}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      updateShipPoint(dIdx, pIdx, 'endAddress', e.target.value);
+                                    }}
+                                    placeholder="도착 항구 주소"
+                                    leading={<span className="shrink-0 rounded-md bg-cyan-50 px-1.5 py-0.5 text-[9px] font-black text-cyan-600">도착</span>}
+                                    actions={
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openNaverPlaceSearch(p.endPoint || '도착 항구', shipEndAddress);
+                                        }}
+                                        className="rounded-md border border-slate-200 bg-white p-1 text-slate-400 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                                        title="도착지 지도 검색"
+                                      >
+                                        <MapPin size={9} />
+                                      </button>
+                                    }
+                                    onContainerClick={(e) => e.stopPropagation()}
+                                  />
                                 </div>
                                 {/* 시간 정보 행 — 클릭 후 직접 입력 */}
                                 {(() => {
@@ -10842,6 +10915,9 @@ const App = () => {
                                     </div>
                                   );
                                 })()}
+                                    </>
+                                  );
+                                })()}
                               </div>
                             ) : isLodge ? (
                               <div className="flex flex-col gap-2 py-0.5" onClick={(e) => e.stopPropagation()}>
@@ -10864,15 +10940,36 @@ const App = () => {
                                     <Pencil size={9} />
                                   </button>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); openNaverPlaceSearch(getPlaceSearchName(p), p.receipt?.address || p.address || ''); }}
-                                  className="flex items-center gap-2 text-slate-500 bg-white w-fit max-w-full px-2 py-1 rounded-lg border border-slate-200 shadow-sm hover:border-[#3182F6]/50 hover:bg-blue-50/40 transition-colors text-left"
-                                  title="네이버 지도에서 장소 검색"
-                                >
-                                  <MapPin size={12} className="text-[#3182F6] shrink-0" />
-                                  <span className="text-[11px] font-bold truncate">{p.receipt?.address || '주소 정보 없음'}</span>
-                                </button>
+                                <SharedAddressRow
+                                  value={p.receipt?.address || p.address || p.sourceLodgeAddress || ''}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setItinerary((prev) => {
+                                      const next = JSON.parse(JSON.stringify(prev));
+                                      next.days[dIdx].plan[pIdx].receipt = {
+                                        ...(next.days[dIdx].plan[pIdx].receipt || {}),
+                                        address: e.target.value,
+                                      };
+                                      return next;
+                                    });
+                                  }}
+                                  placeholder="숙소 주소 정보 없음"
+                                  leading={<MapPin size={12} className="shrink-0 text-[#3182F6]" />}
+                                  actions={
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openNaverPlaceSearch(getPlaceSearchName(p), p.receipt?.address || p.address || p.sourceLodgeAddress || '');
+                                      }}
+                                      className="rounded-md border border-slate-200 bg-white p-1 text-slate-400 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                                      title="숙소 지도 검색"
+                                    >
+                                      <MapPin size={9} />
+                                    </button>
+                                  }
+                                  onContainerClick={(e) => e.stopPropagation()}
+                                />
                                 <div className="flex gap-2">
                                   {/* 체크인 셀 */}
                                   {(() => {

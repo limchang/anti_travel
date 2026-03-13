@@ -13,7 +13,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, MoreHorizontal
+  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, MoreHorizontal, RotateCcw
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -2581,7 +2581,7 @@ const App = () => {
     try {
       await signOut(auth);
       // 로그아웃 시 모든 개인화 상태 초기화
-      setItinerary({ days: [], places: [] });
+      setItinerary({ days: [], places: [], placeTrash: [] });
       setHistory([]);
       setActiveItemId(null);
       setBasePlanRef(null);
@@ -2617,6 +2617,7 @@ const App = () => {
   const [placeFilterTags, setPlaceFilterTags] = useState([]); // 내 장소 필터링 태그
   const [showPlaceCategoryManager, setShowPlaceCategoryManager] = useState(false);
   const [showPlaceMenu, setShowPlaceMenu] = useState(false);
+  const [showPlaceTrash, setShowPlaceTrash] = useState(false);
   const [draggingFromTimeline, setDraggingFromTimeline] = useState(null);
   const [isDroppingOnDeleteZone, setIsDroppingOnDeleteZone] = useState(false);
   const [dragBottomTarget, setDragBottomTarget] = useState('');
@@ -2657,7 +2658,7 @@ const App = () => {
   const [planOptionEndDate, setPlanOptionEndDate] = useState('');
   const [planOptionBudget, setPlanOptionBudget] = useState('0');
   // 초기 상태 안전하게 설정
-  const [itinerary, setItinerary] = useState({ days: [], places: [] });
+  const [itinerary, setItinerary] = useState({ days: [], places: [], placeTrash: [] });
   const customPlaceCategories = useMemo(() => {
     const collected = new Set();
     (itinerary.places || []).forEach((place) => {
@@ -3247,6 +3248,7 @@ const App = () => {
   const createBlankPlan = (region = '새 여행지', title = '') => ({
     days: [{ day: 1, plan: [] }],
     places: [],
+    placeTrash: [],
     maxBudget: 1500000,
     tripRegion: region,
     tripStartDate: '',
@@ -3288,6 +3290,7 @@ const App = () => {
       },
     ],
     places: [],
+    placeTrash: [],
     maxBudget: 1500000,
     tripRegion: '제주',
     tripStartDate: '2026-03-26',
@@ -7048,12 +7051,58 @@ const App = () => {
   };
 
   const removePlace = (placeId) => {
+    const targetPlace = (itinerary.places || []).find((place) => place.id === placeId);
+    if (!targetPlace) return;
     saveHistory();
-    setItinerary(prev => ({
+    setItinerary((prev) => {
+      const nextPlaces = (prev.places || []).filter((place) => place.id !== placeId);
+      const existingTrash = Array.isArray(prev.placeTrash) ? prev.placeTrash : [];
+      return {
+        ...prev,
+        places: nextPlaces,
+        placeTrash: [
+          {
+            ...deepClone(targetPlace),
+            deletedAt: Date.now(),
+          },
+          ...existingTrash.filter((place) => place?.id !== placeId),
+        ],
+      };
+    });
+    if (expandedPlaceId === placeId) setExpandedPlaceId(null);
+    if (mobileSelectedLibraryPlace?.id === placeId) setMobileSelectedLibraryPlace(null);
+    if (editingPlaceId === placeId) {
+      setEditingPlaceId(null);
+      setEditPlaceDraft(null);
+    }
+    setLastAction(`'${targetPlace.name || '내 장소'}'을(를) 휴지통으로 이동했습니다.`);
+    triggerUndoToast("내 장소를 휴지통으로 이동했습니다.");
+  };
+
+  const restorePlaceFromTrash = (placeId) => {
+    const targetPlace = (itinerary.placeTrash || []).find((place) => place.id === placeId);
+    if (!targetPlace) return;
+    saveHistory();
+    setItinerary((prev) => ({
       ...prev,
-      places: (prev.places || []).filter(p => p.id !== placeId)
+      places: [
+        normalizeLibraryPlace(deepClone({ ...targetPlace, deletedAt: undefined })),
+        ...(prev.places || []).filter((place) => place?.id !== placeId),
+      ],
+      placeTrash: (prev.placeTrash || []).filter((place) => place?.id !== placeId),
     }));
-    triggerUndoToast("내 장소가 삭제되었습니다.");
+    setLastAction(`'${targetPlace.name || '내 장소'}'을(를) 휴지통에서 복원했습니다.`);
+  };
+
+  const deletePlacePermanently = (placeId) => {
+    const targetPlace = (itinerary.placeTrash || []).find((place) => place.id === placeId);
+    if (!targetPlace) return;
+    saveHistory();
+    setItinerary((prev) => ({
+      ...prev,
+      placeTrash: (prev.placeTrash || []).filter((place) => place?.id !== placeId),
+    }));
+    setLastAction(`'${targetPlace.name || '내 장소'}'을(를) 완전히 삭제했습니다.`);
   };
 
   const updatePlace = (placeId, data) => {
@@ -8935,6 +8984,19 @@ const App = () => {
                     <div className="absolute right-0 top-8 z-20 min-w-[186px] rounded-[12px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
                       <button
                         type="button"
+                        onClick={() => {
+                          setShowPlaceTrash(true);
+                          setShowPlaceMenu(false);
+                        }}
+                        className="flex w-full items-center justify-between rounded-[10px] border border-transparent px-2.5 py-2 text-left text-[11px] font-black text-slate-700 transition-colors hover:border-blue-100 hover:bg-blue-50 hover:text-[#3182F6]"
+                      >
+                        <span>휴지통 열기</span>
+                        <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-black text-slate-500">
+                          {(itinerary.placeTrash || []).length}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
                         onClick={resetAllPlanTimeSettings}
                         className="w-full rounded-[10px] border border-transparent px-2.5 py-2 text-left text-[11px] font-black text-slate-700 transition-colors hover:border-blue-100 hover:bg-blue-50 hover:text-[#3182F6]"
                       >
@@ -9525,6 +9587,57 @@ const App = () => {
                         );
                       })}
                     </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {showPlaceTrash && (
+            <>
+              <div className="fixed inset-0 z-[260] bg-black/20" onClick={() => setShowPlaceTrash(false)} />
+              <div className="fixed z-[261] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-[14px] font-black text-slate-800">내 장소 휴지통</p>
+                    <p className="mt-1 text-[10px] font-bold text-slate-400">삭제된 장소는 여기로 이동하고, 여기서 삭제하면 완전 삭제됩니다.</p>
+                  </div>
+                  <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowPlaceTrash(false)}><X size={16} /></button>
+                </div>
+                <div className="max-h-[52vh] overflow-y-auto space-y-2">
+                  {(itinerary.placeTrash || []).length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
+                      <p className="text-[12px] font-black text-slate-500">휴지통이 비어 있습니다.</p>
+                    </div>
+                  ) : (
+                    (itinerary.placeTrash || []).map((place) => (
+                      <div key={`trash-${place.id}`} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-[12px] font-black text-slate-800">{place.name || '이름 없는 장소'}</p>
+                            <p className="mt-1 truncate text-[10px] font-bold text-slate-400">{place.address || place.receipt?.address || '주소 없음'}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => restorePlaceFromTrash(place.id)}
+                              className="flex items-center gap-1 rounded-xl border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[10px] font-black text-[#3182F6] hover:bg-blue-100"
+                            >
+                              <RotateCcw size={11} />
+                              복원
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deletePlacePermanently(place.id)}
+                              className="flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-2.5 py-1.5 text-[10px] font-black text-red-500 hover:bg-red-100"
+                            >
+                              <Trash2 size={11} />
+                              완전삭제
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
               </div>

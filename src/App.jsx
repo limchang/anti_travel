@@ -6802,6 +6802,24 @@ const App = () => {
       isTimeFixed: item.isTimeFixed,
       travelTimeOverride: item.travelTimeOverride,
       bufferTimeOverride: item.bufferTimeOverride,
+      sourceLodgeId: item.sourceLodgeId,
+      sourceLodgeName: item.sourceLodgeName,
+      sourceLodgeAddress: item.sourceLodgeAddress,
+      segmentType: item.segmentType,
+      renderAsSegmentCard: item.renderAsSegmentCard,
+    });
+  };
+
+  const hasLibraryDuplicateForPlace = (places = [], libraryPlace = null) => {
+    if (!libraryPlace) return false;
+    if (!isStandaloneLodgeSegmentItem(libraryPlace)) return false;
+    const sourceId = String(libraryPlace.sourceLodgeId || '').trim();
+    if (!sourceId) return false;
+    return (places || []).some((place) => {
+      if (!place) return false;
+      const placeId = String(place.id || '').trim();
+      const placeSourceId = String(place.sourceLodgeId || '').trim();
+      return placeId === sourceId || placeSourceId === sourceId;
     });
   };
 
@@ -6810,6 +6828,10 @@ const App = () => {
     if (!item) return;
     const libraryPlace = toLibraryPlaceFromPlanItem(item);
     if (!libraryPlace) return;
+    if (hasLibraryDuplicateForPlace(itinerary.places || [], libraryPlace)) {
+      showInfoToast('상위 숙소가 이미 내 장소에 있어 숙박 세그먼트는 중복 등록하지 않습니다.');
+      return;
+    }
     saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
@@ -6829,6 +6851,10 @@ const App = () => {
       receipt: alt.receipt || { address: alt.receipt?.address || '', items: [] },
     });
     if (!libraryPlace) return;
+    if (hasLibraryDuplicateForPlace(itinerary.places || [], libraryPlace)) {
+      showInfoToast('상위 숙소가 이미 내 장소에 있어 숙박 세그먼트는 중복 등록하지 않습니다.');
+      return;
+    }
     saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
@@ -6844,6 +6870,10 @@ const App = () => {
     if (!item) return;
     const libraryPlace = toLibraryPlaceFromPlanItem(item);
     if (!libraryPlace) return;
+    if (hasLibraryDuplicateForPlace(itinerary.places || [], libraryPlace)) {
+      showInfoToast('상위 숙소가 이미 내 장소에 있어 숙박 세그먼트는 중복 등록하지 않습니다.');
+      return;
+    }
     saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
@@ -6866,7 +6896,8 @@ const App = () => {
 
     const libraryPlaces = planItems
       .map((item) => toLibraryPlaceFromPlanItem(item))
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter((libraryPlace) => !hasLibraryDuplicateForPlace(itinerary.places || [], libraryPlace));
     if (libraryPlaces.length === 0) {
       setLastAction('내 장소로 변환할 수 있는 일정이 없습니다.');
       return;

@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.143",
+      "timestamp": "2026-03-13T19:05:23+09:00",
+      "message": "fix: place hero summary toggle beneath overview panel"
+    },
+    {
       "version": "1.3.142",
       "timestamp": "2026-03-13T19:03:06+09:00",
       "message": "fix: move hero summary toggle below overview cards"
@@ -144,11 +149,6 @@
       "version": "1.3.114",
       "timestamp": "2026-03-13T09:48:39+09:00",
       "message": "feat: show edit-mode toast when drag is attempted while locked"
-    },
-    {
-      "version": "1.3.113",
-      "timestamp": "2026-03-13T09:45:15+09:00",
-      "message": "fix: align timeline formula to buffer-based start reconciliation"
     }
   ]
 }

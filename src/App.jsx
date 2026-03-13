@@ -10396,15 +10396,6 @@ const App = () => {
                                 </div>
                               </div>
 
-                              <button
-                                type="button"
-                                onClick={() => setHeroSummaryExpanded(v => !v)}
-                                className="mt-4 flex w-full items-center justify-center gap-2 rounded-[22px] border border-slate-200 bg-white/92 px-4 py-3 text-[11px] font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
-                              >
-                                여행 요약 {heroSummaryExpanded ? '닫기' : '확장'}
-                                <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />
-                              </button>
-
                               {heroSummaryExpanded && (
                               <div className="mt-4 w-full rounded-[26px] border border-slate-200 bg-white/92 p-4 text-left shadow-[0_16px_32px_-24px_rgba(15,23,42,0.24)]">
                                 <p className="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">신규 / 재방문 비율 비교</p>
@@ -10445,7 +10436,15 @@ const App = () => {
                                 </div>
                               </div>
                             )}
-                        </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setHeroSummaryExpanded(v => !v)}
+                              className="flex w-full items-center justify-center gap-2 rounded-[22px] border border-slate-200 bg-white/92 px-4 py-3 text-[11px] font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                            >
+                              여행 요약 {heroSummaryExpanded ? '닫기' : '확장'}
+                              <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />
+                            </button>
                         </div>
                       </div>
                     </div>

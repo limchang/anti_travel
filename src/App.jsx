@@ -10287,7 +10287,7 @@ const App = () => {
                         </button>
                       </div>}
                       {/* 🖼️ 배경 이미지 (고정 높이, 요약 확장과 무관) */}
-                      <div className="absolute left-0 right-0 top-0 h-[430px] sm:h-[450px] overflow-hidden pointer-events-none">
+                      <div className="absolute left-0 right-0 top-0 h-[330px] sm:h-[360px] overflow-hidden pointer-events-none">
                         <img
                           src={getRegionCoverImage(tripRegion)}
                           className="w-full h-full object-cover opacity-95 scale-105"
@@ -10295,7 +10295,7 @@ const App = () => {
                         />
                         <div
                           className="absolute inset-0"
-                          style={{ background: 'linear-gradient(to bottom, rgba(15,23,42,0.26) 0%, rgba(15,23,42,0.12) 46%, rgba(242,244,246,0.16) 62%, rgba(242,244,246,0) 76%, rgba(242,244,246,0) 100%)' }}
+                          style={{ background: 'linear-gradient(to bottom, rgba(15,23,42,0.26) 0%, rgba(15,23,42,0.12) 42%, rgba(242,244,246,0.12) 56%, rgba(242,244,246,0) 66%, rgba(242,244,246,0) 100%)' }}
                         />
                       </div>
 
@@ -10349,11 +10349,7 @@ const App = () => {
                         <div className="flex flex-col gap-5 px-3 sm:px-0">
                             <div className="relative mt-5 w-full rounded-[34px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl sm:px-6 sm:py-6">
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
-                              <div className="flex items-center justify-between gap-3">
-                                <div>
-                                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">Trip Overview</p>
-                                  <p className="mt-1 text-[15px] font-black tracking-tight text-slate-800">일정 개요</p>
-                                </div>
+                              <div className="flex items-center justify-end gap-3">
                                 <button
                                   type="button"
                                   onClick={() => setHeroSummaryExpanded(v => !v)}
@@ -10364,29 +10360,33 @@ const App = () => {
                                 </button>
                               </div>
 
-                              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                                <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
-                                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
-                                  <p className="mt-2 text-[31px] leading-none font-black text-[#3182F6] tabular-nums">{usedPct}%</p>
-                                  <p className="mt-2 text-[11px] font-bold text-slate-500 tabular-nums">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
-                                </div>
-                                <div className="relative rounded-[24px] border border-slate-200 bg-white/95 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
-                                  <div className="flex items-center justify-center gap-1.5">
-                                    <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setShowTravelIntensityInfo((prev) => !prev);
-                                      }}
-                                      className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition-colors hover:border-[#3182F6]/40 hover:text-[#3182F6]"
-                                      title="여행 강도 계산식 보기"
-                                    >
-                                      <Info size={10} />
-                                    </button>
+                              <div className="mt-4 grid grid-cols-3 gap-2.5 sm:gap-3">
+                                <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
+                                  <div className="flex h-full flex-col items-center justify-center text-center">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
+                                    <p className="mt-2 text-[22px] leading-none font-black text-[#3182F6] tabular-nums sm:text-[31px]">{usedPct}%</p>
+                                    <p className="mt-2 text-[10px] font-bold text-slate-500 tabular-nums sm:text-[11px]">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
                                   </div>
-                                  <p className="mt-2 text-center text-[27px] leading-none font-black text-slate-800">{travelIntensity.label}</p>
-                                  <p className="mt-2 text-center text-[11px] font-bold text-slate-500">{travelIntensity.note}</p>
+                                </div>
+                                <div className="relative rounded-[24px] border border-slate-200 bg-white/95 px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
+                                  <div className="flex h-full flex-col items-center justify-center text-center">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setShowTravelIntensityInfo((prev) => !prev);
+                                        }}
+                                        className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition-colors hover:border-[#3182F6]/40 hover:text-[#3182F6]"
+                                        title="여행 강도 계산식 보기"
+                                      >
+                                        <Info size={10} />
+                                      </button>
+                                    </div>
+                                    <p className="mt-2 text-center text-[21px] leading-none font-black text-slate-800 sm:text-[27px]">{travelIntensity.label}</p>
+                                    <p className="mt-2 text-center text-[10px] font-bold text-slate-500 sm:text-[11px]">{travelIntensity.note}</p>
+                                  </div>
                                   {showTravelIntensityInfo && (
                                     <div className="absolute left-1/2 top-[calc(100%-8px)] z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
                                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
@@ -10398,10 +10398,12 @@ const App = () => {
                                     </div>
                                   )}
                                 </div>
-                                <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
-                                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
-                                  <p className="mt-2 text-center text-[31px] leading-none font-black text-slate-800 tabular-nums">{visitPerHour.toFixed(1)}개/h</p>
-                                  <p className="mt-2 text-center text-[11px] font-bold text-slate-500">방문 일정 {visitPlanCount}개 기준</p>
+                                <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
+                                  <div className="flex h-full flex-col items-center justify-center text-center">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
+                                    <p className="mt-2 text-center text-[22px] leading-none font-black text-slate-800 tabular-nums sm:text-[31px]">{visitPerHour.toFixed(1)}개/h</p>
+                                    <p className="mt-2 text-center text-[10px] font-bold text-slate-500 sm:text-[11px]">방문 일정 {visitPlanCount}개 기준</p>
+                                  </div>
                                 </div>
                               </div>
 

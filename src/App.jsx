@@ -13,7 +13,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, MoreHorizontal, RotateCcw
+  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -8073,7 +8073,7 @@ const App = () => {
             <div className="rounded-[24px] border border-slate-200/80 bg-white/82 shadow-[0_12px_28px_-18px_rgba(15,23,42,0.12)] overflow-hidden">
               <div className="px-4 py-3 flex items-center gap-2 text-[12px] font-black text-slate-700">
                 <div className="w-7 h-7 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500">
-                  <MoreHorizontal size={14} />
+                  <SlidersHorizontal size={14} />
                 </div>
                 로그인 후 가능
               </div>
@@ -9193,7 +9193,7 @@ const App = () => {
                     className={`w-6 h-6 flex items-center justify-center rounded-full border transition-colors ${showPlaceMenu ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600'}`}
                     title="내 장소 메뉴"
                   >
-                    <MoreHorizontal size={12} />
+                    <SlidersHorizontal size={12} />
                   </button>
                   {showPlaceMenu && (
                     <div className="absolute right-0 top-8 z-20 min-w-[186px] rounded-[12px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">

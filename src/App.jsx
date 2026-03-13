@@ -3073,6 +3073,12 @@ const App = () => {
   const scrollIntervalRef = useRef(null);
   const lastTouchYRef = useRef(null);
   const mobileSwitchRef = useRef(isMobileLayout);
+  const clearMobileLibraryLongPress = useCallback(() => {
+    if (mobileLibraryLongPressRef.current.timer) {
+      clearTimeout(mobileLibraryLongPressRef.current.timer);
+    }
+    mobileLibraryLongPressRef.current = { timer: null, startX: 0, startY: 0, placeId: '', triggered: false };
+  }, []);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -5093,13 +5099,6 @@ const App = () => {
     }
     clearInfoToast();
   }, [clearInfoToast, infoToastAction]);
-
-  const clearMobileLibraryLongPress = useCallback(() => {
-    if (mobileLibraryLongPressRef.current.timer) {
-      clearTimeout(mobileLibraryLongPressRef.current.timer);
-    }
-    mobileLibraryLongPressRef.current = { timer: null, startX: 0, startY: 0, placeId: '', triggered: false };
-  }, []);
 
   const handleMobileLibraryTouchStart = useCallback((event, place) => {
     if (!isMobileLayout || !place) return;

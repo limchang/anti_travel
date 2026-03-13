@@ -7635,41 +7635,82 @@ const App = () => {
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-100 rounded-full blur-[120px] opacity-60 animate-pulse" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-100 rounded-full blur-[120px] opacity-60 animate-pulse" style={{ animationDelay: '1s' }} />
 
-        <div className="bg-white/80 backdrop-blur-2xl border border-white p-12 rounded-[48px] shadow-[0_32px_80px_rgba(0,0,0,0.06)] max-w-[480px] w-full text-center flex flex-col gap-8 z-10">
-          <div className="flex flex-col gap-3">
-            <div className="w-16 h-16 bg-gradient-to-br from-[#3182F6] to-indigo-500 rounded-3xl flex items-center justify-center mx-auto shadow-lg shadow-blue-500/20 mb-2 transform hover:scale-110 transition-transform">
-              <Navigation size={32} className="text-white fill-white/20" />
-            </div>
-            <h1 className="text-[32px] font-black tracking-tight text-slate-800 leading-tight">나만의 여행 계획<br /><span className="text-[#3182F6]">Anti Planer</span></h1>
-            <p className="text-slate-500 font-bold text-[15px] leading-relaxed">복잡한 여행 계획은 잊으세요.<br />당신에게 최적화된 동선을 만들어 드립니다.</p>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={handleLogin}
-              className="group relative flex items-center justify-center gap-3 bg-white border border-slate-200 hover:border-[#3182F6] hover:bg-blue-50/50 px-8 py-4.5 rounded-[24px] transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1 active:scale-95"
-            >
-              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6" />
-              <span className="text-[17px] font-black text-slate-700 group-hover:text-[#3182F6]">Google 계정으로 시작하기</span>
-            </button>
-
-            <div className="flex items-center gap-3 py-2">
-              <div className="flex-1 h-px bg-slate-100" />
-              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">or</span>
-              <div className="flex-1 h-px bg-slate-100" />
+        <div className="bg-white/88 backdrop-blur-2xl border border-white/90 p-6 sm:p-8 rounded-[36px] shadow-[0_30px_70px_rgba(15,23,42,0.08)] max-w-[440px] w-full z-10">
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-3 text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-[#3182F6] to-indigo-500 rounded-3xl flex items-center justify-center mx-auto shadow-lg shadow-blue-500/20">
+                <Navigation size={32} className="text-white fill-white/20" />
+              </div>
+              <div className="space-y-1.5">
+                <h1 className="text-[30px] font-black tracking-tight text-slate-800 leading-tight">Anti Planer</h1>
+                <p className="text-slate-500 font-bold text-[14px] leading-relaxed">
+                  일정, 이동, 영업시간, 스마트 붙여넣기를
+                  <br />
+                  한 흐름으로 정리하는 여행 플래너
+                </p>
+              </div>
             </div>
 
-            <button
-              onClick={handleGuestMode}
-              className="text-[13px] font-bold text-slate-400 hover:text-slate-600 transition-colors py-2"
-            >
-              로그인 없이 일단 둘러보기 (로컬 전용)
-            </button>
+            <div className="rounded-[24px] border border-slate-200/90 bg-white/88 shadow-[0_12px_28px_-18px_rgba(15,23,42,0.16)] overflow-hidden">
+              <div className="px-4 py-3 flex items-center gap-2 text-[12px] font-black text-slate-700">
+                <div className="w-7 h-7 rounded-xl bg-blue-50 flex items-center justify-center text-[#3182F6]">
+                  <Calendar size={14} />
+                </div>
+                시작 방법
+              </div>
+              <div className="h-px bg-slate-100" />
+              <div className="p-4 flex flex-col gap-3">
+                <button
+                  onClick={handleLogin}
+                  className="group relative flex items-center justify-center gap-3 bg-white border border-slate-200 hover:border-[#3182F6] hover:bg-blue-50/50 px-5 py-3.5 rounded-[18px] transition-all duration-300 shadow-sm hover:shadow-[0_16px_30px_-18px_rgba(49,130,246,0.35)]"
+                >
+                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+                  <span className="text-[15px] font-black text-slate-700 group-hover:text-[#3182F6]">Google 계정으로 시작하기</span>
+                </button>
+
+                <button
+                  onClick={handleGuestMode}
+                  className="flex items-center justify-between gap-3 rounded-[18px] border border-slate-200 bg-slate-50/80 px-4 py-3 text-left transition-colors hover:bg-slate-100"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-[13px] font-black text-slate-700">로그인 없이 둘러보기</span>
+                    <span className="text-[11px] font-bold text-slate-400">로컬 저장만 사용합니다</span>
+                  </div>
+                  <ArrowRight size={14} className="text-slate-300" />
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-[24px] border border-slate-200/80 bg-white/82 shadow-[0_12px_28px_-18px_rgba(15,23,42,0.12)] overflow-hidden">
+              <div className="px-4 py-3 flex items-center gap-2 text-[12px] font-black text-slate-700">
+                <div className="w-7 h-7 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500">
+                  <MoreHorizontal size={14} />
+                </div>
+                로그인 후 가능
+              </div>
+              <div className="h-px bg-slate-100" />
+              <div className="px-4 py-2.5 flex flex-col">
+                <div className="flex items-center gap-3 py-2.5 text-[12px] font-bold text-slate-600">
+                  <Calendar size={13} className="text-slate-400" />
+                  일정 저장 및 불러오기
+                </div>
+                <div className="h-px bg-slate-100" />
+                <div className="flex items-center gap-3 py-2.5 text-[12px] font-bold text-slate-600">
+                  <Wand2 size={13} className="text-slate-400" />
+                  AI 설정 및 스마트 붙여넣기
+                </div>
+                <div className="h-px bg-slate-100" />
+                <div className="flex items-center gap-3 py-2.5 text-[12px] font-bold text-slate-600">
+                  <Share2 size={13} className="text-slate-400" />
+                  여행 일정 공유 및 동기화
+                </div>
+              </div>
+            </div>
+
           </div>
 
-          <p className="text-[12px] font-bold text-slate-400 tracking-wide">로그인 시 개인별 맞춤 일정을 저장하고 불러올 수 있습니다.</p>
           {authError && (
-            <div className="text-left text-[11px] font-bold text-red-500 bg-red-50 border border-red-200 rounded-xl px-3 py-2 whitespace-pre-wrap">
+            <div className="mt-5 text-left text-[11px] font-bold text-red-500 bg-red-50 border border-red-200 rounded-xl px-3 py-2 whitespace-pre-wrap">
               {authError}
             </div>
           )}
@@ -8604,10 +8645,10 @@ const App = () => {
             {/* ── 하단 고정: 사용자 정보 & 로그아웃 버튼 ── */}
             <div className="p-4 border-t border-slate-100 bg-white shrink-0 mt-auto">
               {canManagePlan && (
-                <div className="relative mb-2">
+                <div className="relative mb-2.5">
                   <button
                     onClick={() => setShowNavMenu((v) => !v)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors flex items-center justify-between gap-2"
+                    className="w-full px-3 py-2.5 rounded-[18px] border border-slate-200 bg-white text-[11px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors flex items-center justify-between gap-2 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.28)]"
                   >
                     <span className="flex items-center gap-1.5">
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
@@ -8618,40 +8659,46 @@ const App = () => {
                     </span>
                   </button>
                   {showNavMenu && (
-                    <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden z-10 animate-in slide-in-from-bottom-2">
+                    <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[20px] border border-slate-200 bg-white/98 shadow-[0_22px_44px_-24px_rgba(15,23,42,0.26)] overflow-hidden z-10 animate-in slide-in-from-bottom-2">
                       <button
                         onClick={() => { setShowPlanManager(true); setShowNavMenu(false); }}
-                        className="w-full px-3 py-2.5 text-left text-[11px] font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
+                        className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
                       >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
+                        <Calendar size={13} className="text-slate-400" />
                         일정 목록
                       </button>
-                      <div className="h-px bg-slate-100 mx-3" />
+                      <div className="h-px bg-slate-100 mx-4" />
                       <button
                         onClick={() => { setShowAiSettings(true); setShowNavMenu(false); }}
-                        className="w-full px-3 py-2.5 text-left text-[11px] font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
+                        className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
                       >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M4.93 4.93A10 10 0 0 0 19.07 19.07" /></svg>
+                        <Wand2 size={13} className="text-slate-400" />
                         AI 설정
                       </button>
-                      <div className="h-px bg-slate-100 mx-3" />
-                      <button
-                        onClick={() => { setUseAiSmartFill((prev) => !prev); setShowNavMenu(false); }}
-                        className="w-full px-3 py-2.5 text-left text-[11px] font-bold flex items-center gap-2.5 transition-colors hover:bg-slate-50"
-                      >
-                        <span className={`w-7 h-4 rounded-full flex items-center transition-colors shrink-0 ${useAiSmartFill ? 'bg-indigo-500' : 'bg-slate-200'}`}>
-                          <span className={`w-3 h-3 rounded-full bg-white shadow-sm transition-transform mx-0.5 ${useAiSmartFill ? 'translate-x-3' : 'translate-x-0'}`} />
-                        </span>
-                        <span className={useAiSmartFill ? 'text-indigo-600' : 'text-slate-500'}>
-                          AI 자동채우기 {useAiSmartFill ? 'ON' : 'OFF'}
-                        </span>
-                      </button>
-                      <div className="h-px bg-slate-100 mx-3" />
+                      <div className="h-px bg-slate-100 mx-4" />
+                      <div className="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors">
+                        <button
+                          type="button"
+                          onClick={() => setUseAiSmartFill((prev) => !prev)}
+                          className={`w-9 h-5 rounded-full flex items-center transition-colors shrink-0 ${useAiSmartFill ? 'bg-indigo-500' : 'bg-slate-200'}`}
+                          title="AI 자동채우기 전환"
+                        >
+                          <span className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform mx-0.5 ${useAiSmartFill ? 'translate-x-4' : 'translate-x-0'}`} />
+                        </button>
+                        <button
+                          onClick={() => { setUseAiSmartFill((prev) => !prev); setShowNavMenu(false); }}
+                          className="min-w-0 flex-1 text-left"
+                        >
+                          <div className={`text-[12px] font-black ${useAiSmartFill ? 'text-indigo-600' : 'text-slate-700'}`}>AI 자동채우기 {useAiSmartFill ? 'ON' : 'OFF'}</div>
+                          <div className="text-[10px] font-bold text-slate-400">스마트 붙여넣기와 추천 입력에 사용</div>
+                        </button>
+                      </div>
+                      <div className="h-px bg-slate-100 mx-4" />
                       <button
                         onClick={() => { setShowSmartFillGuide(true); setShowNavMenu(false); }}
-                        className="w-full px-3 py-2.5 text-left text-[11px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors"
+                        className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors"
                       >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+                        <MessageSquare size={13} className="text-slate-400" />
                         자동입력 학습 지침
                       </button>
                     </div>
@@ -8659,27 +8706,31 @@ const App = () => {
                 </div>
               )}
               {user ? (
-                <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
-                  <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border-2 border-white shadow-sm">
-                    {user.photoURL ? <img src={user.photoURL} alt="User" /> : <div className="w-full h-full bg-slate-200 flex items-center justify-center"><UserIcon size={12} className="text-slate-400" /></div>}
+                <div className="flex items-center gap-3 bg-slate-50/70 p-3 rounded-[18px] border border-slate-100 shadow-[0_10px_20px_-20px_rgba(15,23,42,0.25)]">
+                  <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border-2 border-white shadow-sm bg-[#c2410c] text-white flex items-center justify-center font-black text-[12px]">
+                    {user.photoURL ? <img src={user.photoURL} alt="User" /> : (String(user.displayName || user.email || 'U').trim().charAt(0) || 'U').toUpperCase()}
                   </div>
                   <div className="flex flex-col min-w-0 flex-1">
-                    <span className="text-[11px] font-black text-slate-700 truncate">{user.displayName || '사용자'}</span>
+                    <span className="text-[12px] font-black text-slate-800 truncate">{user.displayName || '사용자'}</span>
+                    <span className="text-[10px] font-bold text-slate-400 truncate">{user.email || (user.isGuest ? '게스트 모드' : '로그인 계정')}</span>
                   </div>
                   {!user.isGuest ? (
                     <button onClick={handleLogout} className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all" title="로그아웃">
-                      <LogOut size={12} />
+                      <LogOut size={13} />
                     </button>
                   ) : (
-                    <button onClick={handleLogin} className="px-2 py-1 rounded-lg text-[10px] font-black text-[#3182F6] bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors" title="로그인">
+                    <button onClick={handleLogin} className="px-2.5 py-1 rounded-lg text-[10px] font-black text-[#3182F6] bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors" title="로그인">
                       로그인
                     </button>
                   )}
                 </div>
               ) : (
-                <div className="flex items-center justify-between gap-2 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
-                  <span className="text-[10px] font-black text-slate-500">공유 보기 모드</span>
-                  <button onClick={handleLogin} className="px-2 py-1 rounded-lg text-[10px] font-black text-[#3182F6] bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors" title="로그인">
+                <div className="flex items-center justify-between gap-2 bg-slate-50/70 p-3 rounded-[18px] border border-slate-100">
+                  <div className="flex flex-col">
+                    <span className="text-[12px] font-black text-slate-700">공유 보기 모드</span>
+                    <span className="text-[10px] font-bold text-slate-400">로그인하면 개인 일정으로 저장됩니다</span>
+                  </div>
+                  <button onClick={handleLogin} className="px-2.5 py-1 rounded-lg text-[10px] font-black text-[#3182F6] bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors" title="로그인">
                     로그인
                   </button>
                 </div>

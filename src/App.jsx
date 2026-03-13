@@ -8946,38 +8946,51 @@ const App = () => {
                         <MessageSquare size={13} className="text-slate-400" />
                         자동입력 학습 지침
                       </button>
+                      <div className="h-px bg-slate-100 mx-4" />
+                      {user ? (
+                        <div className="px-4 py-3 flex items-center gap-3 bg-slate-50/70">
+                          <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border-2 border-white shadow-sm bg-[#c2410c] text-white flex items-center justify-center font-black text-[12px]">
+                            {user.photoURL ? <img src={user.photoURL} alt="User" /> : (String(user.displayName || user.email || 'U').trim().charAt(0) || 'U').toUpperCase()}
+                          </div>
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <span className="text-[12px] font-black text-slate-800 truncate">{user.displayName || '사용자'}</span>
+                            <span className="text-[10px] font-bold text-slate-400 truncate">{user.email || (user.isGuest ? '게스트 모드' : '로그인 계정')}</span>
+                          </div>
+                          {!user.isGuest ? (
+                            <button
+                              onClick={() => { handleLogout(); setShowNavMenu(false); }}
+                              className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all"
+                              title="로그아웃"
+                            >
+                              <LogOut size={13} />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => { handleLogin(); setShowNavMenu(false); }}
+                              className="px-2.5 py-1 rounded-lg text-[10px] font-black text-[#3182F6] bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                              title="로그인"
+                            >
+                              로그인
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="px-4 py-3 flex items-center justify-between gap-2 bg-slate-50/70">
+                          <div className="flex flex-col">
+                            <span className="text-[12px] font-black text-slate-700">공유 보기 모드</span>
+                            <span className="text-[10px] font-bold text-slate-400">로그인하면 개인 일정으로 저장됩니다</span>
+                          </div>
+                          <button
+                            onClick={() => { handleLogin(); setShowNavMenu(false); }}
+                            className="px-2.5 py-1 rounded-lg text-[10px] font-black text-[#3182F6] bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                            title="로그인"
+                          >
+                            로그인
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              )}
-              {user ? (
-                <div className="flex items-center gap-3 bg-slate-50/70 p-3 rounded-[18px] border border-slate-100 shadow-[0_10px_20px_-20px_rgba(15,23,42,0.25)]">
-                  <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border-2 border-white shadow-sm bg-[#c2410c] text-white flex items-center justify-center font-black text-[12px]">
-                    {user.photoURL ? <img src={user.photoURL} alt="User" /> : (String(user.displayName || user.email || 'U').trim().charAt(0) || 'U').toUpperCase()}
-                  </div>
-                  <div className="flex flex-col min-w-0 flex-1">
-                    <span className="text-[12px] font-black text-slate-800 truncate">{user.displayName || '사용자'}</span>
-                    <span className="text-[10px] font-bold text-slate-400 truncate">{user.email || (user.isGuest ? '게스트 모드' : '로그인 계정')}</span>
-                  </div>
-                  {!user.isGuest ? (
-                    <button onClick={handleLogout} className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all" title="로그아웃">
-                      <LogOut size={13} />
-                    </button>
-                  ) : (
-                    <button onClick={handleLogin} className="px-2.5 py-1 rounded-lg text-[10px] font-black text-[#3182F6] bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors" title="로그인">
-                      로그인
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center justify-between gap-2 bg-slate-50/70 p-3 rounded-[18px] border border-slate-100">
-                  <div className="flex flex-col">
-                    <span className="text-[12px] font-black text-slate-700">공유 보기 모드</span>
-                    <span className="text-[10px] font-bold text-slate-400">로그인하면 개인 일정으로 저장됩니다</span>
-                  </div>
-                  <button onClick={handleLogin} className="px-2.5 py-1 rounded-lg text-[10px] font-black text-[#3182F6] bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors" title="로그인">
-                    로그인
-                  </button>
                 </div>
               )}
             </div>
@@ -9077,7 +9090,7 @@ const App = () => {
 
             {/* ── 스크롤 컨텐츠 ── */}
             <div
-              className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-5 pt-4 pb-2 flex flex-col"
+              className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-5 pt-0 pb-2 flex flex-col"
               data-library-dropzone="true"
               onDragOver={(e) => { if (draggingFromTimeline) e.preventDefault(); }}
               onDrop={(e) => {
@@ -9157,7 +9170,7 @@ const App = () => {
                       </div>
                     )}
                     {/* 필터 및 정렬 상태 표시기 */}
-                    <div className="sticky top-0 z-20 -mx-5 mb-2 w-auto border-b border-slate-100/70 bg-white/96 px-5 pb-2 pt-1 backdrop-blur-xl">
+                    <div className="sticky top-0 z-20 -mx-5 mb-2 w-auto border-b border-slate-100/70 bg-white/96 px-5 pb-2 pt-3 backdrop-blur-xl">
                       <div className="w-full flex flex-col gap-1">
                       <div className="flex items-start gap-1 px-1">
                         <div className="flex flex-1 flex-wrap gap-1">
@@ -11580,23 +11593,6 @@ const App = () => {
                             <div className="mx-3 mb-2 mt-1 rounded-2xl overflow-hidden border border-slate-100/80" onClick={(e) => e.stopPropagation()}>
                               {isExpanded && (
                                 <div className="px-5 py-4 animate-in slide-in-from-top-1 bg-white border-b border-slate-100 border-dashed">
-                                  {p.types?.includes('ship') && (
-                                    <div className="bg-blue-50/80 border border-blue-100 rounded-xl p-3 mb-4 text-xs text-slate-600 font-bold flex flex-col gap-1.5">
-                                      {p.receipt?.shipDetails?.loading && (
-                                        <div>🚗 선적 가능: <span className="text-red-500">{p.receipt.shipDetails.loading}</span></div>
-                                      )}
-                                      <div className="flex items-center gap-1.5">
-                                        <span>🧍 승선:</span>
-                                        <input
-                                          value={p.receipt?.shipDetails?.boarding || ''}
-                                          onChange={(e) => { e.stopPropagation(); setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); const item = d.days[dIdx].plan[pIdx]; if (!item.receipt) item.receipt = {}; if (!item.receipt.shipDetails) item.receipt.shipDetails = {}; item.receipt.shipDetails.boarding = e.target.value; return d; }); }}
-                                          onClick={(e) => e.stopPropagation()}
-                                          placeholder="승선 가능 시간 입력"
-                                          className="flex-1 bg-transparent outline-none text-slate-700 font-bold focus:border-b focus:border-blue-300"
-                                        />
-                                      </div>
-                                    </div>
-                                  )}
                                   <div className="space-y-3 mb-3">
                                     <div className="flex items-center justify-between gap-2">
                                       <p className="text-[10px] text-slate-400 font-semibold">메뉴명/수량/가격을 직접 수정하면 총액이 자동 계산됩니다.</p>

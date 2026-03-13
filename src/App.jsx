@@ -2985,6 +2985,7 @@ const App = () => {
     if (!changed) return false;
     triggerUndoToast(`'${mobileSelectedLibraryPlace.name || '선택한 장소'}'를 일정에 추가했습니다.`);
     setMobileSelectedLibraryPlace(null);
+    setIsEditMode(false);
     return true;
   }, [mobileSelectedLibraryPlace]);
   const getActiveTimelineDragPayload = () => {

@@ -2619,6 +2619,7 @@ const App = () => {
   const [undoToast, setUndoToast] = useState(false);
   const [undoMessage, setUndoMessage] = useState("");
   const [infoToast, setInfoToast] = useState('');
+  const [infoToastAction, setInfoToastAction] = useState(null); // { type, label }
   const undoToastTimerRef = React.useRef(null);
   const infoToastTimerRef = React.useRef(null);
   const dragEditHintToastRef = React.useRef(0);
@@ -5029,20 +5030,47 @@ const App = () => {
     undoToastTimerRef.current = setTimeout(() => setUndoToast(false), 3000);
   };
 
-  const showInfoToast = (msg = '') => {
+  const clearInfoToast = useCallback(() => {
+    setInfoToast('');
+    setInfoToastAction(null);
+    if (infoToastTimerRef.current) clearTimeout(infoToastTimerRef.current);
+    infoToastTimerRef.current = null;
+  }, []);
+
+  const showInfoToast = useCallback((msg = '', options = {}) => {
     const next = String(msg || '').trim();
     if (!next) return;
     setLastAction(next);
     setInfoToast(next);
+    setInfoToastAction(options?.action || null);
     if (infoToastTimerRef.current) clearTimeout(infoToastTimerRef.current);
-    infoToastTimerRef.current = setTimeout(() => setInfoToast(''), 2600);
-  };
+    const durationMs = Math.max(1200, Number(options?.durationMs) || 2600);
+    infoToastTimerRef.current = setTimeout(() => {
+      setInfoToast('');
+      setInfoToastAction(null);
+      infoToastTimerRef.current = null;
+    }, durationMs);
+  }, []);
   const showEditModeDragHint = useCallback(() => {
     const now = Date.now();
     if (now - dragEditHintToastRef.current < 1800) return;
     dragEditHintToastRef.current = now;
-    showInfoToast('잠금해제 하고 편집하기를 켜면 드래그할 수 있습니다.');
-  }, []);
+    showInfoToast('잠금해제 하고 편집하기를 켜면 드래그할 수 있습니다.', {
+      durationMs: 4200,
+      action: {
+        type: 'enable-edit-mode',
+        label: '잠금 해제',
+      },
+    });
+  }, [showInfoToast]);
+
+  const handleInfoToastAction = useCallback(() => {
+    if (infoToastAction?.type === 'enable-edit-mode') {
+      setIsEditMode(true);
+      setLastAction('편집 잠금이 해제되었습니다.');
+    }
+    clearInfoToast();
+  }, [clearInfoToast, infoToastAction]);
 
   const callAiKeyApi = useCallback(async ({ method = 'GET', token = '', body = undefined } = {}) => {
     let lastError = null;
@@ -5877,6 +5905,14 @@ const App = () => {
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
       item.isTimeFixed = !item.isTimeFixed;
+      if (!item.isTimeFixed) {
+        const currentBuffer = parseMinsLabel(item.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+        if (currentBuffer <= 0) {
+          item.bufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
+          item._manualBufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
+        }
+        item._isBufferCoordinated = false;
+      }
       draft.days[dayIdx].plan = recalculateSchedule(dayPlan);
       if (item.isTimeFixed) {
         syncBufferWithFixedStart(draft.days, dayIdx, pIdx);
@@ -11146,7 +11182,17 @@ const App = () => {
               <div className="fixed inset-x-0 bottom-20 z-[320] flex justify-center px-4">
                 <div className="flex items-center gap-3 bg-white/95 backdrop-blur-xl border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl shadow-[0_14px_30px_-16px_rgba(15,23,42,0.45)]">
                   <span className="text-[12px] font-bold">{infoToast}</span>
-                  <button onClick={() => setInfoToast('')} className="text-slate-300 hover:text-slate-500 transition-colors ml-1">
+                  {infoToastAction && (
+                    <button
+                      type="button"
+                      onClick={handleInfoToastAction}
+                      className="inline-flex items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2.5 py-1 text-[11px] font-black text-[#3182F6] transition-colors hover:bg-blue-100"
+                    >
+                      <Unlock size={11} />
+                      {infoToastAction.label}
+                    </button>
+                  )}
+                  <button onClick={clearInfoToast} className="text-slate-300 hover:text-slate-500 transition-colors ml-1">
                     ✕
                   </button>
                 </div>

@@ -3098,7 +3098,10 @@ const App = () => {
   const [hiddenRoutePreviewEndpoints, setHiddenRoutePreviewEndpoints] = useState({});
   const routeRetryCooldownMs = 45000;
   const autoRouteQueuedRef = useRef(new Set());
-  const [dashboardHeight, setDashboardHeight] = useState(200);
+  const [dashboardHeight, setDashboardHeight] = useState(() => {
+    if (typeof window === 'undefined') return 480;
+    return window.innerWidth < 1100 ? 420 : 500;
+  });
   const [showTravelIntensityInfo, setShowTravelIntensityInfo] = useState(false);
   const dashboardRef = useRef(null);
   const [heroPinnedCompact, setHeroPinnedCompact] = useState(false);
@@ -10134,7 +10137,7 @@ const App = () => {
               ? `${(averageTravelMinutes / 60).toFixed(1)}시간`
               : `${Math.round(averageTravelMinutes)}분`;
             return (
-              <div className="mb-8 relative" style={{ height: dashboardHeight + (heroPinnedCompact ? 20 : (isMobileLayout ? 28 : 40)) }}>
+              <div className="mb-8 relative" style={{ height: Math.max(dashboardHeight + (heroPinnedCompact ? 20 : (isMobileLayout ? 28 : 40)), heroPinnedCompact ? 156 : (isMobileLayout ? 448 : 520)) }}>
                 {/* 풀 카드 (최상단) */}
                 <div
                   className="fixed top-0 z-[120]"
@@ -10213,26 +10216,26 @@ const App = () => {
                             value={tripRegion}
                             onChange={(e) => setTripRegion(e.target.value)}
                             placeholder="어디로 떠나시나요?"
-                            className={`w-full bg-transparent border-none outline-none font-extrabold text-white drop-shadow-md placeholder:text-white/50 tracking-tight leading-none transition-all duration-300 ${heroPinnedCompact ? 'text-[26px] sm:text-[30px]' : 'text-[36px] sm:text-[44px]'}`}
+                            className={`w-full bg-transparent border-none outline-none font-extrabold text-white drop-shadow-md placeholder:text-white/50 tracking-tight leading-none transition-all duration-300 ${heroPinnedCompact ? 'text-[26px] sm:text-[30px] whitespace-nowrap overflow-hidden text-ellipsis' : 'text-[36px] sm:text-[44px]'}`}
                           />
-                          <div className={`relative flex items-center gap-2 transition-all duration-300 ${heroPinnedCompact ? 'flex-wrap' : ''}`}>
+                          <div className={`relative flex items-center gap-2 transition-all duration-300 ${heroPinnedCompact ? 'flex-nowrap overflow-hidden' : ''}`}>
                             <button
                               onClick={() => setShowDatePicker(v => !v)}
-                              className={`flex items-center gap-2.5 bg-white/20 backdrop-blur-md border border-white/20 transition-all group hover:bg-white/30 ${heroPinnedCompact ? 'px-3 py-1.5 rounded-xl' : 'px-4 py-2 rounded-2xl'}`}
+                              className={`flex items-center gap-2.5 bg-white/20 backdrop-blur-md border border-white/20 transition-all group hover:bg-white/30 ${heroPinnedCompact ? 'min-w-0 shrink px-3 py-1.5 rounded-xl' : 'px-4 py-2 rounded-2xl'}`}
                             >
                               <Calendar size={14} className="text-white group-hover:scale-110 transition-transform shrink-0" />
-                              <div className="flex items-center gap-1.5 pt-0.5">
-                                <span className={`${heroPinnedCompact ? 'text-[11px]' : 'text-[12px]'} font-black text-white`}>
+                              <div className={`flex items-center gap-1.5 pt-0.5 ${heroPinnedCompact ? 'min-w-0 whitespace-nowrap overflow-hidden' : ''}`}>
+                                <span className={`${heroPinnedCompact ? 'text-[11px] truncate' : 'text-[12px]'} font-black text-white`}>
                                   {tripStartDate ? tripStartDate.replace(/-/g, '. ') : '시작일'}
                                 </span>
                                 <span className="text-white/50 text-[10px] font-black">~</span>
-                                <span className={`${heroPinnedCompact ? 'text-[11px]' : 'text-[12px]'} font-black text-white`}>
+                                <span className={`${heroPinnedCompact ? 'text-[11px] truncate' : 'text-[12px]'} font-black text-white`}>
                                   {tripEndDate ? tripEndDate.replace(/-/g, '. ') : '종료일'}
                                 </span>
                               </div>
                             </button>
-                            <div className={`bg-black/10 backdrop-blur-sm border border-white/10 transition-all duration-300 ${heroPinnedCompact ? 'px-3 py-1.5 rounded-xl' : 'px-4 py-2 rounded-2xl'}`}>
-                              <span className={`${heroPinnedCompact ? 'text-[11px]' : 'text-[12px]'} font-black text-white/90`}>
+                            <div className={`bg-black/10 backdrop-blur-sm border border-white/10 transition-all duration-300 ${heroPinnedCompact ? 'shrink-0 px-3 py-1.5 rounded-xl whitespace-nowrap' : 'px-4 py-2 rounded-2xl'}`}>
+                              <span className={`${heroPinnedCompact ? 'text-[11px] whitespace-nowrap' : 'text-[12px]'} font-black text-white/90`}>
                                 {tripDays > 0 ? `${tripNights}박 ${tripDays}일` : `${itinerary.days?.length || 0}일 일정`}
                               </span>
                             </div>
@@ -10258,17 +10261,17 @@ const App = () => {
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
                               <div className={`${heroPinnedCompact ? 'flex max-w-[255px]' : 'grid grid-cols-3 gap-2.5 sm:gap-3'}`}>
                                 {heroPinnedCompact ? (
-                                  <div className="w-full rounded-[20px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.96)_100%)] px-3 py-2 shadow-[0_10px_28px_-20px_rgba(49,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.95)]">
-                                    <div className="flex items-center justify-between gap-3">
-                                      <div className="min-w-0">
-                                        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-400">예산</p>
-                                        <p className="mt-0.5 text-[18px] leading-none font-black text-[#3182F6] tabular-nums">{usedPct}%</p>
+                                  <div className="w-full rounded-[18px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.96)_100%)] px-3 py-1.5 shadow-[0_10px_28px_-20px_rgba(49,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.95)]">
+                                    <div className="flex items-center justify-between gap-2 whitespace-nowrap">
+                                      <div className="min-w-0 shrink-0">
+                                        <p className="text-[8px] font-black uppercase tracking-[0.18em] text-slate-400">예산</p>
+                                        <p className="mt-0.5 text-[16px] leading-none font-black text-[#3182F6] tabular-nums">{usedPct}%</p>
                                       </div>
                                       <div className="min-w-0 flex-1">
                                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-blue-100">
                                           <div className="h-full rounded-full bg-gradient-to-r from-[#3182F6] to-sky-400 transition-all duration-300" style={{ width: `${Math.min(100, usedPct)}%` }} />
                                         </div>
-                                        <p className="mt-1 text-right text-[9px] font-black tabular-nums text-slate-500">₩{budgetSummary.total.toLocaleString()}</p>
+                                        <p className="mt-1 text-right text-[8px] font-black tabular-nums text-slate-500 whitespace-nowrap">₩{budgetSummary.total.toLocaleString()}</p>
                                       </div>
                                     </div>
                                   </div>

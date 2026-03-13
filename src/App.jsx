@@ -3105,6 +3105,7 @@ const App = () => {
   const [showTravelIntensityInfo, setShowTravelIntensityInfo] = useState(false);
   const dashboardRef = useRef(null);
   const [heroPinnedCompact, setHeroPinnedCompact] = useState(false);
+  const [heroCompactBudgetBarVisible, setHeroCompactBudgetBarVisible] = useState(false);
   const [heroSummaryExpanded, setHeroSummaryExpanded] = useState(false);
   const [heroActionMenuOpen, setHeroActionMenuOpen] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
@@ -4129,6 +4130,20 @@ const App = () => {
     window.addEventListener('scroll', updateHeroCompact, { passive: true });
     return () => window.removeEventListener('scroll', updateHeroCompact);
   }, []);
+
+  useEffect(() => {
+    let timer;
+    if (heroPinnedCompact) {
+      timer = window.setTimeout(() => {
+        setHeroCompactBudgetBarVisible(true);
+      }, 150);
+    } else {
+      setHeroCompactBudgetBarVisible(false);
+    }
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [heroPinnedCompact]);
 
   // 모바일 감지 → 양쪽 패널 자동 접기
   useEffect(() => {
@@ -10228,7 +10243,7 @@ const App = () => {
                           style={{ background: 'linear-gradient(to bottom, rgba(15,23,42,0.26) 0%, rgba(15,23,42,0.12) 42%, rgba(242,244,246,0.1) 64%, rgba(242,244,246,0.04) 78%, rgba(242,244,246,0) 88%, rgba(242,244,246,0) 100%)' }}
                         />
                         <div
-                          className={`pointer-events-none absolute inset-x-0 bottom-0 z-[11] h-[4px] bg-slate-200/90 transition-opacity duration-300 ease-out ${heroPinnedCompact ? 'opacity-100 delay-150' : 'opacity-0 delay-0'}`}
+                          className={`pointer-events-none absolute inset-x-0 bottom-0 z-[11] h-[4px] bg-slate-200/90 transition-opacity duration-200 ease-out ${heroCompactBudgetBarVisible ? 'opacity-100' : 'opacity-0'}`}
                         >
                           <div
                             className="h-full rounded-r-full bg-[linear-gradient(90deg,#ef4444_0%,#f97316_24%,#f59e0b_48%,#3b82f6_78%,#2563eb_100%)] shadow-[0_0_12px_rgba(59,130,246,0.35)]"

@@ -2621,6 +2621,7 @@ const App = () => {
   const [infoToast, setInfoToast] = useState('');
   const undoToastTimerRef = React.useRef(null);
   const infoToastTimerRef = React.useRef(null);
+  const dragEditHintToastRef = React.useRef(0);
   const [expandedId, setExpandedId] = useState(null);
   const [expandedPlaceId, setExpandedPlaceId] = useState(null);
   const [pendingPlanMenuFocus, setPendingPlanMenuFocus] = useState(null); // { dayIdx, pIdx, menuIdx }
@@ -5032,6 +5033,12 @@ const App = () => {
     if (infoToastTimerRef.current) clearTimeout(infoToastTimerRef.current);
     infoToastTimerRef.current = setTimeout(() => setInfoToast(''), 2600);
   };
+  const showEditModeDragHint = useCallback(() => {
+    const now = Date.now();
+    if (now - dragEditHintToastRef.current < 1800) return;
+    dragEditHintToastRef.current = now;
+    showInfoToast('잠금해제 하고 편집하기를 켜면 드래그할 수 있습니다.');
+  }, []);
 
   const callAiKeyApi = useCallback(async ({ method = 'GET', token = '', body = undefined } = {}) => {
     let lastError = null;
@@ -8087,7 +8094,10 @@ const App = () => {
                                     id={`nav-item-${p.id}`}
                                     draggable={isEditMode}
                                     onTouchStart={(e) => {
-                                      if (!isEditMode) return;
+                                      if (!isEditMode) {
+                                        showEditModeDragHint();
+                                        return;
+                                      }
                                       const targetEl = e.target instanceof Element ? e.target : null;
                                       const interactiveEl = targetEl?.closest('button,a,input,textarea,[contenteditable],[data-no-drag]');
                                       if (interactiveEl && interactiveEl !== e.currentTarget) return;
@@ -8097,6 +8107,7 @@ const App = () => {
                                     onDragStart={(e) => {
                                       if (!isEditMode) {
                                         e.preventDefault();
+                                        showEditModeDragHint();
                                         return;
                                       }
                                       const targetEl = e.target instanceof Element ? e.target : null;
@@ -8639,14 +8650,17 @@ const App = () => {
                           cardProps={{
                             draggable: isEditMode,
                             onTouchStart: (e) => {
-                              if (!isEditMode) return;
+                              if (!isEditMode) {
+                                showEditModeDragHint();
+                                return;
+                              }
                               const targetEl = e.target instanceof Element ? e.target : null;
                               if (targetEl?.closest('input,button,a,textarea,[contenteditable],[data-no-drag]')) return;
                               touchDragSourceRef.current = { kind: 'library', place, startX: e.touches[0].clientX, startY: e.touches[0].clientY };
                               isDraggingActiveRef.current = false;
                             },
                             onDragStart: (e) => {
-                              if (!isEditMode) { e.preventDefault(); return; }
+                              if (!isEditMode) { e.preventDefault(); showEditModeDragHint(); return; }
                               const copy = ctrlHeldRef.current;
                               const targetEl = e.target instanceof Element ? e.target : null;
                               const isInteractiveTarget = !!targetEl?.closest('input, button, a, textarea, [contenteditable="true"], [data-no-drag="true"]');
@@ -8706,11 +8720,16 @@ const App = () => {
                                       onMouseDown={(e) => e.stopPropagation()}
                                       onTouchStart={(e) => {
                                         e.stopPropagation();
+                                        if (!isEditMode) {
+                                          showEditModeDragHint();
+                                          return;
+                                        }
                                         touchDragSourceRef.current = { kind: 'library', place: segmentPayload, startX: e.touches[0].clientX, startY: e.touches[0].clientY };
                                         isDraggingActiveRef.current = false;
                                       }}
                                       onDragStart={(e) => {
                                         e.stopPropagation();
+                                        if (!isEditMode) { e.preventDefault(); showEditModeDragHint(); return; }
                                         const copy = true;
                                         desktopDragRef.current = { kind: 'library', place: segmentPayload, copy };
                                         e.dataTransfer.effectAllowed = 'copy';
@@ -9907,7 +9926,10 @@ const App = () => {
                       data-dropitem={`${dIdx}-${pIdx}`}
                       draggable={isEditMode}
                       onTouchStart={(e) => {
-                        if (!isEditMode) return;
+                        if (!isEditMode) {
+                          showEditModeDragHint();
+                          return;
+                        }
                         const targetEl = e.target instanceof Element ? e.target : null;
                         if (targetEl?.closest('input,button,a,textarea,[contenteditable],[data-no-drag]')) return;
                         // 카드 드래그는 항상 현재 화면에 보이는(메인) 일정을 이동
@@ -9916,6 +9938,11 @@ const App = () => {
                         isDraggingActiveRef.current = false;
                       }}
                       onDragStart={(e) => {
+                        if (!isEditMode) {
+                          e.preventDefault();
+                          showEditModeDragHint();
+                          return;
+                        }
                         const copy = ctrlHeldRef.current;
                         const targetEl = e.target instanceof Element ? e.target : null;
                         const isInteractiveTarget = !!targetEl?.closest('input, button, a, textarea, [contenteditable="true"], [data-no-drag="true"]');

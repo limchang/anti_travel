@@ -10197,7 +10197,7 @@ const App = () => {
                         </button>
                       </div>}
                       {/* 🖼️ 배경 이미지 (고정 높이, 요약 확장과 무관) */}
-                      <div className={`absolute left-0 right-0 top-0 overflow-hidden pointer-events-none transition-all duration-300 ${heroPinnedCompact ? 'h-[118px] sm:h-[132px]' : 'h-[330px] sm:h-[360px]'}`}>
+                      <div className={`absolute left-0 right-0 top-0 overflow-hidden pointer-events-none transition-all duration-300 ${heroPinnedCompact ? 'h-[110px] sm:h-[122px]' : 'h-[248px] sm:h-[272px]'}`}>
                         <img
                           src={getRegionCoverImage(tripRegion)}
                           className="w-full h-full object-cover opacity-95 scale-105"
@@ -10367,15 +10367,15 @@ const App = () => {
                                 </div>
                               </div>
                             )}
+                              <button
+                                type="button"
+                                onClick={() => setHeroSummaryExpanded(v => !v)}
+                                className={`mt-3 flex w-full items-center justify-center gap-2 border border-slate-200 bg-white/92 font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-all hover:border-[#3182F6] hover:text-[#3182F6] ${heroPinnedCompact ? 'rounded-[16px] px-4 py-1.5 text-[10px]' : 'rounded-[22px] px-4 py-3 text-[11px]'}`}
+                              >
+                                여행 요약 {heroSummaryExpanded ? '닫기' : '확장'}
+                                <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => setHeroSummaryExpanded(v => !v)}
-                              className={`flex w-full items-center justify-center gap-2 border border-slate-200 bg-white/92 font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-all hover:border-[#3182F6] hover:text-[#3182F6] ${heroPinnedCompact ? 'rounded-[18px] px-4 py-2 text-[10px]' : 'rounded-[22px] px-4 py-3 text-[11px]'}`}
-                            >
-                              여행 요약 {heroSummaryExpanded ? '닫기' : '확장'}
-                              <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />
-                            </button>
                         </div>
                       </div>
                     </div>

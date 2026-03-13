@@ -3175,7 +3175,7 @@ const App = () => {
     if (!day || !item) return null;
     return { dayIdx, pIdx, dayNumber: day.day || dayIdx + 1, itemId: item.id, activity: item.activity || item.name || '일정' };
   }, [calculatingRouteId, itinerary.days]);
-  const timelineMaxClass = isCompactTimeline ? 'max-w-[500px]' : 'max-w-[560px]';
+  const timelineMaxClass = isCompactTimeline ? 'max-w-[560px]' : 'max-w-[680px]';
 
   const scrollIntervalRef = useRef(null);
   const lastTouchYRef = useRef(null);
@@ -3987,7 +3987,7 @@ const App = () => {
       observer.disconnect();
       window.removeEventListener('resize', syncDashboardHeight);
     };
-  }, []);
+  }, [heroPinnedCompact, heroSummaryExpanded, isMobileLayout, leftSidebarWidth, rightSidebarWidth, col2Collapsed]);
 
   useEffect(() => {
     if (user && !user.isGuest) return;
@@ -4122,7 +4122,7 @@ const App = () => {
 
   useEffect(() => {
     const updateHeroCompact = () => {
-      setHeroPinnedCompact(window.scrollY > 36);
+      setHeroPinnedCompact(window.scrollY > 120);
     };
     updateHeroCompact();
     window.addEventListener('scroll', updateHeroCompact, { passive: true });
@@ -10211,17 +10211,17 @@ const App = () => {
 
                       <div className={`relative z-10 flex w-full mx-auto flex-col transition-all duration-300 ${timelineMaxClass} ${heroPinnedCompact ? 'gap-3' : 'gap-10'}`}>
                         {/* 🌟 1. 타이틀 & 일정 */}
-                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-2 px-4 pt-3 pr-[220px] sm:px-6 sm:pt-4 sm:pr-[260px]' : 'gap-5 px-6 pt-8 pr-[230px] sm:px-8 sm:pt-10 sm:pr-[280px]'}`}>
+                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-2 px-4 pt-3 pr-[220px] sm:px-6 sm:pt-4 sm:pr-[260px]' : 'items-center gap-5 px-6 pt-8 pr-[230px] text-center sm:px-8 sm:pt-10 sm:pr-[280px]'}`}>
                           <input
                             value={tripRegion}
                             onChange={(e) => setTripRegion(e.target.value)}
                             placeholder="어디로 떠나시나요?"
-                            className={`w-full bg-transparent border-none outline-none font-extrabold text-white drop-shadow-md placeholder:text-white/50 tracking-tight leading-none transition-all duration-300 ${heroPinnedCompact ? 'text-[26px] sm:text-[30px] whitespace-nowrap overflow-hidden text-ellipsis' : 'text-[36px] sm:text-[44px]'}`}
+                            className={`bg-transparent border-none outline-none font-extrabold text-white drop-shadow-md placeholder:text-white/50 tracking-tight leading-none transition-all duration-300 ${heroPinnedCompact ? 'w-full text-[26px] sm:text-[30px] whitespace-nowrap overflow-hidden text-ellipsis' : 'w-full max-w-[440px] text-center text-[36px] sm:text-[44px]'}`}
                           />
-                          <div className={`relative flex items-center gap-2 transition-all duration-300 ${heroPinnedCompact ? 'flex-nowrap overflow-hidden' : ''}`}>
+                          <div className={`relative flex items-center gap-2 transition-all duration-300 ${heroPinnedCompact ? 'flex-nowrap overflow-hidden' : 'justify-center'}`}>
                             <button
                               onClick={() => setShowDatePicker(v => !v)}
-                              className={`flex items-center gap-2.5 bg-white/20 backdrop-blur-md border border-white/20 transition-all group hover:bg-white/30 ${heroPinnedCompact ? 'min-w-0 shrink px-3 py-1.5 rounded-xl' : 'px-4 py-2 rounded-2xl'}`}
+                              className={`flex items-center gap-2.5 bg-white/20 backdrop-blur-md border border-white/20 transition-all group hover:bg-white/30 ${heroPinnedCompact ? 'min-w-0 shrink px-3 py-1.5 rounded-xl' : 'min-w-[260px] justify-center px-5 py-2.5 rounded-2xl'}`}
                             >
                               <Calendar size={14} className="text-white group-hover:scale-110 transition-transform shrink-0" />
                               <div className={`flex items-center gap-1.5 pt-0.5 ${heroPinnedCompact ? 'min-w-0 whitespace-nowrap overflow-hidden' : ''}`}>
@@ -10234,7 +10234,7 @@ const App = () => {
                                 </span>
                               </div>
                             </button>
-                            <div className={`bg-black/10 backdrop-blur-sm border border-white/10 transition-all duration-300 ${heroPinnedCompact ? 'shrink-0 px-3 py-1.5 rounded-xl whitespace-nowrap' : 'px-4 py-2 rounded-2xl'}`}>
+                            <div className={`bg-black/10 backdrop-blur-sm border border-white/10 transition-all duration-300 ${heroPinnedCompact ? 'shrink-0 px-3 py-1.5 rounded-xl whitespace-nowrap' : 'min-w-[84px] px-4 py-2.5 rounded-2xl text-center'}`}>
                               <span className={`${heroPinnedCompact ? 'text-[11px] whitespace-nowrap' : 'text-[12px]'} font-black text-white/90`}>
                                 {tripDays > 0 ? `${tripNights}박 ${tripDays}일` : `${itinerary.days?.length || 0}일 일정`}
                               </span>

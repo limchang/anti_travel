@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.157",
+      "timestamp": "2026-03-13T22:04:01+09:00",
+      "message": "tune: delay overview compacting and widen centered hero layout"
+    },
+    {
       "version": "1.3.156",
       "timestamp": "2026-03-13T20:59:56+09:00",
       "message": "fix: reserve enough overview space and prevent compact wrapping"
@@ -144,11 +149,6 @@
       "version": "1.3.128",
       "timestamp": "2026-03-13T14:49:33+09:00",
       "message": "fix: resolve route chip neighbors by plan index"
-    },
-    {
-      "version": "1.3.127",
-      "timestamp": "2026-03-13T14:47:57+09:00",
-      "message": "fix: limit total toggle to footer and remove duplicate drop guides"
     }
   ]
 }

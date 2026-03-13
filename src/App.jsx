@@ -3106,6 +3106,7 @@ const App = () => {
   const dashboardRef = useRef(null);
   const [heroPinnedCompact, setHeroPinnedCompact] = useState(false);
   const [heroSummaryExpanded, setHeroSummaryExpanded] = useState(false);
+  const [heroActionMenuOpen, setHeroActionMenuOpen] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
   useEffect(() => {
     const places = itinerary.places || [];
@@ -10148,56 +10149,11 @@ const App = () => {
                 >
                   <section
                     ref={dashboardRef}
-                    className={`${heroPinnedCompact ? 'mb-1.5' : 'mb-2 sm:mb-3'} transition-all duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overscroll-contain' : ''}`}
+                    className={`${heroPinnedCompact ? 'mb-1.5' : 'mb-2 sm:mb-3'} transition-all duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overflow-x-visible overscroll-contain pb-5 pr-1 sm:pb-6' : ''}`}
                   >
                     <div className="w-full relative overflow-visible bg-transparent">
-                      {canManagePlan && <div className={`absolute right-4 z-20 flex items-center transition-all duration-300 ${heroPinnedCompact ? 'top-2 gap-1.5' : 'top-4 gap-2'}`}>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setIsEditMode(!isEditMode); }}
-                          className={`${heroPinnedCompact ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border backdrop-blur transition-all flex items-center justify-center shadow-lg ${isEditMode ? 'bg-amber-400/90 border-amber-300 text-white font-black' : 'bg-white/85 border-white/40 text-slate-700'}`}
-                          title={isEditMode ? '편집 모드 종료' : '편집 모드 시작 (드래그 활성화)'}
-                        >
-                          {isEditMode ? <Edit3 size={heroPinnedCompact ? 16 : 18} /> : <Lock size={heroPinnedCompact ? 16 : 18} />}
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setIsAddingPlace(true); }}
-                          className={`${heroPinnedCompact ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg`}
-                          title="내 장소에 일정 추가"
-                        >
-                          <PlusCircle size={heroPinnedCompact ? 18 : 20} className="text-[#3182F6]" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); autoCalculateAllRoutes(); }}
-                          disabled={isCalculatingAllRoutes}
-                          className={`${heroPinnedCompact ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed`}
-                          title="전체 경로 다시 계산"
-                        >
-                          {isCalculatingAllRoutes ? (
-                            <div className="relative flex items-center justify-center">
-                              <div className="absolute inset-0 animate-spin border-t-2 border-[#3182F6] rounded-full scale-150 opacity-10" />
-                              <span className="text-[10px] font-black text-[#3182F6]">{routeCalcProgress}%</span>
-                            </div>
-                          ) : (
-                            <Navigation size={18} />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => setShowPlanOptions(true)}
-                          className={`${heroPinnedCompact ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg`}
-                          title="일정 옵션"
-                        >
-                          <SlidersHorizontal size={heroPinnedCompact ? 14 : 16} />
-                        </button>
-                        <button
-                          onClick={() => setShowShareManager(true)}
-                          className={`${heroPinnedCompact ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg`}
-                          title="공유 설정"
-                        >
-                          <Share2 size={heroPinnedCompact ? 14 : 16} />
-                        </button>
-                      </div>}
                       {/* 🖼️ 배경 이미지 (고정 높이, 요약 확장과 무관) */}
-                      <div className={`absolute left-0 right-0 top-0 overflow-hidden pointer-events-none transition-all duration-300 ${heroPinnedCompact ? 'h-[110px] sm:h-[122px]' : 'h-[248px] sm:h-[272px]'}`}>
+                      <div className={`absolute left-0 right-0 top-0 overflow-hidden pointer-events-none transition-all duration-300 ${heroPinnedCompact ? 'h-[124px] sm:h-[138px]' : 'h-[332px] sm:h-[356px]'}`}>
                         <img
                           src={getRegionCoverImage(tripRegion)}
                           className="w-full h-full object-cover opacity-95 scale-105"
@@ -10205,7 +10161,7 @@ const App = () => {
                         />
                         <div
                           className="absolute inset-0"
-                          style={{ background: 'linear-gradient(to bottom, rgba(15,23,42,0.26) 0%, rgba(15,23,42,0.12) 42%, rgba(242,244,246,0.12) 56%, rgba(242,244,246,0) 66%, rgba(242,244,246,0) 100%)' }}
+                          style={{ background: 'linear-gradient(to bottom, rgba(15,23,42,0.26) 0%, rgba(15,23,42,0.12) 42%, rgba(242,244,246,0.1) 64%, rgba(242,244,246,0.04) 78%, rgba(242,244,246,0) 88%, rgba(242,244,246,0) 100%)' }}
                         />
                       </div>
 
@@ -10259,7 +10215,7 @@ const App = () => {
                         <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-3 px-2 sm:px-0' : 'gap-5 px-3 sm:px-0'}`}>
                             <div className={`relative w-full border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 ${heroPinnedCompact ? 'mt-0 rounded-[24px] px-3 py-3 sm:px-4 sm:py-4' : 'mt-5 rounded-[24px] px-4 py-4 sm:px-6 sm:py-6'}`}>
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
-                              <div className={`${heroPinnedCompact ? 'flex max-w-[255px]' : 'grid grid-cols-3 gap-3 sm:gap-3'}`}>
+                              <div className={`${heroPinnedCompact ? 'flex w-full' : 'grid grid-cols-3 gap-3 sm:gap-3'}`}>
                                 {heroPinnedCompact ? (
                                   <div className="w-full rounded-[18px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.96)_100%)] px-3 py-1.5 shadow-[0_10px_28px_-20px_rgba(49,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.95)]">
                                     <div className="flex items-center justify-between gap-2 whitespace-nowrap">
@@ -10367,14 +10323,16 @@ const App = () => {
                                 </div>
                               </div>
                             )}
-                              <button
-                                type="button"
-                                onClick={() => setHeroSummaryExpanded(v => !v)}
-                                className={`mt-3 flex w-full items-center justify-center gap-2 border border-slate-200 bg-white/92 font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-all hover:border-[#3182F6] hover:text-[#3182F6] ${heroPinnedCompact ? 'rounded-[20px] px-4 py-1.5 text-[10px]' : 'rounded-[24px] px-4 py-3 text-[11px]'}`}
-                              >
-                                여행 요약 {heroSummaryExpanded ? '닫기' : '확장'}
-                                <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />
-                              </button>
+                              {!heroPinnedCompact && (
+                                <button
+                                  type="button"
+                                  onClick={() => setHeroSummaryExpanded(v => !v)}
+                                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-[24px] border border-slate-200 bg-white/92 px-4 py-3 text-[11px] font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-all hover:border-[#3182F6] hover:text-[#3182F6]"
+                                >
+                                  여행 요약 {heroSummaryExpanded ? '닫기' : '확장'}
+                                  <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />
+                                </button>
+                              )}
                             </div>
                         </div>
                       </div>
@@ -10384,6 +10342,79 @@ const App = () => {
               </div>
             );
           })()}
+          {canManagePlan && (
+            <>
+              {heroActionMenuOpen && (
+                <button
+                  type="button"
+                  className="fixed inset-0 z-[124] cursor-default bg-transparent"
+                  onClick={() => setHeroActionMenuOpen(false)}
+                  aria-label="플로팅 메뉴 닫기"
+                />
+              )}
+              <div
+                className="fixed z-[125] flex flex-col items-end gap-2"
+                style={{
+                  right: (isMobileLayout ? Math.max(rightSidebarWidth + 14, 14) : rightSidebarWidth + 18),
+                  bottom: isMobileLayout ? 18 : 22,
+                }}
+              >
+                {heroActionMenuOpen && (
+                  <div className="flex flex-col items-end gap-2 rounded-[24px] border border-slate-200/85 bg-white/96 p-2.5 shadow-[0_24px_44px_-24px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+                    <button
+                      type="button"
+                      onClick={() => { setIsEditMode(!isEditMode); setHeroActionMenuOpen(false); }}
+                      className={`flex min-w-[148px] items-center justify-between gap-3 rounded-[18px] border px-4 py-3 text-[11px] font-black transition-colors ${isEditMode ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-700 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+                    >
+                      <span>{isEditMode ? '편집 종료' : '편집 시작'}</span>
+                      {isEditMode ? <Edit3 size={15} /> : <Lock size={15} />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setIsAddingPlace(true); setHeroActionMenuOpen(false); }}
+                      className="flex min-w-[148px] items-center justify-between gap-3 rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-[11px] font-black text-slate-700 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                    >
+                      <span>일정 추가</span>
+                      <PlusCircle size={15} className="text-[#3182F6]" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { autoCalculateAllRoutes(); setHeroActionMenuOpen(false); }}
+                      disabled={isCalculatingAllRoutes}
+                      className="flex min-w-[148px] items-center justify-between gap-3 rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-[11px] font-black text-slate-700 transition-colors hover:border-[#3182F6] hover:text-[#3182F6] disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      <span>{isCalculatingAllRoutes ? `경로 계산 ${routeCalcProgress}%` : '경로 재계산'}</span>
+                      {isCalculatingAllRoutes ? <LoaderCircle size={15} className="animate-spin text-[#3182F6]" /> : <Navigation size={15} />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowPlanOptions(true); setHeroActionMenuOpen(false); }}
+                      className="flex min-w-[148px] items-center justify-between gap-3 rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-[11px] font-black text-slate-700 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                    >
+                      <span>일정 옵션</span>
+                      <SlidersHorizontal size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowShareManager(true); setHeroActionMenuOpen(false); }}
+                      className="flex min-w-[148px] items-center justify-between gap-3 rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-[11px] font-black text-slate-700 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                    >
+                      <span>공유 설정</span>
+                      <Share2 size={14} />
+                    </button>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setHeroActionMenuOpen((prev) => !prev)}
+                  className={`flex h-12 w-12 items-center justify-center rounded-[18px] border backdrop-blur-xl transition-all ${heroActionMenuOpen ? 'border-[#3182F6]/40 bg-[#3182F6] text-white shadow-[0_18px_36px_-20px_rgba(49,130,246,0.55)]' : 'border-slate-200/85 bg-white/96 text-slate-700 shadow-[0_18px_36px_-24px_rgba(15,23,42,0.4)] hover:border-[#3182F6]/40 hover:text-[#3182F6]'}`}
+                  title="빠른 메뉴"
+                >
+                  <MoreHorizontal size={18} />
+                </button>
+              </div>
+            </>
+          )}
           <div className={`w-full mx-auto flex flex-col relative z-0 ${timelineMaxClass} gap-0`}>
             {totalTimelineItems === 0 && (
               <div

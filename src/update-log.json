@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.163",
+      "timestamp": "2026-03-13T22:26:39+09:00",
+      "message": "tune: move hero actions to floating menu and refine overview compact"
+    },
+    {
       "version": "1.3.162",
       "timestamp": "2026-03-13T22:22:02+09:00",
       "message": "tune: align overview spacing and radius"
@@ -144,11 +149,6 @@
       "version": "1.3.134",
       "timestamp": "2026-03-13T15:14:38+09:00",
       "message": "fix: separate incoming and outgoing route addresses for special schedules"
-    },
-    {
-      "version": "1.3.133",
-      "timestamp": "2026-03-13T15:12:29+09:00",
-      "message": "fix: restore day-boundary travel chips and clarify special schedule addresses"
     }
   ]
 }

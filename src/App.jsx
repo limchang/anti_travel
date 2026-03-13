@@ -5388,12 +5388,14 @@ const App = () => {
       }
     }
     if (!prevItem && dayIdx > 0) {
-      const prevDayPlan = days?.[dayIdx - 1]?.plan || [];
-      for (let idx = prevDayPlan.length - 1; idx >= 0; idx -= 1) {
-        const candidate = prevDayPlan[idx];
-        if (candidate && candidate.type !== 'backup') {
-          prevItem = candidate;
-          break;
+      for (let prevDayIdx = dayIdx - 1; prevDayIdx >= 0 && !prevItem; prevDayIdx -= 1) {
+        const prevDayPlan = days?.[prevDayIdx]?.plan || [];
+        for (let idx = prevDayPlan.length - 1; idx >= 0; idx -= 1) {
+          const candidate = prevDayPlan[idx];
+          if (candidate && candidate.type !== 'backup') {
+            prevItem = candidate;
+            break;
+          }
         }
       }
     }
@@ -5408,6 +5410,15 @@ const App = () => {
         return candidate;
       }
     }
+    for (let nextDayIdx = dayIdx + 1; nextDayIdx < (days || []).length; nextDayIdx += 1) {
+      const nextDayPlan = days?.[nextDayIdx]?.plan || [];
+      for (let idx = 0; idx < nextDayPlan.length; idx += 1) {
+        const candidate = nextDayPlan[idx];
+        if (candidate && candidate.type !== 'backup') {
+          return candidate;
+        }
+      }
+    }
     return null;
   };
 
@@ -5417,6 +5428,15 @@ const App = () => {
       const candidate = dayPlan[idx];
       if (candidate && candidate.type !== 'backup') {
         return false;
+      }
+    }
+    for (let prevDayIdx = dayIdx - 1; prevDayIdx >= 0; prevDayIdx -= 1) {
+      const prevDayPlan = days?.[prevDayIdx]?.plan || [];
+      for (let idx = prevDayPlan.length - 1; idx >= 0; idx -= 1) {
+        const candidate = prevDayPlan[idx];
+        if (candidate && candidate.type !== 'backup') {
+          return false;
+        }
       }
     }
     return true;

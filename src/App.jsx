@@ -7748,24 +7748,35 @@ const App = () => {
   };
 
   const renderTimelineInsertGuide = (isDropHere, warnText = '') => {
-    const activeText = warnText || '여기야 · 드래그해주세요.';
-    if (!isDropHere) {
-      return <div className="h-2 w-full" />;
-    }
+    const activeText = warnText || '이 이동 구간에 일정을 배치합니다.';
+    const idleText = '이동칩 안으로 놓아 흐름에 연결';
     return (
       <div className="z-10 flex w-full items-center justify-center">
         <div
-          className={`relative flex min-h-[56px] w-full max-w-[320px] items-center justify-center rounded-[20px] border bg-slate-50/98 px-4 py-2.5 transition-all duration-200 ${isDropHere
+          className={`flex w-full items-center justify-center rounded-[18px] border px-4 py-2.5 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] transition-all duration-200 gap-2 ${isDropHere
             ? warnText
-              ? 'border-orange-300 bg-orange-50 text-orange-600 shadow-[0_22px_38px_-18px_rgba(251,146,60,0.55)] ring-2 ring-orange-200/70 scale-[1.02]'
-              : 'border-[#3182F6]/30 bg-blue-50 text-[#3182F6] shadow-[0_22px_38px_-18px_rgba(49,130,246,0.45)] ring-2 ring-blue-200/70 scale-[1.02]'
-            : 'border-slate-300 text-slate-400 shadow-[0_10px_18px_-14px_rgba(15,23,42,0.35)]'
+              ? 'border-orange-300 bg-orange-50/95 text-orange-600 ring-2 ring-orange-200/70 shadow-[0_18px_30px_-16px_rgba(251,146,60,0.5)] scale-[1.01]'
+              : 'border-[#3182F6]/30 bg-blue-50/95 text-[#3182F6] ring-2 ring-blue-200/70 shadow-[0_18px_30px_-16px_rgba(49,130,246,0.4)] scale-[1.01]'
+            : 'border-slate-200 bg-white/96 text-slate-400'
             }`}
+          title={isDropHere ? activeText : idleText}
         >
-          <span className="absolute inset-x-5 top-1/2 h-px -translate-y-1/2 border-t border-dashed border-current/20" />
-          <span className="relative flex items-center justify-center rounded-full bg-white/90 px-3 py-1 text-[12px] font-black leading-none tracking-tight shadow-sm">
-            {isDropHere ? activeText : '드래그해주세요.'}
-          </span>
+          <div className="flex items-center gap-1.5 opacity-55">
+            <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-slate-100/90">
+              <Minus size={10} />
+            </span>
+            <span className="min-w-[3rem] text-center text-xs font-black tracking-tight">{isDropHere ? 'DROP' : 'MOVE'}</span>
+            <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-slate-100/90">
+              <Plus size={10} />
+            </span>
+          </div>
+          <div className={`h-4 w-px ${isDropHere ? 'bg-current/20' : 'bg-slate-200'}`} />
+          <div className="relative flex min-w-0 flex-1 items-center justify-center">
+            <span className={`absolute inset-x-1 top-1/2 h-px -translate-y-1/2 border-t border-dashed ${isDropHere ? 'border-current/20' : 'border-slate-200'}`} />
+            <span className="relative flex items-center justify-center rounded-full bg-white/92 px-3 py-1 text-[11px] font-black leading-none tracking-tight shadow-sm">
+              {isDropHere ? activeText : idleText}
+            </span>
+          </div>
         </div>
       </div>
     );

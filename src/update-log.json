@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.164",
+      "timestamp": "2026-03-13T22:37:09+09:00",
+      "message": "tune: tighten overview spacing and pin library filters"
+    },
+    {
       "version": "1.3.163",
       "timestamp": "2026-03-13T22:26:39+09:00",
       "message": "tune: move hero actions to floating menu and refine overview compact"
@@ -144,11 +149,6 @@
       "version": "1.3.135",
       "timestamp": "2026-03-13T15:27:14+09:00",
       "message": "fix: align kakao route values and smart-filled menu selection defaults"
-    },
-    {
-      "version": "1.3.134",
-      "timestamp": "2026-03-13T15:14:38+09:00",
-      "message": "fix: separate incoming and outgoing route addresses for special schedules"
     }
   ]
 }

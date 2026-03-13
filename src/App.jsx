@@ -8888,7 +8888,7 @@ const App = () => {
             </div>
 
             {/* ── 하단 고정: 사용자 정보 & 로그아웃 버튼 ── */}
-            <div className="p-4 border-t border-slate-100 bg-white shrink-0 mt-auto">
+            <div className="relative z-30 p-4 border-t border-slate-100 bg-white shrink-0 mt-auto">
               {canManagePlan && (
                 <div className="relative mb-2.5">
                   <button
@@ -8904,7 +8904,7 @@ const App = () => {
                     </span>
                   </button>
                   {showNavMenu && (
-                    <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[20px] border border-slate-200 bg-white/98 shadow-[0_22px_44px_-24px_rgba(15,23,42,0.26)] overflow-hidden z-10 animate-in slide-in-from-bottom-2">
+                    <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[20px] border border-slate-200 bg-white/98 shadow-[0_22px_44px_-24px_rgba(15,23,42,0.26)] overflow-hidden z-[60] animate-in slide-in-from-bottom-2">
                       <button
                         onClick={() => { setShowPlanManager(true); setShowNavMenu(false); }}
                         className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
@@ -9157,7 +9157,8 @@ const App = () => {
                       </div>
                     )}
                     {/* 필터 및 정렬 상태 표시기 */}
-                    <div className="w-full flex flex-col gap-1 mb-2">
+                    <div className="sticky top-0 z-20 -mx-5 mb-2 w-auto border-b border-slate-100/70 bg-white/96 px-5 pb-2 pt-1 backdrop-blur-xl">
+                      <div className="w-full flex flex-col gap-1">
                       <div className="flex items-start gap-1 px-1">
                         <div className="flex flex-1 flex-wrap gap-1">
                           {filterTagOptions.map(t => {
@@ -9232,6 +9233,7 @@ const App = () => {
                           <span className="text-[9px] text-blue-300">✕</span>
                         </div>
                       )}
+                      </div>
                     </div>
                     {visiblePlaces.length === 0 && !isAddingPlace && (
                       <p className="text-[10px] text-slate-400 text-center py-6 font-semibold leading-relaxed">
@@ -10152,6 +10154,24 @@ const App = () => {
                     className={`${heroPinnedCompact ? 'mb-1.5' : 'mb-2 sm:mb-3'} transition-all duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overflow-x-visible overscroll-contain pb-5 pr-1 sm:pb-6' : ''}`}
                   >
                     <div className="w-full relative overflow-visible bg-transparent">
+                      {canManagePlan && (
+                        <div className={`absolute right-4 z-20 flex items-center transition-all duration-300 ${heroPinnedCompact ? 'top-2 gap-1.5' : 'top-4 gap-2'}`}>
+                          <button
+                            onClick={() => setShowPlanOptions(true)}
+                            className={`${heroPinnedCompact ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg`}
+                            title="일정 옵션"
+                          >
+                            <SlidersHorizontal size={heroPinnedCompact ? 14 : 16} />
+                          </button>
+                          <button
+                            onClick={() => setShowShareManager(true)}
+                            className={`${heroPinnedCompact ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg`}
+                            title="공유 설정"
+                          >
+                            <Share2 size={heroPinnedCompact ? 14 : 16} />
+                          </button>
+                        </div>
+                      )}
                       {/* 🖼️ 배경 이미지 (고정 높이, 요약 확장과 무관) */}
                       <div className={`absolute left-0 right-0 top-0 overflow-hidden pointer-events-none transition-all duration-300 ${heroPinnedCompact ? 'h-[124px] sm:h-[138px]' : 'h-[332px] sm:h-[356px]'}`}>
                         <img
@@ -10165,9 +10185,9 @@ const App = () => {
                         />
                       </div>
 
-                      <div className={`relative z-10 flex w-full mx-auto flex-col transition-all duration-300 ${timelineMaxClass} ${heroPinnedCompact ? 'gap-3' : 'gap-10'}`}>
+                      <div className={`relative z-10 flex w-full mx-auto flex-col transition-all duration-300 ${timelineMaxClass} ${heroPinnedCompact ? 'gap-3' : 'gap-5 md:gap-6'}`}>
                         {/* 🌟 1. 타이틀 & 일정 */}
-                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-2 px-4 pt-3 sm:px-6 sm:pt-4' : 'items-center gap-5 px-6 pt-8 text-center sm:px-8 sm:pt-10'}`}>
+                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-2 px-4 pt-3 sm:px-6 sm:pt-4' : 'items-center gap-3 px-6 pt-8 text-center sm:px-8 sm:pt-10'}`}>
                           <input
                             value={tripRegion}
                             onChange={(e) => setTripRegion(e.target.value)}
@@ -10212,8 +10232,8 @@ const App = () => {
                         </div>
 
                         {/* 🌟 2. 여행 한눈에 보기 */}
-                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-3 px-2 sm:px-0' : 'gap-5 px-3 sm:px-0'}`}>
-                            <div className={`relative w-full border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 ${heroPinnedCompact ? 'mt-0 rounded-[24px] px-3 py-3 sm:px-4 sm:py-4' : 'mt-5 rounded-[24px] px-4 py-4 sm:px-6 sm:py-6'}`}>
+                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-3 px-2 sm:px-0' : 'gap-3 px-3 sm:px-0'}`}>
+                            <div className={`relative w-full border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 ${heroPinnedCompact ? 'mt-0 rounded-[24px] px-3 py-3 sm:px-4 sm:py-4' : 'mt-1 rounded-[24px] px-4 py-4 sm:px-6 sm:py-6'}`}>
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
                               <div className={`${heroPinnedCompact ? 'flex w-full' : 'grid grid-cols-3 gap-3 sm:gap-3'}`}>
                                 {heroPinnedCompact ? (
@@ -10385,22 +10405,6 @@ const App = () => {
                     >
                       <span>{isCalculatingAllRoutes ? `경로 계산 ${routeCalcProgress}%` : '경로 재계산'}</span>
                       {isCalculatingAllRoutes ? <LoaderCircle size={15} className="animate-spin text-[#3182F6]" /> : <Navigation size={15} />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setShowPlanOptions(true); setHeroActionMenuOpen(false); }}
-                      className="flex min-w-[148px] items-center justify-between gap-3 rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-[11px] font-black text-slate-700 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
-                    >
-                      <span>일정 옵션</span>
-                      <SlidersHorizontal size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setShowShareManager(true); setHeroActionMenuOpen(false); }}
-                      className="flex min-w-[148px] items-center justify-between gap-3 rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-[11px] font-black text-slate-700 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
-                    >
-                      <span>공유 설정</span>
-                      <Share2 size={14} />
                     </button>
                   </div>
                 )}

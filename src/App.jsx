@@ -5538,6 +5538,35 @@ const App = () => {
     return timeToMinutes(item.time || '00:00') + Math.max(0, Number(item.duration) || 0);
   };
 
+  const getAbsoluteTimelineItemEndMinutes = (item = {}, dayIdx = 0) => {
+    if (!item) return 0;
+    const dayBase = Math.max(0, Number(dayIdx) || 0) * 1440;
+    if (item.types?.includes('ship')) {
+      return dayBase + getShipTimeline(item).disembark;
+    }
+    return dayBase + timeToMinutes(item.time || '00:00') + Math.max(0, Number(item.duration) || 0);
+  };
+
+  const getPreviousMainPlanEntryByIndex = (days = [], dayIdx, targetIdx) => {
+    const dayPlan = days?.[dayIdx]?.plan || [];
+    for (let idx = targetIdx - 1; idx >= 0; idx -= 1) {
+      const candidate = dayPlan[idx];
+      if (candidate && candidate.type !== 'backup') {
+        return { item: candidate, dayIdx, pIdx: idx };
+      }
+    }
+    for (let prevDayIdx = dayIdx - 1; prevDayIdx >= 0; prevDayIdx -= 1) {
+      const prevDayPlan = days?.[prevDayIdx]?.plan || [];
+      for (let idx = prevDayPlan.length - 1; idx >= 0; idx -= 1) {
+        const candidate = prevDayPlan[idx];
+        if (candidate && candidate.type !== 'backup') {
+          return { item: candidate, dayIdx: prevDayIdx, pIdx: idx };
+        }
+      }
+    }
+    return null;
+  };
+
   const getPreviousMainPlanItemByIndex = (days = [], dayIdx, targetIdx) => {
     const dayPlan = days?.[dayIdx]?.plan || [];
     let prevItem = null;
@@ -5692,14 +5721,14 @@ const App = () => {
       return { mins: storedMins, label: storedLabel, isCoordinated: !!item._isBufferCoordinated, isDerived: false };
     }
 
-    const prevItem = getPreviousMainPlanItemByIndex(days, dayIdx, targetIdx);
-    if (!prevItem) {
+    const prevEntry = getPreviousMainPlanEntryByIndex(days, dayIdx, targetIdx);
+    if (!prevEntry?.item) {
       return { mins: storedMins, label: storedLabel, isCoordinated: !!item._isBufferCoordinated, isDerived: false };
     }
 
     const travelMins = parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
-    const baseArrival = getTimelineItemEndMinutes(prevItem) + travelMins;
-    const fixedStart = timeToMinutes(item.time || '00:00');
+    const baseArrival = getAbsoluteTimelineItemEndMinutes(prevEntry.item, prevEntry.dayIdx) + travelMins;
+    const fixedStart = (Math.max(0, Number(dayIdx) || 0) * 1440) + timeToMinutes(item.time || '00:00');
     const mins = Math.max(0, fixedStart - baseArrival);
     return { mins, label: `${mins}분`, isCoordinated: mins > 0, isDerived: true };
   };
@@ -5844,7 +5873,7 @@ const App = () => {
 
         let startMinutes = prevEndMinutes + travel + manualBufferBase;
         if (item.isTimeFixed) {
-          startMinutes = timeToMinutes(item.time || '00:00');
+          startMinutes = (Math.max(0, Number(dayIdx) || 0) * 1440) + timeToMinutes(item.time || '00:00');
           const baseArrival = prevEndMinutes + travel;
           const effectiveBuffer = Math.max(0, startMinutes - baseArrival);
           item.bufferTimeOverride = `${effectiveBuffer}분`;

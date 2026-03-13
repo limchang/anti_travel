@@ -10211,14 +10211,14 @@ const App = () => {
 
                       <div className={`relative z-10 flex w-full mx-auto flex-col transition-all duration-300 ${timelineMaxClass} ${heroPinnedCompact ? 'gap-3' : 'gap-10'}`}>
                         {/* 🌟 1. 타이틀 & 일정 */}
-                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-2 px-4 pt-3 pr-[220px] sm:px-6 sm:pt-4 sm:pr-[260px]' : 'items-center gap-5 px-6 pt-8 pr-[230px] text-center sm:px-8 sm:pt-10 sm:pr-[280px]'}`}>
+                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-2 px-4 pt-3 sm:px-6 sm:pt-4' : 'items-center gap-5 px-6 pt-8 text-center sm:px-8 sm:pt-10'}`}>
                           <input
                             value={tripRegion}
                             onChange={(e) => setTripRegion(e.target.value)}
                             placeholder="어디로 떠나시나요?"
-                            className={`bg-transparent border-none outline-none font-extrabold text-white drop-shadow-md placeholder:text-white/50 tracking-tight leading-none transition-all duration-300 ${heroPinnedCompact ? 'w-full text-[26px] sm:text-[30px] whitespace-nowrap overflow-hidden text-ellipsis' : 'w-full max-w-[440px] text-center text-[36px] sm:text-[44px]'}`}
+                            className={`bg-transparent border-none outline-none font-extrabold text-white drop-shadow-md placeholder:text-white/50 tracking-tight leading-none transition-all duration-300 ${heroPinnedCompact ? 'w-full text-center text-[26px] sm:text-[30px] whitespace-nowrap overflow-hidden text-ellipsis' : 'w-full max-w-[440px] text-center text-[36px] sm:text-[44px]'}`}
                           />
-                          <div className={`relative flex items-center gap-2 transition-all duration-300 ${heroPinnedCompact ? 'flex-nowrap overflow-hidden' : 'justify-center'}`}>
+                          <div className={`relative mx-auto flex items-center gap-2 transition-all duration-300 ${heroPinnedCompact ? 'max-w-[360px] flex-nowrap overflow-hidden justify-center' : 'justify-center'}`}>
                             <button
                               onClick={() => setShowDatePicker(v => !v)}
                               className={`flex items-center gap-2.5 bg-white/20 backdrop-blur-md border border-white/20 transition-all group hover:bg-white/30 ${heroPinnedCompact ? 'min-w-0 shrink px-3 py-1.5 rounded-xl' : 'min-w-[260px] justify-center px-5 py-2.5 rounded-2xl'}`}

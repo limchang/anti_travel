@@ -10274,7 +10274,7 @@ const App = () => {
                           <button
                             type="button"
                             onClick={() => setHeroSummaryExpanded((prev) => !prev)}
-                            className={`absolute inset-x-0 bottom-0 z-[12] flex h-8 items-start justify-center bg-transparent transition-opacity duration-200 ease-out ${heroCompactBudgetBarVisible ? 'opacity-100' : 'opacity-0'}`}
+                            className={`pointer-events-auto absolute inset-x-0 bottom-0 z-[12] flex h-8 items-start justify-center bg-transparent transition-opacity duration-200 ease-out ${heroCompactBudgetBarVisible ? 'opacity-100' : 'opacity-0'}`}
                             aria-label={heroSummaryExpanded ? '여행 요약 닫기' : '여행 요약 확장'}
                             title={heroSummaryExpanded ? '여행 요약 닫기' : '여행 요약 확장'}
                           >

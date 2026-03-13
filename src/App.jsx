@@ -10281,27 +10281,16 @@ const App = () => {
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
                               <div className={`${heroPinnedCompact ? 'flex w-full' : 'grid grid-cols-3 gap-3 sm:gap-3'}`}>
                                 {heroPinnedCompact ? (
-                                  <div className="w-full rounded-[18px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.99)_0%,rgba(239,246,255,0.96)_100%)] px-3 py-2 shadow-[0_10px_28px_-20px_rgba(49,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.95)]">
-                                    <div className="flex items-center gap-3 whitespace-nowrap">
-                                      <div className="flex shrink-0 items-center gap-2 rounded-[14px] border border-blue-100 bg-white/90 px-2.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.96)]">
-                                        <div className="flex flex-col items-start">
-                                          <p className="text-[8px] font-black uppercase tracking-[0.18em] text-slate-400">예산</p>
-                                          <p className="mt-0.5 text-[17px] leading-none font-black tabular-nums text-[#3182F6]">{usedPct}%</p>
-                                        </div>
+                                  <div className="w-full rounded-[18px] border border-white/24 bg-white/16 px-3 py-2.5 backdrop-blur-md shadow-[0_18px_34px_-24px_rgba(15,23,42,0.45),inset_0_1px_0_rgba(255,255,255,0.28)]">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div className="flex items-baseline gap-2 text-white">
+                                        <span className="text-[10px] font-black tracking-[0.18em] text-white/68">예산</span>
+                                        <span className="text-[20px] font-black leading-none tabular-nums">{usedPct}%</span>
                                       </div>
-                                      <div className="min-w-0 flex-1">
-                                        <div className="flex items-center justify-between gap-2">
-                                          <p className="truncate text-[8px] font-black uppercase tracking-[0.18em] text-slate-400">총 사용 예산</p>
-                                          <p className="shrink-0 text-[9px] font-black tabular-nums text-slate-500">₩{budgetSummary.total.toLocaleString()}</p>
-                                        </div>
-                                        <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-blue-100/90">
-                                          <div className="h-full rounded-full bg-gradient-to-r from-[#3182F6] via-sky-400 to-cyan-300 transition-all duration-300" style={{ width: `${Math.min(100, usedPct)}%` }} />
-                                        </div>
-                                        <div className="mt-1.5 flex items-center justify-between gap-2">
-                                          <p className="truncate text-[8px] font-black text-slate-400">남은 예산</p>
-                                          <p className="shrink-0 text-[9px] font-black tabular-nums text-[#3182F6]">₩{Math.max(0, budgetSummary.remaining).toLocaleString()}</p>
-                                        </div>
-                                      </div>
+                                      <p className="shrink-0 text-[11px] font-black text-white/88 tabular-nums">₩{budgetSummary.total.toLocaleString()}</p>
+                                    </div>
+                                    <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/18">
+                                      <div className="h-full rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.92),rgba(147,197,253,0.95),rgba(96,165,250,0.98))] transition-all duration-300" style={{ width: `${Math.min(100, usedPct)}%` }} />
                                     </div>
                                   </div>
                                 ) : (

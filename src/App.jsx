@@ -4847,9 +4847,7 @@ const App = () => {
       const beforeBufferMins = parseMinsLabel(item.bufferTimeOverride, DEFAULT_BUFFER_MINS);
       if (prevMainIdx >= 0) {
         const prevItem = dayPlan[prevMainIdx];
-        const prevEnd = prevItem?.types?.includes('ship')
-          ? getShipTimeline(prevItem).disembark
-          : timeToMinutes(prevItem?.time || '00:00') + Math.max(0, Number(prevItem?.waitingTime) || 0) + Math.max(0, Number(prevItem?.duration) || 0);
+        const prevEnd = getTimelineItemEndMinutes(prevItem);
         const travelMins = parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
         const requiredBuffer = Math.max(0, openMins - (prevEnd + travelMins));
         item._manualBufferTimeOverride = `${requiredBuffer}분`;
@@ -5257,6 +5255,14 @@ const App = () => {
     return false;
   };
 
+  const getTimelineItemEndMinutes = (item = {}) => {
+    if (!item) return 0;
+    if (item.types?.includes('ship')) {
+      return getShipTimeline(item).disembark;
+    }
+    return timeToMinutes(item.time || '00:00') + Math.max(0, Number(item.duration) || 0);
+  };
+
   const recalculateSchedule = (dayPlan) => {
     if (!Array.isArray(dayPlan)) return [];
     const mainIndices = [];
@@ -5276,7 +5282,6 @@ const App = () => {
       item._timingConflict = false;
       item._timingConflictReason = '';
 
-      const waiting = Math.max(0, Number(item.waitingTime) || 0);
       const duration = Math.max(0, Number(item.duration) || 0);
 
       if (seq === 0) {
@@ -5288,7 +5293,7 @@ const App = () => {
           item.duration = Math.max(0, shipTimeline.disembark - shipTimeline.loadStart);
           prevEndMinutes = shipTimeline.disembark;
         } else {
-          prevEndMinutes = start + waiting + duration;
+          prevEndMinutes = start + duration;
         }
         continue;
       }
@@ -5310,7 +5315,7 @@ const App = () => {
         effectiveBuffer = Math.max(0, startMinutes - baseArrival);
         item.bufferTimeOverride = `${effectiveBuffer}분`;
         item._manualBufferTimeOverride = `${effectiveBuffer}분`;
-        item._isBufferCoordinated = effectiveBuffer !== manualBufferBase;
+        item._isBufferCoordinated = item.isTimeFixed && effectiveBuffer > 0;
         if (item._preserveBufferOnNextRecalc) delete item._preserveBufferOnNextRecalc;
       } else {
         if (item._isBufferCoordinated) {
@@ -5327,7 +5332,7 @@ const App = () => {
       } else {
         const effectiveDuration = Math.max(0, Number(item.duration) || 0);
         item.duration = effectiveDuration;
-        prevEndMinutes = startMinutes + waiting + effectiveDuration;
+        prevEndMinutes = startMinutes + effectiveDuration;
       }
     }
     return dayPlan;
@@ -5746,21 +5751,17 @@ const App = () => {
         }
       }
 
-      const prevEnd = prevItem
-        ? (prevItem.types?.includes('ship')
-          ? getShipTimeline(prevItem).disembark
-          : timeToMinutes(prevItem.time || '00:00')
-            + Math.max(0, Number(prevItem.waitingTime) || 0)
-            + Math.max(0, Number(prevItem.duration) || 0))
-        : 0;
-      const travelMins = parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
-      const currentStart = timeToMinutes(item.time || '00:00');
-      const autoBufferMins = Math.max(0, currentStart - (prevEnd + travelMins));
+      const hasLockedFuture = dayPlan.slice(currentIdx + 1).some((entry) => (
+        entry
+        && entry.type !== 'backup'
+        && (entry.types?.includes('ship') || entry.isTimeFixed || entry.isDurationFixed || entry.isEndTimeFixed)
+      ));
+      if (hasLockedFuture) return prev;
 
-      item.bufferTimeOverride = `${autoBufferMins}분`;
-      item._manualBufferTimeOverride = `${autoBufferMins}분`;
+      item.bufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
+      item._manualBufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
       item._isBufferCoordinated = false;
-      computedBufferMins = autoBufferMins;
+      computedBufferMins = DEFAULT_BUFFER_MINS;
       applied = true;
 
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
@@ -5768,8 +5769,8 @@ const App = () => {
       return nextData;
     });
     setLastAction(applied
-      ? `남은 시간 기준으로 보정 시간을 ${computedBufferMins}분으로 자동 반영했습니다.`
-      : '자동 반영할 보정 시간을 찾지 못했습니다.');
+      ? `보정 시간을 기본값 ${computedBufferMins}분으로 초기화했습니다.`
+      : '이후 일정에 잠금이 있어 보정 시간을 기본값으로 돌릴 수 없습니다.');
   };
 
   const resetTravelTime = (dayIdx, pIdx) => {
@@ -6244,7 +6245,7 @@ const App = () => {
       const prevItem = targetDayPlan[insertAfterPIdx];
       if (!prevItem) return nextData;
 
-      const prevEnd = timeToMinutes(prevItem.time) + (prevItem.duration || 0) + (prevItem.waitingTime || 0);
+      const prevEnd = getTimelineItemEndMinutes(prevItem);
       const travelMins = parseMinsLabel(prevItem.travelTimeOverride, DEFAULT_TRAVEL_MINS);
       const bufferMins = parseMinsLabel(prevItem.bufferTimeOverride, DEFAULT_BUFFER_MINS);
 
@@ -6854,7 +6855,7 @@ const App = () => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const dayPlan = nextData.days[dayIdx].plan;
       const prevItem = dayPlan[insertIndex];
-      const prevEnd = timeToMinutes(prevItem.time) + (prevItem.duration || 0) + (prevItem.waitingTime || 0);
+      const prevEnd = getTimelineItemEndMinutes(prevItem);
 
       const travelMins = parseMinsLabel(prevItem.travelTimeOverride, DEFAULT_TRAVEL_MINS);
       const bufferMins = parseMinsLabel(prevItem.bufferTimeOverride, DEFAULT_BUFFER_MINS);
@@ -10975,7 +10976,7 @@ const App = () => {
                                                 e.stopPropagation();
                                                 applyAutoBufferTimeById(dIdx, nextItem.id);
                                               }}
-                                              title="클릭하여 남은 시간 기준 보정시간 자동 반영"
+                                              title="클릭하여 보정시간을 10분 기본값으로 초기화"
                                             >
                                               {nextItem.bufferTimeOverride || '10분'}
                                             </span>

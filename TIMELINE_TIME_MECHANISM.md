@@ -14,7 +14,7 @@
 
 ## 기본 용어
 
-- `이전 일정 종료`: 이전 일정의 `시작시간 + 대기시간 + 소요시간`
+- `이전 일정 종료`: 이전 일정의 `시작시간 + 소요시간`
 - `이동시간`: 현재 일정으로 오기 위한 이동칩 시간
 - `보정시간`: 이동칩의 여유시간. 일정 사이의 남는 시간이나 강제 조정 차이를 흡수하는 슬롯
 - `현재 일정 시작`
@@ -40,7 +40,7 @@ startTime(N) = baseArrival(N) + bufferTime(N)
 일정 `N`의 종료 시각:
 
 ```text
-endTime(N) = startTime(N) + waitingTime(N) + duration(N)
+endTime(N) = startTime(N) + duration(N)
 ```
 
 즉 일반 흐름은 항상 아래와 같다.
@@ -50,7 +50,6 @@ endTime(N) = startTime(N) + waitingTime(N) + duration(N)
 + 이동시간
 + 보정시간
 = 현재 일정 시작
-+ 대기시간
 + 소요시간
 = 현재 일정 종료
 ```
@@ -63,9 +62,9 @@ endTime(N) = startTime(N) + waitingTime(N) + duration(N)
 
 보정시간은 아래 역할을 한다.
 
-1. 일정 사이에 남아 있는 실제 빈 시간을 저장한다.
+1. 자동계산된 현재 일정 시작과 직접입력된 현재 일정 시작의 차이를 저장한다.
 2. 사용자가 시작시간을 뒤로 미뤘을 때 생긴 여유를 저장한다.
-3. 잠금 조건 때문에 일반 계산식으로 딱 안 맞는 차이를 흡수한다.
+3. 잠금 조건이 있어도 타임라인 계산을 끊지 않도록 차이를 흡수한다.
 4. 이후 새 일정을 추가할 때 먼저 소비되는 시간 슬롯이다.
 
 즉 보정시간은 `계산 실패`를 뜻하면 안 되고, 오히려 `계산을 계속 이어가기 위한 흡수 버퍼`여야 한다.
@@ -81,6 +80,7 @@ endTime(N) = startTime(N) + waitingTime(N) + duration(N)
 이 경우 계산 방식은 아래와 같아야 한다.
 
 ```text
+autoStartTime(N) = baseArrival(N) + currentBuffer(N)
 fixedStartTime(N) = userSelectedStart
 bufferTime(N) = max(0, fixedStartTime(N) - baseArrival(N))
 ```
@@ -90,6 +90,20 @@ bufferTime(N) = max(0, fixedStartTime(N) - baseArrival(N))
 - 고정 시작시간이 `baseArrival`보다 늦으면 그 차이만큼 보정시간을 늘린다.
 - 고정 시작시간이 `baseArrival`와 같으면 보정시간은 `0분`이다.
 - 고정 시작시간이 `baseArrival`보다 이르면 시간을 계산 포기하지 말고, 이후 타임라인 재정렬 기준으로 사용해야 한다.
+
+### 강조 표시 규칙
+
+보정시간 색상 강조는 아래 경우에만 켠다.
+
+```text
+directStartTime != autoStartTime
+```
+
+즉:
+
+- 사용자가 시작시간을 직접 입력하거나 고정해서 자동 시작시각과 차이가 생긴 경우만 강조
+- 기본 보정시간 10분 상태는 강조하지 않음
+- 단순 기본값 초기화는 강조하지 않음
 
 ### 중요한 금지 규칙
 
@@ -107,7 +121,7 @@ bufferTime(N) = max(0, fixedStartTime(N) - baseArrival(N))
 
 ```text
 duration(N) = fixedDuration
-endTime(N) = startTime(N) + waitingTime(N) + fixedDuration
+endTime(N) = startTime(N) + fixedDuration
 ```
 
 소요시간이 잠겨 있어도 시작시간 쪽은 계속 계산해야 한다.
@@ -164,6 +178,11 @@ bufferTime(N) = max(0, openTime - baseArrival(N))
 1. 현재 구간의 보정시간을 먼저 소비한다.
 2. 새 일정이 그 보정시간 안에 들어오면 뒤 일정은 밀지 않는다.
 3. 보정시간을 초과하는 경우에만 뒤 타임라인을 민다.
+
+보정시간 칩을 그냥 클릭했을 때는 아래 규칙을 따른다.
+
+1. 이후 일정에 시작/소요/종료 잠금이 없으면 `10분` 기본값으로 되돌린다.
+2. 이후 일정에 잠금이 있으면 되돌리지 않는다.
 
 즉 보정시간은 실질적인 `삽입 가능 슬롯`이다.
 

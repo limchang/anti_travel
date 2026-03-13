@@ -10126,7 +10126,7 @@ const App = () => {
               ? `${(averageTravelMinutes / 60).toFixed(1)}시간`
               : `${Math.round(averageTravelMinutes)}분`;
             return (
-              <div className="mb-8 relative" style={{ height: dashboardHeight }}>
+              <div className="mb-8 relative" style={{ height: dashboardHeight + (heroPinnedCompact ? 20 : (isMobileLayout ? 28 : 40)) }}>
                 {/* 풀 카드 (최상단) */}
                 <div
                   className="fixed top-0 z-[120]"
@@ -10135,7 +10135,10 @@ const App = () => {
                     right: isMobileLayout ? rightSidebarWidth : (col2Collapsed ? 44 : 300),
                   }}
                 >
-                  <section ref={dashboardRef} className={`${heroPinnedCompact ? 'mb-5' : 'mb-8 sm:mb-10'} transition-all duration-300`}>
+                  <section
+                    ref={dashboardRef}
+                    className={`${heroPinnedCompact ? 'mb-5' : 'mb-8 sm:mb-10'} transition-all duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overscroll-contain' : ''}`}
+                  >
                     <div className="w-full relative overflow-hidden bg-transparent">
                       {canManagePlan && <div className={`absolute right-4 z-20 flex items-center transition-all duration-300 ${heroPinnedCompact ? 'top-2 gap-1.5' : 'top-4 gap-2'}`}>
                         <button
@@ -10245,7 +10248,7 @@ const App = () => {
                         <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-3 px-2 sm:px-0' : 'gap-5 px-3 sm:px-0'}`}>
                             <div className={`relative w-full border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 ${heroPinnedCompact ? 'mt-0 rounded-[26px] px-3 py-3 sm:px-4 sm:py-4' : 'mt-5 rounded-[34px] px-4 py-4 sm:px-6 sm:py-6'}`}>
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
-                              <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+                              <div className={`${heroPinnedCompact ? 'grid max-w-[230px] grid-cols-1 gap-2.5' : 'grid grid-cols-3 gap-2.5 sm:gap-3'}`}>
                                 <div className={`rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroPinnedCompact ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
                                   <div className="flex h-full flex-col items-center justify-center text-center">
                                     <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
@@ -10253,43 +10256,47 @@ const App = () => {
                                     <p className={`font-bold text-slate-500 tabular-nums transition-all duration-300 ${heroPinnedCompact ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
                                   </div>
                                 </div>
-                                <div className={`relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroPinnedCompact ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
-                                  <div className="flex h-full flex-col items-center justify-center text-center">
-                                    <div className="flex items-center justify-center gap-1.5">
-                                      <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setShowTravelIntensityInfo((prev) => !prev);
-                                        }}
-                                        className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition-colors hover:border-[#3182F6]/40 hover:text-[#3182F6]"
-                                        title="여행 강도 계산식 보기"
-                                      >
-                                        <Info size={10} />
-                                      </button>
+                                {!heroPinnedCompact && (
+                                  <div className={`relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroPinnedCompact ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
+                                    <div className="flex h-full flex-col items-center justify-center text-center">
+                                      <div className="flex items-center justify-center gap-1.5">
+                                        <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowTravelIntensityInfo((prev) => !prev);
+                                          }}
+                                          className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition-colors hover:border-[#3182F6]/40 hover:text-[#3182F6]"
+                                          title="여행 강도 계산식 보기"
+                                        >
+                                          <Info size={10} />
+                                        </button>
+                                      </div>
+                                      <p className={`text-center leading-none font-black text-slate-800 transition-all duration-300 ${heroPinnedCompact ? 'mt-1.5 text-[17px] sm:text-[21px]' : 'mt-2 text-[21px] sm:text-[27px]'}`}>{travelIntensity.label}</p>
+                                      <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroPinnedCompact ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>{travelIntensity.note}</p>
                                     </div>
-                                    <p className={`text-center leading-none font-black text-slate-800 transition-all duration-300 ${heroPinnedCompact ? 'mt-1.5 text-[17px] sm:text-[21px]' : 'mt-2 text-[21px] sm:text-[27px]'}`}>{travelIntensity.label}</p>
-                                    <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroPinnedCompact ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>{travelIntensity.note}</p>
+                                    {showTravelIntensityInfo && (
+                                      <div className="absolute left-1/2 top-[calc(100%-8px)] z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
+                                        <p className="mt-2 text-[11px] font-bold text-slate-600">시간당 방문 수: {visitPerHour.toFixed(2)}개</p>
+                                        <p className="mt-1 text-[11px] font-bold text-slate-600">하루 활동 시간: 평균 {averageSpanHours.toFixed(1)}시간</p>
+                                        <p className="mt-1 text-[11px] font-bold text-slate-600">하루 이동 시간: 평균 {averageTravelHoursLabel}</p>
+                                        <p className="mt-1 text-[11px] font-bold text-slate-600">숙소 고정 제약: {lodgingConstraintCount}개</p>
+                                        <p className="mt-2 text-[10px] font-bold text-slate-400">방문 수는 `숙소/휴식/페리`를 제외한 일정만 세며, 숙소의 고정 체크인/체크아웃도 강도 점수에 반영합니다.</p>
+                                      </div>
+                                    )}
                                   </div>
-                                  {showTravelIntensityInfo && (
-                                    <div className="absolute left-1/2 top-[calc(100%-8px)] z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
-                                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
-                                      <p className="mt-2 text-[11px] font-bold text-slate-600">시간당 방문 수: {visitPerHour.toFixed(2)}개</p>
-                                      <p className="mt-1 text-[11px] font-bold text-slate-600">하루 활동 시간: 평균 {averageSpanHours.toFixed(1)}시간</p>
-                                      <p className="mt-1 text-[11px] font-bold text-slate-600">하루 이동 시간: 평균 {averageTravelHoursLabel}</p>
-                                      <p className="mt-1 text-[11px] font-bold text-slate-600">숙소 고정 제약: {lodgingConstraintCount}개</p>
-                                      <p className="mt-2 text-[10px] font-bold text-slate-400">방문 수는 `숙소/휴식/페리`를 제외한 일정만 세며, 숙소의 고정 체크인/체크아웃도 강도 점수에 반영합니다.</p>
+                                )}
+                                {!heroPinnedCompact && (
+                                  <div className={`rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroPinnedCompact ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
+                                    <div className="flex h-full flex-col items-center justify-center text-center">
+                                      <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
+                                      <p className={`text-center leading-none font-black text-slate-800 tabular-nums transition-all duration-300 ${heroPinnedCompact ? 'mt-1.5 text-[18px] sm:text-[22px]' : 'mt-2 text-[22px] sm:text-[31px]'}`}>{visitPerHour.toFixed(1)}개/h</p>
+                                      <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroPinnedCompact ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>방문 일정 {visitPlanCount}개 기준</p>
                                     </div>
-                                  )}
-                                </div>
-                                <div className={`rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroPinnedCompact ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
-                                  <div className="flex h-full flex-col items-center justify-center text-center">
-                                    <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
-                                    <p className={`text-center leading-none font-black text-slate-800 tabular-nums transition-all duration-300 ${heroPinnedCompact ? 'mt-1.5 text-[18px] sm:text-[22px]' : 'mt-2 text-[22px] sm:text-[31px]'}`}>{visitPerHour.toFixed(1)}개/h</p>
-                                    <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroPinnedCompact ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>방문 일정 {visitPlanCount}개 기준</p>
                                   </div>
-                                </div>
+                                )}
                               </div>
 
                               {heroSummaryExpanded && (

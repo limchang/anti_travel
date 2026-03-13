@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.167",
+      "timestamp": "2026-03-13T22:57:00+09:00",
+      "message": "tune: redesign compact budget overview"
+    },
+    {
       "version": "1.3.166",
       "timestamp": "2026-03-13T22:53:11+09:00",
       "message": "fix: include lodge segment totals in budget without double counting parent stays"
@@ -144,11 +149,6 @@
       "version": "1.3.138",
       "timestamp": "2026-03-13T15:52:35+09:00",
       "message": "fix: show total footer on lodge segment cards"
-    },
-    {
-      "version": "1.3.137",
-      "timestamp": "2026-03-13T15:47:05+09:00",
-      "message": "feat: add place trash with restore and permanent delete"
     }
   ]
 }

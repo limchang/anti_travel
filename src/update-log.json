@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.170",
+      "timestamp": "2026-03-13T23:14:46+09:00",
+      "message": "tune: move compact budget usage into hero playbar"
+    },
+    {
       "version": "1.3.169",
       "timestamp": "2026-03-13T23:07:45+09:00",
       "message": "tune: collapse compact overview budget into playbar"
@@ -144,11 +149,6 @@
       "version": "1.3.141",
       "timestamp": "2026-03-13T19:00:23+09:00",
       "message": "fix: center align hero summary overview cards"
-    },
-    {
-      "version": "1.3.140",
-      "timestamp": "2026-03-13T18:51:12+09:00",
-      "message": "fix: redesign itinerary overview hero summary card"
     }
   ]
 }

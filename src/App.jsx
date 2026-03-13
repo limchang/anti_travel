@@ -10228,6 +10228,14 @@ const App = () => {
                           style={{ background: 'linear-gradient(to bottom, rgba(15,23,42,0.26) 0%, rgba(15,23,42,0.12) 42%, rgba(242,244,246,0.1) 64%, rgba(242,244,246,0.04) 78%, rgba(242,244,246,0) 88%, rgba(242,244,246,0) 100%)' }}
                         />
                       </div>
+                      {heroPinnedCompact && (
+                        <div className="pointer-events-none absolute inset-x-0 top-[123px] sm:top-[137px] z-[11] h-[4px] bg-slate-200/90">
+                          <div
+                            className="h-full rounded-r-full bg-[linear-gradient(90deg,#ef4444_0%,#f97316_24%,#f59e0b_48%,#3b82f6_78%,#2563eb_100%)] shadow-[0_0_12px_rgba(59,130,246,0.35)] transition-all duration-300"
+                            style={{ width: `${Math.min(100, usedPct)}%` }}
+                          />
+                        </div>
+                      )}
 
                       <div className={`relative z-10 flex w-full mx-auto flex-col transition-all duration-300 ${timelineMaxClass} ${heroPinnedCompact ? 'gap-3' : 'gap-5 md:gap-6'}`}>
                         {/* 🌟 1. 타이틀 & 일정 */}
@@ -10276,19 +10284,12 @@ const App = () => {
                         </div>
 
                         {/* 🌟 2. 여행 한눈에 보기 */}
-                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-2 px-2 sm:px-0' : 'gap-3 px-3 sm:px-0'}`}>
-                            <div className={`relative w-full border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 ${heroPinnedCompact ? 'mt-0 rounded-[24px] px-3 pb-3 pt-2.5 sm:px-4 sm:pb-3 sm:pt-2.5' : 'mt-1 rounded-[24px] px-4 py-4 sm:px-6 sm:py-6'}`}>
+                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-0 px-2 sm:px-0' : 'gap-3 px-3 sm:px-0'}`}>
+                            <div className={`relative w-full border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 ${heroPinnedCompact ? 'mt-0 rounded-[24px] px-3 py-0 sm:px-4 sm:py-0' : 'mt-1 rounded-[24px] px-4 py-4 sm:px-6 sm:py-6'}`}>
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
                               <div className={`${heroPinnedCompact ? 'flex w-full' : 'grid grid-cols-3 gap-3 sm:gap-3'}`}>
                                 {heroPinnedCompact ? (
-                                  <div className="relative w-full">
-                                    <div className="flex items-center justify-end">
-                                      <p className="shrink-0 text-[11px] font-black text-slate-700/88 tabular-nums">₩{budgetSummary.total.toLocaleString()}</p>
-                                    </div>
-                                    <div className="mt-2 h-[5px] w-full overflow-hidden rounded-full bg-slate-200/85">
-                                      <div className="h-full rounded-full bg-[linear-gradient(90deg,#3182F6_0%,#60A5FA_55%,#93C5FD_100%)] transition-all duration-300" style={{ width: `${Math.min(100, usedPct)}%` }} />
-                                    </div>
-                                  </div>
+                                  <div className="h-0 w-full overflow-hidden" />
                                 ) : (
                                   <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
                                     <div className="flex h-full flex-col items-center justify-center text-center">

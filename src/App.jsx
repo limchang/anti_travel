@@ -4285,9 +4285,27 @@ const App = () => {
     && !!String(item?.segmentType || '').trim()
   );
   const isFullLodgeStayItem = (item = {}) => isLodgeStay(item?.types) && !isStandaloneLodgeSegmentItem(item);
-  const getEffectivePlanPrice = (item = {}) => {
-    if (isStandaloneLodgeSegmentItem(item)) return 0;
-    return Number(item?.price || 0);
+  const getPlanReceiptSelectedTotal = (item = {}) => {
+    const receiptItems = Array.isArray(item?.receipt?.items) ? item.receipt.items : null;
+    if (!receiptItems?.length) return Number(item?.price || 0);
+    return receiptItems.reduce((sum, menu) => sum + (menu?.selected === false ? 0 : getMenuLineTotal(menu)), 0);
+  };
+  const getLodgeAggregateKey = (item = {}) => String(
+    item?.sourceLodgeId
+    || item?.sourceLodgeAddress
+    || item?.receipt?.address
+    || item?.address
+    || item?.sourceLodgeName
+    || item?.activity
+    || item?.name
+    || ''
+  ).trim().toLowerCase();
+  const getEffectivePlanPrice = (item = {}, lodgeSegmentPriceKeys = null) => {
+    const basePrice = getPlanReceiptSelectedTotal(item);
+    if (!isFullLodgeStayItem(item)) return basePrice;
+    const aggregateKey = getLodgeAggregateKey(item);
+    if (aggregateKey && lodgeSegmentPriceKeys?.has(aggregateKey)) return 0;
+    return basePrice;
   };
   const getPlaceSearchName = (item = {}) => String(item?.sourceLodgeName || item?.activity || item?.name || '').trim();
   const isOvernightBusinessWindow = (business = {}) => {
@@ -4888,10 +4906,17 @@ const App = () => {
   const budgetSummary = useMemo(() => {
     let totalSpent = 0;
     if (!itinerary || !itinerary.days) return { total: 0, remaining: MAX_BUDGET };
+    const lodgeSegmentPriceKeys = new Set(
+      (itinerary.days || [])
+        .flatMap((day) => (day.plan || []))
+        .filter((item) => item && item.type !== 'backup' && isStandaloneLodgeSegmentItem(item) && getPlanReceiptSelectedTotal(item) > 0)
+        .map((item) => getLodgeAggregateKey(item))
+        .filter(Boolean)
+    );
     itinerary.days.forEach(day => {
       day.plan?.forEach(p => {
         if (p.type !== 'backup') {
-          totalSpent += (Number(p.price) || 0);
+          totalSpent += getEffectivePlanPrice(p, lodgeSegmentPriceKeys);
           if (p.distance) totalSpent += calculateFuelCost(p.distance);
         }
       });
@@ -10067,6 +10092,12 @@ const App = () => {
             const newPct = allSummaryItems.length > 0 ? Math.round((newCount / allSummaryItems.length) * 100) : 0;
             const allBudgetItems = (itinerary.days || []).flatMap((day) => (day.plan || []))
               .filter((item) => item && item.type !== 'backup');
+            const lodgeSegmentPriceKeys = new Set(
+              allBudgetItems
+                .filter((item) => isStandaloneLodgeSegmentItem(item) && getPlanReceiptSelectedTotal(item) > 0)
+                .map((item) => getLodgeAggregateKey(item))
+                .filter(Boolean)
+            );
             const categoryLabelMap = {
               ship: '페리',
               lodge: '숙소',
@@ -10085,7 +10116,7 @@ const App = () => {
             const categorySpendMap = allBudgetItems.reduce((acc, item) => {
               const types = Array.isArray(item.types) ? item.types : [];
               const baseType = types.find((t) => !MODIFIER_TAGS.has(t) && t !== 'place') || types.find((t) => !MODIFIER_TAGS.has(t)) || 'place';
-              const itemPrice = getEffectivePlanPrice(item);
+              const itemPrice = getEffectivePlanPrice(item, lodgeSegmentPriceKeys);
               acc[baseType] = (acc[baseType] || 0) + itemPrice;
               if (item.distance) {
                 acc.transport = (acc.transport || 0) + calculateFuelCost(item.distance);

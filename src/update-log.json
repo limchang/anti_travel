@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.139",
+      "timestamp": "2026-03-13T16:05:16+09:00",
+      "message": "feat: sync lodge segment receipts into parent place totals"
+    },
+    {
       "version": "1.3.138",
       "timestamp": "2026-03-13T15:52:35+09:00",
       "message": "fix: show total footer on lodge segment cards"
@@ -144,11 +149,6 @@
       "version": "1.3.110",
       "timestamp": "2026-03-13T07:40:20+09:00",
       "message": "fix: remove fixed-time calculation-blocking conflict and rely on buffer alignment"
-    },
-    {
-      "version": "1.3.109",
-      "timestamp": "2026-03-13T07:32:58+09:00",
-      "message": "fix: recompute buffer from fixed start time instead of zeroing it"
     }
   ]
 }

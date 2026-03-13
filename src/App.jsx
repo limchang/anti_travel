@@ -3105,6 +3105,55 @@ const App = () => {
   const [heroCollapsed, setHeroCollapsed] = useState(false);
   const [heroSummaryExpanded, setHeroSummaryExpanded] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
+  useEffect(() => {
+    const places = itinerary.places || [];
+    if (!places.length) return;
+
+    const derivedItemsByLodgeId = {};
+    for (const day of itinerary.days || []) {
+      for (const item of day.plan || []) {
+        if (!isStandaloneLodgeSegmentItem(item)) continue;
+        const sourceId = String(item.sourceLodgeId || '').trim();
+        if (!sourceId) continue;
+        const receiptItems = normalizeReceiptItems(item.receipt?.items || []);
+        if (!receiptItems.length) continue;
+        if (!derivedItemsByLodgeId[sourceId]) derivedItemsByLodgeId[sourceId] = [];
+        receiptItems.forEach((receiptItem) => {
+          derivedItemsByLodgeId[sourceId].push(buildDerivedLodgeReceiptItem(item, receiptItem));
+        });
+      }
+    }
+
+    let changed = false;
+    const nextPlaces = places.map((place) => {
+      if (!isLodgeStay(place?.types)) return place;
+      const sourceId = String(place?.id || '').trim();
+      const manualItems = stripDerivedLodgeReceiptItems(place?.receipt?.items || []);
+      const derivedItems = derivedItemsByLodgeId[sourceId] || [];
+      const nextItems = [...manualItems, ...derivedItems];
+      const nextPrice = nextItems.reduce((sum, item) => sum + (item.selected === false ? 0 : (Number(item.price) || 0) * Math.max(1, Number(item.qty) || 1)), 0);
+      const currentItems = normalizeReceiptItems(place?.receipt?.items || []);
+      const sameItems = JSON.stringify(currentItems) === JSON.stringify(nextItems);
+      const samePrice = Number(place?.price || 0) === nextPrice;
+      if (sameItems && samePrice) return place;
+      changed = true;
+      return normalizeLibraryPlace({
+        ...place,
+        receipt: {
+          ...(place?.receipt || {}),
+          address: place?.receipt?.address || place?.address || '',
+          items: nextItems,
+        },
+        price: nextPrice,
+      });
+    });
+
+    if (!changed) return;
+    setItinerary((prev) => ({
+      ...prev,
+      places: nextPlaces,
+    }));
+  }, [itinerary.days, itinerary.places]);
   const isMobileLayout = viewportWidth < 1100;
   const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 310;
   const leftExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : rightExpandedWidth;
@@ -3489,6 +3538,31 @@ const App = () => {
       renderAsSegmentCard: true,
     });
   };
+  const normalizeReceiptItems = (items = []) => (
+    (Array.isArray(items) ? items : [])
+      .filter(Boolean)
+      .map((item) => ({
+        ...item,
+        name: String(item?.name || '').trim(),
+        price: Number(item?.price) || 0,
+        qty: Math.max(1, Number(item?.qty) || 1),
+        selected: item?.selected !== false,
+      }))
+  );
+  const stripDerivedLodgeReceiptItems = (items = []) => (
+    normalizeReceiptItems(items).filter((item) => !item?.derivedFromLodgeSegment)
+  );
+  const buildDerivedLodgeReceiptItem = (segmentItem = {}, receiptItem = {}) => ({
+    ...receiptItem,
+    name: String(receiptItem?.name || segmentItem?.activity || segmentItem?.sourceLodgeName || '숙소 세그먼트').trim(),
+    price: Number(receiptItem?.price) || 0,
+    qty: Math.max(1, Number(receiptItem?.qty) || 1),
+    selected: receiptItem?.selected !== false,
+    derivedFromLodgeSegment: true,
+    sourceLodgeId: String(segmentItem?.sourceLodgeId || '').trim(),
+    sourceSegmentId: String(segmentItem?.id || '').trim(),
+    sourceSegmentType: String(segmentItem?.segmentType || '').trim(),
+  });
 
   const getPlanItemPrimaryAddress = (item = {}) => String(item?.receipt?.address || item?.address || item?.sourceLodgeAddress || '').trim();
   const getShipStartAddress = (item = {}) => String(item?.receipt?.address || item?.startPoint || '').trim();

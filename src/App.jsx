@@ -10133,26 +10133,32 @@ const App = () => {
                     {d.day > 1 && isFirstMainItem && (
                       <div className="flex w-full items-center justify-center my-3">
                         {isTimelineDragActive ? (
-                          <div
-                            className="z-10 w-full my-0.5 cursor-copy"
-                            data-droptarget={`day-start-${dIdx}`}
-                            onDragOver={(e) => { e.preventDefault(); setDropTarget({ dayIdx: dIdx, insertAfterPIdx: -1 }); }}
-                            onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null); }}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              if (draggingFromLibrary) {
-                                addNewItem(dIdx, -1, draggingFromLibrary.types, draggingFromLibrary);
-                                if (!isDragCopy) removePlace(draggingFromLibrary.id);
-                              } else if (draggingFromTimeline?.altIdx !== undefined) {
-                                insertAlternativeToTimeline(dIdx, -1, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
-                              } else if (draggingFromTimeline && draggingFromTimeline.altIdx === undefined) {
-                                moveTimelineItem(dIdx, -1, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, isDragCopy, draggingFromTimeline.planPos);
-                              }
-                              setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropTarget(null); setIsDragCopy(false);
-                            }}
-                          >
-                            {renderTimelineInsertGuide(dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === -1, dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === -1 && draggingFromLibrary ? getDropWarning(draggingFromLibrary, dIdx, -1) : '')}
-                          </div>
+                          (() => {
+                            const isDropHere = dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === -1;
+                            const dropWarn = isDropHere && draggingFromLibrary ? getDropWarning(draggingFromLibrary, dIdx, -1) : '';
+                            return (
+                              <div
+                                className={`z-10 w-full cursor-copy ${isDropHere ? 'my-0.5' : 'my-0'}`}
+                                data-droptarget={`day-start-${dIdx}`}
+                                onDragOver={(e) => { e.preventDefault(); setDropTarget({ dayIdx: dIdx, insertAfterPIdx: -1 }); }}
+                                onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null); }}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  if (draggingFromLibrary) {
+                                    addNewItem(dIdx, -1, draggingFromLibrary.types, draggingFromLibrary);
+                                    if (!isDragCopy) removePlace(draggingFromLibrary.id);
+                                  } else if (draggingFromTimeline?.altIdx !== undefined) {
+                                    insertAlternativeToTimeline(dIdx, -1, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
+                                  } else if (draggingFromTimeline && draggingFromTimeline.altIdx === undefined) {
+                                    moveTimelineItem(dIdx, -1, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, isDragCopy, draggingFromTimeline.planPos);
+                                  }
+                                  setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropTarget(null); setIsDragCopy(false);
+                                }}
+                              >
+                                {isDropHere ? renderTimelineInsertGuide(true, dropWarn) : <div className="h-1 w-full" />}
+                              </div>
+                            );
+                          })()
                         ) : (
                           <div className="flex w-full items-center justify-center rounded-[18px] border border-slate-200 bg-white px-4 py-2.5 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] gap-2">
                             {(() => {
@@ -10280,7 +10286,6 @@ const App = () => {
                         }
                       }}
                       className={`relative z-10 w-full flex flex-col transition-all group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${isTimelineDragActive ? 'scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''}`}
-                      onClick={() => toggleReceipt(p.id)}
                     >
 
 

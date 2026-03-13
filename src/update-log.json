@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.184",
+      "timestamp": "2026-03-14T03:06:09+09:00",
+      "message": "fix: simplify overnight lodge end-time mechanics"
+    },
+    {
       "version": "1.3.183",
       "timestamp": "2026-03-14T02:55:15+09:00",
       "message": "fix: allow overnight lodge end wheel to wrap before start"
@@ -144,11 +149,6 @@
       "version": "1.3.155",
       "timestamp": "2026-03-13T20:48:26+09:00",
       "message": "fix: sync overview spacer on first render and slim compact budget"
-    },
-    {
-      "version": "1.3.154",
-      "timestamp": "2026-03-13T20:38:34+09:00",
-      "message": "fix: prevent overview overlap and limit compact cards"
     }
   ]
 }

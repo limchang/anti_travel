@@ -6092,8 +6092,8 @@ const App = () => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const dayPlan = nextData.days[dayIdx].plan;
       const item = dayPlan[pIdx];
-
-      item.duration = Math.max(0, (item.duration || 0) + delta);
+      const maxDuration = isOvernightLodgeTimelineItem(item) ? 1440 : 1439;
+      item.duration = Math.max(0, Math.min(maxDuration, (item.duration || 0) + delta));
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
     });
@@ -6101,28 +6101,32 @@ const App = () => {
   };
 
   const setDurationValue = (dayIdx, pIdx, minutes, options = {}) => {
-    const nextMinutes = Math.max(0, Number(minutes) || 0);
     if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const dayPlan = nextData.days[dayIdx].plan;
       const item = dayPlan[pIdx];
+      const maxDuration = isOvernightLodgeTimelineItem(item) ? 1440 : 1439;
+      const nextMinutes = Math.max(0, Math.min(maxDuration, Number(minutes) || 0));
       item.duration = nextMinutes;
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
     });
-    setLastAction(`소요 시간을 ${nextMinutes}분으로 설정했습니다.`);
+    const maxMinutes = isOvernightLodgeTimelineItem(itinerary.days?.[dayIdx]?.plan?.[pIdx]) ? 1440 : 1439;
+    const clampedMinutes = Math.max(0, Math.min(maxMinutes, Number(minutes) || 0));
+    setLastAction(`소요 시간을 ${clampedMinutes}분으로 설정했습니다.`);
   };
 
   const setDurationHourValue = (dayIdx, pIdx, nextHour, options = {}) => {
-    const targetHour = Math.max(0, Math.min(23, Number(nextHour) || 0));
     if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const dayPlan = nextData.days?.[dayIdx]?.plan;
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
-      item.duration = Math.max(0, Math.min(1439, targetHour * 60));
+      const maxDuration = isOvernightLodgeTimelineItem(item) ? 1440 : 1439;
+      const targetHour = Math.max(0, Math.min(isOvernightLodgeTimelineItem(item) ? 24 : 23, Number(nextHour) || 0));
+      item.duration = Math.max(0, Math.min(maxDuration, targetHour * 60));
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
     });
@@ -6136,12 +6140,13 @@ const App = () => {
       const dayPlan = nextData.days?.[dayIdx]?.plan;
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
+      const maxDuration = isOvernightLodgeTimelineItem(item) ? 1440 : 1439;
       const currentTotal = Math.max(0, Number(item.duration) || 0);
       const currentMinute = ((currentTotal % 60) + 60) % 60;
       let delta = targetMinute - currentMinute;
       if (delta > 30) delta -= 60;
       if (delta < -30) delta += 60;
-      item.duration = Math.max(0, Math.min(1439, currentTotal + delta));
+      item.duration = Math.max(0, Math.min(maxDuration, currentTotal + delta));
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
     });
@@ -6171,7 +6176,10 @@ const App = () => {
       });
       const startMinutes = timeToMinutes(item.time || '00:00');
       const endMinutesRaw = timeToMinutes(normalized);
-      const endMinutes = endMinutesRaw < startMinutes ? endMinutesRaw + 1440 : endMinutesRaw;
+      const shouldWrapToNextDay = isOvernightLodgeTimelineItem(item)
+        ? endMinutesRaw <= startMinutes
+        : endMinutesRaw < startMinutes;
+      const endMinutes = shouldWrapToNextDay ? endMinutesRaw + 1440 : endMinutesRaw;
       item.duration = Math.max(0, endMinutes - startMinutes);
 
       // 종료 시각을 직접 조정하면 뒤 일정은 하드 고정(페리/숙박) 전까지 유동으로 풀어 밀리게 한다.
@@ -10892,6 +10900,7 @@ const App = () => {
                                 const currentStartMinute = startMinutes % 60;
                                 const currentDurationHour = Math.floor(durationMinutes / 60);
                                 const currentDurationMinute = durationMinutes % 60;
+                                const durationHourValues = Array.from({ length: isOvernightLodgeTimelineItem(p) ? 25 : 24 }, (_, idx) => idx);
                                 const currentEndHour = Math.floor(currentEndMinutes / 60);
                                 const currentEndMinute = currentEndMinutes % 60;
                                 const canWrapEndBeforeStart = isOvernightLodgeTimelineItem(p);
@@ -10908,7 +10917,7 @@ const App = () => {
                                   if (canWrapEndBeforeStart) return normalized;
                                   return Math.max(startMinutes, normalized);
                                 };
-                                const clampDurationMinutes = (candidateMinutes) => Math.max(0, Math.min(1439, Number(candidateMinutes) || 0));
+                                const clampDurationMinutes = (candidateMinutes) => Math.max(0, Math.min(canWrapEndBeforeStart ? 1440 : 1439, Number(candidateMinutes) || 0));
                                 const toggleInline = (event) => {
                                   event.stopPropagation();
                                   setTimeControllerTarget((prev) => (
@@ -11026,7 +11035,7 @@ const App = () => {
                                             <TimeWheelColumn
                                               label=""
                                               value={currentDurationHour}
-                                              values={Array.from({ length: 24 }, (_, idx) => idx)}
+                                              values={durationHourValues}
                                               liveOnDrag
                                               onInteract={bumpTimeControllerAutoClose}
                                               onDragStateChange={setIsTimeWheelDragging}
@@ -12153,7 +12162,7 @@ const App = () => {
             const currentStartMinute = startMinutes % 60;
             const currentDurationHour = Math.floor(durationMinutes / 60);
             const currentDurationMinute = durationMinutes % 60;
-            const durationHourValues = Array.from({ length: 24 }, (_, idx) => idx);
+            const durationHourValues = Array.from({ length: isOvernightLodgeTimelineItem(item) ? 25 : 24 }, (_, idx) => idx);
             const endHourValues = Array.from({ length: 24 }, (_, idx) => idx);
             const currentEndHour = Math.floor(currentEndMinutes / 60);
             const currentEndMinute = currentEndMinutes % 60;
@@ -12171,7 +12180,7 @@ const App = () => {
               if (canWrapEndBeforeStart) return normalized;
               return Math.max(startMinutes, normalized);
             };
-            const clampDurationMinutes = (candidateMinutes) => Math.max(0, Math.min(1439, Number(candidateMinutes) || 0));
+            const clampDurationMinutes = (candidateMinutes) => Math.max(0, Math.min(canWrapEndBeforeStart ? 1440 : 1439, Number(candidateMinutes) || 0));
             return (
               <div
                 data-time-modal="true"

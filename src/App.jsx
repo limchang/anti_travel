@@ -10349,18 +10349,7 @@ const App = () => {
                         <div className="flex flex-col gap-5 px-3 sm:px-0">
                             <div className="relative mt-5 w-full rounded-[34px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl sm:px-6 sm:py-6">
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
-                              <div className="flex items-center justify-end gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() => setHeroSummaryExpanded(v => !v)}
-                                  className="shrink-0 flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white/90 px-4 py-2 text-[11px] font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
-                                >
-                                  여행 요약 {heroSummaryExpanded ? '닫기' : '확장'}
-                                  <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />
-                                </button>
-                              </div>
-
-                              <div className="mt-4 grid grid-cols-3 gap-2.5 sm:gap-3">
+                              <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
                                 <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
                                   <div className="flex h-full flex-col items-center justify-center text-center">
                                     <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
@@ -10406,6 +10395,15 @@ const App = () => {
                                   </div>
                                 </div>
                               </div>
+
+                              <button
+                                type="button"
+                                onClick={() => setHeroSummaryExpanded(v => !v)}
+                                className="mt-4 flex w-full items-center justify-center gap-2 rounded-[22px] border border-slate-200 bg-white/92 px-4 py-3 text-[11px] font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                              >
+                                여행 요약 {heroSummaryExpanded ? '닫기' : '확장'}
+                                <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />
+                              </button>
 
                               {heroSummaryExpanded && (
                               <div className="mt-4 w-full rounded-[26px] border border-slate-200 bg-white/92 p-4 text-left shadow-[0_16px_32px_-24px_rgba(15,23,42,0.24)]">

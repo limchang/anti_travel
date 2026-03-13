@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.142",
+      "timestamp": "2026-03-13T19:03:06+09:00",
+      "message": "fix: move hero summary toggle below overview cards"
+    },
+    {
       "version": "1.3.141",
       "timestamp": "2026-03-13T19:00:23+09:00",
       "message": "fix: center align hero summary overview cards"
@@ -144,11 +149,6 @@
       "version": "1.3.113",
       "timestamp": "2026-03-13T09:45:15+09:00",
       "message": "fix: align timeline formula to buffer-based start reconciliation"
-    },
-    {
-      "version": "1.3.112",
-      "timestamp": "2026-03-13T09:37:07+09:00",
-      "message": "docs: define timeline time mechanism and buffer alignment rules"
     }
   ]
 }

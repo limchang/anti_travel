@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.172",
+      "timestamp": "2026-03-14T00:10:13+09:00",
+      "message": "tune: fade in compact budget playbar with delayed dissolve"
+    },
+    {
       "version": "1.3.171",
       "timestamp": "2026-03-13T23:19:26+09:00",
       "message": "fix: fully remove hidden compact overview card remnants"
@@ -144,11 +149,6 @@
       "version": "1.3.143",
       "timestamp": "2026-03-13T19:05:23+09:00",
       "message": "fix: place hero summary toggle beneath overview panel"
-    },
-    {
-      "version": "1.3.142",
-      "timestamp": "2026-03-13T19:03:06+09:00",
-      "message": "fix: move hero summary toggle below overview cards"
     }
   ]
 }

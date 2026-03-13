@@ -3101,6 +3101,7 @@ const App = () => {
   const [dashboardHeight, setDashboardHeight] = useState(200);
   const [showTravelIntensityInfo, setShowTravelIntensityInfo] = useState(false);
   const dashboardRef = useRef(null);
+  const [heroPinnedCompact, setHeroPinnedCompact] = useState(false);
   const [heroSummaryExpanded, setHeroSummaryExpanded] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
   useEffect(() => {
@@ -4108,7 +4109,14 @@ const App = () => {
     return () => { aborted = true; };
   }, [basePlanRef?.address, itinerary.places]);
 
-  // 히어로 상단은 별도 축소 플로팅 대신 sticky 고정으로 유지합니다.
+  useEffect(() => {
+    const updateHeroCompact = () => {
+      setHeroPinnedCompact(window.scrollY > 36);
+    };
+    updateHeroCompact();
+    window.addEventListener('scroll', updateHeroCompact, { passive: true });
+    return () => window.removeEventListener('scroll', updateHeroCompact);
+  }, []);
 
   // 모바일 감지 → 양쪽 패널 자동 접기
   useEffect(() => {
@@ -10121,33 +10129,33 @@ const App = () => {
               <div className="mb-8 relative" style={{ height: dashboardHeight }}>
                 {/* 풀 카드 (최상단) */}
                 <div
-                  className="fixed top-0 z-[120] px-4 pt-8"
+                  className={`fixed top-0 z-[120] px-4 transition-all duration-300 ${heroPinnedCompact ? 'pt-1 sm:pt-2' : 'pt-2 sm:pt-4'}`}
                   style={{
                     left: leftSidebarWidth,
                     right: isMobileLayout ? rightSidebarWidth : (col2Collapsed ? 44 : 300),
                   }}
                 >
-                  <section ref={dashboardRef} className="mb-10">
+                  <section ref={dashboardRef} className={`${heroPinnedCompact ? 'mb-5' : 'mb-8 sm:mb-10'} transition-all duration-300`}>
                     <div className="w-full relative overflow-hidden bg-transparent">
-                      {canManagePlan && <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                      {canManagePlan && <div className={`absolute right-4 z-20 flex items-center transition-all duration-300 ${heroPinnedCompact ? 'top-2 gap-1.5' : 'top-4 gap-2'}`}>
                         <button
                           onClick={(e) => { e.stopPropagation(); setIsEditMode(!isEditMode); }}
-                          className={`w-10 h-10 rounded-xl border backdrop-blur transition-all flex items-center justify-center shadow-lg ${isEditMode ? 'bg-amber-400/90 border-amber-300 text-white font-black' : 'bg-white/85 border-white/40 text-slate-700'}`}
+                          className={`${heroPinnedCompact ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border backdrop-blur transition-all flex items-center justify-center shadow-lg ${isEditMode ? 'bg-amber-400/90 border-amber-300 text-white font-black' : 'bg-white/85 border-white/40 text-slate-700'}`}
                           title={isEditMode ? '편집 모드 종료' : '편집 모드 시작 (드래그 활성화)'}
                         >
-                          {isEditMode ? <Edit3 size={18} /> : <Lock size={18} />}
+                          {isEditMode ? <Edit3 size={heroPinnedCompact ? 16 : 18} /> : <Lock size={heroPinnedCompact ? 16 : 18} />}
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); setIsAddingPlace(true); }}
-                          className="w-10 h-10 rounded-xl border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg"
+                          className={`${heroPinnedCompact ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg`}
                           title="내 장소에 일정 추가"
                         >
-                          <PlusCircle size={20} className="text-[#3182F6]" />
+                          <PlusCircle size={heroPinnedCompact ? 18 : 20} className="text-[#3182F6]" />
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); autoCalculateAllRoutes(); }}
                           disabled={isCalculatingAllRoutes}
-                          className="w-10 h-10 rounded-xl border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                          className={`${heroPinnedCompact ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed`}
                           title="전체 경로 다시 계산"
                         >
                           {isCalculatingAllRoutes ? (
@@ -10161,21 +10169,21 @@ const App = () => {
                         </button>
                         <button
                           onClick={() => setShowPlanOptions(true)}
-                          className="w-10 h-10 rounded-xl border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg"
+                          className={`${heroPinnedCompact ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg`}
                           title="일정 옵션"
                         >
-                          <SlidersHorizontal size={16} />
+                          <SlidersHorizontal size={heroPinnedCompact ? 14 : 16} />
                         </button>
                         <button
                           onClick={() => setShowShareManager(true)}
-                          className="w-10 h-10 rounded-xl border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg"
+                          className={`${heroPinnedCompact ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg`}
                           title="공유 설정"
                         >
-                          <Share2 size={16} />
+                          <Share2 size={heroPinnedCompact ? 14 : 16} />
                         </button>
                       </div>}
                       {/* 🖼️ 배경 이미지 (고정 높이, 요약 확장과 무관) */}
-                      <div className="absolute left-0 right-0 top-0 h-[330px] sm:h-[360px] overflow-hidden pointer-events-none">
+                      <div className={`absolute left-0 right-0 top-0 overflow-hidden pointer-events-none transition-all duration-300 ${heroPinnedCompact ? 'h-[118px] sm:h-[132px]' : 'h-[330px] sm:h-[360px]'}`}>
                         <img
                           src={getRegionCoverImage(tripRegion)}
                           className="w-full h-full object-cover opacity-95 scale-105"
@@ -10187,33 +10195,33 @@ const App = () => {
                         />
                       </div>
 
-                      <div className={`relative z-10 flex flex-col gap-10 w-full mx-auto ${timelineMaxClass}`}>
+                      <div className={`relative z-10 flex w-full mx-auto flex-col transition-all duration-300 ${timelineMaxClass} ${heroPinnedCompact ? 'gap-3' : 'gap-10'}`}>
                         {/* 🌟 1. 타이틀 & 일정 */}
-                        <div className="flex flex-col gap-5 px-6 pt-8 sm:px-8 sm:pt-10">
+                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-2 px-4 pt-3 pr-[220px] sm:px-6 sm:pt-4 sm:pr-[260px]' : 'gap-5 px-6 pt-8 pr-[230px] sm:px-8 sm:pt-10 sm:pr-[280px]'}`}>
                           <input
                             value={tripRegion}
                             onChange={(e) => setTripRegion(e.target.value)}
                             placeholder="어디로 떠나시나요?"
-                            className="bg-transparent border-none outline-none text-[36px] sm:text-[44px] font-extrabold text-white drop-shadow-md placeholder:text-white/50 w-full tracking-tight leading-none"
+                            className={`w-full bg-transparent border-none outline-none font-extrabold text-white drop-shadow-md placeholder:text-white/50 tracking-tight leading-none transition-all duration-300 ${heroPinnedCompact ? 'text-[26px] sm:text-[30px]' : 'text-[36px] sm:text-[44px]'}`}
                           />
-                          <div className="relative flex items-center gap-2">
+                          <div className={`relative flex items-center gap-2 transition-all duration-300 ${heroPinnedCompact ? 'flex-wrap' : ''}`}>
                             <button
                               onClick={() => setShowDatePicker(v => !v)}
-                              className="flex items-center gap-2.5 bg-white/20 backdrop-blur-md border border-white/20 px-4 py-2 rounded-2xl transition-all group hover:bg-white/30"
+                              className={`flex items-center gap-2.5 bg-white/20 backdrop-blur-md border border-white/20 transition-all group hover:bg-white/30 ${heroPinnedCompact ? 'px-3 py-1.5 rounded-xl' : 'px-4 py-2 rounded-2xl'}`}
                             >
                               <Calendar size={14} className="text-white group-hover:scale-110 transition-transform shrink-0" />
                               <div className="flex items-center gap-1.5 pt-0.5">
-                                <span className="text-[12px] font-black text-white">
+                                <span className={`${heroPinnedCompact ? 'text-[11px]' : 'text-[12px]'} font-black text-white`}>
                                   {tripStartDate ? tripStartDate.replace(/-/g, '. ') : '시작일'}
                                 </span>
                                 <span className="text-white/50 text-[10px] font-black">~</span>
-                                <span className="text-[12px] font-black text-white">
+                                <span className={`${heroPinnedCompact ? 'text-[11px]' : 'text-[12px]'} font-black text-white`}>
                                   {tripEndDate ? tripEndDate.replace(/-/g, '. ') : '종료일'}
                                 </span>
                               </div>
                             </button>
-                            <div className="px-4 py-2 bg-black/10 backdrop-blur-sm border border-white/10 rounded-2xl">
-                              <span className="text-[12px] font-black text-white/90">
+                            <div className={`bg-black/10 backdrop-blur-sm border border-white/10 transition-all duration-300 ${heroPinnedCompact ? 'px-3 py-1.5 rounded-xl' : 'px-4 py-2 rounded-2xl'}`}>
+                              <span className={`${heroPinnedCompact ? 'text-[11px]' : 'text-[12px]'} font-black text-white/90`}>
                                 {tripDays > 0 ? `${tripNights}박 ${tripDays}일` : `${itinerary.days?.length || 0}일 일정`}
                               </span>
                             </div>
@@ -10234,18 +10242,18 @@ const App = () => {
                         </div>
 
                         {/* 🌟 2. 여행 한눈에 보기 */}
-                        <div className="flex flex-col gap-5 px-3 sm:px-0">
-                            <div className="relative mt-5 w-full rounded-[34px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl sm:px-6 sm:py-6">
+                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-3 px-2 sm:px-0' : 'gap-5 px-3 sm:px-0'}`}>
+                            <div className={`relative w-full border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 ${heroPinnedCompact ? 'mt-0 rounded-[26px] px-3 py-3 sm:px-4 sm:py-4' : 'mt-5 rounded-[34px] px-4 py-4 sm:px-6 sm:py-6'}`}>
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
                               <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-                                <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
+                                <div className={`rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroPinnedCompact ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
                                   <div className="flex h-full flex-col items-center justify-center text-center">
                                     <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
-                                    <p className="mt-2 text-[22px] leading-none font-black text-[#3182F6] tabular-nums sm:text-[31px]">{usedPct}%</p>
-                                    <p className="mt-2 text-[10px] font-bold text-slate-500 tabular-nums sm:text-[11px]">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
+                                    <p className={`leading-none font-black text-[#3182F6] tabular-nums transition-all duration-300 ${heroPinnedCompact ? 'mt-1.5 text-[18px] sm:text-[22px]' : 'mt-2 text-[22px] sm:text-[31px]'}`}>{usedPct}%</p>
+                                    <p className={`font-bold text-slate-500 tabular-nums transition-all duration-300 ${heroPinnedCompact ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
                                   </div>
                                 </div>
-                                <div className="relative rounded-[24px] border border-slate-200 bg-white/95 px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
+                                <div className={`relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroPinnedCompact ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
                                   <div className="flex h-full flex-col items-center justify-center text-center">
                                     <div className="flex items-center justify-center gap-1.5">
                                       <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
@@ -10261,8 +10269,8 @@ const App = () => {
                                         <Info size={10} />
                                       </button>
                                     </div>
-                                    <p className="mt-2 text-center text-[21px] leading-none font-black text-slate-800 sm:text-[27px]">{travelIntensity.label}</p>
-                                    <p className="mt-2 text-center text-[10px] font-bold text-slate-500 sm:text-[11px]">{travelIntensity.note}</p>
+                                    <p className={`text-center leading-none font-black text-slate-800 transition-all duration-300 ${heroPinnedCompact ? 'mt-1.5 text-[17px] sm:text-[21px]' : 'mt-2 text-[21px] sm:text-[27px]'}`}>{travelIntensity.label}</p>
+                                    <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroPinnedCompact ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>{travelIntensity.note}</p>
                                   </div>
                                   {showTravelIntensityInfo && (
                                     <div className="absolute left-1/2 top-[calc(100%-8px)] z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
@@ -10275,11 +10283,11 @@ const App = () => {
                                     </div>
                                   )}
                                 </div>
-                                <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
+                                <div className={`rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroPinnedCompact ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
                                   <div className="flex h-full flex-col items-center justify-center text-center">
                                     <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
-                                    <p className="mt-2 text-center text-[22px] leading-none font-black text-slate-800 tabular-nums sm:text-[31px]">{visitPerHour.toFixed(1)}개/h</p>
-                                    <p className="mt-2 text-center text-[10px] font-bold text-slate-500 sm:text-[11px]">방문 일정 {visitPlanCount}개 기준</p>
+                                    <p className={`text-center leading-none font-black text-slate-800 tabular-nums transition-all duration-300 ${heroPinnedCompact ? 'mt-1.5 text-[18px] sm:text-[22px]' : 'mt-2 text-[22px] sm:text-[31px]'}`}>{visitPerHour.toFixed(1)}개/h</p>
+                                    <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroPinnedCompact ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>방문 일정 {visitPlanCount}개 기준</p>
                                   </div>
                                 </div>
                               </div>
@@ -10328,7 +10336,7 @@ const App = () => {
                             <button
                               type="button"
                               onClick={() => setHeroSummaryExpanded(v => !v)}
-                              className="flex w-full items-center justify-center gap-2 rounded-[22px] border border-slate-200 bg-white/92 px-4 py-3 text-[11px] font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                              className={`flex w-full items-center justify-center gap-2 border border-slate-200 bg-white/92 font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-all hover:border-[#3182F6] hover:text-[#3182F6] ${heroPinnedCompact ? 'rounded-[18px] px-4 py-2 text-[10px]' : 'rounded-[22px] px-4 py-3 text-[11px]'}`}
                             >
                               여행 요약 {heroSummaryExpanded ? '닫기' : '확장'}
                               <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />

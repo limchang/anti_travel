@@ -10137,7 +10137,7 @@ const App = () => {
               ? `${(averageTravelMinutes / 60).toFixed(1)}시간`
               : `${Math.round(averageTravelMinutes)}분`;
             return (
-              <div className="mb-6 relative" style={{ height: Math.max(dashboardHeight + (heroPinnedCompact ? 10 : (isMobileLayout ? 12 : 18)), heroPinnedCompact ? 144 : (isMobileLayout ? 406 : 458)) }}>
+              <div className="mb-2 relative" style={{ height: Math.max(dashboardHeight + (heroPinnedCompact ? 4 : (isMobileLayout ? 5 : 6)), heroPinnedCompact ? 136 : (isMobileLayout ? 356 : 386)) }}>
                 {/* 풀 카드 (최상단) */}
                 <div
                   className="fixed top-0 z-[120]"
@@ -10148,7 +10148,7 @@ const App = () => {
                 >
                   <section
                     ref={dashboardRef}
-                    className={`${heroPinnedCompact ? 'mb-3' : 'mb-4 sm:mb-6'} transition-all duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overscroll-contain' : ''}`}
+                    className={`${heroPinnedCompact ? 'mb-1.5' : 'mb-2 sm:mb-3'} transition-all duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overscroll-contain' : ''}`}
                   >
                     <div className="w-full relative overflow-visible bg-transparent">
                       {canManagePlan && <div className={`absolute right-4 z-20 flex items-center transition-all duration-300 ${heroPinnedCompact ? 'top-2 gap-1.5' : 'top-4 gap-2'}`}>
@@ -10257,9 +10257,9 @@ const App = () => {
 
                         {/* 🌟 2. 여행 한눈에 보기 */}
                         <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-3 px-2 sm:px-0' : 'gap-5 px-3 sm:px-0'}`}>
-                            <div className={`relative w-full border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 ${heroPinnedCompact ? 'mt-0 rounded-[26px] px-3 py-3 sm:px-4 sm:py-4' : 'mt-5 rounded-[34px] px-4 py-4 sm:px-6 sm:py-6'}`}>
+                            <div className={`relative w-full border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 ${heroPinnedCompact ? 'mt-0 rounded-[24px] px-3 py-3 sm:px-4 sm:py-4' : 'mt-5 rounded-[24px] px-4 py-4 sm:px-6 sm:py-6'}`}>
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
-                              <div className={`${heroPinnedCompact ? 'flex max-w-[255px]' : 'grid grid-cols-3 gap-2.5 sm:gap-3'}`}>
+                              <div className={`${heroPinnedCompact ? 'flex max-w-[255px]' : 'grid grid-cols-3 gap-3 sm:gap-3'}`}>
                                 {heroPinnedCompact ? (
                                   <div className="w-full rounded-[18px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.96)_100%)] px-3 py-1.5 shadow-[0_10px_28px_-20px_rgba(49,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.95)]">
                                     <div className="flex items-center justify-between gap-2 whitespace-nowrap">
@@ -10328,7 +10328,7 @@ const App = () => {
                               </div>
 
                               {heroSummaryExpanded && (
-                              <div className="mt-4 w-full rounded-[26px] border border-slate-200 bg-white/92 p-4 text-left shadow-[0_16px_32px_-24px_rgba(15,23,42,0.24)]">
+                              <div className="mt-4 w-full rounded-[24px] border border-slate-200 bg-white/92 p-4 text-left shadow-[0_16px_32px_-24px_rgba(15,23,42,0.24)]">
                                 <p className="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">신규 / 재방문 비율 비교</p>
                                 <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden flex">
                                   <div className="h-full bg-emerald-400" style={{ width: `${newPct}%` }} />
@@ -10370,7 +10370,7 @@ const App = () => {
                               <button
                                 type="button"
                                 onClick={() => setHeroSummaryExpanded(v => !v)}
-                                className={`mt-3 flex w-full items-center justify-center gap-2 border border-slate-200 bg-white/92 font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-all hover:border-[#3182F6] hover:text-[#3182F6] ${heroPinnedCompact ? 'rounded-[16px] px-4 py-1.5 text-[10px]' : 'rounded-[22px] px-4 py-3 text-[11px]'}`}
+                                className={`mt-3 flex w-full items-center justify-center gap-2 border border-slate-200 bg-white/92 font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-all hover:border-[#3182F6] hover:text-[#3182F6] ${heroPinnedCompact ? 'rounded-[20px] px-4 py-1.5 text-[10px]' : 'rounded-[24px] px-4 py-3 text-[11px]'}`}
                               >
                                 여행 요약 {heroSummaryExpanded ? '닫기' : '확장'}
                                 <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />

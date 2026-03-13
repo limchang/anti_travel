@@ -4242,17 +4242,9 @@ const App = () => {
     }
     return '';
   };
-  const getRouteAddress = (item, role = 'from') => {
+  const getIncomingConnectionAddress = (item = {}) => {
     if (!item) return '';
     if (item.types?.includes('ship')) {
-      if (role === 'from') {
-        return String(
-          item.endAddress
-          || item.geoEnd?.address
-          || item.endPoint
-          || ''
-        ).trim();
-      }
       return String(
         item.receipt?.address
         || item.geoStart?.address
@@ -4268,6 +4260,29 @@ const App = () => {
       || ''
     ).trim();
   };
+  const getOutgoingConnectionAddress = (item = {}) => {
+    if (!item) return '';
+    if (item.types?.includes('ship')) {
+      return String(
+        item.endAddress
+        || item.geoEnd?.address
+        || item.endPoint
+        || ''
+      ).trim();
+    }
+    return String(
+      item.receipt?.address
+      || item.address
+      || getSourceLodgeAddressForItem(item)
+      || item.geo?.address
+      || ''
+    ).trim();
+  };
+  const getRouteAddress = (item, role = 'from') => (
+    role === 'from'
+      ? getOutgoingConnectionAddress(item)
+      : getIncomingConnectionAddress(item)
+  );
   const getRouteGeoPoint = (item, role = 'from') => {
     if (!item) return null;
     if (item.types?.includes('ship')) {
@@ -4276,7 +4291,7 @@ const App = () => {
         : normalizeGeoPoint(item.geoStart, getShipStartAddress(item));
       return hasGeoCoords(geo) ? geo : null;
     }
-    const geo = normalizeGeoPoint(item.geo, getRouteAddress(item, role === 'from' ? 'from' : 'to'));
+    const geo = normalizeGeoPoint(item.geo, role === 'from' ? getOutgoingConnectionAddress(item) : getIncomingConnectionAddress(item));
     return hasGeoCoords(geo) ? geo : null;
   };
   const getRouteCacheKey = (fromAddress = '', toAddress = '') => `${String(fromAddress || '').trim()}|${String(toAddress || '').trim()}`;
@@ -5472,8 +5487,8 @@ const App = () => {
       };
     }
     const prevItem = getPreviousMainPlanItemByIndex(days, dayIdx, targetIdx);
-    const fromAddress = String(getRouteAddress(prevItem, 'from') || '').trim();
-    const toAddress = String(getRouteAddress(targetItem, 'to') || '').trim();
+    const fromAddress = String(getOutgoingConnectionAddress(prevItem) || '').trim();
+    const toAddress = String(getIncomingConnectionAddress(targetItem) || '').trim();
     let status = 'ready';
     if (!prevItem) status = 'no_previous';
     else if (!fromAddress) status = 'missing_from';

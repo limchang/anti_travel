@@ -5737,9 +5737,7 @@ const App = () => {
       const dayPlan = nextData.days?.[dayIdx]?.plan;
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
-      const currentTotal = Math.max(0, Number(item.duration) || 0);
-      const currentMinute = ((currentTotal % 60) + 60) % 60;
-      item.duration = Math.max(0, Math.min(1439, (targetHour * 60) + currentMinute));
+      item.duration = Math.max(0, Math.min(1439, targetHour * 60));
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
     });

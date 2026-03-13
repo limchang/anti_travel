@@ -11525,7 +11525,7 @@ const App = () => {
 
                         {/* 🟩 하단 영수증 영역 (전체 너비 100%) */}
                         {
-                          p.type !== 'backup' && !isLodgeSegmentCard && (
+                          p.type !== 'backup' && (
                             <div className="mx-3 mb-2 mt-1 rounded-2xl overflow-hidden border border-slate-100/80" onClick={(e) => e.stopPropagation()}>
                               {isExpanded && (
                                 <div className="px-5 py-4 animate-in slide-in-from-top-1 bg-white border-b border-slate-100 border-dashed">

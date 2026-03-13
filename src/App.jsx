@@ -4287,35 +4287,27 @@ const App = () => {
     if (normalized.includes('route unavailable') || normalized.includes('near-zero route') || normalized.includes('directions failed')) return '경로없음';
     return '주소확인';
   };
-  const getRouteDistanceStatus = (prevItem, targetItem) => {
-    if (!prevItem) return '출발지없음';
-    if (!targetItem) return '도착지없음';
-    const fromAddress = getRouteAddress(prevItem, 'from');
-    const toAddress = getRouteAddress(targetItem, 'to');
-    if (!String(fromAddress || '').trim()) return '출발지없음';
-    if (!String(toAddress || '').trim()) return '도착지없음';
-    if (String(fromAddress).includes('없음') || String(toAddress).includes('없음')) return '주소확인';
+  const getRouteDistanceStatus = (routeEntry) => {
+    if (!routeEntry?.targetItem) return '도착지없음';
+    if (routeEntry.status === 'no_previous' || routeEntry.status === 'missing_from') return '출발지없음';
+    if (routeEntry.status === 'missing_to') return '도착지없음';
+    if (routeEntry.status === 'needs_review') return '주소확인';
+    const fromAddress = routeEntry.fromAddress;
+    const toAddress = routeEntry.toAddress;
     const cacheKey = getRouteCacheKey(fromAddress, toAddress);
     const cachedRoute = routeCache[cacheKey];
     if (cachedRoute?.failed) return cachedRoute.failedReason || '경로실패';
     if (Number.isFinite(Number(cachedRoute?.distance)) && Number(cachedRoute.distance) >= 0) {
       return formatDistanceText(cachedRoute.distance);
     }
-    return formatDistanceText(targetItem?.distance);
+    return formatDistanceText(routeEntry?.targetItem?.distance);
   };
   const shouldAutoCalculateRoute = (dayIdx, targetIdx) => {
-    let prevItem;
-    if (targetIdx === 0) {
-      if (dayIdx <= 0) return false;
-      const prevDayPlan = (itinerary.days?.[dayIdx - 1]?.plan || []).filter((item) => item && item.type !== 'backup');
-      prevItem = prevDayPlan[prevDayPlan.length - 1];
-    } else {
-      prevItem = itinerary.days?.[dayIdx]?.plan?.[targetIdx - 1];
-    }
-    const targetItem = itinerary.days?.[dayIdx]?.plan?.[targetIdx];
-    if (!prevItem || !targetItem || targetItem.type === 'backup' || targetItem.types?.includes('ship')) return false;
-    const fromAddress = getRouteAddress(prevItem, 'from');
-    const toAddress = getRouteAddress(targetItem, 'to');
+    const routeEntry = getRouteFlowEntry(itinerary.days || [], dayIdx, targetIdx);
+    const targetItem = routeEntry.targetItem;
+    if (!routeEntry.prevItem || !targetItem || targetItem.types?.includes('ship')) return false;
+    const fromAddress = routeEntry.fromAddress;
+    const toAddress = routeEntry.toAddress;
     if (!fromAddress || !toAddress || fromAddress.includes('없음') || toAddress.includes('없음')) return false;
     const hasDistance = Number.isFinite(Number(targetItem.distance)) && Number(targetItem.distance) >= 0;
     const hasTravelAuto = String(targetItem.travelTimeAuto || '').trim() !== '';
@@ -5429,6 +5421,70 @@ const App = () => {
     }
     return true;
   };
+
+  const getRouteFlowEntry = (days = [], dayIdx, targetIdx) => {
+    const dayPlan = days?.[dayIdx]?.plan || [];
+    const targetItem = dayPlan?.[targetIdx];
+    if (!targetItem || targetItem.type === 'backup') {
+      return {
+        dayIdx,
+        targetIdx,
+        prevItem: null,
+        targetItem: null,
+        prevItemId: '',
+        targetItemId: '',
+        fromAddress: '',
+        toAddress: '',
+        status: 'invalid',
+      };
+    }
+    const prevItem = getPreviousMainPlanItemByIndex(days, dayIdx, targetIdx);
+    const fromAddress = String(getRouteAddress(prevItem, 'from') || '').trim();
+    const toAddress = String(getRouteAddress(targetItem, 'to') || '').trim();
+    let status = 'ready';
+    if (!prevItem) status = 'no_previous';
+    else if (!fromAddress) status = 'missing_from';
+    else if (!toAddress) status = 'missing_to';
+    else if (fromAddress.includes('없음') || toAddress.includes('없음')) status = 'needs_review';
+    return {
+      dayIdx,
+      targetIdx,
+      prevItem,
+      targetItem,
+      prevItemId: String(prevItem?.id || '').trim(),
+      targetItemId: String(targetItem?.id || '').trim(),
+      fromAddress,
+      toAddress,
+      status,
+    };
+  };
+
+  const buildRouteFlowMeta = (days = []) => (
+    (days || []).map((day, dayIdx) => ({
+      day: day?.day || dayIdx + 1,
+      routes: (day?.plan || [])
+        .map((_, targetIdx) => getRouteFlowEntry(days, dayIdx, targetIdx))
+        .filter((entry) => entry.targetItem)
+        .map((entry) => ({
+          targetIdx: entry.targetIdx,
+          targetItemId: entry.targetItemId,
+          prevItemId: entry.prevItemId,
+          fromAddress: entry.fromAddress,
+          toAddress: entry.toAddress,
+          status: entry.status,
+        })),
+    }))
+  );
+  const routeFlowLookup = useMemo(() => {
+    const lookup = {};
+    (itinerary.days || []).forEach((day, dayIdx) => {
+      (day?.plan || []).forEach((item, targetIdx) => {
+        if (!item || item.type === 'backup') return;
+        lookup[item.id] = getRouteFlowEntry(itinerary.days || [], dayIdx, targetIdx);
+      });
+    });
+    return lookup;
+  }, [itinerary.days]);
 
   const getBufferDisplayState = (days = [], dayIdx, targetIdx) => {
     const dayPlan = days?.[dayIdx]?.plan || [];
@@ -7231,16 +7287,9 @@ const App = () => {
   const autoCalculateRouteFor = async (dayIdx, targetIdx, options = {}) => {
     const silent = !!options.silent;
     const forceRefresh = !!options.forceRefresh;
-    let prevItem;
-    if (targetIdx === 0 && dayIdx > 0) {
-      const prevDayPlan = itinerary.days[dayIdx - 1].plan;
-      prevItem = prevDayPlan[prevDayPlan.length - 1];
-    } else {
-      prevItem = itinerary.days[dayIdx].plan[targetIdx - 1];
-    }
-    const targetItem = itinerary.days[dayIdx].plan[targetIdx];
-    const addr1 = getRouteAddress(prevItem, 'from');
-    const addr2 = getRouteAddress(targetItem, 'to');
+    const routeEntry = getRouteFlowEntry(itinerary.days || [], dayIdx, targetIdx);
+    const addr1 = routeEntry.fromAddress;
+    const addr2 = routeEntry.toAddress;
 
     if (!addr1 || !addr2 || addr1.includes('없음') || addr2.includes('없음')) {
       if (!silent) setLastAction("두 장소의 올바른 주소가 필요합니다.");
@@ -7423,6 +7472,7 @@ const App = () => {
     const timer = setTimeout(() => {
       const payload = {
         ...itinerary,
+        routeFlowMeta: buildRouteFlowMeta(itinerary.days || []),
         tripRegion,
         tripStartDate,
         tripEndDate,
@@ -10257,7 +10307,8 @@ const App = () => {
                             {(() => {
                               const rid = `${dIdx}_${pIdx}`;
                               const busy = calculatingRouteId === rid;
-                              const prevRouteItem = prevMainItem;
+                              const routeEntry = routeFlowLookup[p.id] || getRouteFlowEntry(itinerary.days || [], dIdx, pIdx);
+                              const prevRouteItem = routeEntry.prevItem;
                               const bufferDisplay = getBufferDisplayState(itinerary.days, dIdx, pIdx);
                               return (
                                 <>
@@ -10280,8 +10331,8 @@ const App = () => {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       if (busy) return;
-                                      const fromAddr = getRouteAddress(prevRouteItem, 'from');
-                                      const toAddr = getRouteAddress(p, 'to');
+                                      const fromAddr = routeEntry.fromAddress;
+                                      const toAddr = routeEntry.toAddress;
                                       if (!fromAddr || !toAddr) {
                                         setLastAction("길찾기용 출발/도착 주소가 필요합니다.");
                                         return;
@@ -10290,7 +10341,7 @@ const App = () => {
                                     }}
                                   >
                                     {busy ? <LoaderCircle size={11} className="animate-spin" /> : <MapIcon size={11} />}
-                                    <span>{busy ? '계산중' : getRouteDistanceStatus(prevRouteItem, p)}</span>
+                                    <span>{busy ? '계산중' : getRouteDistanceStatus(routeEntry)}</span>
                                   </button>
 
                                   {/* 자동경로 */}
@@ -11351,6 +11402,7 @@ const App = () => {
                                     {(() => {
                                       const rid = `${dIdx}_${pIdx + 1}`;
                                       const busy = calculatingRouteId === rid;
+                                      const routeEntry = routeFlowLookup[nextItem.id] || getRouteFlowEntry(itinerary.days || [], dIdx, pIdx + 1);
                                       const nextPlanIdx = d.plan.findIndex((entry) => entry?.id === nextItem.id);
                                       const nextBufferDisplay = getBufferDisplayState(itinerary.days, dIdx, nextPlanIdx);
                                       return (
@@ -11373,8 +11425,8 @@ const App = () => {
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             if (busy) return;
-                                            const prevAddr = getRouteAddress(p, 'from');
-                                            const toAddr = getRouteAddress(nextItem, 'to');
+                                            const prevAddr = routeEntry.fromAddress;
+                                            const toAddr = routeEntry.toAddress;
                                             if (!prevAddr || !toAddr) {
                                               setLastAction("길찾기용 출발/도착 주소가 필요합니다.");
                                               return;
@@ -11383,7 +11435,7 @@ const App = () => {
                                           }}
                                         >
                                           {busy ? <LoaderCircle size={11} className="animate-spin" /> : <MapIcon size={11} />}
-                                          <span>{busy ? '계산중' : getRouteDistanceStatus(p, nextItem)}</span>
+                                          <span>{busy ? '계산중' : getRouteDistanceStatus(routeEntry)}</span>
                                         </button>
                                         {/* 자동경로 */}
                                         <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1, { forceRefresh: true }); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-[#3182F6]/10 text-[#3182F6] border-[#3182F6]/30' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>

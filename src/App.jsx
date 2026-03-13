@@ -5289,6 +5289,23 @@ const App = () => {
     return timeToMinutes(item.time || '00:00') + Math.max(0, Number(item.duration) || 0);
   };
 
+  const getAdjacentMainPlanItems = (days = [], dayIdx, itemId) => {
+    const currentDayMain = (days?.[dayIdx]?.plan || []).filter((entry) => entry && entry.type !== 'backup');
+    const currentIndex = currentDayMain.findIndex((entry) => entry?.id === itemId);
+    if (currentIndex < 0) {
+      return { prevItem: null, nextItem: null, isFirstMainItem: false };
+    }
+    const prevItem = currentIndex > 0
+      ? currentDayMain[currentIndex - 1]
+      : ((days?.[dayIdx - 1]?.plan || []).filter((entry) => entry && entry.type !== 'backup').slice(-1)[0] || null);
+    const nextItem = currentDayMain[currentIndex + 1] || null;
+    return {
+      prevItem,
+      nextItem,
+      isFirstMainItem: currentIndex === 0,
+    };
+  };
+
   const syncBufferWithFixedStart = (days = [], dayIdx, pIdx) => {
     const dayPlan = days?.[dayIdx]?.plan || [];
     const item = dayPlan?.[pIdx];
@@ -9877,6 +9894,7 @@ const App = () => {
                 const isLodgeSegmentCard = isStandaloneLodgeSegmentItem(p);
                 const isLodgeTagged = Array.isArray(p.types) && p.types.includes('lodge');
                 const isShip = p.types?.includes('ship');
+                const { prevItem: prevMainItem, nextItem: nextMainItem, isFirstMainItem } = getAdjacentMainPlanItems(itinerary.days || [], dIdx, p.id);
                 const isTimelineDragActive = Boolean(draggingFromLibrary || draggingFromTimeline);
                 const planBCount = p.alternatives?.length || 0;
                 const hasPlanB = planBCount > 0;
@@ -9919,7 +9937,7 @@ const App = () => {
                     data-plan-id={p.id}
                     className={`relative group transition-all duration-300 ${highlightedItemId === p.id ? 'scale-[1.02]' : ''}`}
                   >
-                    {d.day > 1 && pIdx === 0 && (
+                    {d.day > 1 && isFirstMainItem && (
                       <div className="flex w-full items-center justify-center my-3">
                         {isTimelineDragActive ? (
                           <div
@@ -9947,13 +9965,7 @@ const App = () => {
                             {(() => {
                               const rid = `${dIdx}_${pIdx}`;
                               const busy = calculatingRouteId === rid;
-                              let prevRouteItem;
-                              if (pIdx === 0 && dIdx > 0) {
-                                const prevDayPlan = itinerary.days[dIdx - 1]?.plan || [];
-                                prevRouteItem = prevDayPlan[prevDayPlan.length - 1];
-                              } else {
-                                prevRouteItem = d.plan?.[pIdx - 1];
-                              }
+                              const prevRouteItem = prevMainItem;
                               return (
                                 <>
                                   {/* 이동 시간 */}
@@ -11008,7 +11020,7 @@ const App = () => {
                       pIdx < d.plan.length - 1 && (
                         <div className="relative flex w-full items-center py-2">
                           {(() => {
-                            const nextItem = d.plan[pIdx + 1];
+                            const nextItem = nextMainItem;
                             if (!nextItem) return null;
 
                             if (draggingFromLibrary || draggingFromTimeline !== null) {

@@ -11093,6 +11093,12 @@ const App = () => {
                                     </div>
                                   );
                                 })()}
+                                <SharedMemoRow
+                                  value={p.memo || ''}
+                                  onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
+                                  placeholder="메모를 입력하세요..."
+                                  onContainerClick={(e) => e.stopPropagation()}
+                                />
                                     </>
                                   );
                                 })()}

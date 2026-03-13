@@ -5270,6 +5270,39 @@ const App = () => {
     return timeToMinutes(item.time || '00:00') + Math.max(0, Number(item.duration) || 0);
   };
 
+  const syncBufferWithFixedStart = (days = [], dayIdx, pIdx) => {
+    const dayPlan = days?.[dayIdx]?.plan || [];
+    const item = dayPlan?.[pIdx];
+    if (!item || item.type === 'backup' || item.types?.includes('ship') || !item.isTimeFixed) return;
+
+    let prevItem = null;
+    for (let idx = pIdx - 1; idx >= 0; idx -= 1) {
+      const candidate = dayPlan[idx];
+      if (candidate && candidate.type !== 'backup') {
+        prevItem = candidate;
+        break;
+      }
+    }
+    if (!prevItem && dayIdx > 0) {
+      const prevDayPlan = days?.[dayIdx - 1]?.plan || [];
+      for (let idx = prevDayPlan.length - 1; idx >= 0; idx -= 1) {
+        const candidate = prevDayPlan[idx];
+        if (candidate && candidate.type !== 'backup') {
+          prevItem = candidate;
+          break;
+        }
+      }
+    }
+    if (!prevItem) return;
+
+    const baseArrival = getTimelineItemEndMinutes(prevItem) + parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
+    const fixedStart = timeToMinutes(item.time || '00:00');
+    const nextBuffer = Math.max(0, fixedStart - baseArrival);
+    item.bufferTimeOverride = `${nextBuffer}분`;
+    item._manualBufferTimeOverride = `${nextBuffer}분`;
+    item._isBufferCoordinated = nextBuffer > 0;
+  };
+
   const recalculateSchedule = (dayPlan) => {
     if (!Array.isArray(dayPlan)) return [];
     const mainIndices = [];
@@ -5394,6 +5427,7 @@ const App = () => {
         const currentMinutes = timeToMinutes(item.time);
         item.time = minutesToTime(currentMinutes + delta);
         item.isTimeFixed = true;
+        syncBufferWithFixedStart(nextData.days, dayIdx, pIdx);
       }
 
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
@@ -5435,6 +5469,7 @@ const App = () => {
       });
       item.time = normalized;
       item.isTimeFixed = true;
+      syncBufferWithFixedStart(nextData.days, dayIdx, pIdx);
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       recalculateLodgeDurations(nextData.days);
       return nextData;
@@ -5800,6 +5835,9 @@ const App = () => {
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
       item.isTimeFixed = !item.isTimeFixed;
+      if (item.isTimeFixed) {
+        syncBufferWithFixedStart(draft.days, dayIdx, pIdx);
+      }
       draft.days[dayIdx].plan = recalculateSchedule(dayPlan);
       recalculateLodgeDurations(draft.days);
       return draft;

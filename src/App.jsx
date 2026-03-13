@@ -2559,6 +2559,7 @@ const App = () => {
   const entryChooserShownRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
   const [draggingFromLibrary, setDraggingFromLibrary] = useState(null);
+  const [mobileSelectedLibraryPlace, setMobileSelectedLibraryPlace] = useState(null);
   const [placeFilterTags, setPlaceFilterTags] = useState([]); // 내 장소 필터링 태그
   const [showPlaceCategoryManager, setShowPlaceCategoryManager] = useState(false);
   const [showPlaceMenu, setShowPlaceMenu] = useState(false);
@@ -2623,6 +2624,7 @@ const App = () => {
   const undoToastTimerRef = React.useRef(null);
   const infoToastTimerRef = React.useRef(null);
   const dragEditHintToastRef = React.useRef(0);
+  const mobileLibraryLongPressRef = useRef({ timer: null, startX: 0, startY: 0, placeId: '', triggered: false });
   const [expandedId, setExpandedId] = useState(null);
   const [expandedPlaceId, setExpandedPlaceId] = useState(null);
   const [pendingPlanMenuFocus, setPendingPlanMenuFocus] = useState(null); // { dayIdx, pIdx, menuIdx }
@@ -2973,6 +2975,18 @@ const App = () => {
     }
     return false;
   };
+  const insertMobileSelectedPlaceAt = useCallback((targetDayIdx, insertAfterPIdx) => {
+    if (!mobileSelectedLibraryPlace) return false;
+    const changed = applyInsertAtDropTarget(targetDayIdx, insertAfterPIdx, {
+      kind: 'library',
+      place: mobileSelectedLibraryPlace,
+      isCopy: false,
+    });
+    if (!changed) return false;
+    triggerUndoToast(`'${mobileSelectedLibraryPlace.name || '선택한 장소'}'를 일정에 추가했습니다.`);
+    setMobileSelectedLibraryPlace(null);
+    return true;
+  }, [mobileSelectedLibraryPlace]);
   const getActiveTimelineDragPayload = () => {
     if (draggingFromTimeline) return draggingFromTimeline;
     if (desktopDragRef.current?.kind === 'timeline') return desktopDragRef.current.payload || null;
@@ -3071,8 +3085,16 @@ const App = () => {
       setCol1Collapsed(true);
       setCol2Collapsed(true);
     }
+    if (!isMobileLayout) {
+      setMobileSelectedLibraryPlace(null);
+      clearMobileLibraryLongPress();
+    }
     mobileSwitchRef.current = isMobileLayout;
-  }, [isMobileLayout]);
+  }, [clearMobileLibraryLongPress, isMobileLayout]);
+
+  useEffect(() => () => {
+    clearMobileLibraryLongPress();
+  }, [clearMobileLibraryLongPress]);
 
   useEffect(() => {
     if (isMobileLayout) return;
@@ -5071,6 +5093,49 @@ const App = () => {
     }
     clearInfoToast();
   }, [clearInfoToast, infoToastAction]);
+
+  const clearMobileLibraryLongPress = useCallback(() => {
+    if (mobileLibraryLongPressRef.current.timer) {
+      clearTimeout(mobileLibraryLongPressRef.current.timer);
+    }
+    mobileLibraryLongPressRef.current = { timer: null, startX: 0, startY: 0, placeId: '', triggered: false };
+  }, []);
+
+  const handleMobileLibraryTouchStart = useCallback((event, place) => {
+    if (!isMobileLayout || !place) return;
+    const targetEl = event.target instanceof Element ? event.target : null;
+    if (targetEl?.closest('input,button,a,textarea,[contenteditable],[data-no-drag]')) return;
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    clearMobileLibraryLongPress();
+    mobileLibraryLongPressRef.current = {
+      timer: setTimeout(() => {
+        mobileLibraryLongPressRef.current.triggered = true;
+        setMobileSelectedLibraryPlace(place);
+        showInfoToast(`'${place.name || '선택한 장소'}' 선택됨 · 일정에서 +를 눌러 넣어주세요.`, { durationMs: 2600 });
+      }, 420),
+      startX: touch.clientX,
+      startY: touch.clientY,
+      placeId: place.id,
+      triggered: false,
+    };
+  }, [clearMobileLibraryLongPress, isMobileLayout, showInfoToast]);
+
+  const handleMobileLibraryTouchMove = useCallback((event) => {
+    if (!isMobileLayout) return;
+    const touch = event.touches?.[0];
+    const state = mobileLibraryLongPressRef.current;
+    if (!touch || !state.timer) return;
+    const moved = Math.abs(touch.clientX - state.startX) > 10 || Math.abs(touch.clientY - state.startY) > 10;
+    if (moved) clearMobileLibraryLongPress();
+  }, [clearMobileLibraryLongPress, isMobileLayout]);
+
+  const handleMobileLibraryTouchEnd = useCallback(() => {
+    if (!isMobileLayout) return false;
+    const wasTriggered = !!mobileLibraryLongPressRef.current.triggered;
+    clearMobileLibraryLongPress();
+    return wasTriggered;
+  }, [clearMobileLibraryLongPress, isMobileLayout]);
 
   const callAiKeyApi = useCallback(async ({ method = 'GET', token = '', body = undefined } = {}) => {
     let lastError = null;
@@ -7708,6 +7773,41 @@ const App = () => {
     );
   };
 
+  const renderMobileLibraryInsertSlot = (dayIdx, insertAfterPIdx, key, variant = 'timeline') => {
+    if (!isMobileLayout || !mobileSelectedLibraryPlace || draggingFromLibrary || draggingFromTimeline) return null;
+    const isStart = insertAfterPIdx < 0;
+    const shellClass = variant === 'nav'
+      ? 'px-1.5 py-1'
+      : 'flex w-full items-center justify-center py-2';
+    const buttonClass = variant === 'nav'
+      ? 'flex min-h-[42px] w-full items-center gap-2 rounded-[14px] border border-[#3182F6]/25 bg-blue-50/75 px-3 py-2 text-left shadow-[0_10px_20px_-18px_rgba(49,130,246,0.35)]'
+      : 'flex w-full max-w-[320px] items-center justify-center gap-2 rounded-[18px] border border-[#3182F6]/20 bg-blue-50/70 px-4 py-2.5 shadow-[0_10px_22px_-18px_rgba(49,130,246,0.35)]';
+    return (
+      <div key={key} className={shellClass}>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            insertMobileSelectedPlaceAt(dayIdx, insertAfterPIdx);
+          }}
+          className={buttonClass}
+        >
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#3182F6] text-white shadow-sm">
+            <Plus size={13} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[11px] font-black text-[#3182F6]">
+              {mobileSelectedLibraryPlace.name || '선택한 장소'}
+            </div>
+            <div className="text-[10px] font-bold text-slate-500">
+              {isStart ? '여기에 첫 일정으로 넣기' : '여기에 끼워 넣기'}
+            </div>
+          </div>
+        </button>
+      </div>
+    );
+  };
+
   const renderTimeStepButtons = ({ selectedStep, onSelect, activeTone = 'slate', compact = false }) => {
     const activeClassMap = {
       slate: 'bg-slate-700 text-white',
@@ -8783,17 +8883,27 @@ const App = () => {
                     {visiblePlaces.filter(place => place && (place.id || place.name)).map(place => {
                       const chips = place.types ? place.types.map(t => getCategoryBadge(t)) : [getCategoryBadge('place')];
                       const isPlaceExpanded = expandedPlaceId === place.id;
+                      const isMobilePlaceSelected = isMobileLayout && mobileSelectedLibraryPlace?.id === place.id;
                       const bizWarningNow = getBusinessWarningNow(place.business);
                       const bizSummary = formatBusinessSummary(place.business, place);
                       const hasBizSummary = bizSummary !== '미설정';
                       const openStatus = isOpenAt(place.business); // true=영업중, false=마감, null=정보없음
                       const baseDistance = placeDistanceMap[place.id];
-                      const placeCardClass = `${draggingFromLibrary?.id === place.id ? 'opacity-40 animate-pulse' : 'hover:shadow-[0_14px_32px_-14px_rgba(49,130,246,0.22)] hover:border-[#3182F6]/25'} ${isPlaceExpanded ? 'scale-[1.01]' : ''}`.trim();
-                      const statusChip = bizWarningNow
-                        ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-orange-200 bg-orange-50 text-orange-600">영업 주의</span>
-                        : openStatus === true
-                          ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-[#3182F6]/20 bg-blue-50 text-[#3182F6]">영업중</span>
-                          : null;
+                      const placeCardClass = `${draggingFromLibrary?.id === place.id ? 'opacity-40 animate-pulse' : 'hover:shadow-[0_14px_32px_-14px_rgba(49,130,246,0.22)] hover:border-[#3182F6]/25'} ${isPlaceExpanded ? 'scale-[1.01]' : ''} ${isMobilePlaceSelected ? 'border-[#3182F6]/55 ring-2 ring-[#3182F6]/18 shadow-[0_18px_34px_-20px_rgba(49,130,246,0.35)]' : ''}`.trim();
+                      const statusChip = (
+                        <>
+                          {bizWarningNow
+                            ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-orange-200 bg-orange-50 text-orange-600">영업 주의</span>
+                            : openStatus === true
+                              ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-[#3182F6]/20 bg-blue-50 text-[#3182F6]">영업중</span>
+                              : null}
+                          {isMobilePlaceSelected && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-[#3182F6]/20 bg-blue-50 text-[#3182F6]">
+                              선택됨
+                            </span>
+                          )}
+                        </>
+                      );
                       const lodgeSegmentItems = isLodgeStay(place.types) ? getLodgeSegmentDragItems(place) : [];
 
                       return (
@@ -8801,8 +8911,12 @@ const App = () => {
                           key={place.id}
                           buildBusinessQuickEditSegments={buildBusinessQuickEditSegments}
                           cardProps={{
-                            draggable: isEditMode,
+                            draggable: !isMobileLayout && isEditMode,
                             onTouchStart: (e) => {
+                              if (isMobileLayout) {
+                                handleMobileLibraryTouchStart(e, place);
+                                return;
+                              }
                               if (!isEditMode) {
                                 showEditModeDragHint();
                                 return;
@@ -8811,6 +8925,18 @@ const App = () => {
                               if (targetEl?.closest('input,button,a,textarea,[contenteditable],[data-no-drag]')) return;
                               touchDragSourceRef.current = { kind: 'library', place, startX: e.touches[0].clientX, startY: e.touches[0].clientY };
                               isDraggingActiveRef.current = false;
+                            },
+                            onTouchMove: (e) => {
+                              if (!isMobileLayout) return;
+                              handleMobileLibraryTouchMove(e);
+                            },
+                            onTouchEnd: () => {
+                              if (!isMobileLayout) return;
+                              handleMobileLibraryTouchEnd();
+                            },
+                            onTouchCancel: () => {
+                              if (!isMobileLayout) return;
+                              clearMobileLibraryLongPress();
                             },
                             onDragStart: (e) => {
                               if (!isEditMode) { e.preventDefault(); showEditModeDragHint(); return; }
@@ -9924,13 +10050,22 @@ const App = () => {
                 <p className="text-[12px] font-black text-slate-500">아직 등록된 일정이 없습니다.</p>
                 <button
                   type="button"
-                  onClick={() => addInitialItem(0)}
+                  onClick={() => {
+                    if (isMobileLayout && mobileSelectedLibraryPlace) {
+                      insertMobileSelectedPlaceAt(0, -1);
+                      return;
+                    }
+                    addInitialItem(0);
+                  }}
                   className="px-4 py-2 rounded-xl bg-[#3182F6] text-white text-[12px] font-black hover:bg-blue-600 transition-colors"
                 >
-                  + 첫 일정 추가
+                  {isMobileLayout && mobileSelectedLibraryPlace ? `+ '${mobileSelectedLibraryPlace.name || '선택한 장소'}' 넣기` : '+ 첫 일정 추가'}
                 </button>
                 {draggingFromLibrary && (
                   <p className="text-[11px] font-black text-[#3182F6]">내 장소 카드를 여기로 드래그해서 바로 추가할 수 있습니다.</p>
+                )}
+                {isMobileLayout && mobileSelectedLibraryPlace && (
+                  <p className="text-[11px] font-black text-[#3182F6]">선택한 장소를 첫 일정으로 바로 넣을 수 있습니다.</p>
                 )}
               </div>
             )}
@@ -9985,6 +10120,7 @@ const App = () => {
                     data-plan-id={p.id}
                     className={`relative group transition-all duration-300 ${highlightedItemId === p.id ? 'scale-[1.02]' : ''}`}
                   >
+                    {isFirstMainItem && renderMobileLibraryInsertSlot(dIdx, -1, `mobile-insert-start-${d.day}`)}
                     {d.day > 1 && isFirstMainItem && (
                       <div className="flex w-full items-center justify-center my-3">
                         {isTimelineDragActive ? (
@@ -11063,6 +11199,7 @@ const App = () => {
                         );
                       })()
                     }
+                    {pIdx === d.plan.length - 1 && p.type !== 'backup' && renderMobileLibraryInsertSlot(dIdx, pIdx, `mobile-insert-end-${dIdx}-${pIdx}`)}
 
                     {/* 이동 정보 칩 / 드롭 존 */}
                     {
@@ -11100,15 +11237,16 @@ const App = () => {
                             }
 
                             return (
-                              <div id={`travel-chip-${dIdx}-${pIdx}`} className="z-10 my-3 flex w-full items-center justify-center">
-                              <div className="flex w-full items-center justify-center rounded-[18px] border border-slate-200 bg-white px-4 py-2.5 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] gap-2">
-                                  {(() => {
-                                    const rid = `${dIdx}_${pIdx + 1}`;
-                                    const busy = calculatingRouteId === rid;
-                                    const nextPlanIdx = d.plan.findIndex((entry) => entry?.id === nextItem.id);
-                                    const nextBufferDisplay = getBufferDisplayState(itinerary.days, dIdx, nextPlanIdx);
-                                    return (
-                                      <>
+                              <div className="z-10 my-3 flex w-full flex-col items-center justify-center">
+                                <div id={`travel-chip-${dIdx}-${pIdx}`} className="flex w-full items-center justify-center">
+                                  <div className="flex w-full items-center justify-center rounded-[18px] border border-slate-200 bg-white px-4 py-2.5 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] gap-2">
+                                    {(() => {
+                                      const rid = `${dIdx}_${pIdx + 1}`;
+                                      const busy = calculatingRouteId === rid;
+                                      const nextPlanIdx = d.plan.findIndex((entry) => entry?.id === nextItem.id);
+                                      const nextBufferDisplay = getBufferDisplayState(itinerary.days, dIdx, nextPlanIdx);
+                                      return (
+                                        <>
                                         {/* 이동 시간 */}
                                         <div className="flex items-center gap-1.5">
                                           <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
@@ -11161,10 +11299,12 @@ const App = () => {
                                           </div>
                                           <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                                         </div>
-                                      </>
-                                    );
-                                  })()}
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
                                 </div>
+                                {renderMobileLibraryInsertSlot(dIdx, pIdx, `mobile-insert-between-${dIdx}-${pIdx}`)}
                               </div>
                             );
                           })()}
@@ -11175,6 +11315,27 @@ const App = () => {
               }))}
             </React.Fragment>
           </div >
+
+          {isMobileLayout && mobileSelectedLibraryPlace && (
+            <div className="fixed inset-x-0 bottom-32 z-[319] flex justify-center px-4">
+              <div className="flex w-full max-w-[360px] items-center gap-3 rounded-2xl border border-[#3182F6]/20 bg-white/96 px-4 py-3 shadow-[0_18px_34px_-18px_rgba(49,130,246,0.38)] backdrop-blur-xl">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-[#3182F6]">
+                  <Package size={16} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[12px] font-black text-slate-800">{mobileSelectedLibraryPlace.name || '선택한 장소'}</div>
+                  <div className="text-[10px] font-bold text-slate-400">일정의 파란 + 버튼을 눌러 원하는 위치에 넣으세요.</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMobileSelectedLibraryPlace(null)}
+                  className="shrink-0 rounded-xl border border-slate-200 px-2.5 py-1.5 text-[10px] font-black text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* 되돌리기 토스트 */}
           {

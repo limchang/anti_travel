@@ -3927,16 +3927,20 @@ const App = () => {
         setPlaceDistanceMap({});
         return;
       }
-      const baseCoord = await geocodeAddress(basePlanRef.address);
+      const baseCoord = await geocodeAddress(basePlanRef.address, { forceRefresh: true });
       if (!baseCoord || aborted) return;
       const pairs = await Promise.all((itinerary.places || []).map(async (p) => {
-        const addr = (p.address || p.receipt?.address || '').trim();
+        const addr = (p.address || p.receipt?.address || p.sourceLodgeAddress || '').trim();
         if (!addr) return [p.id, null];
-        const c = hasGeoCoords(p.geo) && !isGeoStaleForAddress(p.geo, addr)
-          ? p.geo
-          : await geocodeAddress(addr);
+        const c = await geocodeAddress(addr, { forceRefresh: true });
         if (!c) return [p.id, null];
-        return [p.id, +haversineKm(baseCoord.lat, baseCoord.lon, c.lat, c.lon).toFixed(1)];
+        const straightKm = +haversineKm(
+          Number(baseCoord.lat),
+          Number(baseCoord.lon),
+          Number(c.lat),
+          Number(c.lon)
+        ).toFixed(1);
+        return [p.id, straightKm];
       }));
       if (aborted) return;
       setPlaceDistanceMap(Object.fromEntries(pairs));

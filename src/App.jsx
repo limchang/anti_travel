@@ -4110,40 +4110,7 @@ const App = () => {
     return () => { aborted = true; };
   }, [basePlanRef?.address, itinerary.places]);
 
-  // 히어로 카드 스크롤 감지 → 컴팩트 플로팅 바 전환 (히스테리시스)
-  useEffect(() => {
-    // 카드 하단(바닥 기준)이 상단에 닿을 때 축소되도록 기준을 늦춘다.
-    const COLLAPSE_AT = 0;
-    const EXPAND_AT = 56;
-    let ticking = false;
-
-    const evaluate = () => {
-      const anchor = heroTriggerRef.current;
-      if (!anchor) return;
-      const top = anchor.getBoundingClientRect().top;
-      setHeroCollapsed((prev) => {
-        if (!prev && top <= COLLAPSE_AT) return true;
-        if (prev && top >= EXPAND_AT) return false;
-        return prev;
-      });
-    };
-
-    const onScrollOrResize = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        evaluate();
-        ticking = false;
-      });
-    };
-    onScrollOrResize();
-    window.addEventListener('scroll', onScrollOrResize, { passive: true });
-    window.addEventListener('resize', onScrollOrResize);
-    return () => {
-      window.removeEventListener('scroll', onScrollOrResize);
-      window.removeEventListener('resize', onScrollOrResize);
-    };
-  }, []);
+  // 히어로 상단은 별도 축소 플로팅 대신 sticky 고정으로 유지합니다.
 
   // 모바일 감지 → 양쪽 패널 자동 접기
   useEffect(() => {
@@ -4237,7 +4204,7 @@ const App = () => {
   const DEFAULT_TRAVEL_MINS = 15;
   const DEFAULT_BUFFER_MINS = 10;
   const BUFFER_STEP = 1;
-  const SHOW_HERO_COMPACT_BAR = true;
+  const SHOW_HERO_COMPACT_BAR = false;
   const getMenuQty = (menu) => {
     const parsed = Number(menu?.qty);
     if (!Number.isFinite(parsed) || parsed <= 0) return 1;
@@ -10155,97 +10122,9 @@ const App = () => {
               : `${Math.round(averageTravelMinutes)}분`;
             return (
               <div className="mb-8 relative">
-                {/* 컴팩트 플로팅 바 (스크롤 시) */}
-                {SHOW_HERO_COMPACT_BAR && heroCollapsed && (
-                  <div
-                    className="fixed top-0 z-[120] pointer-events-none"
-                    style={{ left: isMobileLayout ? 0 : leftSidebarWidth, right: isMobileLayout ? 0 : (col2Collapsed ? 44 : 300) }}
-                  >
-                    <div className="w-full border-b border-slate-200/90 bg-white/97 px-3 py-2.5 shadow-[0_10px_28px_-18px_rgba(15,23,42,0.22)] backdrop-blur-2xl pointer-events-auto sm:px-6">
-                      <div className="relative min-h-[70px] sm:min-h-[56px]">
-                        <div className="flex min-w-0 items-start gap-2.5 pr-[176px] sm:pr-[276px]">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#3182F6] shadow-sm shrink-0">
-                            <MapPin size={14} className="text-white" />
-                          </div>
-                          <div className="min-w-0 pt-0.5">
-                            <div className="truncate text-[18px] font-black tracking-tight text-slate-900">{tripRegion || '여행지'}</div>
-                            <div className="mt-0.5 text-[10px] font-bold leading-none text-slate-400">
-                              {(tripStartDate && tripEndDate)
-                                ? `${tripStartDate.slice(5).replace('-', '.')}~${tripEndDate.slice(5).replace('-', '.')}`
-                                : `${tripNights}박 ${tripDays}일`}
-                            </div>
-                          </div>
-                        </div>
-
-                        {canManagePlan && (
-                          <div className="absolute right-0 top-0 flex items-center gap-1.5 shrink-0">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setIsEditMode(!isEditMode); }}
-                              className={`flex h-8 w-8 items-center justify-center rounded-2xl border transition-all shadow-sm sm:h-10 sm:w-10 ${isEditMode ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-white border-slate-200 text-slate-500'}`}
-                              title={isEditMode ? '편집 모드 종료' : '편집 모드 시작 (드래그 활성화)'}
-                            >
-                              {isEditMode ? <Edit3 size={14} /> : <Lock size={14} />}
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setIsAddingPlace(true); }}
-                              className="flex h-8 w-8 items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 text-[#3182F6] transition-all shadow-sm hover:bg-[#3182F6] hover:text-white sm:h-10 sm:w-10"
-                              title="내 장소에 일정 추가"
-                            >
-                              <PlusCircle size={15} />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); autoCalculateAllRoutes(); }}
-                              disabled={isCalculatingAllRoutes}
-                              className="flex h-8 w-8 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition-all shadow-sm hover:border-[#3182F6]/40 hover:text-[#3182F6] disabled:opacity-50 disabled:cursor-not-allowed sm:h-10 sm:w-10"
-                              title="전체 경로 다시 계산"
-                            >
-                              {isCalculatingAllRoutes ? (
-                                <div className="relative flex items-center justify-center">
-                                  <div className="absolute inset-0 animate-spin border-t-2 border-[#3182F6] rounded-full scale-125 opacity-20" />
-                                  <span className="text-[8px] font-black text-[#3182F6]">{routeCalcProgress}</span>
-                                </div>
-                              ) : (
-                                <Navigation size={14} />
-                              )}
-                            </button>
-                            <button
-                              onClick={() => setShowPlanOptions(true)}
-                              className="flex h-8 w-8 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition-all shadow-sm hover:border-[#3182F6] hover:text-[#3182F6] sm:h-10 sm:w-10"
-                              title="일정 옵션"
-                            >
-                              <SlidersHorizontal size={14} />
-                            </button>
-                            <button
-                              onClick={() => setShowShareManager(true)}
-                              className="flex h-8 w-8 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-[#3182F6] transition-all shadow-sm hover:bg-blue-600 hover:text-white sm:h-10 sm:w-10"
-                              title="공유 설정"
-                            >
-                              <Share2 size={14} />
-                            </button>
-                          </div>
-                        )}
-
-                        <div className="mt-2 flex items-center justify-center sm:absolute sm:left-1/2 sm:top-1/2 sm:mt-0 sm:-translate-x-1/2 sm:-translate-y-1/2">
-                          <div className="min-w-0 w-full sm:w-[200px]">
-                            <div className="truncate text-center text-[12px] font-black tracking-tight text-[#3182F6] tabular-nums sm:text-[16px]">
-                              ₩{budgetSummary.remaining.toLocaleString()}
-                            </div>
-                            <div className="mt-1 flex items-center justify-center gap-2">
-                              <div className="h-1.5 flex-1 max-w-[72px] rounded-full bg-slate-100 overflow-hidden shadow-inner sm:max-w-[88px]">
-                                <div className="h-full rounded-full bg-[#3182F6] transition-all duration-700" style={{ width: `${usedPct}%` }} />
-                              </div>
-                              <span className="text-[10px] font-black text-slate-400 tabular-nums">{usedPct}%</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* 풀 카드 (최상단) */}
                 {(!SHOW_HERO_COMPACT_BAR || !heroCollapsed) && (
-                  <section className="mb-10 -mx-4 -mt-8">
+                  <section className="sticky top-0 z-[120] mb-10 -mx-4 -mt-8">
                     <div className="w-full relative overflow-hidden bg-transparent">
                       {canManagePlan && <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                         <button

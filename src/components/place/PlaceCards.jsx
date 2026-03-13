@@ -712,7 +712,10 @@ export const PlaceLibraryCard = ({
   getMenuLineTotalValue,
   extraContent = null,
   buildBusinessQuickEditSegments,
-}) => (
+}) => {
+  const visibleMenus = (place.receipt?.items || []).filter((menu) => menu && menu.selected !== false);
+
+  return (
   <div
     {...cardProps}
     className={`w-full group relative overflow-hidden rounded-[24px] border border-[#3182F6]/15 bg-white shadow-[0_10px_28px_-14px_rgba(49,130,246,0.18)] ring-1 ring-[#3182F6]/6 transition-all duration-300 ${cardProps.className || ''}`.trim()}
@@ -773,15 +776,15 @@ export const PlaceLibraryCard = ({
     {isExpanded && (
       <div className="px-5 py-4 animate-in slide-in-from-top-1 bg-white border-b border-slate-100 border-dashed">
         <div className="space-y-1.5">
-          {(place.receipt?.items || []).filter(Boolean).map((menu, idx) => (
+          {visibleMenus.map((menu, idx) => (
             <div key={`${menu?.name || 'menu'}-${idx}`} className="flex items-center justify-between text-[10px]">
               <span className="text-slate-600 font-bold truncate">{menu?.name || '-'}</span>
               <span className="text-slate-400 font-bold">x{getMenuQtyValue(menu)}</span>
               <span className="text-[#3182F6] font-black">₩{getMenuLineTotalValue(menu).toLocaleString()}</span>
             </div>
           ))}
-          {(place.receipt?.items || []).length === 0 && (
-            <p className="text-[10px] text-slate-400 font-semibold">등록된 메뉴가 없습니다.</p>
+          {visibleMenus.length === 0 && (
+            <p className="text-[10px] text-slate-400 font-semibold">체크된 메뉴가 없습니다.</p>
           )}
         </div>
       </div>
@@ -792,4 +795,5 @@ export const PlaceLibraryCard = ({
       <button onClick={onDelete} className="p-1.5 hover:text-red-500 hover:bg-red-50 text-slate-300 rounded-md transition-all"><Trash2 size={11} /></button>
     </div>
   </div>
-);
+  );
+};

@@ -1,6 +1,18 @@
 import React from 'react';
 import { PlaceEditorCard } from './PlaceCards';
 
+const buildSmartFillMenuItems = (menus = []) => (
+  Array.isArray(menus)
+    ? menus
+      .filter(Boolean)
+      .map((item) => ({
+        ...item,
+        qty: Math.max(1, Number(item?.qty) || 1),
+        selected: false,
+      }))
+    : []
+);
+
 export const PlaceAddForm = ({
   newPlaceName,
   setNewPlaceName,
@@ -234,7 +246,7 @@ export const PlaceAddForm = ({
                 business: parsed.business ? normalizeBusiness(parsed.business) : draft.business,
                 receipt: {
                   ...(draft.receipt || { address: '', items: [] }),
-                  items: parsed.menus.length ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) : (draft.receipt?.items || []),
+                  items: parsed.menus.length ? buildSmartFillMenuItems(parsed.menus) : (draft.receipt?.items || []),
                 },
               });
               setDraft(nextDraft);
@@ -273,7 +285,7 @@ export const PlaceAddForm = ({
                 receipt: {
                   ...current.receipt,
                   items: parsed.menus?.length
-                    ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true }))
+                    ? buildSmartFillMenuItems(parsed.menus)
                     : current.receipt.items,
                 },
               }));
@@ -337,7 +349,7 @@ export const PlaceAddForm = ({
                 ...current,
                 receipt: {
                   ...(current.receipt || { address: '', items: [] }),
-                  items: parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })),
+                  items: buildSmartFillMenuItems(parsed.menus),
                 },
               }));
               onNotify?.(isAiSmartFillSource(result?.source)

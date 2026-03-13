@@ -305,36 +305,18 @@ const toNum = (v) => {
 
 const DEFAULT_KAKAO_REST_KEY = 'b312628369f47e04894f338b7fc0b318';
 
-const haversineKm = (lat1, lon1, lat2, lon2) => {
-  const toRad = (d) => d * (Math.PI / 180);
-  const R = 6371;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-};
-
-const verifyDurationMins = (distanceKm, straightKm, rawDurationMins, isSameAddress) => {
-  const d = Math.max(0, Number(distanceKm) || 0);
-  const s = Math.max(0, Number(straightKm) || 0);
-  const raw = Math.max(1, Number(rawDurationMins) || 1);
-  if (isSameAddress) return raw;
-  const byRoadSpeed = Math.ceil((d / 18) * 60);
-  const byStraight = Math.ceil((s / 22) * 60);
-  const signalPenalty = d >= 0.25 ? 3 : 2;
-  const shortTripFloor = d >= 0.25 && d < 1.2 ? 6 : (d < 0.25 ? 4 : 0);
-  return Math.max(raw, byRoadSpeed + signalPenalty, byStraight + signalPenalty, shortTripFloor);
-};
-
-const getCandidateQueries = (address = '') => {
+const getCandidateQueries = (address = '', placeName = '') => {
   const addr = String(address || '').trim();
+  const name = String(placeName || '').trim();
+  const normalizedAddr = addr.replace(/제주특별자치도/g, '제주').replace(/특별자치도/g, '').trim();
   return [
+    name && addr ? `${name} ${addr}`.trim() : '',
+    name && normalizedAddr ? `${name} ${normalizedAddr}`.trim() : '',
+    name,
     addr,
     addr.split(/[,\(]/)[0].trim(),
-    addr.replace(/제주특별자치도/g, '제주').replace(/특별자치도/g, '').trim(),
-  ].filter(Boolean);
+    normalizedAddr,
+  ].filter(Boolean).filter((value, index, list) => list.indexOf(value) === index);
 };
 
 const fetchKakaoJson = async (url, restKey) => {
@@ -348,25 +330,57 @@ const fetchKakaoJson = async (url, restKey) => {
   return response.json();
 };
 
-const geocodeWithKakao = async ({ address, restKey }) => {
-  const queries = getCandidateQueries(address);
-  for (const q of queries) {
-    const addrUrl = `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(q)}&size=1`;
-    const addrJson = await fetchKakaoJson(addrUrl, restKey);
-    if (Array.isArray(addrJson?.documents) && addrJson.documents.length > 0) {
-      const doc = addrJson.documents[0];
-      const lat = toNum(doc.y);
-      const lon = toNum(doc.x);
-      if (lat != null && lon != null) return { lat, lon, source: 'address', query: q };
-    }
+const looksDetailedAddress = (address = '') => /(\d|번길|로\s*\d|길\s*\d|로\b|길\b)/.test(String(address || '').trim());
 
-    const kwUrl = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(q)}&size=1`;
-    const kwJson = await fetchKakaoJson(kwUrl, restKey);
-    if (Array.isArray(kwJson?.documents) && kwJson.documents.length > 0) {
-      const doc = kwJson.documents[0];
-      const lat = toNum(doc.y);
-      const lon = toNum(doc.x);
-      if (lat != null && lon != null) return { lat, lon, source: 'keyword-address', query: q };
+const tryKeywordSearch = async (query, restKey) => {
+  const kwUrl = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=1`;
+  const kwJson = await fetchKakaoJson(kwUrl, restKey);
+  if (Array.isArray(kwJson?.documents) && kwJson.documents.length > 0) {
+    const doc = kwJson.documents[0];
+    const lat = toNum(doc.y);
+    const lon = toNum(doc.x);
+    if (lat != null && lon != null) return { lat, lon, source: 'keyword', query, placeName: String(doc.place_name || '').trim() };
+  }
+  return null;
+};
+
+const tryAddressSearch = async (query, restKey) => {
+  const addrUrl = `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(query)}&size=1`;
+  const addrJson = await fetchKakaoJson(addrUrl, restKey);
+  if (Array.isArray(addrJson?.documents) && addrJson.documents.length > 0) {
+    const doc = addrJson.documents[0];
+    const lat = toNum(doc.y);
+    const lon = toNum(doc.x);
+    if (lat != null && lon != null) return { lat, lon, source: 'address', query };
+  }
+  return null;
+};
+
+const geocodeWithKakao = async ({ address, placeName = '', restKey }) => {
+  const queries = getCandidateQueries(address, placeName);
+  const addressIsDetailed = looksDetailedAddress(address);
+  const trimmedName = String(placeName || '').trim();
+  const nameQueries = queries.filter((query) => trimmedName && query.includes(trimmedName));
+  const addressQueries = queries.filter((query) => !nameQueries.includes(query));
+
+  if (!addressIsDetailed) {
+    for (const q of nameQueries) {
+      const keywordMatch = await tryKeywordSearch(q, restKey);
+      if (keywordMatch) return keywordMatch;
+    }
+  }
+  for (const q of addressQueries) {
+    const addressMatch = await tryAddressSearch(q, restKey);
+    if (addressMatch) return addressMatch;
+  }
+  for (const q of [...nameQueries, ...addressQueries]) {
+    const keywordMatch = await tryKeywordSearch(q, restKey);
+    if (keywordMatch) return keywordMatch;
+  }
+  if (addressIsDetailed) {
+    for (const q of nameQueries) {
+      const keywordMatch = await tryKeywordSearch(q, restKey);
+      if (keywordMatch) return keywordMatch;
     }
   }
   return null;
@@ -410,6 +424,8 @@ exports.routeVerify = onRequest({ invoker: 'public' }, async (req, res) => {
   const {
     fromAddress = '',
     toAddress = '',
+    fromName = '',
+    toName = '',
   } = req.body || {};
 
   if (!String(fromAddress).trim() || !String(toAddress).trim()) {
@@ -418,8 +434,8 @@ exports.routeVerify = onRequest({ invoker: 'public' }, async (req, res) => {
 
   try {
     const [fromCoord, toCoord] = await Promise.all([
-      geocodeWithKakao({ address: fromAddress, restKey }),
-      geocodeWithKakao({ address: toAddress, restKey }),
+      geocodeWithKakao({ address: fromAddress, placeName: fromName, restKey }),
+      geocodeWithKakao({ address: toAddress, placeName: toName, restKey }),
     ]);
 
     if (!fromCoord || !toCoord) {
@@ -438,24 +454,33 @@ exports.routeVerify = onRequest({ invoker: 'public' }, async (req, res) => {
       return res.status(502).json({ error: 'kakao directions failed' });
     }
 
-    const primary = candidates[0];
-    const secondary = candidates[1] || candidates[0];
-    const baseDistance = (primary.distanceKm + secondary.distanceKm) / 2;
-    const baseDuration = Math.max(primary.durationMins, secondary.durationMins);
-    const straightKm = haversineKm(fromCoord.lat, fromCoord.lon, toCoord.lat, toCoord.lon);
-    const isSameAddress = String(fromAddress).trim() === String(toAddress).trim();
-    const verifiedDuration = verifyDurationMins(baseDistance, straightKm, baseDuration, isSameAddress);
+    const primary = recommend.status === 'fulfilled'
+      ? recommend.value
+      : timeBased.status === 'fulfilled'
+        ? timeBased.value
+        : null;
+    const secondary = timeBased.status === 'fulfilled'
+      ? timeBased.value
+      : recommend.status === 'fulfilled'
+        ? recommend.value
+        : null;
+    if (!primary) {
+      return res.status(502).json({ error: 'kakao directions failed' });
+    }
 
     return res.status(200).json({
       provider: 'kakao',
-      distanceKm: +baseDistance.toFixed(1),
-      durationMins: verifiedDuration,
+      priority: primary.priority,
+      distanceKm: +Number(primary.distanceKm || 0).toFixed(1),
+      durationMins: Math.max(1, Math.ceil(Number(primary.durationMins) || 0)),
       path: Array.isArray(primary.path) ? primary.path : [],
       review: {
         primary,
         secondary,
-        straightKm: +straightKm.toFixed(3),
-        adjusted: verifiedDuration !== baseDuration,
+        geocodeMode: {
+          from: fromCoord?.source || '',
+          to: toCoord?.source || '',
+        },
       },
       geocode: {
         from: fromCoord,

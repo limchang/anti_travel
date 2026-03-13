@@ -473,6 +473,17 @@ const createPlaceEditorDraft = (place = {}, overrides = {}) => {
     businessFocusField: overrides.businessFocusField ?? null,
   };
 };
+const buildSmartFillMenuItems = (menus = []) => (
+  Array.isArray(menus)
+    ? menus
+      .filter(Boolean)
+      .map((item) => ({
+        ...item,
+        qty: Math.max(1, Number(item?.qty) || 1),
+        selected: false,
+      }))
+    : []
+);
 const WEEKDAY_OPTIONS = [
   { label: '월', value: 'mon' },
   { label: '화', value: 'tue' },
@@ -7276,7 +7287,7 @@ const App = () => {
     setLastAction(`'${suggestion.name}'이(가) 대안 일정으로 등록되었습니다.`);
   };
 
-  async function fetchKakaoVerifiedRoute({ fromAddress, toAddress }) {
+  async function fetchKakaoVerifiedRoute({ fromAddress, toAddress, fromName = '', toName = '' }) {
     const endpoints = getRouteVerifyEndpointCandidates(aiSmartFillConfig?.proxyBaseUrl);
     let lastError = null;
     for (const endpoint of endpoints) {
@@ -7287,6 +7298,8 @@ const App = () => {
           body: JSON.stringify({
             fromAddress,
             toAddress,
+            fromName,
+            toName,
           }),
         });
         const data = await r.json().catch(() => ({}));
@@ -7374,6 +7387,8 @@ const App = () => {
       const kakaoRoute = await fetchKakaoVerifiedRoute({
         fromAddress: addr1,
         toAddress: addr2,
+        fromName: routeEntry.prevItem?.activity || routeEntry.prevItem?.name || '',
+        toName: routeEntry.targetItem?.activity || routeEntry.targetItem?.name || '',
       });
       setRouteCache(prev => ({ ...prev, [key]: kakaoRoute }));
       applyRoute(dayIdx, targetIdx, kakaoRoute);
@@ -8063,7 +8078,7 @@ const App = () => {
                       name: parsed.name || current.name,
                       address: parsed.address || current.address,
                       business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
-                      receipt: { ...(current.receipt || {}), items: parsed.menus.length ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) : (current.receipt?.items || []) },
+                      receipt: { ...(current.receipt || {}), items: parsed.menus.length ? buildSmartFillMenuItems(parsed.menus) : (current.receipt?.items || []) },
                     }));
                     showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 스마트 전체 붙여넣기 완료' : '스마트 전체 붙여넣기 완료');
                   } else {
@@ -8089,7 +8104,7 @@ const App = () => {
                       name: nextName,
                       address: nextAddress,
                       business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
-                      receipt: { ...(current.receipt || {}), items: parsed.menus?.length ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) : (current.receipt?.items || []) },
+                      receipt: { ...(current.receipt || {}), items: parsed.menus?.length ? buildSmartFillMenuItems(parsed.menus) : (current.receipt?.items || []) },
                     }));
                     showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 슈퍼 자동 채우기 완료' : '슈퍼 자동 채우기 완료');
                   } else {
@@ -8133,7 +8148,7 @@ const App = () => {
                   if (parsed?.menus?.length) {
                     setEditPlaceDraft((current) => createPlaceEditorDraft({
                       ...current,
-                      receipt: { ...(current.receipt || {}), items: parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) },
+                      receipt: { ...(current.receipt || {}), items: buildSmartFillMenuItems(parsed.menus) },
                     }));
                     showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 메뉴 스마트 입력 완료' : '메뉴 정보만 스마트 입력 완료');
                   } else {
@@ -8178,7 +8193,7 @@ const App = () => {
                       name: parsed.name || current.name,
                       address: parsed.address || current.address,
                       business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
-                      receipt: { ...(current.receipt || {}), items: parsed.menus.length ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) : (current.receipt?.items || []) },
+                      receipt: { ...(current.receipt || {}), items: parsed.menus.length ? buildSmartFillMenuItems(parsed.menus) : (current.receipt?.items || []) },
                     }));
                     showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 스마트 전체 붙여넣기 완료' : '스마트 전체 붙여넣기 완료');
                   } else {
@@ -8204,7 +8219,7 @@ const App = () => {
                       name: nextName,
                       address: nextAddress,
                       business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
-                      receipt: { ...(current.receipt || {}), items: parsed.menus?.length ? parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) : (current.receipt?.items || []) },
+                      receipt: { ...(current.receipt || {}), items: parsed.menus?.length ? buildSmartFillMenuItems(parsed.menus) : (current.receipt?.items || []) },
                     }));
                     showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 슈퍼 자동 채우기 완료' : '슈퍼 자동 채우기 완료');
                   } else {
@@ -8248,7 +8263,7 @@ const App = () => {
                   if (parsed?.menus?.length) {
                     setEditPlanDraft((current) => createPlaceEditorDraft({
                       ...current,
-                      receipt: { ...(current.receipt || {}), items: parsed.menus.filter(Boolean).map((item) => ({ ...item, qty: 1, selected: true })) },
+                      receipt: { ...(current.receipt || {}), items: buildSmartFillMenuItems(parsed.menus) },
                     }));
                     showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 메뉴 스마트 입력 완료' : '메뉴 정보만 스마트 입력 완료');
                   } else {
@@ -11205,7 +11220,7 @@ const App = () => {
                                               if (parsed.name) updateActivityName(dIdx, pIdx, parsed.name);
                                               if (parsed.address) updateAddress(dIdx, pIdx, parsed.address);
                                               if (parsed.business) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
-                                              if (parsed.menus.length) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: parsed.menus.filter(Boolean) }; return d; });
+                                              if (parsed.menus.length) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: buildSmartFillMenuItems(parsed.menus) }; return d; });
                                               showInfoToast(isAiSmartFillSource(result?.source) ? `AI 스마트 전체 붙여넣기 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '스마트 전체 붙여넣기 완료');
                                             } else {
                                               showInfoToast(useAiSmartFill ? 'Groq가 붙여넣을 내용을 찾지 못했습니다.' : '붙여넣을 내용을 찾지 못했습니다.');
@@ -11409,7 +11424,7 @@ const App = () => {
                                                 aiResult: parsed,
                                                 inputType: result.inputType
                                               });
-                                              setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: parsed.menus }; return d; });
+                                              setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: buildSmartFillMenuItems(parsed.menus) }; return d; });
                                               showInfoToast(isAiSmartFillSource(result?.source) ? `AI 메뉴 스마트 입력 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '메뉴 정보만 스마트 입력 완료');
                                             } else {
                                               showInfoToast(useAiSmartFill ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.');

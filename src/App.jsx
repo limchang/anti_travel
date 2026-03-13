@@ -10284,13 +10284,11 @@ const App = () => {
                         </div>
 
                         {/* 🌟 2. 여행 한눈에 보기 */}
-                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-0 px-2 sm:px-0' : 'gap-3 px-3 sm:px-0'}`}>
-                            <div className={`relative w-full border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 ${heroPinnedCompact ? 'mt-0 rounded-[24px] px-3 py-0 sm:px-4 sm:py-0' : 'mt-1 rounded-[24px] px-4 py-4 sm:px-6 sm:py-6'}`}>
+                        {!heroPinnedCompact && (
+                        <div className="flex flex-col gap-3 px-3 transition-all duration-300 sm:px-0">
+                            <div className="relative mt-1 w-full rounded-[24px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 sm:px-6 sm:py-6">
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
-                              <div className={`${heroPinnedCompact ? 'flex w-full' : 'grid grid-cols-3 gap-3 sm:gap-3'}`}>
-                                {heroPinnedCompact ? (
-                                  <div className="h-0 w-full overflow-hidden" />
-                                ) : (
+                              <div className="grid grid-cols-3 gap-3 sm:gap-3">
                                   <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
                                     <div className="flex h-full flex-col items-center justify-center text-center">
                                       <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
@@ -10298,8 +10296,6 @@ const App = () => {
                                       <p className="mt-2 text-[10px] font-bold text-slate-500 tabular-nums sm:text-[11px]">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
                                     </div>
                                   </div>
-                                )}
-                                {!heroPinnedCompact && (
                                   <div className={`relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroPinnedCompact ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
                                     <div className="flex h-full flex-col items-center justify-center text-center">
                                       <div className="flex items-center justify-center gap-1.5">
@@ -10330,8 +10326,6 @@ const App = () => {
                                       </div>
                                     )}
                                   </div>
-                                )}
-                                {!heroPinnedCompact && (
                                   <div className={`rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroPinnedCompact ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
                                     <div className="flex h-full flex-col items-center justify-center text-center">
                                       <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
@@ -10339,7 +10333,6 @@ const App = () => {
                                       <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroPinnedCompact ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>방문 일정 {visitPlanCount}개 기준</p>
                                     </div>
                                   </div>
-                                )}
                               </div>
 
                               {heroSummaryExpanded && (
@@ -10382,7 +10375,6 @@ const App = () => {
                                 </div>
                               </div>
                             )}
-                              {!heroPinnedCompact && (
                                 <button
                                   type="button"
                                   onClick={() => setHeroSummaryExpanded(v => !v)}
@@ -10391,9 +10383,9 @@ const App = () => {
                                   여행 요약 {heroSummaryExpanded ? '닫기' : '확장'}
                                   <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />
                                 </button>
-                              )}
                             </div>
                         </div>
+                        )}
                       </div>
                     </div>
                   </section>

@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.171",
+      "timestamp": "2026-03-13T23:19:26+09:00",
+      "message": "fix: fully remove hidden compact overview card remnants"
+    },
+    {
       "version": "1.3.170",
       "timestamp": "2026-03-13T23:14:46+09:00",
       "message": "tune: move compact budget usage into hero playbar"
@@ -144,11 +149,6 @@
       "version": "1.3.142",
       "timestamp": "2026-03-13T19:03:06+09:00",
       "message": "fix: move hero summary toggle below overview cards"
-    },
-    {
-      "version": "1.3.141",
-      "timestamp": "2026-03-13T19:00:23+09:00",
-      "message": "fix: center align hero summary overview cards"
     }
   ]
 }

@@ -10099,6 +10099,26 @@ const App = () => {
           {/* ── 여행 헤더 카드 ── */}
           {(() => {
             const usedPct = MAX_BUDGET > 0 ? Math.min(100, Math.round((budgetSummary.total / MAX_BUDGET) * 100)) : 0;
+            const timingConflictCount = (itinerary.days || []).reduce((sum, day) => (
+              sum + ((day.plan || []).filter((item) => item?._timingConflict).length)
+            ), 0);
+            const budgetExceeded = Math.max(0, budgetSummary.total - MAX_BUDGET);
+            const compactHeroAlert = timingConflictCount > 0
+              ? {
+                label: `시간 충돌 ${timingConflictCount}건`,
+                tone: 'danger',
+              }
+              : budgetExceeded > 0
+                ? {
+                  label: `예산 초과 +₩${budgetExceeded.toLocaleString()}`,
+                  tone: 'danger',
+                }
+                : usedPct >= 85
+                  ? {
+                    label: `예산 임박 ${usedPct}%`,
+                    tone: 'warn',
+                  }
+                  : null;
             const allSummaryItems = (itinerary.days || []).flatMap((day) => (day.plan || []))
               .filter((item) => item && item.type !== 'backup' && !item.types?.includes('ship'));
             const revisitCount = allSummaryItems.filter((item) => (typeof item.revisit === 'boolean' ? item.revisit : isRevisitCourse(item))).length;
@@ -10250,6 +10270,27 @@ const App = () => {
                             style={{ width: `${Math.min(100, usedPct)}%` }}
                           />
                         </div>
+                        {heroPinnedCompact && (
+                          <button
+                            type="button"
+                            onClick={() => setHeroSummaryExpanded((prev) => !prev)}
+                            className={`absolute inset-x-0 bottom-0 z-[12] flex h-8 items-start justify-center bg-transparent transition-opacity duration-200 ease-out ${heroCompactBudgetBarVisible ? 'opacity-100' : 'opacity-0'}`}
+                            aria-label={heroSummaryExpanded ? '여행 요약 닫기' : '여행 요약 확장'}
+                            title={heroSummaryExpanded ? '여행 요약 닫기' : '여행 요약 확장'}
+                          >
+                            {compactHeroAlert && (
+                              <span
+                                className={`mt-1 inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black tracking-tight shadow-[0_10px_22px_-18px_rgba(15,23,42,0.45)] backdrop-blur-md ${
+                                  compactHeroAlert.tone === 'danger'
+                                    ? 'border-red-200/80 bg-red-50/88 text-red-600'
+                                    : 'border-amber-200/80 bg-amber-50/88 text-amber-600'
+                                }`}
+                              >
+                                {compactHeroAlert.label}
+                              </span>
+                            )}
+                          </button>
+                        )}
                       </div>
 
                       <div className={`relative z-10 flex w-full mx-auto flex-col transition-all duration-300 ${timelineMaxClass} ${heroPinnedCompact ? 'gap-3' : 'gap-5 md:gap-6'}`}>

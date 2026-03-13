@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.145",
+      "timestamp": "2026-03-13T19:23:15+09:00",
+      "message": "fix: align floating header anchors like hero layout"
+    },
+    {
       "version": "1.3.144",
       "timestamp": "2026-03-13T19:18:12+09:00",
       "message": "feat: redesign floating itinerary header for mobile and desktop"
@@ -144,11 +149,6 @@
       "version": "1.3.116",
       "timestamp": "2026-03-13T10:04:43+09:00",
       "message": "feat: quick-set start time from compact business info segments"
-    },
-    {
-      "version": "1.3.115",
-      "timestamp": "2026-03-13T09:55:01+09:00",
-      "message": "fix: sync buffer immediately when start time is fixed or edited"
     }
   ]
 }

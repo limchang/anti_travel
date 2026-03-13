@@ -1380,11 +1380,20 @@ const TimeInput = ({ value, onChange, onFocus, onBlurExtra, className = '', titl
       ref={inputRef}
       type="text"
       inputMode="numeric"
+      draggable={false}
+      data-no-drag="true"
       value={value}
       onChange={handleChange}
       onFocus={onFocus}
       onBlur={handleBlur}
       onKeyDown={onKeyDown}
+      onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      onDragStart={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
       placeholder={placeholder}
       maxLength={5}
       title={title}
@@ -1508,7 +1517,16 @@ const BusinessHoursEditor = ({ business = {}, onChange, focusField = null }) => 
 
   return (
     <div
+      data-no-drag="true"
+      draggable={false}
       onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      onDragStart={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
       onPaste={(e) => {
         const text = e.clipboardData.getData('text');
         const parsed = parseBusinessHoursText(text);
@@ -2053,7 +2071,10 @@ const TimeWheelColumn = ({
 
   return (
     <div
+      data-no-drag="true"
+      draggable={false}
       className="flex-1 min-w-0 touch-none select-none"
+      onMouseDown={(e) => e.stopPropagation()}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -2062,6 +2083,10 @@ const TimeWheelColumn = ({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
+      onDragStart={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
     >
       {label ? <p className="mb-0.5 text-center text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p> : null}
       <div className="relative rounded-[18px] border border-slate-200 bg-white/92">

@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars, react-hooks/exhaustive-deps, no-useless-escape */
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
 import { db, auth, messaging } from './firebase';
 import { PlaceAddForm } from './components/place/PlaceAddForm';
 import { PlaceEditorCard, PlaceLibraryCard } from './components/place/PlaceCards';
@@ -3968,14 +3968,22 @@ const App = () => {
 
   const endTouchDragLock = () => { };
 
-  useEffect(() => {
-    if (!dashboardRef.current) return;
-    setDashboardHeight(dashboardRef.current.offsetHeight);
-    const observer = new ResizeObserver(entries => {
-      setDashboardHeight(entries[0].contentRect.height);
+  useLayoutEffect(() => {
+    if (!dashboardRef.current) return undefined;
+    const syncDashboardHeight = () => {
+      if (!dashboardRef.current) return;
+      setDashboardHeight(dashboardRef.current.getBoundingClientRect().height);
+    };
+    syncDashboardHeight();
+    const observer = new ResizeObserver(() => {
+      syncDashboardHeight();
     });
     observer.observe(dashboardRef.current);
-    return () => observer.disconnect();
+    window.addEventListener('resize', syncDashboardHeight);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', syncDashboardHeight);
+    };
   }, []);
 
   useEffect(() => {
@@ -10248,14 +10256,31 @@ const App = () => {
                         <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-3 px-2 sm:px-0' : 'gap-5 px-3 sm:px-0'}`}>
                             <div className={`relative w-full border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 ${heroPinnedCompact ? 'mt-0 rounded-[26px] px-3 py-3 sm:px-4 sm:py-4' : 'mt-5 rounded-[34px] px-4 py-4 sm:px-6 sm:py-6'}`}>
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
-                              <div className={`${heroPinnedCompact ? 'grid max-w-[230px] grid-cols-1 gap-2.5' : 'grid grid-cols-3 gap-2.5 sm:gap-3'}`}>
-                                <div className={`rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroPinnedCompact ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
-                                  <div className="flex h-full flex-col items-center justify-center text-center">
-                                    <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
-                                    <p className={`leading-none font-black text-[#3182F6] tabular-nums transition-all duration-300 ${heroPinnedCompact ? 'mt-1.5 text-[18px] sm:text-[22px]' : 'mt-2 text-[22px] sm:text-[31px]'}`}>{usedPct}%</p>
-                                    <p className={`font-bold text-slate-500 tabular-nums transition-all duration-300 ${heroPinnedCompact ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
+                              <div className={`${heroPinnedCompact ? 'flex max-w-[255px]' : 'grid grid-cols-3 gap-2.5 sm:gap-3'}`}>
+                                {heroPinnedCompact ? (
+                                  <div className="w-full rounded-[20px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.96)_100%)] px-3 py-2 shadow-[0_10px_28px_-20px_rgba(49,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.95)]">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-400">예산</p>
+                                        <p className="mt-0.5 text-[18px] leading-none font-black text-[#3182F6] tabular-nums">{usedPct}%</p>
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-blue-100">
+                                          <div className="h-full rounded-full bg-gradient-to-r from-[#3182F6] to-sky-400 transition-all duration-300" style={{ width: `${Math.min(100, usedPct)}%` }} />
+                                        </div>
+                                        <p className="mt-1 text-right text-[9px] font-black tabular-nums text-slate-500">₩{budgetSummary.total.toLocaleString()}</p>
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
+                                ) : (
+                                  <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
+                                    <div className="flex h-full flex-col items-center justify-center text-center">
+                                      <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
+                                      <p className="mt-2 text-[22px] leading-none font-black text-[#3182F6] tabular-nums sm:text-[31px]">{usedPct}%</p>
+                                      <p className="mt-2 text-[10px] font-bold text-slate-500 tabular-nums sm:text-[11px]">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
+                                    </div>
+                                  </div>
+                                )}
                                 {!heroPinnedCompact && (
                                   <div className={`relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroPinnedCompact ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
                                     <div className="flex h-full flex-col items-center justify-center text-center">

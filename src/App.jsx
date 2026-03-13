@@ -4842,36 +4842,17 @@ const App = () => {
       const openMins = timeToMinutes(business.open);
       if (start >= openMins) return prev;
 
-      const prevMainIdx = (() => {
-        for (let idx = pIdx - 1; idx >= 0; idx -= 1) {
-          const candidate = dayPlan[idx];
-          if (candidate && candidate.type !== 'backup') return idx;
-        }
-        return -1;
-      })();
       const beforeBufferMins = parseMinsLabel(item.bufferTimeOverride, DEFAULT_BUFFER_MINS);
-      if (prevMainIdx >= 0) {
-        const prevItem = dayPlan[prevMainIdx];
-        const prevEnd = getTimelineItemEndMinutes(prevItem);
-        const travelMins = parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
-        const requiredBuffer = Math.max(0, openMins - (prevEnd + travelMins));
-        item._manualBufferTimeOverride = `${requiredBuffer}분`;
-        item.bufferTimeOverride = `${requiredBuffer}분`;
-        item._isBufferCoordinated = false;
-      }
-      item._preserveBufferOnNextRecalc = true;
-
       item.time = business.open;
       item.isTimeFixed = true;
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      syncBufferWithFixedStart(nextData.days, dayIdx, pIdx);
       recalculateLodgeDurations(nextData.days);
 
-      if (prevMainIdx >= 0) {
-        const updatedItem = nextData.days?.[dayIdx]?.plan?.[pIdx];
-        const afterBufferMins = parseMinsLabel(updatedItem?.bufferTimeOverride, DEFAULT_BUFFER_MINS);
-        correctionMins = Math.max(0, afterBufferMins - beforeBufferMins);
-        correctedBufferMins = afterBufferMins;
-      }
+      const updatedItem = nextData.days?.[dayIdx]?.plan?.[pIdx];
+      const afterBufferMins = parseMinsLabel(updatedItem?.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+      correctionMins = Math.max(0, afterBufferMins - beforeBufferMins);
+      correctedBufferMins = afterBufferMins;
       applied = true;
       return nextData;
     });
@@ -5293,6 +5274,55 @@ const App = () => {
     return timeToMinutes(item.time || '00:00') + Math.max(0, Number(item.duration) || 0);
   };
 
+  const getPreviousMainPlanItemByIndex = (days = [], dayIdx, targetIdx) => {
+    const dayPlan = days?.[dayIdx]?.plan || [];
+    let prevItem = null;
+    for (let idx = targetIdx - 1; idx >= 0; idx -= 1) {
+      const candidate = dayPlan[idx];
+      if (candidate && candidate.type !== 'backup') {
+        prevItem = candidate;
+        break;
+      }
+    }
+    if (!prevItem && dayIdx > 0) {
+      const prevDayPlan = days?.[dayIdx - 1]?.plan || [];
+      for (let idx = prevDayPlan.length - 1; idx >= 0; idx -= 1) {
+        const candidate = prevDayPlan[idx];
+        if (candidate && candidate.type !== 'backup') {
+          prevItem = candidate;
+          break;
+        }
+      }
+    }
+    return prevItem;
+  };
+
+  const getBufferDisplayState = (days = [], dayIdx, targetIdx) => {
+    const dayPlan = days?.[dayIdx]?.plan || [];
+    const item = dayPlan?.[targetIdx];
+    const storedMins = parseMinsLabel(item?.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+    const storedLabel = item?.bufferTimeOverride || `${DEFAULT_BUFFER_MINS}분`;
+
+    if (!item || item.type === 'backup') {
+      return { mins: storedMins, label: storedLabel, isCoordinated: false, isDerived: false };
+    }
+
+    if (!item.isTimeFixed || item.types?.includes('ship')) {
+      return { mins: storedMins, label: storedLabel, isCoordinated: !!item._isBufferCoordinated, isDerived: false };
+    }
+
+    const prevItem = getPreviousMainPlanItemByIndex(days, dayIdx, targetIdx);
+    if (!prevItem) {
+      return { mins: storedMins, label: storedLabel, isCoordinated: !!item._isBufferCoordinated, isDerived: false };
+    }
+
+    const travelMins = parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
+    const baseArrival = getTimelineItemEndMinutes(prevItem) + travelMins;
+    const fixedStart = timeToMinutes(item.time || '00:00');
+    const mins = Math.max(0, fixedStart - baseArrival);
+    return { mins, label: `${mins}분`, isCoordinated: mins > 0, isDerived: true };
+  };
+
   const getAdjacentMainPlanItems = (days = [], dayIdx, itemId) => {
     const currentDayMain = (days?.[dayIdx]?.plan || []).filter((entry) => entry && entry.type !== 'backup');
     const currentIndex = currentDayMain.findIndex((entry) => entry?.id === itemId);
@@ -5314,33 +5344,11 @@ const App = () => {
     const dayPlan = days?.[dayIdx]?.plan || [];
     const item = dayPlan?.[pIdx];
     if (!item || item.type === 'backup' || item.types?.includes('ship') || !item.isTimeFixed) return;
-
-    let prevItem = null;
-    for (let idx = pIdx - 1; idx >= 0; idx -= 1) {
-      const candidate = dayPlan[idx];
-      if (candidate && candidate.type !== 'backup') {
-        prevItem = candidate;
-        break;
-      }
-    }
-    if (!prevItem && dayIdx > 0) {
-      const prevDayPlan = days?.[dayIdx - 1]?.plan || [];
-      for (let idx = prevDayPlan.length - 1; idx >= 0; idx -= 1) {
-        const candidate = prevDayPlan[idx];
-        if (candidate && candidate.type !== 'backup') {
-          prevItem = candidate;
-          break;
-        }
-      }
-    }
-    if (!prevItem) return;
-
-    const baseArrival = getTimelineItemEndMinutes(prevItem) + parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
-    const fixedStart = timeToMinutes(item.time || '00:00');
-    const nextBuffer = Math.max(0, fixedStart - baseArrival);
-    item.bufferTimeOverride = `${nextBuffer}분`;
-    item._manualBufferTimeOverride = `${nextBuffer}분`;
-    item._isBufferCoordinated = nextBuffer > 0;
+    const bufferState = getBufferDisplayState(days, dayIdx, pIdx);
+    if (!bufferState.isDerived) return;
+    item.bufferTimeOverride = bufferState.label;
+    item._manualBufferTimeOverride = bufferState.label;
+    item._isBufferCoordinated = bufferState.isCoordinated;
   };
 
   const recalculateSchedule = (dayPlan) => {
@@ -5396,7 +5404,6 @@ const App = () => {
         item.bufferTimeOverride = `${effectiveBuffer}분`;
         item._manualBufferTimeOverride = `${effectiveBuffer}분`;
         item._isBufferCoordinated = item.isTimeFixed && effectiveBuffer > 0;
-        if (item._preserveBufferOnNextRecalc) delete item._preserveBufferOnNextRecalc;
       } else {
         if (item._isBufferCoordinated) {
           item.bufferTimeOverride = `${manualBufferBase}분`;
@@ -5467,10 +5474,10 @@ const App = () => {
         const currentMinutes = timeToMinutes(item.time);
         item.time = minutesToTime(currentMinutes + delta);
         item.isTimeFixed = true;
-        syncBufferWithFixedStart(nextData.days, dayIdx, pIdx);
       }
 
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      syncBufferWithFixedStart(nextData.days, dayIdx, pIdx);
       recalculateLodgeDurations(nextData.days);
       return nextData;
     });
@@ -5502,15 +5509,10 @@ const App = () => {
       const dayPlan = nextData.days?.[dayIdx]?.plan;
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
-      // 시간 모달 조정 시 레거시 소요시간 잠금은 무시한다.
-      dayPlan.forEach((entry) => {
-        if (!entry || entry.type === 'backup' || entry.types?.includes('ship')) return;
-        entry.isDurationFixed = false;
-      });
       item.time = normalized;
       item.isTimeFixed = true;
-      syncBufferWithFixedStart(nextData.days, dayIdx, pIdx);
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      syncBufferWithFixedStart(nextData.days, dayIdx, pIdx);
       recalculateLodgeDurations(nextData.days);
       return nextData;
     });
@@ -5875,10 +5877,10 @@ const App = () => {
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
       item.isTimeFixed = !item.isTimeFixed;
+      draft.days[dayIdx].plan = recalculateSchedule(dayPlan);
       if (item.isTimeFixed) {
         syncBufferWithFixedStart(draft.days, dayIdx, pIdx);
       }
-      draft.days[dayIdx].plan = recalculateSchedule(dayPlan);
       recalculateLodgeDurations(draft.days);
       return draft;
     });
@@ -8192,8 +8194,14 @@ const App = () => {
                               const navConflictRecommendation = getTimingConflictRecommendation(dNavIdx, pIdx);
                               const navBizWarn = !p.types?.includes('ship') ? getBusinessWarning(p, dNavIdx) : '';
                               const nextNavItem = arr[pIdx + 1];
-                              const nextNavBufferMins = nextNavItem ? parseMinsLabel(nextNavItem.bufferTimeOverride, DEFAULT_BUFFER_MINS) : 0;
-                              const showBufferConnector = !!nextNavItem && (nextNavItem?._isBufferCoordinated || nextNavBufferMins >= 30);
+                              const nextNavPlanIdx = nextNavItem
+                                ? itinerary.days?.[dNavIdx]?.plan?.findIndex((entry) => entry?.id === nextNavItem.id)
+                                : -1;
+                              const nextNavBufferState = nextNavItem && nextNavPlanIdx >= 0
+                                ? getBufferDisplayState(itinerary.days, dNavIdx, nextNavPlanIdx)
+                                : null;
+                              const nextNavBufferMins = nextNavBufferState?.mins || 0;
+                              const showBufferConnector = !!nextNavItem && ((nextNavBufferState?.isCoordinated) || nextNavBufferMins >= 30);
                               const navDropWarn = draggingFromLibrary ? getDropWarning(draggingFromLibrary, dNavIdx, pIdx) : '';
                               const navDragPayload = { dayIdx: dNavIdx, pIdx };
                               return (
@@ -8351,7 +8359,7 @@ const App = () => {
                                           {nextNavItem.time || '--:--'}
                                         </span>
                                         <span className="text-center text-[10px] font-black leading-none text-white">
-                                          {nextNavItem.bufferTimeOverride || `${DEFAULT_BUFFER_MINS}분`}
+                                          {nextNavBufferState?.label || `${DEFAULT_BUFFER_MINS}분`}
                                         </span>
                                         <span className="justify-self-end min-w-[2rem] opacity-0 select-none text-[8px] font-black leading-none">
                                           00분
@@ -9970,6 +9978,7 @@ const App = () => {
                               const rid = `${dIdx}_${pIdx}`;
                               const busy = calculatingRouteId === rid;
                               const prevRouteItem = prevMainItem;
+                              const bufferDisplay = getBufferDisplayState(itinerary.days, dIdx, pIdx);
                               return (
                                 <>
                                   {/* 이동 시간 */}
@@ -10014,7 +10023,7 @@ const App = () => {
                                   {/* 여유 시간 */}
                                   <div className="flex items-center gap-1.5">
                                     <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
-                                    <span className="min-w-[3rem] text-center tracking-tight text-xs font-black text-slate-500">{p.bufferTimeOverride || '10분'}</span>
+                                    <span className={`min-w-[3rem] text-center tracking-tight text-xs font-black transition-colors ${bufferDisplay.isCoordinated ? 'text-orange-500' : 'text-slate-500'}`}>{bufferDisplay.label}</span>
                                     <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                                   </div>
                                 </>
@@ -11060,6 +11069,8 @@ const App = () => {
                                   {(() => {
                                     const rid = `${dIdx}_${pIdx + 1}`;
                                     const busy = calculatingRouteId === rid;
+                                    const nextPlanIdx = d.plan.findIndex((entry) => entry?.id === nextItem.id);
+                                    const nextBufferDisplay = getBufferDisplayState(itinerary.days, dIdx, nextPlanIdx);
                                     return (
                                       <>
                                         {/* 이동 시간 */}
@@ -11102,14 +11113,14 @@ const App = () => {
                                           <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
                                           <div className="flex flex-col items-center">
                                             <span
-                                              className={`min-w-[3rem] cursor-pointer text-center tracking-tight text-xs font-black transition-colors ${nextItem._isBufferCoordinated ? 'text-orange-500 hover:text-orange-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                              className={`min-w-[3rem] cursor-pointer text-center tracking-tight text-xs font-black transition-colors ${nextBufferDisplay.isCoordinated ? 'text-orange-500 hover:text-orange-600' : 'text-slate-500 hover:text-slate-700'}`}
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 applyAutoBufferTimeById(dIdx, nextItem.id);
                                               }}
                                               title="클릭하여 보정시간을 10분 기본값으로 초기화"
                                             >
-                                              {nextItem.bufferTimeOverride || '10분'}
+                                              {nextBufferDisplay.label}
                                             </span>
                                           </div>
                                           <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>

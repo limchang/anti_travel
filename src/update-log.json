@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.173",
+      "timestamp": "2026-03-14T00:36:11+09:00",
+      "message": "tune: compact budget playbar fades in place on border"
+    },
+    {
       "version": "1.3.172",
       "timestamp": "2026-03-14T00:10:13+09:00",
       "message": "tune: fade in compact budget playbar with delayed dissolve"
@@ -144,11 +149,6 @@
       "version": "1.3.144",
       "timestamp": "2026-03-13T19:18:12+09:00",
       "message": "feat: redesign floating itinerary header for mobile and desktop"
-    },
-    {
-      "version": "1.3.143",
-      "timestamp": "2026-03-13T19:05:23+09:00",
-      "message": "fix: place hero summary toggle beneath overview panel"
     }
   ]
 }

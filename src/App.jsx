@@ -10227,14 +10227,14 @@ const App = () => {
                           className="absolute inset-0"
                           style={{ background: 'linear-gradient(to bottom, rgba(15,23,42,0.26) 0%, rgba(15,23,42,0.12) 42%, rgba(242,244,246,0.1) 64%, rgba(242,244,246,0.04) 78%, rgba(242,244,246,0) 88%, rgba(242,244,246,0) 100%)' }}
                         />
-                      </div>
-                      <div
-                        className={`pointer-events-none absolute inset-x-0 top-[123px] sm:top-[137px] z-[11] h-[4px] bg-slate-200/90 transition-opacity duration-300 ${heroPinnedCompact ? 'opacity-100 delay-150' : 'opacity-0 delay-0'}`}
-                      >
                         <div
-                          className="h-full rounded-r-full bg-[linear-gradient(90deg,#ef4444_0%,#f97316_24%,#f59e0b_48%,#3b82f6_78%,#2563eb_100%)] shadow-[0_0_12px_rgba(59,130,246,0.35)] transition-all duration-300"
-                          style={{ width: `${Math.min(100, usedPct)}%` }}
-                        />
+                          className={`pointer-events-none absolute inset-x-0 bottom-0 z-[11] h-[4px] bg-slate-200/90 transition-opacity duration-300 ease-out ${heroPinnedCompact ? 'opacity-100 delay-150' : 'opacity-0 delay-0'}`}
+                        >
+                          <div
+                            className="h-full rounded-r-full bg-[linear-gradient(90deg,#ef4444_0%,#f97316_24%,#f59e0b_48%,#3b82f6_78%,#2563eb_100%)] shadow-[0_0_12px_rgba(59,130,246,0.35)]"
+                            style={{ width: `${Math.min(100, usedPct)}%` }}
+                          />
+                        </div>
                       </div>
 
                       <div className={`relative z-10 flex w-full mx-auto flex-col transition-all duration-300 ${timelineMaxClass} ${heroPinnedCompact ? 'gap-3' : 'gap-5 md:gap-6'}`}>

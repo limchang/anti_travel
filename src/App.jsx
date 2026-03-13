@@ -5390,6 +5390,28 @@ const App = () => {
     return prevItem;
   };
 
+  const getNextMainPlanItemByIndex = (days = [], dayIdx, targetIdx) => {
+    const dayPlan = days?.[dayIdx]?.plan || [];
+    for (let idx = targetIdx + 1; idx < dayPlan.length; idx += 1) {
+      const candidate = dayPlan[idx];
+      if (candidate && candidate.type !== 'backup') {
+        return candidate;
+      }
+    }
+    return null;
+  };
+
+  const isFirstMainPlanItemByIndex = (days = [], dayIdx, targetIdx) => {
+    const dayPlan = days?.[dayIdx]?.plan || [];
+    for (let idx = targetIdx - 1; idx >= 0; idx -= 1) {
+      const candidate = dayPlan[idx];
+      if (candidate && candidate.type !== 'backup') {
+        return false;
+      }
+    }
+    return true;
+  };
+
   const getBufferDisplayState = (days = [], dayIdx, targetIdx) => {
     const dayPlan = days?.[dayIdx]?.plan || [];
     const item = dayPlan?.[targetIdx];
@@ -10086,7 +10108,9 @@ const App = () => {
                 const isLodgeSegmentCard = isStandaloneLodgeSegmentItem(p);
                 const isLodgeTagged = Array.isArray(p.types) && p.types.includes('lodge');
                 const isShip = p.types?.includes('ship');
-                const { prevItem: prevMainItem, nextItem: nextMainItem, isFirstMainItem } = getAdjacentMainPlanItems(itinerary.days || [], dIdx, p.id);
+                const prevMainItem = getPreviousMainPlanItemByIndex(itinerary.days || [], dIdx, pIdx);
+                const nextMainItem = getNextMainPlanItemByIndex(itinerary.days || [], dIdx, pIdx);
+                const isFirstMainItem = isFirstMainPlanItemByIndex(itinerary.days || [], dIdx, pIdx);
                 const isTimelineDragActive = Boolean(draggingFromLibrary || draggingFromTimeline);
                 const planBCount = p.alternatives?.length || 0;
                 const hasPlanB = planBCount > 0;

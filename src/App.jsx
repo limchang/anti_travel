@@ -10162,72 +10162,70 @@ const App = () => {
                     style={{ left: isMobileLayout ? 0 : leftSidebarWidth, right: isMobileLayout ? 0 : (col2Collapsed ? 44 : 300) }}
                   >
                     <div className="w-full border-b border-slate-200/90 bg-white/97 px-3 py-2.5 shadow-[0_10px_28px_-18px_rgba(15,23,42,0.22)] backdrop-blur-2xl pointer-events-auto sm:px-6">
-                      <div className="flex flex-col gap-2.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-4">
-                        <div className="flex items-center justify-between gap-3 min-w-0">
-                          <div className="flex min-w-0 items-center gap-2.5">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#3182F6] shadow-sm shrink-0">
-                              <MapPin size={14} className="text-white" />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="truncate text-[18px] font-black tracking-tight text-slate-900">{tripRegion || '여행지'}</div>
-                              <div className="mt-0.5 text-[10px] font-bold leading-none text-slate-400">
-                                {(tripStartDate && tripEndDate)
-                                  ? `${tripStartDate.slice(5).replace('-', '.')}~${tripEndDate.slice(5).replace('-', '.')}`
-                                  : `${tripNights}박 ${tripDays}일`}
-                              </div>
+                      <div className="relative min-h-[70px] sm:min-h-[56px]">
+                        <div className="flex min-w-0 items-start gap-2.5 pr-[176px] sm:pr-[276px]">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#3182F6] shadow-sm shrink-0">
+                            <MapPin size={14} className="text-white" />
+                          </div>
+                          <div className="min-w-0 pt-0.5">
+                            <div className="truncate text-[18px] font-black tracking-tight text-slate-900">{tripRegion || '여행지'}</div>
+                            <div className="mt-0.5 text-[10px] font-bold leading-none text-slate-400">
+                              {(tripStartDate && tripEndDate)
+                                ? `${tripStartDate.slice(5).replace('-', '.')}~${tripEndDate.slice(5).replace('-', '.')}`
+                                : `${tripNights}박 ${tripDays}일`}
                             </div>
                           </div>
-
-                          {canManagePlan && (
-                            <div className="flex items-center gap-1.5 shrink-0 sm:hidden">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setIsEditMode(!isEditMode); }}
-                                className={`flex h-9 w-9 items-center justify-center rounded-2xl border transition-all shadow-sm ${isEditMode ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-white border-slate-200 text-slate-500'}`}
-                                title={isEditMode ? '편집 모드 종료' : '편집 모드 시작 (드래그 활성화)'}
-                              >
-                                {isEditMode ? <Edit3 size={14} /> : <Lock size={14} />}
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setIsAddingPlace(true); }}
-                                className="flex h-9 w-9 items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 text-[#3182F6] transition-all shadow-sm hover:bg-[#3182F6] hover:text-white"
-                                title="내 장소에 일정 추가"
-                              >
-                                <PlusCircle size={15} />
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); autoCalculateAllRoutes(); }}
-                                disabled={isCalculatingAllRoutes}
-                                className="flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition-all shadow-sm hover:border-[#3182F6]/40 hover:text-[#3182F6] disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="전체 경로 다시 계산"
-                              >
-                                {isCalculatingAllRoutes ? (
-                                  <div className="relative flex items-center justify-center">
-                                    <div className="absolute inset-0 animate-spin border-t-2 border-[#3182F6] rounded-full scale-125 opacity-20" />
-                                    <span className="text-[8px] font-black text-[#3182F6]">{routeCalcProgress}</span>
-                                  </div>
-                                ) : (
-                                  <Navigation size={14} />
-                                )}
-                              </button>
-                              <button
-                                onClick={() => setShowPlanOptions(true)}
-                                className="flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition-all shadow-sm hover:border-[#3182F6] hover:text-[#3182F6]"
-                                title="일정 옵션"
-                              >
-                                <SlidersHorizontal size={14} />
-                              </button>
-                              <button
-                                onClick={() => setShowShareManager(true)}
-                                className="flex h-9 w-9 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-[#3182F6] transition-all shadow-sm hover:bg-blue-600 hover:text-white"
-                                title="공유 설정"
-                              >
-                                <Share2 size={14} />
-                              </button>
-                            </div>
-                          )}
                         </div>
 
-                        <div className="flex items-center justify-center gap-3 sm:justify-center">
+                        {canManagePlan && (
+                          <div className="absolute right-0 top-0 flex items-center gap-1.5 shrink-0">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setIsEditMode(!isEditMode); }}
+                              className={`flex h-8 w-8 items-center justify-center rounded-2xl border transition-all shadow-sm sm:h-10 sm:w-10 ${isEditMode ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-white border-slate-200 text-slate-500'}`}
+                              title={isEditMode ? '편집 모드 종료' : '편집 모드 시작 (드래그 활성화)'}
+                            >
+                              {isEditMode ? <Edit3 size={14} /> : <Lock size={14} />}
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setIsAddingPlace(true); }}
+                              className="flex h-8 w-8 items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 text-[#3182F6] transition-all shadow-sm hover:bg-[#3182F6] hover:text-white sm:h-10 sm:w-10"
+                              title="내 장소에 일정 추가"
+                            >
+                              <PlusCircle size={15} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); autoCalculateAllRoutes(); }}
+                              disabled={isCalculatingAllRoutes}
+                              className="flex h-8 w-8 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition-all shadow-sm hover:border-[#3182F6]/40 hover:text-[#3182F6] disabled:opacity-50 disabled:cursor-not-allowed sm:h-10 sm:w-10"
+                              title="전체 경로 다시 계산"
+                            >
+                              {isCalculatingAllRoutes ? (
+                                <div className="relative flex items-center justify-center">
+                                  <div className="absolute inset-0 animate-spin border-t-2 border-[#3182F6] rounded-full scale-125 opacity-20" />
+                                  <span className="text-[8px] font-black text-[#3182F6]">{routeCalcProgress}</span>
+                                </div>
+                              ) : (
+                                <Navigation size={14} />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => setShowPlanOptions(true)}
+                              className="flex h-8 w-8 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition-all shadow-sm hover:border-[#3182F6] hover:text-[#3182F6] sm:h-10 sm:w-10"
+                              title="일정 옵션"
+                            >
+                              <SlidersHorizontal size={14} />
+                            </button>
+                            <button
+                              onClick={() => setShowShareManager(true)}
+                              className="flex h-8 w-8 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-[#3182F6] transition-all shadow-sm hover:bg-blue-600 hover:text-white sm:h-10 sm:w-10"
+                              title="공유 설정"
+                            >
+                              <Share2 size={14} />
+                            </button>
+                          </div>
+                        )}
+
+                        <div className="mt-2 flex items-center justify-center sm:absolute sm:left-1/2 sm:top-1/2 sm:mt-0 sm:-translate-x-1/2 sm:-translate-y-1/2">
                           <div className="min-w-0 w-full sm:w-[200px]">
                             <div className="truncate text-center text-[12px] font-black tracking-tight text-[#3182F6] tabular-nums sm:text-[16px]">
                               ₩{budgetSummary.remaining.toLocaleString()}
@@ -10239,56 +10237,7 @@ const App = () => {
                               <span className="text-[10px] font-black text-slate-400 tabular-nums">{usedPct}%</span>
                             </div>
                           </div>
-
                         </div>
-
-                        {canManagePlan && (
-                          <div className="hidden items-center justify-end gap-1.5 shrink-0 sm:flex">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setIsEditMode(!isEditMode); }}
-                              className={`flex h-10 w-10 items-center justify-center rounded-2xl border transition-all shadow-sm ${isEditMode ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-white border-slate-200 text-slate-500'}`}
-                              title={isEditMode ? '편집 모드 종료' : '편집 모드 시작 (드래그 활성화)'}
-                            >
-                              {isEditMode ? <Edit3 size={15} /> : <Lock size={15} />}
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setIsAddingPlace(true); }}
-                              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 text-[#3182F6] transition-all shadow-sm hover:bg-[#3182F6] hover:text-white"
-                              title="내 장소에 일정 추가"
-                            >
-                              <PlusCircle size={16} />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); autoCalculateAllRoutes(); }}
-                              disabled={isCalculatingAllRoutes}
-                              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition-all shadow-sm hover:border-[#3182F6]/40 hover:text-[#3182F6] disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="전체 경로 다시 계산"
-                            >
-                              {isCalculatingAllRoutes ? (
-                                <div className="relative flex items-center justify-center">
-                                  <div className="absolute inset-0 animate-spin border-t-2 border-[#3182F6] rounded-full scale-125 opacity-20" />
-                                  <span className="text-[8px] font-black text-[#3182F6]">{routeCalcProgress}</span>
-                                </div>
-                              ) : (
-                                <Navigation size={15} />
-                              )}
-                            </button>
-                            <button
-                              onClick={() => setShowPlanOptions(true)}
-                              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition-all shadow-sm hover:border-[#3182F6] hover:text-[#3182F6]"
-                              title="일정 옵션"
-                            >
-                              <SlidersHorizontal size={15} />
-                            </button>
-                            <button
-                              onClick={() => setShowShareManager(true)}
-                              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-[#3182F6] transition-all shadow-sm hover:bg-blue-600 hover:text-white"
-                              title="공유 설정"
-                            >
-                              <Share2 size={15} />
-                            </button>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>

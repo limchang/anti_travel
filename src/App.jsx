@@ -10346,61 +10346,67 @@ const App = () => {
                         </div>
 
                         {/* 🌟 2. 여행 한눈에 보기 */}
-                        <div className="flex flex-col gap-8 px-3 sm:px-0">
-                            <div className="relative mt-5 w-full grid grid-cols-1 sm:grid-cols-3 bg-white/50 rounded-2xl border border-white/20 overflow-visible min-h-[108px]">
-                              <div className="p-4 flex flex-col items-center justify-center gap-1 border-b sm:border-b-0 sm:border-r border-slate-100">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">예산 사용</p>
-                                <p className="text-[28px] leading-none font-black text-[#3182F6] tabular-nums">{usedPct}%</p>
-                                <p className="text-[11px] font-bold text-slate-500 tabular-nums">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
-                              </div>
-                              <div className="relative p-4 flex flex-col items-center justify-center gap-1 border-b sm:border-b-0 sm:border-r border-slate-100">
-                                <div className="flex items-center gap-1.5">
-                                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">여행 강도</p>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setShowTravelIntensityInfo((prev) => !prev);
-                                    }}
-                                    className="w-4 h-4 rounded-full border border-slate-300 text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6]/40 transition-colors flex items-center justify-center"
-                                    title="여행 강도 계산식 보기"
-                                  >
-                                    <Info size={10} />
-                                  </button>
+                        <div className="flex flex-col gap-5 px-3 sm:px-0">
+                            <div className="relative mt-5 w-full rounded-[34px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl sm:px-6 sm:py-6">
+                              <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">Trip Overview</p>
+                                  <p className="mt-1 text-[15px] font-black tracking-tight text-slate-800">일정 개요</p>
                                 </div>
-                                <p className="text-[24px] leading-none font-black text-slate-700 text-center">{travelIntensity.label}</p>
-                                <p className="text-[11px] font-bold text-slate-500 text-center">{travelIntensity.note}</p>
-                                {showTravelIntensityInfo && (
-                                  <div className="absolute left-1/2 top-7 z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
-                                    <p className="mt-2 text-[11px] font-bold text-slate-600">시간당 방문 수: {visitPerHour.toFixed(2)}개</p>
-                                    <p className="mt-1 text-[11px] font-bold text-slate-600">하루 활동 시간: 평균 {averageSpanHours.toFixed(1)}시간</p>
-                                    <p className="mt-1 text-[11px] font-bold text-slate-600">하루 이동 시간: 평균 {averageTravelHoursLabel}</p>
-                                    <p className="mt-1 text-[11px] font-bold text-slate-600">숙소 고정 제약: {lodgingConstraintCount}개</p>
-                                    <p className="mt-2 text-[10px] font-bold text-slate-400">방문 수는 `숙소/휴식/페리`를 제외한 일정만 세며, 숙소의 고정 체크인/체크아웃도 강도 점수에 반영합니다.</p>
+                                <button
+                                  type="button"
+                                  onClick={() => setHeroSummaryExpanded(v => !v)}
+                                  className="shrink-0 flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white/90 px-4 py-2 text-[11px] font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                                >
+                                  여행 요약 {heroSummaryExpanded ? '닫기' : '확장'}
+                                  <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />
+                                </button>
+                              </div>
+
+                              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
+                                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
+                                  <p className="mt-2 text-[31px] leading-none font-black text-[#3182F6] tabular-nums">{usedPct}%</p>
+                                  <p className="mt-2 text-[11px] font-bold text-slate-500 tabular-nums">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
+                                </div>
+                                <div className="relative rounded-[24px] border border-slate-200 bg-white/95 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowTravelIntensityInfo((prev) => !prev);
+                                      }}
+                                      className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition-colors hover:border-[#3182F6]/40 hover:text-[#3182F6]"
+                                      title="여행 강도 계산식 보기"
+                                    >
+                                      <Info size={10} />
+                                    </button>
                                   </div>
-                                )}
+                                  <p className="mt-2 text-center text-[27px] leading-none font-black text-slate-800">{travelIntensity.label}</p>
+                                  <p className="mt-2 text-center text-[11px] font-bold text-slate-500">{travelIntensity.note}</p>
+                                  {showTravelIntensityInfo && (
+                                    <div className="absolute left-1/2 top-[calc(100%-8px)] z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
+                                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
+                                      <p className="mt-2 text-[11px] font-bold text-slate-600">시간당 방문 수: {visitPerHour.toFixed(2)}개</p>
+                                      <p className="mt-1 text-[11px] font-bold text-slate-600">하루 활동 시간: 평균 {averageSpanHours.toFixed(1)}시간</p>
+                                      <p className="mt-1 text-[11px] font-bold text-slate-600">하루 이동 시간: 평균 {averageTravelHoursLabel}</p>
+                                      <p className="mt-1 text-[11px] font-bold text-slate-600">숙소 고정 제약: {lodgingConstraintCount}개</p>
+                                      <p className="mt-2 text-[10px] font-bold text-slate-400">방문 수는 `숙소/휴식/페리`를 제외한 일정만 세며, 숙소의 고정 체크인/체크아웃도 강도 점수에 반영합니다.</p>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
+                                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
+                                  <p className="mt-2 text-center text-[31px] leading-none font-black text-slate-800 tabular-nums">{visitPerHour.toFixed(1)}개/h</p>
+                                  <p className="mt-2 text-center text-[11px] font-bold text-slate-500">방문 일정 {visitPlanCount}개 기준</p>
+                                </div>
                               </div>
-                              <div className="p-4 flex flex-col items-center justify-center gap-1">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                  방문 밀도
-                                </p>
-                                <p className="text-[28px] leading-none font-black text-slate-700 text-center tabular-nums">{visitPerHour.toFixed(1)}개/h</p>
-                                <p className="text-[11px] font-bold text-slate-500 text-center">방문 일정 {visitPlanCount}개 기준</p>
-                              </div>
-                            </div>
 
-                            <button
-                              type="button"
-                              onClick={() => setHeroSummaryExpanded(v => !v)}
-                              className="mt-4 w-full sm:w-[380px] justify-center px-4 py-3 rounded-2xl border border-slate-200 bg-white text-[11px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors flex items-center gap-1.5"
-                            >
-                              여행 요약 확장
-                              <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />
-                            </button>
-
-                            {heroSummaryExpanded && (
-                              <div className="mt-3 w-full p-3 rounded-2xl border border-slate-200 bg-white/85 text-left">
+                              {heroSummaryExpanded && (
+                              <div className="mt-4 w-full rounded-[26px] border border-slate-200 bg-white/92 p-4 text-left shadow-[0_16px_32px_-24px_rgba(15,23,42,0.24)]">
                                 <p className="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">신규 / 재방문 비율 비교</p>
                                 <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden flex">
                                   <div className="h-full bg-emerald-400" style={{ width: `${newPct}%` }} />
@@ -10439,8 +10445,9 @@ const App = () => {
                                 </div>
                               </div>
                             )}
-                          </div>
                         </div>
+                        </div>
+                      </div>
                     </div>
                   </section>
                 )}

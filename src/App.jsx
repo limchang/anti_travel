@@ -10118,9 +10118,9 @@ const App = () => {
               ? `${(averageTravelMinutes / 60).toFixed(1)}시간`
               : `${Math.round(averageTravelMinutes)}분`;
             return (
-              <div className="mb-8 relative">
+              <div className="sticky top-0 z-[120] mb-8 relative -mx-4 -mt-8">
                 {/* 풀 카드 (최상단) */}
-                <section className="sticky top-0 z-[120] mb-10 -mx-4 -mt-8">
+                <section className="mb-10">
                     <div className="w-full relative overflow-hidden bg-transparent">
                       {canManagePlan && <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                         <button

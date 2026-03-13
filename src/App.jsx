@@ -13,7 +13,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, MoreHorizontal, RotateCcw
+  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -3111,7 +3111,6 @@ const App = () => {
   const [heroPinnedCompact, setHeroPinnedCompact] = useState(false);
   const [heroCompactBudgetBarVisible, setHeroCompactBudgetBarVisible] = useState(false);
   const [heroSummaryExpanded, setHeroSummaryExpanded] = useState(false);
-  const [heroActionMenuOpen, setHeroActionMenuOpen] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
   useEffect(() => {
     const places = itinerary.places || [];
@@ -10339,6 +10338,17 @@ const App = () => {
                   >
                     <div className="w-full relative overflow-visible bg-transparent">
                       {canManagePlan && (
+                        <button
+                          type="button"
+                          onClick={autoCalculateAllRoutes}
+                          disabled={isCalculatingAllRoutes}
+                          className={`absolute left-4 z-20 flex items-center justify-center border border-white/40 bg-white/85 text-slate-700 shadow-lg backdrop-blur transition-colors hover:border-[#3182F6]/50 hover:text-[#3182F6] disabled:cursor-not-allowed disabled:opacity-55 ${heroPinnedCompact ? 'top-2 h-9 w-9 rounded-lg' : 'top-4 h-10 w-10 rounded-xl'}`}
+                          title={isCalculatingAllRoutes ? `경로 계산 ${routeCalcProgress}%` : '경로 재계산'}
+                        >
+                          {isCalculatingAllRoutes ? <LoaderCircle size={heroPinnedCompact ? 14 : 16} className="animate-spin" /> : <Navigation size={heroPinnedCompact ? 14 : 16} />}
+                        </button>
+                      )}
+                      {canManagePlan && (
                         <div className={`absolute right-4 z-20 flex items-center transition-all duration-300 ${heroPinnedCompact ? 'top-2 gap-1.5' : 'top-4 gap-2'}`}>
                           <button
                             onClick={() => setShowPlanOptions(true)}
@@ -10555,61 +10565,23 @@ const App = () => {
             );
           })()}
           {canManagePlan && (
-            <>
-              {heroActionMenuOpen && (
-                <button
-                  type="button"
-                  className="fixed inset-0 z-[124] cursor-default bg-transparent"
-                  onClick={() => setHeroActionMenuOpen(false)}
-                  aria-label="플로팅 메뉴 닫기"
-                />
-              )}
-              <div
-                className="fixed z-[125] flex flex-col items-end gap-2"
-                style={{
-                  right: (isMobileLayout ? Math.max(rightSidebarWidth + 14, 14) : rightSidebarWidth + 18),
-                  bottom: isMobileLayout ? 18 : 22,
-                }}
+            <div
+              className="fixed z-[125]"
+              style={{
+                right: (isMobileLayout ? Math.max(rightSidebarWidth + 14, 14) : rightSidebarWidth + 18),
+                bottom: isMobileLayout ? 18 : 22,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setIsEditMode((prev) => !prev)}
+                className={`flex h-12 min-w-[120px] items-center justify-center gap-2 rounded-[18px] border px-4 backdrop-blur-xl transition-all ${isEditMode ? 'border-amber-300 bg-amber-50/96 text-amber-700 shadow-[0_18px_36px_-20px_rgba(245,158,11,0.35)]' : 'border-slate-200/85 bg-white/96 text-slate-700 shadow-[0_18px_36px_-24px_rgba(15,23,42,0.4)] hover:border-[#3182F6]/40 hover:text-[#3182F6]'}`}
+                title={isEditMode ? '편집 종료' : '편집 시작'}
               >
-                {heroActionMenuOpen && (
-                  <div className="flex flex-col items-end gap-2 rounded-[24px] border border-slate-200/85 bg-white/96 p-2.5 shadow-[0_24px_44px_-24px_rgba(15,23,42,0.35)] backdrop-blur-xl">
-                    <button
-                      type="button"
-                      onClick={() => { setIsEditMode(!isEditMode); setHeroActionMenuOpen(false); }}
-                      className={`flex min-w-[148px] items-center justify-between gap-3 rounded-[18px] border px-4 py-3 text-[11px] font-black transition-colors ${isEditMode ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-700 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
-                    >
-                      <span>{isEditMode ? '편집 종료' : '편집 시작'}</span>
-                      {isEditMode ? <Edit3 size={15} /> : <Lock size={15} />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setIsAddingPlace(true); setHeroActionMenuOpen(false); }}
-                      className="flex min-w-[148px] items-center justify-between gap-3 rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-[11px] font-black text-slate-700 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
-                    >
-                      <span>일정 추가</span>
-                      <PlusCircle size={15} className="text-[#3182F6]" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { autoCalculateAllRoutes(); setHeroActionMenuOpen(false); }}
-                      disabled={isCalculatingAllRoutes}
-                      className="flex min-w-[148px] items-center justify-between gap-3 rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-[11px] font-black text-slate-700 transition-colors hover:border-[#3182F6] hover:text-[#3182F6] disabled:cursor-not-allowed disabled:opacity-55"
-                    >
-                      <span>{isCalculatingAllRoutes ? `경로 계산 ${routeCalcProgress}%` : '경로 재계산'}</span>
-                      {isCalculatingAllRoutes ? <LoaderCircle size={15} className="animate-spin text-[#3182F6]" /> : <Navigation size={15} />}
-                    </button>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setHeroActionMenuOpen((prev) => !prev)}
-                  className={`flex h-12 w-12 items-center justify-center rounded-[18px] border backdrop-blur-xl transition-all ${heroActionMenuOpen ? 'border-[#3182F6]/40 bg-[#3182F6] text-white shadow-[0_18px_36px_-20px_rgba(49,130,246,0.55)]' : 'border-slate-200/85 bg-white/96 text-slate-700 shadow-[0_18px_36px_-24px_rgba(15,23,42,0.4)] hover:border-[#3182F6]/40 hover:text-[#3182F6]'}`}
-                  title="빠른 메뉴"
-                >
-                  <MoreHorizontal size={18} />
-                </button>
-              </div>
-            </>
+                {isEditMode ? <Edit3 size={16} /> : <Lock size={16} />}
+                <span className="text-[11px] font-black">{isEditMode ? '편집 종료' : '편집 시작'}</span>
+              </button>
+            </div>
           )}
           <div className={`w-full mx-auto flex flex-col relative z-0 ${timelineMaxClass} gap-0`}>
             {totalTimelineItems === 0 && (

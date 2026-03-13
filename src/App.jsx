@@ -10129,7 +10129,7 @@ const App = () => {
               <div className="mb-8 relative" style={{ height: dashboardHeight }}>
                 {/* 풀 카드 (최상단) */}
                 <div
-                  className={`fixed top-0 z-[120] px-4 transition-all duration-300 ${heroPinnedCompact ? 'pt-1 sm:pt-2' : 'pt-2 sm:pt-4'}`}
+                  className="fixed top-0 z-[120]"
                   style={{
                     left: leftSidebarWidth,
                     right: isMobileLayout ? rightSidebarWidth : (col2Collapsed ? 44 : 300),

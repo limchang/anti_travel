@@ -4883,6 +4883,25 @@ const App = () => {
     }
     setLastAction("운영 시작 시간으로 일정을 보정했습니다.");
   };
+  const applyBusinessQuickEditAction = (dayIdx, pIdx, fieldKey) => {
+    const item = itinerary.days?.[dayIdx]?.plan?.[pIdx];
+    const business = normalizeBusiness(item?.business || {});
+    if (!item) return;
+
+    if (fieldKey === 'open' && business.open) {
+      setStartTimeValue(dayIdx, pIdx, business.open);
+      setLastAction(`일정 시작 시간을 운영 시작 ${business.open}(으)로 맞췄습니다.`);
+      return;
+    }
+
+    if (fieldKey === 'breakStart' && business.breakEnd) {
+      setStartTimeValue(dayIdx, pIdx, business.breakEnd);
+      setLastAction(`일정 시작 시간을 브레이크 종료 ${business.breakEnd}(으)로 맞췄습니다.`);
+      return;
+    }
+
+    setBusinessEditorTarget({ dayIdx, pIdx, fieldKey });
+  };
   const getDropWarning = (place, dIdx, insertAfterPIdx) => {
     if (!place?.business) return '';
     const business = normalizeBusiness(place.business || {});
@@ -10778,7 +10797,7 @@ const App = () => {
                                   summary={formatBusinessSummary(p.business, p)}
                                   onContainerClick={(e) => e.stopPropagation()}
                                   quickEditSegments={buildBusinessQuickEditSegments(p.business || {})}
-                                  onQuickEdit={(fieldKey) => setBusinessEditorTarget({ dayIdx: dIdx, pIdx, fieldKey })}
+                                  onQuickEdit={(fieldKey) => applyBusinessQuickEditAction(dIdx, pIdx, fieldKey)}
                                   onToggle={() => setBusinessEditorTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx, fieldKey: null }))}
                                   actionButton={
                                     <button

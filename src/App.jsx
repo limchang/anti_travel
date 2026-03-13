@@ -5799,25 +5799,90 @@ const App = () => {
     return dayPlan;
   };
 
-  // 실숙박 일정은 Day 경계를 강제한다.
-  useEffect(() => {
-    if (!hasInvalidLodgeSplit(itinerary?.days)) return;
+  const recalculateScheduleAcrossDays = (days) => {
+    if (!Array.isArray(days)) return days;
 
+    let prevEndMinutes = null;
+    for (let dayIdx = 0; dayIdx < days.length; dayIdx += 1) {
+      const dayPlan = days?.[dayIdx]?.plan || [];
+      for (let idx = 0; idx < dayPlan.length; idx += 1) {
+        const item = dayPlan[idx];
+        if (!item || item.type === 'backup') continue;
+
+        item._timingConflict = false;
+        item._timingConflictReason = '';
+
+        const duration = Math.max(0, Number(item.duration) || 0);
+
+        if (prevEndMinutes === null) {
+          const start = timeToMinutes(item.time || '00:00');
+          if (!item.time) item.time = minutesToTime(start);
+          if (item.types?.includes('ship')) {
+            const shipTimeline = getShipTimeline(item);
+            item.time = minutesToTime(shipTimeline.loadStart);
+            item.duration = Math.max(0, shipTimeline.disembark - shipTimeline.loadStart);
+            prevEndMinutes = shipTimeline.disembark;
+          } else {
+            prevEndMinutes = start + duration;
+          }
+          continue;
+        }
+
+        const travel = parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
+        const currentBuffer = parseMinsLabel(item.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+        const manualBufferBase = item._isBufferCoordinated
+          ? parseMinsLabel(item._manualBufferTimeOverride, DEFAULT_BUFFER_MINS)
+          : currentBuffer;
+        if (!item._manualBufferTimeOverride) item._manualBufferTimeOverride = `${manualBufferBase}분`;
+
+        let startMinutes = prevEndMinutes + travel + manualBufferBase;
+        if (item.isTimeFixed) {
+          startMinutes = timeToMinutes(item.time || '00:00');
+          const baseArrival = prevEndMinutes + travel;
+          const effectiveBuffer = Math.max(0, startMinutes - baseArrival);
+          item.bufferTimeOverride = `${effectiveBuffer}분`;
+          item._manualBufferTimeOverride = `${effectiveBuffer}분`;
+          item._isBufferCoordinated = effectiveBuffer > 0;
+        } else {
+          if (item._isBufferCoordinated) {
+            item.bufferTimeOverride = `${manualBufferBase}분`;
+            item._isBufferCoordinated = false;
+          }
+          item.time = minutesToTime(startMinutes);
+        }
+
+        if (item.types?.includes('ship')) {
+          const shipTimeline = getShipTimeline(item);
+          prevEndMinutes = shipTimeline.disembark;
+          item.duration = Math.max(0, shipTimeline.disembark - timeToMinutes(item.time || '00:00'));
+        } else {
+          const effectiveDuration = Math.max(0, Number(item.duration) || 0);
+          item.duration = effectiveDuration;
+          prevEndMinutes = startMinutes + effectiveDuration;
+        }
+      }
+    }
+
+    return days;
+  };
+
+  // 실숙박 일정은 Day 경계를 강제하되, 시간 계산은 Day 구분 없이 전체 일정 흐름으로 이어서 맞춘다.
+  useEffect(() => {
     setItinerary(prev => {
-      if (!hasInvalidLodgeSplit(prev?.days)) return prev;
       const nextData = JSON.parse(JSON.stringify(prev));
       if (!Array.isArray(nextData.days)) return prev;
+      const before = JSON.stringify(nextData.days);
 
       // 연쇄적으로 뒤 Day로 이동할 수 있어 고정점까지 반복
       while (normalizeDaySplitByLodge(nextData.days)) {
         // no-op
       }
 
-      nextData.days.forEach(day => {
-        day.plan = recalculateSchedule(day.plan || []);
-      });
+      recalculateScheduleAcrossDays(nextData.days);
       recalculateLodgeDurations(nextData.days);
-      return nextData;
+      const after = JSON.stringify(nextData.days);
+      if (before === after) return prev;
+      return { ...nextData };
     });
   }, [itinerary?.days]);
 

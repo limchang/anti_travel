@@ -3101,8 +3101,6 @@ const App = () => {
   const [dashboardHeight, setDashboardHeight] = useState(200);
   const [showTravelIntensityInfo, setShowTravelIntensityInfo] = useState(false);
   const dashboardRef = useRef(null);
-  const heroTriggerRef = useRef(null);
-  const [heroCollapsed, setHeroCollapsed] = useState(false);
   const [heroSummaryExpanded, setHeroSummaryExpanded] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
   useEffect(() => {
@@ -4204,7 +4202,6 @@ const App = () => {
   const DEFAULT_TRAVEL_MINS = 15;
   const DEFAULT_BUFFER_MINS = 10;
   const BUFFER_STEP = 1;
-  const SHOW_HERO_COMPACT_BAR = false;
   const getMenuQty = (menu) => {
     const parsed = Number(menu?.qty);
     if (!Number.isFinite(parsed) || parsed <= 0) return 1;
@@ -10123,8 +10120,7 @@ const App = () => {
             return (
               <div className="mb-8 relative">
                 {/* 풀 카드 (최상단) */}
-                {(!SHOW_HERO_COMPACT_BAR || !heroCollapsed) && (
-                  <section className="sticky top-0 z-[120] mb-10 -mx-4 -mt-8">
+                <section className="sticky top-0 z-[120] mb-10 -mx-4 -mt-8">
                     <div className="w-full relative overflow-hidden bg-transparent">
                       {canManagePlan && <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                         <button
@@ -10334,11 +10330,9 @@ const App = () => {
                       </div>
                     </div>
                   </section>
-                )}
               </div>
             );
           })()}
-          <div ref={heroTriggerRef} className="h-px w-full" />
           <div className={`w-full mx-auto flex flex-col relative z-0 ${timelineMaxClass} gap-0`}>
             {totalTimelineItems === 0 && (
               <div

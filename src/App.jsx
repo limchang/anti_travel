@@ -10894,6 +10894,7 @@ const App = () => {
                                 const currentDurationMinute = durationMinutes % 60;
                                 const currentEndHour = Math.floor(currentEndMinutes / 60);
                                 const currentEndMinute = currentEndMinutes % 60;
+                                const canWrapEndBeforeStart = isOvernightLodgeTimelineItem(p);
                                 const buildWrappedTotalMinutes = (baseHour, baseMinute, nextMinute) => {
                                   let nextHour = baseHour;
                                   const delta = nextMinute - baseMinute;
@@ -10904,6 +10905,7 @@ const App = () => {
                                 const normalizeDayMinute = (value) => ((value % 1440) + 1440) % 1440;
                                 const clampEndNotBeforeStart = (candidateMinutes) => {
                                   const normalized = normalizeDayMinute(candidateMinutes);
+                                  if (canWrapEndBeforeStart) return normalized;
                                   return Math.max(startMinutes, normalized);
                                 };
                                 const clampDurationMinutes = (candidateMinutes) => Math.max(0, Math.min(1439, Number(candidateMinutes) || 0));
@@ -12155,6 +12157,7 @@ const App = () => {
             const endHourValues = Array.from({ length: 24 }, (_, idx) => idx);
             const currentEndHour = Math.floor(currentEndMinutes / 60);
             const currentEndMinute = currentEndMinutes % 60;
+            const canWrapEndBeforeStart = isOvernightLodgeTimelineItem(item);
             const buildWrappedTotalMinutes = (baseHour, baseMinute, nextMinute) => {
               let nextHour = baseHour;
               const delta = nextMinute - baseMinute;
@@ -12165,6 +12168,7 @@ const App = () => {
             const normalizeDayMinute = (value) => ((value % 1440) + 1440) % 1440;
             const clampEndNotBeforeStart = (candidateMinutes) => {
               const normalized = normalizeDayMinute(candidateMinutes);
+              if (canWrapEndBeforeStart) return normalized;
               return Math.max(startMinutes, normalized);
             };
             const clampDurationMinutes = (candidateMinutes) => Math.max(0, Math.min(1439, Number(candidateMinutes) || 0));

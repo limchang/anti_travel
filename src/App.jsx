@@ -10137,7 +10137,7 @@ const App = () => {
               ? `${(averageTravelMinutes / 60).toFixed(1)}시간`
               : `${Math.round(averageTravelMinutes)}분`;
             return (
-              <div className="mb-8 relative" style={{ height: Math.max(dashboardHeight + (heroPinnedCompact ? 20 : (isMobileLayout ? 28 : 40)), heroPinnedCompact ? 156 : (isMobileLayout ? 448 : 520)) }}>
+              <div className="mb-6 relative" style={{ height: Math.max(dashboardHeight + (heroPinnedCompact ? 10 : (isMobileLayout ? 12 : 18)), heroPinnedCompact ? 144 : (isMobileLayout ? 406 : 458)) }}>
                 {/* 풀 카드 (최상단) */}
                 <div
                   className="fixed top-0 z-[120]"
@@ -10148,9 +10148,9 @@ const App = () => {
                 >
                   <section
                     ref={dashboardRef}
-                    className={`${heroPinnedCompact ? 'mb-5' : 'mb-8 sm:mb-10'} transition-all duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overscroll-contain' : ''}`}
+                    className={`${heroPinnedCompact ? 'mb-3' : 'mb-4 sm:mb-6'} transition-all duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overscroll-contain' : ''}`}
                   >
-                    <div className="w-full relative overflow-hidden bg-transparent">
+                    <div className="w-full relative overflow-visible bg-transparent">
                       {canManagePlan && <div className={`absolute right-4 z-20 flex items-center transition-all duration-300 ${heroPinnedCompact ? 'top-2 gap-1.5' : 'top-4 gap-2'}`}>
                         <button
                           onClick={(e) => { e.stopPropagation(); setIsEditMode(!isEditMode); }}

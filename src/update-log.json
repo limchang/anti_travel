@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.192",
+      "timestamp": "2026-03-14T18:27:33+09:00",
+      "message": "fix: fallback route overview when kakao map fails"
+    },
+    {
       "version": "1.3.191",
       "timestamp": "2026-03-14T18:16:38+09:00",
       "message": "feat: add right panel map overview with linked route focus"
@@ -144,11 +149,6 @@
       "version": "1.3.163",
       "timestamp": "2026-03-13T22:26:39+09:00",
       "message": "tune: move hero actions to floating menu and refine overview compact"
-    },
-    {
-      "version": "1.3.162",
-      "timestamp": "2026-03-13T22:22:02+09:00",
-      "message": "tune: align overview spacing and radius"
     }
   ]
 }

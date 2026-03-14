@@ -2153,17 +2153,187 @@ const loadKakaoMapSdk = (() => {
       script.async = true;
       script.onload = () => {
         if (!window.kakao?.maps?.load) {
+          sdkPromise = null;
           reject(new Error('kakao maps unavailable'));
           return;
         }
         window.kakao.maps.load(() => resolve(window.kakao));
       };
-      script.onerror = () => reject(new Error('kakao maps script failed'));
+      script.onerror = () => {
+        sdkPromise = null;
+        reject(new Error('kakao maps script failed'));
+      };
       document.head.appendChild(script);
     });
     return sdkPromise;
   };
 })();
+
+const buildFallbackProjection = (points = [], width = 1000, height = 620, padding = 56) => {
+  const validPoints = (points || []).filter((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon)));
+  if (!validPoints.length) {
+    return {
+      project: () => ({ x: width / 2, y: height / 2 }),
+    };
+  }
+  const latitudes = validPoints.map((point) => Number(point.lat));
+  const longitudes = validPoints.map((point) => Number(point.lon));
+  const minLat = Math.min(...latitudes);
+  const maxLat = Math.max(...latitudes);
+  const minLon = Math.min(...longitudes);
+  const maxLon = Math.max(...longitudes);
+  const lonSpan = Math.max(0.0001, maxLon - minLon);
+  const latSpan = Math.max(0.0001, maxLat - minLat);
+  return {
+    project: (point) => {
+      const xRatio = (Number(point.lon) - minLon) / lonSpan;
+      const yRatio = (Number(point.lat) - minLat) / latSpan;
+      return {
+        x: padding + xRatio * (width - padding * 2),
+        y: height - padding - yRatio * (height - padding * 2),
+      };
+    },
+  };
+};
+
+const RoutePreviewFallbackCanvas = ({
+  routePreviewMap = [],
+  libraryPoints = [],
+  recommendationPoints = [],
+  focusedTarget = null,
+  onMarkerClick = null,
+  height = 240,
+  className = '',
+  errorMessage = '',
+}) => {
+  const width = 1000;
+  const viewHeight = 620;
+  const focusedTimelinePointIds = focusedTarget?.kind === 'timeline'
+    ? (Array.isArray(focusedTarget?.routePointIds) && focusedTarget.routePointIds.length
+      ? focusedTarget.routePointIds
+      : [focusedTarget?.id].filter(Boolean))
+    : [];
+  const focusedOverlayKey = focusedTarget?.kind && focusedTarget?.id
+    ? `${focusedTarget.kind}:${focusedTarget.id}`
+    : '';
+  const allPoints = [
+    ...routePreviewMap.flatMap((day) => day.points || []),
+    ...(Array.isArray(libraryPoints) ? libraryPoints : []),
+    ...(Array.isArray(recommendationPoints) ? recommendationPoints : []),
+  ];
+  const { project } = buildFallbackProjection(allPoints, width, viewHeight, 56);
+
+  return (
+    <div className={`relative w-full overflow-hidden rounded-[18px] border border-slate-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.92),rgba(255,255,255,0.98))] ${className}`.trim()} style={{ height }}>
+      <svg viewBox={`0 0 ${width} ${viewHeight}`} className="h-full w-full">
+        <defs>
+          <linearGradient id="fallback-map-bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="rgba(191,219,254,0.28)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0.95)" />
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width={width} height={viewHeight} fill="url(#fallback-map-bg)" />
+        {routePreviewMap.map((day) => (
+          <g key={`fallback-day-${day.day}`}>
+            {(Array.isArray(day.segments) ? day.segments : []).map((segment) => {
+              const segmentVertices = Array.isArray(segment.path) && segment.path.length
+                ? segment.path
+                : [segment.fromPoint, segment.toPoint].filter(Boolean);
+              const projectedPath = segmentVertices
+                .filter((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon)))
+                .map((point) => {
+                  const projected = project(point);
+                  return `${projected.x},${projected.y}`;
+                })
+                .join(' ');
+              const isFocusedSegment = focusedTarget?.kind === 'timeline'
+                && (
+                  focusedTimelinePointIds.includes(segment?.fromId)
+                  || focusedTimelinePointIds.includes(segment?.toId)
+                );
+              if (!projectedPath) return null;
+              return (
+                <polyline
+                  key={segment.id}
+                  points={projectedPath}
+                  fill="none"
+                  stroke={day.color}
+                  strokeWidth={isFocusedSegment ? 9 : 6}
+                  strokeOpacity={isFocusedSegment ? 0.98 : 0.82}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              );
+            })}
+            {(day.points || []).map((point, index) => {
+              const projected = project(point);
+              const isFocusedPoint = focusedTarget?.kind === 'timeline'
+                && (
+                  focusedTimelinePointIds.includes(point?.id)
+                  || focusedTimelinePointIds.includes(point?.itemId)
+                );
+              return (
+                <g
+                  key={`fallback-point-${point.id}`}
+                  className={typeof onMarkerClick === 'function' ? 'cursor-pointer' : ''}
+                  onClick={() => onMarkerClick?.({
+                    kind: 'timeline',
+                    id: point.itemId || point.id,
+                    pointId: point.id,
+                    day: day.day,
+                    label: point.label,
+                    address: point.address,
+                  })}
+                >
+                  <circle cx={projected.x} cy={projected.y} r={isFocusedPoint ? 16 : 12} fill={day.color} stroke={isFocusedPoint ? '#0F172A' : '#FFFFFF'} strokeWidth={isFocusedPoint ? 4 : 3} />
+                  <foreignObject x={projected.x - 44} y={projected.y + 18} width="88" height="28">
+                    <div xmlns="http://www.w3.org/1999/xhtml" className={`flex h-7 items-center justify-center rounded-full border text-[10px] font-black shadow-sm ${isFocusedPoint ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white/95 text-slate-600'}`}>
+                      {`Day ${day.day}-${index + 1}`}
+                    </div>
+                  </foreignObject>
+                </g>
+              );
+            })}
+          </g>
+        ))}
+        {[...(Array.isArray(libraryPoints) ? libraryPoints : []), ...(Array.isArray(recommendationPoints) ? recommendationPoints : [])].map((point) => {
+          const projected = project(point);
+          const isFocusedPoint = `${point.kind}:${point.id}` === focusedOverlayKey;
+          const fillColor = point.kind === 'recommendation' ? '#F97316' : '#2563EB';
+          const glyph = point.kind === 'recommendation' ? '★' : '●';
+          return (
+            <g
+              key={`fallback-overlay-${point.kind}-${point.id}`}
+              className={typeof onMarkerClick === 'function' ? 'cursor-pointer' : ''}
+              onClick={() => onMarkerClick?.({
+                kind: point.kind,
+                id: point.id,
+                label: point.label,
+                address: point.address,
+              })}
+            >
+              <circle cx={projected.x} cy={projected.y} r={isFocusedPoint ? 14 : 10} fill={fillColor} stroke={isFocusedPoint ? '#0F172A' : '#FFFFFF'} strokeWidth={isFocusedPoint ? 4 : 2.5} />
+              <foreignObject x={projected.x - 60} y={projected.y - 42} width="120" height="28">
+                <div xmlns="http://www.w3.org/1999/xhtml" className={`flex h-7 items-center justify-center gap-1 rounded-full border px-2 text-[10px] font-black shadow-sm ${isFocusedPoint ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white/95 text-slate-600'}`}>
+                  <span style={{ color: isFocusedPoint ? '#FFFFFF' : fillColor }}>{glyph}</span>
+                  <span className="truncate">{String(point.label || (point.kind === 'recommendation' ? '추천' : '내 장소'))}</span>
+                </div>
+              </foreignObject>
+            </g>
+          );
+        })}
+      </svg>
+      <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/80 bg-white/90 px-3 py-1 text-[10px] font-black text-slate-500 shadow-sm">
+        {errorMessage ? '카카오 지도 대신 동선 미리보기' : '동선 미리보기'}
+      </div>
+      {errorMessage && (
+        <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-2xl border border-amber-200 bg-amber-50/92 px-3 py-2 text-[10px] font-bold text-amber-700 shadow-sm">
+          {errorMessage}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const RoutePreviewCanvas = ({
   routePreviewMap = [],
@@ -2381,11 +2551,7 @@ const RoutePreviewCanvas = ({
   }, [routePreviewMap, libraryPoints, recommendationPoints, focusedTarget, onMarkerClick]);
 
   if (renderError) {
-    return (
-      <div className={`flex w-full items-center justify-center rounded-[18px] border border-slate-200 bg-slate-50 text-center text-[12px] font-bold text-slate-400 ${className}`.trim()} style={{ height }}>
-        {renderError}
-      </div>
-    );
+    return <RoutePreviewFallbackCanvas routePreviewMap={routePreviewMap} libraryPoints={libraryPoints} recommendationPoints={recommendationPoints} focusedTarget={focusedTarget} onMarkerClick={onMarkerClick} height={height} className={className} errorMessage={renderError} />;
   }
 
   return <div ref={mapRef} className={`w-full rounded-[18px] overflow-hidden bg-slate-100 ${interactive ? '' : 'pointer-events-none'} ${className}`.trim()} style={{ height }} />;

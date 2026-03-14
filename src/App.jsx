@@ -2426,13 +2426,13 @@ const RoutePreviewCanvas = ({
       ((Array.isArray(day.segments) && day.segments.length)
         ? day.segments
         : ((day.points || []).slice(1).map((point, index) => ({
-            id: `fallback-${day.day}-${index}`,
-            fromId: day.points?.[index]?.id,
-            toId: point?.id,
-            fromPoint: day.points?.[index],
-            toPoint: point,
-            path: [],
-          }))))
+          id: `fallback-${day.day}-${index}`,
+          fromId: day.points?.[index]?.id,
+          toId: point?.id,
+          fromPoint: day.points?.[index],
+          toPoint: point,
+          path: [],
+        }))))
         .map((segment, index) => {
           const rawPath = Array.isArray(segment.path) && segment.path.length
             ? segment.path
@@ -5284,6 +5284,10 @@ const App = () => {
             const route = await fetchKakaoVerifiedRoute({
               fromAddress: fromPoint.address,
               toAddress: toPoint.address,
+              fromLat: fromPoint.lat,
+              fromLon: fromPoint.lon,
+              toLat: toPoint.lat,
+              toLon: toPoint.lon,
             });
             segment = {
               id: cacheKey,
@@ -8692,7 +8696,7 @@ const App = () => {
     setLastAction(`'${suggestion.name}'이(가) 대안 일정으로 등록되었습니다.`);
   };
 
-  async function fetchKakaoVerifiedRoute({ fromAddress, toAddress, fromName = '', toName = '' }) {
+  async function fetchKakaoVerifiedRoute({ fromAddress, toAddress, fromName = '', toName = '', fromLat, fromLon, toLat, toLon }) {
     const endpoints = getRouteVerifyEndpointCandidates(aiSmartFillConfig?.proxyBaseUrl);
     let lastError = null;
     for (const endpoint of endpoints) {
@@ -8705,6 +8709,10 @@ const App = () => {
             toAddress,
             fromName,
             toName,
+            fromLat,
+            fromLon,
+            toLat,
+            toLon,
           }),
         });
         const data = await r.json().catch(() => ({}));
@@ -8794,6 +8802,10 @@ const App = () => {
         toAddress: addr2,
         fromName: routeEntry.prevItem?.activity || routeEntry.prevItem?.name || '',
         toName: routeEntry.targetItem?.activity || routeEntry.targetItem?.name || '',
+        fromLat: routeEntry.prevItem?.geo?.lat,
+        fromLon: routeEntry.prevItem?.geo?.lon,
+        toLat: routeEntry.targetItem?.geo?.lat,
+        toLon: routeEntry.targetItem?.geo?.lon,
       });
       setRouteCache(prev => ({ ...prev, [key]: kakaoRoute }));
       applyRoute(dayIdx, targetIdx, kakaoRoute);
@@ -10437,80 +10449,80 @@ const App = () => {
                         </div>
                       </div>
                       <div className="mt-2 w-full flex flex-col gap-1">
-                      <div className="flex items-start gap-1 px-1">
-                        <div className="flex flex-1 flex-wrap gap-1">
-                          {filterTagOptions.map(t => {
-                            const active = placeFilterTags.includes(t.value);
-                            return (
-                              <button
-                                key={t.value}
-                                onClick={() => setPlaceFilterTags(prev => active ? prev.filter(v => v !== t.value) : [...prev, t.value])}
-                                className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${active ? 'bg-[#3182F6] text-white border-[#3182F6] shadow-sm' : t.isCustom ? 'bg-slate-50 text-slate-600 border-slate-300 hover:border-slate-400' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
-                              >
-                                <span>{t.label}</span>
-                                <span className={`ml-1 px-1 rounded text-[8px] font-black ${active ? 'bg-white/30 text-white' : t.isCustom ? 'bg-white text-slate-500 border border-slate-200' : 'bg-slate-100 text-slate-500'}`}>
-                                  {categoryCounts[t.value] || 0}
-                                </span>
-                              </button>
-                            );
-                          })}
-                          {placeFilterTags.length > 0 && (
-                            <button
-                              onClick={() => setPlaceFilterTags([])}
-                              className="px-2 py-0.5 rounded-lg text-[9px] font-black bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200 transition-all"
-                            >
-                              초기화 ✕
-                            </button>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setShowPlaceCategoryManager((prev) => !prev)}
-                          className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-lg border transition-colors ${showPlaceCategoryManager ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600'}`}
-                          title="카테고리 관리"
-                        >
-                          <SlidersHorizontal size={12} />
-                        </button>
-                      </div>
-
-                      {showPlaceCategoryManager && (
-                        <div className="mx-1 rounded-[14px] border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-                          <p className="text-[10px] font-black text-slate-600">카테고리 관리</p>
-                          <p className="mt-0.5 text-[9px] font-bold text-slate-400">직접 추가한 카테고리를 전체 데이터에서 제거합니다.</p>
-                          {customPlaceCategories.length === 0 ? (
-                            <p className="mt-2 text-[10px] font-bold text-slate-400">삭제 가능한 사용자 카테고리가 없습니다.</p>
-                          ) : (
-                            <div className="mt-2 flex flex-wrap gap-1.5">
-                              {customPlaceCategories.map((tag) => (
+                        <div className="flex items-start gap-1 px-1">
+                          <div className="flex flex-1 flex-wrap gap-1">
+                            {filterTagOptions.map(t => {
+                              const active = placeFilterTags.includes(t.value);
+                              return (
                                 <button
-                                  key={`manager-${tag}`}
-                                  type="button"
-                                  onClick={() => removeCustomCategoryEverywhere(tag)}
-                                  className="flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-500 transition-colors"
-                                  title={`'${tag}' 카테고리 삭제`}
+                                  key={t.value}
+                                  onClick={() => setPlaceFilterTags(prev => active ? prev.filter(v => v !== t.value) : [...prev, t.value])}
+                                  className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${active ? 'bg-[#3182F6] text-white border-[#3182F6] shadow-sm' : t.isCustom ? 'bg-slate-50 text-slate-600 border-slate-300 hover:border-slate-400' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
                                 >
-                                  <span>{getCustomTagLabel(tag)}</span>
-                                  <Trash2 size={10} />
+                                  <span>{t.label}</span>
+                                  <span className={`ml-1 px-1 rounded text-[8px] font-black ${active ? 'bg-white/30 text-white' : t.isCustom ? 'bg-white text-slate-500 border border-slate-200' : 'bg-slate-100 text-slate-500'}`}>
+                                    {categoryCounts[t.value] || 0}
+                                  </span>
                                 </button>
-                              ))}
-                            </div>
-                          )}
+                              );
+                            })}
+                            {placeFilterTags.length > 0 && (
+                              <button
+                                onClick={() => setPlaceFilterTags([])}
+                                className="px-2 py-0.5 rounded-lg text-[9px] font-black bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200 transition-all"
+                              >
+                                초기화 ✕
+                              </button>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowPlaceCategoryManager((prev) => !prev)}
+                            className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-lg border transition-colors ${showPlaceCategoryManager ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600'}`}
+                            title="카테고리 관리"
+                          >
+                            <SlidersHorizontal size={12} />
+                          </button>
                         </div>
-                      )}
 
-                      {basePlanRef?.id && (
-                        <div
-                          onClick={() => {
-                            setBasePlanRef(null);
-                          setLastAction("거리순 정렬을 해제하고 이름순으로 정렬했습니다.");
-                        }}
-                          className="w-full px-3 py-2 rounded-[14px] border border-blue-100 bg-blue-50/50 text-[11px] font-black text-[#3182F6] flex items-center gap-1.5 shadow-[0_2px_8px_-2px_rgba(49,130,246,0.08)] cursor-pointer hover:bg-blue-100 transition-colors mt-1"
-                        >
-                          <MapPin size={12} className="text-blue-400" />
-                          <span className="truncate flex-1"><span className="text-blue-700">{basePlanRef.name}</span> 기준 거리순 정렬</span>
-                          <span className="text-[9px] text-blue-300">✕</span>
-                        </div>
-                      )}
+                        {showPlaceCategoryManager && (
+                          <div className="mx-1 rounded-[14px] border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                            <p className="text-[10px] font-black text-slate-600">카테고리 관리</p>
+                            <p className="mt-0.5 text-[9px] font-bold text-slate-400">직접 추가한 카테고리를 전체 데이터에서 제거합니다.</p>
+                            {customPlaceCategories.length === 0 ? (
+                              <p className="mt-2 text-[10px] font-bold text-slate-400">삭제 가능한 사용자 카테고리가 없습니다.</p>
+                            ) : (
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                {customPlaceCategories.map((tag) => (
+                                  <button
+                                    key={`manager-${tag}`}
+                                    type="button"
+                                    onClick={() => removeCustomCategoryEverywhere(tag)}
+                                    className="flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-500 transition-colors"
+                                    title={`'${tag}' 카테고리 삭제`}
+                                  >
+                                    <span>{getCustomTagLabel(tag)}</span>
+                                    <Trash2 size={10} />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {basePlanRef?.id && (
+                          <div
+                            onClick={() => {
+                              setBasePlanRef(null);
+                              setLastAction("거리순 정렬을 해제하고 이름순으로 정렬했습니다.");
+                            }}
+                            className="w-full px-3 py-2 rounded-[14px] border border-blue-100 bg-blue-50/50 text-[11px] font-black text-[#3182F6] flex items-center gap-1.5 shadow-[0_2px_8px_-2px_rgba(49,130,246,0.08)] cursor-pointer hover:bg-blue-100 transition-colors mt-1"
+                          >
+                            <MapPin size={12} className="text-blue-400" />
+                            <span className="truncate flex-1"><span className="text-blue-700">{basePlanRef.name}</span> 기준 거리순 정렬</span>
+                            <span className="text-[9px] text-blue-300">✕</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     {visiblePlaces.length === 0 && !isAddingPlace && (
@@ -11346,58 +11358,58 @@ const App = () => {
                         const recommendationId = buildRecommendationMapId(recommendation, index);
                         const isFocusedRecommendation = focusedMapTarget?.kind === 'recommendation' && focusedMapTarget.id === recommendationId;
                         return (
-                        <div
-                          key={`${recommendation.name}-${index}`}
-                          id={`recommendation-card-${recommendationId}`}
-                          onClick={() => focusRecommendationOnMap(recommendationId)}
-                          className={`rounded-2xl border bg-white px-4 py-4 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.2)] transition-colors ${isFocusedRecommendation ? 'border-[#3182F6]/45 ring-2 ring-[#3182F6]/15' : 'border-slate-200'}`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-[9px] font-black text-violet-600 border border-violet-100">추천 {index + 1}</span>
-                                {recommendation.category && <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-[9px] font-black text-slate-500 border border-slate-200">{recommendation.category}</span>}
+                          <div
+                            key={`${recommendation.name}-${index}`}
+                            id={`recommendation-card-${recommendationId}`}
+                            onClick={() => focusRecommendationOnMap(recommendationId)}
+                            className={`rounded-2xl border bg-white px-4 py-4 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.2)] transition-colors ${isFocusedRecommendation ? 'border-[#3182F6]/45 ring-2 ring-[#3182F6]/15' : 'border-slate-200'}`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-[9px] font-black text-violet-600 border border-violet-100">추천 {index + 1}</span>
+                                  {recommendation.category && <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-[9px] font-black text-slate-500 border border-slate-200">{recommendation.category}</span>}
+                                </div>
+                                <p className="mt-2 text-[15px] font-black text-slate-800 break-words">{recommendation.name}</p>
+                                <p className="mt-1 text-[11px] font-bold text-slate-400 break-words">{recommendation.address || '주소 정보 없음'}</p>
                               </div>
-                              <p className="mt-2 text-[15px] font-black text-slate-800 break-words">{recommendation.name}</p>
-                              <p className="mt-1 text-[11px] font-bold text-slate-400 break-words">{recommendation.address || '주소 정보 없음'}</p>
+                              <div className="shrink-0 flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => openNaverPlaceSearch(recommendation.name, recommendation.address)}
+                                  className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6]/30 hover:bg-blue-50 transition-colors"
+                                  title="네이버 지도에서 보기"
+                                >
+                                  <MapIcon size={12} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => addRecommendedPlaceToLibrary(recommendation)}
+                                  className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-violet-600 hover:border-violet-200 hover:bg-violet-50 transition-colors"
+                                  title="내 장소에 추가"
+                                >
+                                  <Plus size={12} />
+                                </button>
+                              </div>
                             </div>
-                            <div className="shrink-0 flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => openNaverPlaceSearch(recommendation.name, recommendation.address)}
-                                className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6]/30 hover:bg-blue-50 transition-colors"
-                                title="네이버 지도에서 보기"
-                              >
-                                <MapIcon size={12} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => addRecommendedPlaceToLibrary(recommendation)}
-                                className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-violet-600 hover:border-violet-200 hover:bg-violet-50 transition-colors"
-                                title="내 장소에 추가"
-                              >
-                                <Plus size={12} />
-                              </button>
+                            <div className="mt-3 grid grid-cols-2 gap-2">
+                              <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.12em]">추천 시간</p>
+                                <p className="mt-1 text-[12px] font-black text-slate-700">{recommendation.suggestedTime || '정보 없음'}</p>
+                              </div>
+                              <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.12em]">예상 이동</p>
+                                <p className="mt-1 text-[12px] font-black text-slate-700">{recommendation.estimatedTravelMinutes ? `${recommendation.estimatedTravelMinutes}분` : '정보 없음'}</p>
+                              </div>
                             </div>
+                            {(recommendation.hoursSummary || recommendation.why || recommendation.priceNote) && (
+                              <div className="mt-3 space-y-1.5 text-[11px] font-bold text-slate-600 leading-relaxed">
+                                {recommendation.hoursSummary && <p><span className="text-slate-400">운영시간:</span> {recommendation.hoursSummary}</p>}
+                                {recommendation.why && <p><span className="text-slate-400">추천 이유:</span> {recommendation.why}</p>}
+                                {recommendation.priceNote && <p><span className="text-slate-400">비용 메모:</span> {recommendation.priceNote}</p>}
+                              </div>
+                            )}
                           </div>
-                          <div className="mt-3 grid grid-cols-2 gap-2">
-                            <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.12em]">추천 시간</p>
-                              <p className="mt-1 text-[12px] font-black text-slate-700">{recommendation.suggestedTime || '정보 없음'}</p>
-                            </div>
-                            <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.12em]">예상 이동</p>
-                              <p className="mt-1 text-[12px] font-black text-slate-700">{recommendation.estimatedTravelMinutes ? `${recommendation.estimatedTravelMinutes}분` : '정보 없음'}</p>
-                            </div>
-                          </div>
-                          {(recommendation.hoursSummary || recommendation.why || recommendation.priceNote) && (
-                            <div className="mt-3 space-y-1.5 text-[11px] font-bold text-slate-600 leading-relaxed">
-                              {recommendation.hoursSummary && <p><span className="text-slate-400">운영시간:</span> {recommendation.hoursSummary}</p>}
-                              {recommendation.why && <p><span className="text-slate-400">추천 이유:</span> {recommendation.why}</p>}
-                              {recommendation.priceNote && <p><span className="text-slate-400">비용 메모:</span> {recommendation.priceNote}</p>}
-                            </div>
-                          )}
-                        </div>
                         );
                       })}
                       {!perplexityNearbyModal.recommendations.length && (
@@ -11615,11 +11627,10 @@ const App = () => {
                           >
                             {compactHeroAlert && (
                               <span
-                                className={`mt-1 inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black tracking-tight shadow-[0_10px_22px_-18px_rgba(15,23,42,0.45)] backdrop-blur-md ${
-                                  compactHeroAlert.tone === 'danger'
+                                className={`mt-1 inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black tracking-tight shadow-[0_10px_22px_-18px_rgba(15,23,42,0.45)] backdrop-blur-md ${compactHeroAlert.tone === 'danger'
                                     ? 'border-red-200/80 bg-red-50/88 text-red-600'
                                     : 'border-amber-200/80 bg-amber-50/88 text-amber-600'
-                                }`}
+                                  }`}
                               >
                                 {compactHeroAlert.label}
                               </span>
@@ -11676,7 +11687,7 @@ const App = () => {
 
                         {/* 🌟 2. 여행 한눈에 보기 */}
                         {!heroCompactActive && (
-                        <div className="flex flex-col gap-3 px-3 transition-all duration-300 sm:px-0">
+                          <div className="flex flex-col gap-3 px-3 transition-all duration-300 sm:px-0">
                             <div className="relative mt-1 w-full rounded-[24px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 sm:px-6 sm:py-6">
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
                               <div className="mb-4 rounded-[24px] border border-slate-200 bg-white/88 p-3 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)]">
@@ -11732,53 +11743,53 @@ const App = () => {
                                 </div>
                               </div>
                               <div className="grid grid-cols-3 gap-3 sm:gap-3">
-                                  <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
-                                    <div className="flex h-full flex-col items-center justify-center text-center">
-                                      <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
-                                      <p className="mt-2 text-[22px] leading-none font-black text-[#3182F6] tabular-nums sm:text-[31px]">{usedPct}%</p>
-                                      <p className="mt-2 text-[10px] font-bold text-slate-500 tabular-nums sm:text-[11px]">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
-                                    </div>
+                                <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
+                                  <div className="flex h-full flex-col items-center justify-center text-center">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
+                                    <p className="mt-2 text-[22px] leading-none font-black text-[#3182F6] tabular-nums sm:text-[31px]">{usedPct}%</p>
+                                    <p className="mt-2 text-[10px] font-bold text-slate-500 tabular-nums sm:text-[11px]">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
                                   </div>
-                                  <div className={`relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroCompactActive ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
-                                    <div className="flex h-full flex-col items-center justify-center text-center">
-                                      <div className="flex items-center justify-center gap-1.5">
-                                        <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setShowTravelIntensityInfo((prev) => !prev);
-                                          }}
-                                          className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition-colors hover:border-[#3182F6]/40 hover:text-[#3182F6]"
-                                          title="여행 강도 계산식 보기"
-                                        >
-                                          <Info size={10} />
-                                        </button>
-                                      </div>
-                                      <p className={`text-center leading-none font-black text-slate-800 transition-all duration-300 ${heroCompactActive ? 'mt-1.5 text-[17px] sm:text-[21px]' : 'mt-2 text-[21px] sm:text-[27px]'}`}>{travelIntensity.label}</p>
-                                      <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroCompactActive ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>{travelIntensity.note}</p>
+                                </div>
+                                <div className={`relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroCompactActive ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
+                                  <div className="flex h-full flex-col items-center justify-center text-center">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setShowTravelIntensityInfo((prev) => !prev);
+                                        }}
+                                        className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition-colors hover:border-[#3182F6]/40 hover:text-[#3182F6]"
+                                        title="여행 강도 계산식 보기"
+                                      >
+                                        <Info size={10} />
+                                      </button>
                                     </div>
-                                    {showTravelIntensityInfo && (
-                                      <div className="absolute left-1/2 top-[calc(100%-8px)] z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
-                                        <p className="mt-2 text-[11px] font-bold text-slate-600">시간당 방문 수: {visitPerHour.toFixed(2)}개</p>
-                                        <p className="mt-1 text-[11px] font-bold text-slate-600">하루 활동 시간: 평균 {averageSpanHours.toFixed(1)}시간</p>
-                                        <p className="mt-1 text-[11px] font-bold text-slate-600">하루 이동 시간: 평균 {averageTravelHoursLabel}</p>
-                                        <p className="mt-1 text-[11px] font-bold text-slate-600">숙소 고정 제약: {lodgingConstraintCount}개</p>
-                                        <p className="mt-2 text-[10px] font-bold text-slate-400">방문 수는 `숙소/휴식/페리`를 제외한 일정만 세며, 숙소의 고정 체크인/체크아웃도 강도 점수에 반영합니다.</p>
-                                      </div>
-                                    )}
+                                    <p className={`text-center leading-none font-black text-slate-800 transition-all duration-300 ${heroCompactActive ? 'mt-1.5 text-[17px] sm:text-[21px]' : 'mt-2 text-[21px] sm:text-[27px]'}`}>{travelIntensity.label}</p>
+                                    <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroCompactActive ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>{travelIntensity.note}</p>
                                   </div>
-                                  <div className={`rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroCompactActive ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
-                                    <div className="flex h-full flex-col items-center justify-center text-center">
-                                      <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
-                                      <p className={`text-center leading-none font-black text-slate-800 tabular-nums transition-all duration-300 ${heroCompactActive ? 'mt-1.5 text-[18px] sm:text-[22px]' : 'mt-2 text-[22px] sm:text-[31px]'}`}>{visitPerHour.toFixed(1)}개/h</p>
-                                      <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroCompactActive ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>방문 일정 {visitPlanCount}개 기준</p>
+                                  {showTravelIntensityInfo && (
+                                    <div className="absolute left-1/2 top-[calc(100%-8px)] z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
+                                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
+                                      <p className="mt-2 text-[11px] font-bold text-slate-600">시간당 방문 수: {visitPerHour.toFixed(2)}개</p>
+                                      <p className="mt-1 text-[11px] font-bold text-slate-600">하루 활동 시간: 평균 {averageSpanHours.toFixed(1)}시간</p>
+                                      <p className="mt-1 text-[11px] font-bold text-slate-600">하루 이동 시간: 평균 {averageTravelHoursLabel}</p>
+                                      <p className="mt-1 text-[11px] font-bold text-slate-600">숙소 고정 제약: {lodgingConstraintCount}개</p>
+                                      <p className="mt-2 text-[10px] font-bold text-slate-400">방문 수는 `숙소/휴식/페리`를 제외한 일정만 세며, 숙소의 고정 체크인/체크아웃도 강도 점수에 반영합니다.</p>
                                     </div>
+                                  )}
+                                </div>
+                                <div className={`rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroCompactActive ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
+                                  <div className="flex h-full flex-col items-center justify-center text-center">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
+                                    <p className={`text-center leading-none font-black text-slate-800 tabular-nums transition-all duration-300 ${heroCompactActive ? 'mt-1.5 text-[18px] sm:text-[22px]' : 'mt-2 text-[22px] sm:text-[31px]'}`}>{visitPerHour.toFixed(1)}개/h</p>
+                                    <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroCompactActive ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>방문 일정 {visitPlanCount}개 기준</p>
                                   </div>
+                                </div>
                               </div>
                             </div>
-                        </div>
+                          </div>
                         )}
                         {showHeroSummaryModal && (
                           <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/36 px-4 py-6 backdrop-blur-sm" onClick={() => setShowHeroSummaryModal(false)}>
@@ -11871,7 +11882,7 @@ const App = () => {
               </button>
             </div>
           )}
-      <div className={`w-full mx-auto flex flex-col relative z-0 ${timelineMaxClass} gap-0`}>
+          <div className={`w-full mx-auto flex flex-col relative z-0 ${timelineMaxClass} gap-0`}>
             {totalTimelineItems === 0 && (
               <div
                 data-droptarget="empty-timeline"
@@ -12019,7 +12030,7 @@ const App = () => {
                                       onClick={(e) => { e.stopPropagation(); if (p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto) resetTravelTime(dIdx, pIdx); }}
                                       title={p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? '클릭하여 경로 계산 시간으로 초기화' : undefined}
                                     >{fmtDurCompact(parseMinsLabel(p.travelTimeOverride, DEFAULT_TRAVEL_MINS))}</span>
-                                  <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                                   </div>
 
                                   {/* 거리 */}
@@ -12223,185 +12234,185 @@ const App = () => {
                                 return (
                                   <>
                                     {!isTimeCellExpanded && (
-                                    <div
-                                      data-time-trigger="true"
-                                      className="relative z-10 w-full rounded-2xl px-1 py-1 select-none transition-all group-hover/tower:bg-slate-100/30"
-                                    >
-                                      <div className="flex w-full flex-col items-center gap-1 px-1 py-0.5">
-                                        <button
-                                          type="button"
-                                          onClick={toggleInline}
-                                          className={`flex h-[44px] w-full items-center justify-center rounded-[12px] border px-2 py-1 transition-all ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 hover:border-slate-300'}`}
-                                        >
-                                          <span className="text-[30px] font-black tabular-nums tracking-[-0.06em] leading-none text-slate-900">
-                                            {hh}<span className="mx-[1px] opacity-70">:</span>{mm}
-                                          </span>
-                                        </button>
+                                      <div
+                                        data-time-trigger="true"
+                                        className="relative z-10 w-full rounded-2xl px-1 py-1 select-none transition-all group-hover/tower:bg-slate-100/30"
+                                      >
+                                        <div className="flex w-full flex-col items-center gap-1 px-1 py-0.5">
+                                          <button
+                                            type="button"
+                                            onClick={toggleInline}
+                                            className={`flex h-[44px] w-full items-center justify-center rounded-[12px] border px-2 py-1 transition-all ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 hover:border-slate-300'}`}
+                                          >
+                                            <span className="text-[30px] font-black tabular-nums tracking-[-0.06em] leading-none text-slate-900">
+                                              {hh}<span className="mx-[1px] opacity-70">:</span>{mm}
+                                            </span>
+                                          </button>
 
-                                        <button
-                                          type="button"
-                                          onClick={toggleInline}
-                                          className={`relative z-10 flex h-[30px] w-full items-center justify-center gap-2 rounded-[12px] border px-2 py-0.5 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
-                                            ? 'border-red-400 bg-red-500 text-white'
-                                            : isDurationLocked
-                                              ? 'border-[#ff8a1a] bg-[#ff8a1a] text-white'
-                                              : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                            }`}
-                                        >
-                                          <ChevronLeft size={10} />
-                                          <span className="font-black tabular-nums text-[12px] tracking-[0.08em] whitespace-nowrap">{fmtDurCompact(p.duration)}</span>
-                                          <ChevronRight size={10} />
-                                        </button>
+                                          <button
+                                            type="button"
+                                            onClick={toggleInline}
+                                            className={`relative z-10 flex h-[30px] w-full items-center justify-center gap-2 rounded-[12px] border px-2 py-0.5 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
+                                              ? 'border-red-400 bg-red-500 text-white'
+                                              : isDurationLocked
+                                                ? 'border-[#ff8a1a] bg-[#ff8a1a] text-white'
+                                                : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                              }`}
+                                          >
+                                            <ChevronLeft size={10} />
+                                            <span className="font-black tabular-nums text-[12px] tracking-[0.08em] whitespace-nowrap">{fmtDurCompact(p.duration)}</span>
+                                            <ChevronRight size={10} />
+                                          </button>
 
-                                        <button
-                                          type="button"
-                                          onClick={toggleInline}
-                                          className="flex h-[40px] w-full items-center justify-center rounded-[12px] border border-slate-200 bg-slate-50/95 px-2 py-1 transition-all hover:border-slate-300"
-                                        >
-                                          <span className="text-[26px] font-black tabular-nums tracking-[-0.06em] leading-none text-slate-400">
-                                            {ehh}<span className="mx-[1px] opacity-65">:</span>{emm}
-                                          </span>
-                                        </button>
+                                          <button
+                                            type="button"
+                                            onClick={toggleInline}
+                                            className="flex h-[40px] w-full items-center justify-center rounded-[12px] border border-slate-200 bg-slate-50/95 px-2 py-1 transition-all hover:border-slate-300"
+                                          >
+                                            <span className="text-[26px] font-black tabular-nums tracking-[-0.06em] leading-none text-slate-400">
+                                              {ehh}<span className="mx-[1px] opacity-65">:</span>{emm}
+                                            </span>
+                                          </button>
+                                        </div>
                                       </div>
-                                    </div>
                                     )}
 
                                     {isTimeCellExpanded && (
-                                  <div
-                                    data-time-modal="true"
-                                    onClick={(e) => e.stopPropagation()}
-                                    onPointerDown={bumpTimeControllerAutoClose}
-                                    onPointerMove={bumpTimeControllerAutoClose}
-                                    onTouchStart={bumpTimeControllerAutoClose}
-                                    onTouchMove={bumpTimeControllerAutoClose}
-                                    onWheel={bumpTimeControllerAutoClose}
-                                    className="mt-1 w-full z-30"
-                                  >
-                                    <div className="grid h-full grid-cols-3 gap-2 items-stretch p-1">
-                                      <div className="rounded-[16px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
-                                        <div className="flex h-full w-full flex-col items-center justify-center gap-2">
-                                          <button
-                                            type="button"
-                                            onClick={() => toggleTimeFix(dIdx, pIdx, { skipHistory: true })}
-                                            className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${p.isTimeFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
-                                          >
-                                            시작시간 잠금
-                                          </button>
-                                          <div className="flex w-full items-center justify-center gap-1">
-                                            <TimeWheelColumn
-                                              label=""
-                                              value={currentStartHour}
-                                              values={Array.from({ length: 24 }, (_, idx) => idx)}
-                                              onInteract={bumpTimeControllerAutoClose}
-                                              onDragStateChange={setIsTimeWheelDragging}
-                                              onChange={(nextHour) => setStartTimeValue(dIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentStartMinute)), { skipHistory: true })}
-                                              accentClass="text-slate-800"
-                                            />
-                                            <TimeWheelColumn
-                                              label=""
-                                              value={currentStartMinute}
-                                              values={Array.from({ length: 60 }, (_, idx) => idx)}
-                                              cyclic
-                                              liveOnDrag
-                                              onInteract={bumpTimeControllerAutoClose}
-                                              onDragStateChange={setIsTimeWheelDragging}
-                                              onChange={(nextMinute) => {
-                                                const wrapped = buildWrappedTotalMinutes(currentStartHour, currentStartMinute, nextMinute);
-                                                setStartTimeValue(dIdx, pIdx, minutesToTime(normalizeDayMinute(wrapped)), { skipHistory: true });
-                                              }}
-                                              accentClass="text-slate-800"
-                                            />
+                                      <div
+                                        data-time-modal="true"
+                                        onClick={(e) => e.stopPropagation()}
+                                        onPointerDown={bumpTimeControllerAutoClose}
+                                        onPointerMove={bumpTimeControllerAutoClose}
+                                        onTouchStart={bumpTimeControllerAutoClose}
+                                        onTouchMove={bumpTimeControllerAutoClose}
+                                        onWheel={bumpTimeControllerAutoClose}
+                                        className="mt-1 w-full z-30"
+                                      >
+                                        <div className="grid h-full grid-cols-3 gap-2 items-stretch p-1">
+                                          <div className="rounded-[16px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
+                                            <div className="flex h-full w-full flex-col items-center justify-center gap-2">
+                                              <button
+                                                type="button"
+                                                onClick={() => toggleTimeFix(dIdx, pIdx, { skipHistory: true })}
+                                                className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${p.isTimeFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
+                                              >
+                                                시작시간 잠금
+                                              </button>
+                                              <div className="flex w-full items-center justify-center gap-1">
+                                                <TimeWheelColumn
+                                                  label=""
+                                                  value={currentStartHour}
+                                                  values={Array.from({ length: 24 }, (_, idx) => idx)}
+                                                  onInteract={bumpTimeControllerAutoClose}
+                                                  onDragStateChange={setIsTimeWheelDragging}
+                                                  onChange={(nextHour) => setStartTimeValue(dIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentStartMinute)), { skipHistory: true })}
+                                                  accentClass="text-slate-800"
+                                                />
+                                                <TimeWheelColumn
+                                                  label=""
+                                                  value={currentStartMinute}
+                                                  values={Array.from({ length: 60 }, (_, idx) => idx)}
+                                                  cyclic
+                                                  liveOnDrag
+                                                  onInteract={bumpTimeControllerAutoClose}
+                                                  onDragStateChange={setIsTimeWheelDragging}
+                                                  onChange={(nextMinute) => {
+                                                    const wrapped = buildWrappedTotalMinutes(currentStartHour, currentStartMinute, nextMinute);
+                                                    setStartTimeValue(dIdx, pIdx, minutesToTime(normalizeDayMinute(wrapped)), { skipHistory: true });
+                                                  }}
+                                                  accentClass="text-slate-800"
+                                                />
+                                              </div>
+                                            </div>
                                           </div>
-                                        </div>
-                                      </div>
 
-                                      <div className="rounded-[16px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
-                                        <div className="flex h-full w-full flex-col items-center justify-center gap-2">
-                                          <button
-                                            type="button"
-                                            onClick={() => toggleDurationFix(dIdx, pIdx, { skipHistory: true })}
-                                            className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${p.isDurationFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
-                                          >
-                                            소요시간 잠금
-                                          </button>
-                                          <div className="flex w-full items-center justify-center gap-1">
-                                            <TimeWheelColumn
-                                              label=""
-                                              value={currentDurationHour}
-                                              values={durationHourValues}
-                                              liveOnDrag
-                                              onInteract={bumpTimeControllerAutoClose}
-                                              onDragStateChange={setIsTimeWheelDragging}
-                                              onChange={(nextHour) => setDurationHourValue(dIdx, pIdx, nextHour, { skipHistory: true })}
-                                              accentClass="text-slate-800"
-                                            />
-                                            <TimeWheelColumn
-                                              label=""
-                                              value={currentDurationMinute}
-                                              values={Array.from({ length: 60 }, (_, idx) => idx)}
-                                              cyclic
-                                              liveOnDrag
-                                              onInteract={bumpTimeControllerAutoClose}
-                                              onDragStateChange={setIsTimeWheelDragging}
-                                              onChange={(nextMinute) => setDurationMinuteValue(dIdx, pIdx, nextMinute, { skipHistory: true })}
-                                              accentClass="text-slate-800"
-                                            />
+                                          <div className="rounded-[16px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
+                                            <div className="flex h-full w-full flex-col items-center justify-center gap-2">
+                                              <button
+                                                type="button"
+                                                onClick={() => toggleDurationFix(dIdx, pIdx, { skipHistory: true })}
+                                                className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${p.isDurationFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
+                                              >
+                                                소요시간 잠금
+                                              </button>
+                                              <div className="flex w-full items-center justify-center gap-1">
+                                                <TimeWheelColumn
+                                                  label=""
+                                                  value={currentDurationHour}
+                                                  values={durationHourValues}
+                                                  liveOnDrag
+                                                  onInteract={bumpTimeControllerAutoClose}
+                                                  onDragStateChange={setIsTimeWheelDragging}
+                                                  onChange={(nextHour) => setDurationHourValue(dIdx, pIdx, nextHour, { skipHistory: true })}
+                                                  accentClass="text-slate-800"
+                                                />
+                                                <TimeWheelColumn
+                                                  label=""
+                                                  value={currentDurationMinute}
+                                                  values={Array.from({ length: 60 }, (_, idx) => idx)}
+                                                  cyclic
+                                                  liveOnDrag
+                                                  onInteract={bumpTimeControllerAutoClose}
+                                                  onDragStateChange={setIsTimeWheelDragging}
+                                                  onChange={(nextMinute) => setDurationMinuteValue(dIdx, pIdx, nextMinute, { skipHistory: true })}
+                                                  accentClass="text-slate-800"
+                                                />
+                                              </div>
+                                            </div>
                                           </div>
-                                        </div>
-                                      </div>
 
-                                      <div className="rounded-[16px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
-                                        <div className="flex h-full w-full flex-col items-center justify-center gap-2">
-                                          <button
-                                            type="button"
-                                            onClick={() => { if (!isAutoLocked) toggleEndTimeFix(dIdx, pIdx, { skipHistory: true }); }}
-                                            disabled={isAutoLocked}
-                                            className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors disabled:opacity-50 ${isEndTimeFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
-                                          >
-                                            종료시간 잠금
-                                          </button>
-                                          <div className="flex w-full items-center justify-center gap-1">
-                                            <TimeWheelColumn
-                                              label=""
-                                              value={currentEndHour}
-                                              values={endHourValues}
-                                              formatter={formatEndHourValue}
-                                              onInteract={bumpTimeControllerAutoClose}
-                                              onDragStateChange={setIsTimeWheelDragging}
-                                              onChange={(nextHour) => {
-                                                const nextTotal = clampEndNotBeforeStart((nextHour * 60) + currentEndMinute);
-                                                if (canWrapEndBeforeStart) {
-                                                  setPlanEndAbsoluteMinutes(dIdx, pIdx, nextTotal, { skipHistory: true });
-                                                } else {
-                                                  setPlanEndTimeValue(dIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
-                                                }
-                                              }}
-                                              accentClass="text-slate-800"
-                                            />
-                                            <TimeWheelColumn
-                                              label=""
-                                              value={currentEndMinute}
-                                              values={Array.from({ length: 60 }, (_, idx) => idx)}
-                                              cyclic
-                                              liveOnDrag
-                                              onInteract={bumpTimeControllerAutoClose}
-                                              onDragStateChange={setIsTimeWheelDragging}
-                                              onChange={(nextMinute) => {
-                                                const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);
-                                                const nextTotal = clampEndNotBeforeStart(wrapped);
-                                                if (canWrapEndBeforeStart) {
-                                                  setPlanEndAbsoluteMinutes(dIdx, pIdx, nextTotal, { skipHistory: true });
-                                                } else {
-                                                  setPlanEndTimeValue(dIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
-                                                }
-                                              }}
-                                              accentClass="text-slate-800"
-                                            />
+                                          <div className="rounded-[16px] border border-slate-200 bg-slate-50/80 px-1.5 py-2">
+                                            <div className="flex h-full w-full flex-col items-center justify-center gap-2">
+                                              <button
+                                                type="button"
+                                                onClick={() => { if (!isAutoLocked) toggleEndTimeFix(dIdx, pIdx, { skipHistory: true }); }}
+                                                disabled={isAutoLocked}
+                                                className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors disabled:opacity-50 ${isEndTimeFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
+                                              >
+                                                종료시간 잠금
+                                              </button>
+                                              <div className="flex w-full items-center justify-center gap-1">
+                                                <TimeWheelColumn
+                                                  label=""
+                                                  value={currentEndHour}
+                                                  values={endHourValues}
+                                                  formatter={formatEndHourValue}
+                                                  onInteract={bumpTimeControllerAutoClose}
+                                                  onDragStateChange={setIsTimeWheelDragging}
+                                                  onChange={(nextHour) => {
+                                                    const nextTotal = clampEndNotBeforeStart((nextHour * 60) + currentEndMinute);
+                                                    if (canWrapEndBeforeStart) {
+                                                      setPlanEndAbsoluteMinutes(dIdx, pIdx, nextTotal, { skipHistory: true });
+                                                    } else {
+                                                      setPlanEndTimeValue(dIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
+                                                    }
+                                                  }}
+                                                  accentClass="text-slate-800"
+                                                />
+                                                <TimeWheelColumn
+                                                  label=""
+                                                  value={currentEndMinute}
+                                                  values={Array.from({ length: 60 }, (_, idx) => idx)}
+                                                  cyclic
+                                                  liveOnDrag
+                                                  onInteract={bumpTimeControllerAutoClose}
+                                                  onDragStateChange={setIsTimeWheelDragging}
+                                                  onChange={(nextMinute) => {
+                                                    const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);
+                                                    const nextTotal = clampEndNotBeforeStart(wrapped);
+                                                    if (canWrapEndBeforeStart) {
+                                                      setPlanEndAbsoluteMinutes(dIdx, pIdx, nextTotal, { skipHistory: true });
+                                                    } else {
+                                                      setPlanEndTimeValue(dIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
+                                                    }
+                                                  }}
+                                                  accentClass="text-slate-800"
+                                                />
+                                              </div>
+                                            </div>
                                           </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  </div>
                                     )}
                                   </>
                                 );
@@ -12419,198 +12430,198 @@ const App = () => {
                                   const shipEndAddress = getShipEndAddress(p);
                                   return (
                                     <>
-                                {/* 페리 이름 */}
-                                <div className="flex items-center gap-1.5">
-                                  <Anchor size={11} className="text-blue-400 shrink-0" />
-                                  <input
-                                    value={p.activity}
-                                    onChange={(e) => updateActivityName(dIdx, pIdx, e.target.value)}
-                                    onFocus={(e) => e.target.select()}
-                                    className="flex-1 min-w-0 bg-transparent text-[15px] font-black text-blue-900 leading-tight focus:outline-none truncate"
-                                    onClick={(e) => e.stopPropagation()}
-                                    placeholder="페리 이름"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}
-                                    className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                                    title="일정 수정"
-                                  >
-                                    <Pencil size={9} />
-                                  </button>
-                                </div>
-                                {/* 루트 배너 */}
-                                <div className="flex items-center bg-gradient-to-r from-blue-700 to-cyan-600 rounded-xl px-3 py-2 gap-2">
-                                  <div className="flex flex-col items-start min-w-0">
-                                    <span className="text-[8px] text-blue-200 font-bold tracking-widest uppercase">Departure</span>
-                                    <input
-                                      value={p.startPoint || '목포항'}
-                                      onChange={(e) => { e.stopPropagation(); updateShipPoint(dIdx, pIdx, 'startPoint', e.target.value); }}
-                                      onClick={(e) => e.stopPropagation()}
-                                      onFocus={(e) => e.target.select()}
-                                      className="text-[14px] font-black text-white bg-transparent outline-none w-16 focus:border-b focus:border-white/50"
-                                    />
-                                    <input
-                                      value={p.receipt?.address || ''}
-                                      onChange={(e) => { e.stopPropagation(); setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...d.days[dIdx].plan[pIdx].receipt, address: e.target.value }; return d; }); }}
-                                      onClick={(e) => e.stopPropagation()}
-                                      onFocus={async (e) => { e.target.select(); if (p.startPoint) { const r = await searchAddressFromPlaceName(p.startPoint); if (r?.address) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...d.days[dIdx].plan[pIdx].receipt, address: r.address }; return d; }); } }}
-                                      placeholder="클릭 시 자동 입력"
-                                      className="text-[9px] text-blue-200/80 bg-transparent outline-none w-24 focus:border-b focus:border-white/30 truncate cursor-pointer"
-                                    />
-                                  </div>
-                                  <div className="relative flex-1 self-stretch">
-                                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-dashed border-white/30" />
-                                    <span className="absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md bg-blue-700/80 px-1.5 py-0.5 text-[9px] text-white/70 font-bold">
-                                      {(() => { const s = p.sailDuration ?? 240; return `${Math.floor(s / 60)}h${s % 60 > 0 ? ` ${s % 60}m` : ''}`; })()}
-                                    </span>
-                                  </div>
-                                  <div className="flex flex-col items-end min-w-0">
-                                    <span className="text-[8px] text-blue-200 font-bold tracking-widest uppercase">Arrival</span>
-                                    <input
-                                      value={p.endPoint || '제주항'}
-                                      onChange={(e) => { e.stopPropagation(); updateShipPoint(dIdx, pIdx, 'endPoint', e.target.value); }}
-                                      onClick={(e) => e.stopPropagation()}
-                                      onFocus={(e) => e.target.select()}
-                                      className="text-[14px] font-black text-white bg-transparent outline-none w-16 text-right focus:border-b focus:border-white/50"
-                                    />
-                                    <input
-                                      value={p.endAddress || ''}
-                                      onChange={(e) => { e.stopPropagation(); updateShipPoint(dIdx, pIdx, 'endAddress', e.target.value); }}
-                                      onClick={(e) => e.stopPropagation()}
-                                      onFocus={async (e) => { e.target.select(); if (p.endPoint) { const r = await searchAddressFromPlaceName(p.endPoint); if (r?.address) updateShipPoint(dIdx, pIdx, 'endAddress', r.address); } }}
-                                      placeholder="클릭 시 자동 입력"
-                                      className="text-[9px] text-blue-200/80 bg-transparent outline-none w-24 text-right focus:border-b focus:border-white/30 truncate cursor-pointer"
-                                    />
-                                  </div>
-                                </div>
-                                <div className="grid gap-1.5 md:grid-cols-2">
-                                  <SharedAddressRow
-                                    value={shipStartAddress}
-                                    onChange={(e) => {
-                                      e.stopPropagation();
-                                      setItinerary((prev) => {
-                                        const next = JSON.parse(JSON.stringify(prev));
-                                        next.days[dIdx].plan[pIdx].receipt = {
-                                          ...(next.days[dIdx].plan[pIdx].receipt || {}),
-                                          address: e.target.value,
-                                        };
-                                        return next;
-                                      });
-                                    }}
-                                    placeholder="출발 항구 주소"
-                                    leading={<span className="shrink-0 rounded-md bg-blue-50 px-1.5 py-0.5 text-[9px] font-black text-blue-600">출발</span>}
-                                    actions={
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          openNaverPlaceSearch(p.startPoint || '출발 항구', shipStartAddress);
-                                        }}
-                                        className="rounded-md border border-slate-200 bg-white p-1 text-slate-400 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
-                                        title="출발지 지도 검색"
-                                      >
-                                        <MapPin size={9} />
-                                      </button>
-                                    }
-                                    onContainerClick={(e) => e.stopPropagation()}
-                                  />
-                                  <SharedAddressRow
-                                    value={shipEndAddress}
-                                    onChange={(e) => {
-                                      e.stopPropagation();
-                                      updateShipPoint(dIdx, pIdx, 'endAddress', e.target.value);
-                                    }}
-                                    placeholder="도착 항구 주소"
-                                    leading={<span className="shrink-0 rounded-md bg-cyan-50 px-1.5 py-0.5 text-[9px] font-black text-cyan-600">도착</span>}
-                                    actions={
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          openNaverPlaceSearch(p.endPoint || '도착 항구', shipEndAddress);
-                                        }}
-                                        className="rounded-md border border-slate-200 bg-white p-1 text-slate-400 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
-                                        title="도착지 지도 검색"
-                                      >
-                                        <MapPin size={9} />
-                                      </button>
-                                    }
-                                    onContainerClick={(e) => e.stopPropagation()}
-                                  />
-                                </div>
-                                {/* 시간 정보 행 — 클릭 후 직접 입력 */}
-                                {(() => {
-                                  const shipTimeline = getShipTimeline(p);
-                                  const sailDur = shipTimeline.sailDuration;
-                                  const disTime = shipTimeline.disembarkLabel;
-                                  const editKey = (field) => ferryEditField?.pId === p.id && ferryEditField?.field === field;
-                                  const timeInput = (field, displayVal) => editKey(field)
-                                    ? <input
-                                      autoFocus
-                                      defaultValue={displayVal.replace(':', '')}
-                                      onFocus={(e) => e.target.select()}
-                                      className="w-14 text-center text-[13px] font-black text-blue-800 bg-white border-b-2 border-[#3182F6] outline-none tabular-nums rounded"
-                                      onBlur={(e) => commitFerryTime(dIdx, pIdx, field, e.target.value)}
-                                      onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setFerryEditField(null); }}
-                                      onClick={(e) => e.stopPropagation()}
-                                    />
-                                    : <span
-                                      className="text-[13px] font-black text-blue-800 tabular-nums cursor-pointer"
-                                      title="클릭: 직접 입력"
-                                      onClick={(e) => { e.stopPropagation(); setFerryEditField({ pId: p.id, field }); }}
-                                    >{displayVal}</span>;
-                                  const sailInput = editKey('sail')
-                                    ? <input
-                                      autoFocus
-                                      defaultValue={minutesToTime(sailDur)}
-                                      onFocus={(e) => e.target.select()}
-                                      className="w-14 text-center text-[13px] font-black text-blue-800 bg-white border-b-2 border-[#3182F6] outline-none tabular-nums rounded"
-                                      onBlur={(e) => commitFerryTime(dIdx, pIdx, 'sail', e.target.value)}
-                                      onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setFerryEditField(null); }}
-                                      onClick={(e) => e.stopPropagation()}
-                                      placeholder="시:분/분"
-                                    />
-                                    : <span
-                                      className="text-[13px] font-black text-blue-800 tabular-nums cursor-pointer"
-                                      title="클릭: 시:분 또는 분 입력"
-                                      onClick={(e) => { e.stopPropagation(); setFerryEditField({ pId: p.id, field: 'sail' }); }}
-                                    >{minutesToTime(sailDur)}</span>;
-                                  return (
-                                    <div className="flex gap-2 select-none">
-                                      {/* 선적 셀 */}
-                                      <div className="flex-1 flex flex-col items-center gap-1 bg-blue-50/80 border border-blue-100 rounded-xl px-2 py-2.5">
-                                        <span className="text-[8px] text-blue-400 font-black tracking-widest uppercase">선적</span>
-                                        <div className="flex items-center gap-1 text-[13px] font-black text-blue-800 tabular-nums">
-                                          {timeInput('load', shipTimeline.loadStartLabel)}
-                                          <span className="text-blue-400">-</span>
-                                          {timeInput('loadEnd', shipTimeline.loadEndLabel)}
+                                      {/* 페리 이름 */}
+                                      <div className="flex items-center gap-1.5">
+                                        <Anchor size={11} className="text-blue-400 shrink-0" />
+                                        <input
+                                          value={p.activity}
+                                          onChange={(e) => updateActivityName(dIdx, pIdx, e.target.value)}
+                                          onFocus={(e) => e.target.select()}
+                                          className="flex-1 min-w-0 bg-transparent text-[15px] font-black text-blue-900 leading-tight focus:outline-none truncate"
+                                          onClick={(e) => e.stopPropagation()}
+                                          placeholder="페리 이름"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}
+                                          className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                          title="일정 수정"
+                                        >
+                                          <Pencil size={9} />
+                                        </button>
+                                      </div>
+                                      {/* 루트 배너 */}
+                                      <div className="flex items-center bg-gradient-to-r from-blue-700 to-cyan-600 rounded-xl px-3 py-2 gap-2">
+                                        <div className="flex flex-col items-start min-w-0">
+                                          <span className="text-[8px] text-blue-200 font-bold tracking-widest uppercase">Departure</span>
+                                          <input
+                                            value={p.startPoint || '목포항'}
+                                            onChange={(e) => { e.stopPropagation(); updateShipPoint(dIdx, pIdx, 'startPoint', e.target.value); }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onFocus={(e) => e.target.select()}
+                                            className="text-[14px] font-black text-white bg-transparent outline-none w-16 focus:border-b focus:border-white/50"
+                                          />
+                                          <input
+                                            value={p.receipt?.address || ''}
+                                            onChange={(e) => { e.stopPropagation(); setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...d.days[dIdx].plan[pIdx].receipt, address: e.target.value }; return d; }); }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onFocus={async (e) => { e.target.select(); if (p.startPoint) { const r = await searchAddressFromPlaceName(p.startPoint); if (r?.address) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...d.days[dIdx].plan[pIdx].receipt, address: r.address }; return d; }); } }}
+                                            placeholder="클릭 시 자동 입력"
+                                            className="text-[9px] text-blue-200/80 bg-transparent outline-none w-24 focus:border-b focus:border-white/30 truncate cursor-pointer"
+                                          />
+                                        </div>
+                                        <div className="relative flex-1 self-stretch">
+                                          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-dashed border-white/30" />
+                                          <span className="absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md bg-blue-700/80 px-1.5 py-0.5 text-[9px] text-white/70 font-bold">
+                                            {(() => { const s = p.sailDuration ?? 240; return `${Math.floor(s / 60)}h${s % 60 > 0 ? ` ${s % 60}m` : ''}`; })()}
+                                          </span>
+                                        </div>
+                                        <div className="flex flex-col items-end min-w-0">
+                                          <span className="text-[8px] text-blue-200 font-bold tracking-widest uppercase">Arrival</span>
+                                          <input
+                                            value={p.endPoint || '제주항'}
+                                            onChange={(e) => { e.stopPropagation(); updateShipPoint(dIdx, pIdx, 'endPoint', e.target.value); }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onFocus={(e) => e.target.select()}
+                                            className="text-[14px] font-black text-white bg-transparent outline-none w-16 text-right focus:border-b focus:border-white/50"
+                                          />
+                                          <input
+                                            value={p.endAddress || ''}
+                                            onChange={(e) => { e.stopPropagation(); updateShipPoint(dIdx, pIdx, 'endAddress', e.target.value); }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onFocus={async (e) => { e.target.select(); if (p.endPoint) { const r = await searchAddressFromPlaceName(p.endPoint); if (r?.address) updateShipPoint(dIdx, pIdx, 'endAddress', r.address); } }}
+                                            placeholder="클릭 시 자동 입력"
+                                            className="text-[9px] text-blue-200/80 bg-transparent outline-none w-24 text-right focus:border-b focus:border-white/30 truncate cursor-pointer"
+                                          />
                                         </div>
                                       </div>
-                                      {/* 출항 셀 */}
-                                      <div className="flex-1 flex flex-col items-center gap-1 bg-sky-50/80 border border-sky-100 rounded-xl px-2 py-2.5">
-                                        <span className="text-[8px] text-sky-400 font-black tracking-widest uppercase">출항</span>
-                                        {timeInput('depart', shipTimeline.boardLabel)}
+                                      <div className="grid gap-1.5 md:grid-cols-2">
+                                        <SharedAddressRow
+                                          value={shipStartAddress}
+                                          onChange={(e) => {
+                                            e.stopPropagation();
+                                            setItinerary((prev) => {
+                                              const next = JSON.parse(JSON.stringify(prev));
+                                              next.days[dIdx].plan[pIdx].receipt = {
+                                                ...(next.days[dIdx].plan[pIdx].receipt || {}),
+                                                address: e.target.value,
+                                              };
+                                              return next;
+                                            });
+                                          }}
+                                          placeholder="출발 항구 주소"
+                                          leading={<span className="shrink-0 rounded-md bg-blue-50 px-1.5 py-0.5 text-[9px] font-black text-blue-600">출발</span>}
+                                          actions={
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                openNaverPlaceSearch(p.startPoint || '출발 항구', shipStartAddress);
+                                              }}
+                                              className="rounded-md border border-slate-200 bg-white p-1 text-slate-400 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                                              title="출발지 지도 검색"
+                                            >
+                                              <MapPin size={9} />
+                                            </button>
+                                          }
+                                          onContainerClick={(e) => e.stopPropagation()}
+                                        />
+                                        <SharedAddressRow
+                                          value={shipEndAddress}
+                                          onChange={(e) => {
+                                            e.stopPropagation();
+                                            updateShipPoint(dIdx, pIdx, 'endAddress', e.target.value);
+                                          }}
+                                          placeholder="도착 항구 주소"
+                                          leading={<span className="shrink-0 rounded-md bg-cyan-50 px-1.5 py-0.5 text-[9px] font-black text-cyan-600">도착</span>}
+                                          actions={
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                openNaverPlaceSearch(p.endPoint || '도착 항구', shipEndAddress);
+                                              }}
+                                              className="rounded-md border border-slate-200 bg-white p-1 text-slate-400 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                                              title="도착지 지도 검색"
+                                            >
+                                              <MapPin size={9} />
+                                            </button>
+                                          }
+                                          onContainerClick={(e) => e.stopPropagation()}
+                                        />
                                       </div>
-                                      {/* 소요 셀 */}
-                                      <div className="flex-1 flex flex-col items-center gap-1 bg-indigo-50/80 border border-indigo-100 rounded-xl px-2 py-2.5">
-                                        <span className="text-[8px] text-indigo-400 font-black tracking-widest uppercase">소요</span>
-                                        {sailInput}
-                                      </div>
-                                      {/* 하선 셀 */}
-                                      <div className="flex-1 flex flex-col items-center gap-1 bg-violet-50/80 border border-violet-100 rounded-xl px-2 py-2.5">
-                                        <span className="text-[8px] text-violet-500 font-black tracking-widest uppercase">하선</span>
-                                        {timeInput('disembark', disTime)}
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                                <SharedMemoRow
-                                  value={p.memo || ''}
-                                  onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
-                                  placeholder="메모를 입력하세요..."
-                                  onContainerClick={(e) => e.stopPropagation()}
-                                />
+                                      {/* 시간 정보 행 — 클릭 후 직접 입력 */}
+                                      {(() => {
+                                        const shipTimeline = getShipTimeline(p);
+                                        const sailDur = shipTimeline.sailDuration;
+                                        const disTime = shipTimeline.disembarkLabel;
+                                        const editKey = (field) => ferryEditField?.pId === p.id && ferryEditField?.field === field;
+                                        const timeInput = (field, displayVal) => editKey(field)
+                                          ? <input
+                                            autoFocus
+                                            defaultValue={displayVal.replace(':', '')}
+                                            onFocus={(e) => e.target.select()}
+                                            className="w-14 text-center text-[13px] font-black text-blue-800 bg-white border-b-2 border-[#3182F6] outline-none tabular-nums rounded"
+                                            onBlur={(e) => commitFerryTime(dIdx, pIdx, field, e.target.value)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setFerryEditField(null); }}
+                                            onClick={(e) => e.stopPropagation()}
+                                          />
+                                          : <span
+                                            className="text-[13px] font-black text-blue-800 tabular-nums cursor-pointer"
+                                            title="클릭: 직접 입력"
+                                            onClick={(e) => { e.stopPropagation(); setFerryEditField({ pId: p.id, field }); }}
+                                          >{displayVal}</span>;
+                                        const sailInput = editKey('sail')
+                                          ? <input
+                                            autoFocus
+                                            defaultValue={minutesToTime(sailDur)}
+                                            onFocus={(e) => e.target.select()}
+                                            className="w-14 text-center text-[13px] font-black text-blue-800 bg-white border-b-2 border-[#3182F6] outline-none tabular-nums rounded"
+                                            onBlur={(e) => commitFerryTime(dIdx, pIdx, 'sail', e.target.value)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') setFerryEditField(null); }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            placeholder="시:분/분"
+                                          />
+                                          : <span
+                                            className="text-[13px] font-black text-blue-800 tabular-nums cursor-pointer"
+                                            title="클릭: 시:분 또는 분 입력"
+                                            onClick={(e) => { e.stopPropagation(); setFerryEditField({ pId: p.id, field: 'sail' }); }}
+                                          >{minutesToTime(sailDur)}</span>;
+                                        return (
+                                          <div className="flex gap-2 select-none">
+                                            {/* 선적 셀 */}
+                                            <div className="flex-1 flex flex-col items-center gap-1 bg-blue-50/80 border border-blue-100 rounded-xl px-2 py-2.5">
+                                              <span className="text-[8px] text-blue-400 font-black tracking-widest uppercase">선적</span>
+                                              <div className="flex items-center gap-1 text-[13px] font-black text-blue-800 tabular-nums">
+                                                {timeInput('load', shipTimeline.loadStartLabel)}
+                                                <span className="text-blue-400">-</span>
+                                                {timeInput('loadEnd', shipTimeline.loadEndLabel)}
+                                              </div>
+                                            </div>
+                                            {/* 출항 셀 */}
+                                            <div className="flex-1 flex flex-col items-center gap-1 bg-sky-50/80 border border-sky-100 rounded-xl px-2 py-2.5">
+                                              <span className="text-[8px] text-sky-400 font-black tracking-widest uppercase">출항</span>
+                                              {timeInput('depart', shipTimeline.boardLabel)}
+                                            </div>
+                                            {/* 소요 셀 */}
+                                            <div className="flex-1 flex flex-col items-center gap-1 bg-indigo-50/80 border border-indigo-100 rounded-xl px-2 py-2.5">
+                                              <span className="text-[8px] text-indigo-400 font-black tracking-widest uppercase">소요</span>
+                                              {sailInput}
+                                            </div>
+                                            {/* 하선 셀 */}
+                                            <div className="flex-1 flex flex-col items-center gap-1 bg-violet-50/80 border border-violet-100 rounded-xl px-2 py-2.5">
+                                              <span className="text-[8px] text-violet-500 font-black tracking-widest uppercase">하선</span>
+                                              {timeInput('disembark', disTime)}
+                                            </div>
+                                          </div>
+                                        );
+                                      })()}
+                                      <SharedMemoRow
+                                        value={p.memo || ''}
+                                        onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
+                                        placeholder="메모를 입력하세요..."
+                                        onContainerClick={(e) => e.stopPropagation()}
+                                      />
                                     </>
                                   );
                                 })()}
@@ -13218,58 +13229,58 @@ const App = () => {
                                       const nextBufferDisplay = getBufferDisplayState(itinerary.days, dIdx, nextPlanIdx);
                                       return (
                                         <>
-                                        {/* 이동 시간 */}
-                                        <div className="flex items-center gap-1.5">
-                                          <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
-                                          <span
-                                            className={`min-w-[3rem] text-center tracking-tight text-xs font-black ${busy ? 'text-[#3182F6]' : (nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800')}`}
-                                            onClick={(e) => { e.stopPropagation(); if (nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto) resetTravelTime(dIdx, pIdx + 1); }}
-                                            title={nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto ? '클릭하여 경로 계산 시간으로 초기화' : undefined}
-                                          >{nextItem.travelTimeOverride || '15분'}</span>
-                                          <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
-                                        </div>
-                                        {/* 거리 */}
-                                        <button
-                                          type="button"
-                                          className={`flex items-center gap-1 text-xs font-bold transition-colors ${busy ? 'text-[#3182F6]' : 'text-slate-400 hover:text-[#3182F6]'}`}
-                                          title={busy ? '경로 계산 중' : '구간 거리'}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (busy) return;
-                                            const prevAddr = routeEntry.fromAddress;
-                                            const toAddr = routeEntry.toAddress;
-                                            if (!prevAddr || !toAddr) {
-                                              setLastAction("길찾기용 출발/도착 주소가 필요합니다.");
-                                              return;
-                                            }
-                                            openNaverRouteSearch(p.activity || '출발지', prevAddr, nextItem.activity || '도착지', toAddr);
-                                          }}
-                                        >
-                                          {busy ? <LoaderCircle size={11} className="animate-spin" /> : <MapIcon size={11} />}
-                                          <span>{busy ? '계산중' : getRouteDistanceStatus(routeEntry)}</span>
-                                        </button>
-                                        {/* 자동경로 */}
-                                        <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1, { forceRefresh: true }); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-[#3182F6]/10 text-[#3182F6] border-[#3182F6]/30' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
-                                          {busy ? <LoaderCircle size={10} className="animate-spin" /> : <Sparkles size={10} />}
-                                        </button>
-                                        {/* 구분선 */}
-                                        <div className="w-px h-4 bg-slate-200 mx-0.5" />
-                                        <div className="flex items-center gap-1.5">
-                                          <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
-                                          <div className="flex flex-col items-center">
+                                          {/* 이동 시간 */}
+                                          <div className="flex items-center gap-1.5">
+                                            <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
                                             <span
-                                              className={`min-w-[3rem] cursor-pointer text-center tracking-tight text-xs font-black transition-colors ${nextBufferDisplay.isCoordinated ? 'text-orange-500 hover:text-orange-600' : 'text-slate-500 hover:text-slate-700'}`}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                applyAutoBufferTimeById(dIdx, nextItem.id);
-                                              }}
-                                              title="클릭하여 보정시간을 10분 기본값으로 초기화"
-                                            >
-                                              {nextBufferDisplay.label}
-                                            </span>
+                                              className={`min-w-[3rem] text-center tracking-tight text-xs font-black ${busy ? 'text-[#3182F6]' : (nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800')}`}
+                                              onClick={(e) => { e.stopPropagation(); if (nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto) resetTravelTime(dIdx, pIdx + 1); }}
+                                              title={nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto ? '클릭하여 경로 계산 시간으로 초기화' : undefined}
+                                            >{nextItem.travelTimeOverride || '15분'}</span>
+                                            <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                                           </div>
-                                          <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
-                                        </div>
+                                          {/* 거리 */}
+                                          <button
+                                            type="button"
+                                            className={`flex items-center gap-1 text-xs font-bold transition-colors ${busy ? 'text-[#3182F6]' : 'text-slate-400 hover:text-[#3182F6]'}`}
+                                            title={busy ? '경로 계산 중' : '구간 거리'}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (busy) return;
+                                              const prevAddr = routeEntry.fromAddress;
+                                              const toAddr = routeEntry.toAddress;
+                                              if (!prevAddr || !toAddr) {
+                                                setLastAction("길찾기용 출발/도착 주소가 필요합니다.");
+                                                return;
+                                              }
+                                              openNaverRouteSearch(p.activity || '출발지', prevAddr, nextItem.activity || '도착지', toAddr);
+                                            }}
+                                          >
+                                            {busy ? <LoaderCircle size={11} className="animate-spin" /> : <MapIcon size={11} />}
+                                            <span>{busy ? '계산중' : getRouteDistanceStatus(routeEntry)}</span>
+                                          </button>
+                                          {/* 자동경로 */}
+                                          <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1, { forceRefresh: true }); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-[#3182F6]/10 text-[#3182F6] border-[#3182F6]/30' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
+                                            {busy ? <LoaderCircle size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                                          </button>
+                                          {/* 구분선 */}
+                                          <div className="w-px h-4 bg-slate-200 mx-0.5" />
+                                          <div className="flex items-center gap-1.5">
+                                            <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
+                                            <div className="flex flex-col items-center">
+                                              <span
+                                                className={`min-w-[3rem] cursor-pointer text-center tracking-tight text-xs font-black transition-colors ${nextBufferDisplay.isCoordinated ? 'text-orange-500 hover:text-orange-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  applyAutoBufferTimeById(dIdx, nextItem.id);
+                                                }}
+                                                title="클릭하여 보정시간을 10분 기본값으로 초기화"
+                                              >
+                                                {nextBufferDisplay.label}
+                                              </span>
+                                            </div>
+                                            <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
+                                          </div>
                                         </>
                                       );
                                     })()}
@@ -13601,42 +13612,42 @@ const App = () => {
                         종료시간 잠금
                       </button>
                       <div className="flex w-full items-center justify-center gap-1">
-                      <TimeWheelColumn
-                        label=""
-                        value={currentEndHour}
-                        values={endHourValues}
-                        formatter={formatEndHourValue}
-                        onInteract={bumpTimeControllerAutoClose}
-                        onDragStateChange={setIsTimeWheelDragging}
-                        onChange={(nextHour) => {
-                          const nextTotal = clampEndNotBeforeStart((nextHour * 60) + currentEndMinute);
-                          if (canWrapEndBeforeStart) {
-                            setPlanEndAbsoluteMinutes(dayIdx, pIdx, nextTotal, { skipHistory: true });
-                          } else {
-                            setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
-                          }
-                        }}
-                        accentClass="text-slate-800"
-                      />
-                      <TimeWheelColumn
-                        label=""
-                        value={currentEndMinute}
-                        values={Array.from({ length: 60 }, (_, idx) => idx)}
-                        cyclic
-                        liveOnDrag
-                        onInteract={bumpTimeControllerAutoClose}
-                        onDragStateChange={setIsTimeWheelDragging}
-                        onChange={(nextMinute) => {
-                          const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);
-                          const nextTotal = clampEndNotBeforeStart(wrapped);
-                          if (canWrapEndBeforeStart) {
-                            setPlanEndAbsoluteMinutes(dayIdx, pIdx, nextTotal, { skipHistory: true });
-                          } else {
-                            setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
-                          }
-                        }}
-                        accentClass="text-slate-800"
-                      />
+                        <TimeWheelColumn
+                          label=""
+                          value={currentEndHour}
+                          values={endHourValues}
+                          formatter={formatEndHourValue}
+                          onInteract={bumpTimeControllerAutoClose}
+                          onDragStateChange={setIsTimeWheelDragging}
+                          onChange={(nextHour) => {
+                            const nextTotal = clampEndNotBeforeStart((nextHour * 60) + currentEndMinute);
+                            if (canWrapEndBeforeStart) {
+                              setPlanEndAbsoluteMinutes(dayIdx, pIdx, nextTotal, { skipHistory: true });
+                            } else {
+                              setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
+                            }
+                          }}
+                          accentClass="text-slate-800"
+                        />
+                        <TimeWheelColumn
+                          label=""
+                          value={currentEndMinute}
+                          values={Array.from({ length: 60 }, (_, idx) => idx)}
+                          cyclic
+                          liveOnDrag
+                          onInteract={bumpTimeControllerAutoClose}
+                          onDragStateChange={setIsTimeWheelDragging}
+                          onChange={(nextMinute) => {
+                            const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);
+                            const nextTotal = clampEndNotBeforeStart(wrapped);
+                            if (canWrapEndBeforeStart) {
+                              setPlanEndAbsoluteMinutes(dayIdx, pIdx, nextTotal, { skipHistory: true });
+                            } else {
+                              setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
+                            }
+                          }}
+                          accentClass="text-slate-800"
+                        />
                       </div>
                     </div>
                   </div>

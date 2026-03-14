@@ -426,16 +426,27 @@ exports.routeVerify = onRequest({ invoker: 'public' }, async (req, res) => {
     toAddress = '',
     fromName = '',
     toName = '',
+    fromLat,
+    fromLon,
+    toLat,
+    toLon,
   } = req.body || {};
 
   if (!String(fromAddress).trim() || !String(toAddress).trim()) {
     return res.status(400).json({ error: 'fromAddress and toAddress are required' });
   }
 
+  const resolveCoord = async (lat, lon, addr, name) => {
+    if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lon))) {
+      return { lat: Number(lat), lon: Number(lon), source: 'client-geo' };
+    }
+    return geocodeWithKakao({ address: addr, placeName: name, restKey });
+  };
+
   try {
     const [fromCoord, toCoord] = await Promise.all([
-      geocodeWithKakao({ address: fromAddress, placeName: fromName, restKey }),
-      geocodeWithKakao({ address: toAddress, placeName: toName, restKey }),
+      resolveCoord(fromLat, fromLon, fromAddress, fromName),
+      resolveCoord(toLat, toLon, toAddress, toName),
     ]);
 
     if (!fromCoord || !toCoord) {

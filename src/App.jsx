@@ -3094,6 +3094,7 @@ const App = () => {
   const [timelineEndTimeDraft, setTimelineEndTimeDraft] = useState(null); // { key, value }
   const [lodgeCheckoutDraft, setLodgeCheckoutDraft] = useState(null); // { key, value }
   const [isTimeWheelDragging, setIsTimeWheelDragging] = useState(false);
+  const [isManualPlanSaving, setIsManualPlanSaving] = useState(false);
   const timeControllerAutoCloseTimerRef = useRef(null);
   const saveQueueRef = useRef({ inFlight: false, pending: null });
   const latestSaveJobRef = useRef(null);
@@ -6779,7 +6780,10 @@ const App = () => {
         item.duration = Math.max(0, shipTimeline.disembark - timeToMinutes(item.time || '00:00'));
         syncBaseDuration(item, item.duration);
       } else {
-        const effectiveDuration = Math.max(0, Number(item.duration) || 0);
+        let effectiveDuration = Math.max(0, Number(item.duration) || 0);
+        if (item.isEndTimeFixed && item._fixedEndMinutes != null) {
+          effectiveDuration = Math.max(0, Number(item._fixedEndMinutes) - startMinutes);
+        }
         item.duration = effectiveDuration;
         if (isOvernightLodgeTimelineItem(item)) syncBaseDuration(item, effectiveDuration);
         prevEndMinutes = startMinutes + effectiveDuration;
@@ -7207,6 +7211,7 @@ const App = () => {
       const endMinutes = shouldWrapToNextDay ? endMinutesRaw + 1440 : endMinutesRaw;
       item.duration = Math.max(0, endMinutes - startMinutes);
       syncBaseDuration(item, item.duration);
+      if (item.isEndTimeFixed) item._fixedEndMinutes = endMinutes;
 
       // 종료 시각을 직접 조정하면 뒤 일정은 하드 고정(페리/숙박) 전까지 유동으로 풀어 밀리게 한다.
       for (let idx = pIdx + 1; idx < dayPlan.length; idx += 1) {
@@ -7241,6 +7246,7 @@ const App = () => {
       const absoluteEnd = Math.max(startMinutes, Math.min(startMinutes + maxDuration, Number(nextAbsoluteMinutes) || startMinutes));
       item.duration = Math.max(0, absoluteEnd - startMinutes);
       syncBaseDuration(item, item.duration);
+      if (item.isEndTimeFixed) item._fixedEndMinutes = absoluteEnd;
 
       for (let idx = pIdx + 1; idx < dayPlan.length; idx += 1) {
         const nextItem = dayPlan[idx];
@@ -7270,6 +7276,7 @@ const App = () => {
       const nextEndMinutes = currentEndMinutes + delta;
       item.duration = Math.max(0, nextEndMinutes - startMinutes);
       syncBaseDuration(item, item.duration);
+      if (item.isEndTimeFixed) item._fixedEndMinutes = nextEndMinutes;
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
     });
@@ -7472,7 +7479,12 @@ const App = () => {
       const p = draft.days[dayIdx].plan[pIdx];
       syncBaseDuration(p, p.duration);
       p.isEndTimeFixed = !p.isEndTimeFixed;
-      if (p.isEndTimeFixed) p.isDurationFixed = false;
+      if (p.isEndTimeFixed) {
+        p.isDurationFixed = false;
+        p._fixedEndMinutes = timeToMinutes(p.time || '00:00') + (Number(p.duration) || 0);
+      } else {
+        p._fixedEndMinutes = undefined;
+      }
       draft.days[dayIdx].plan = recalculateSchedule(dayPlan);
       recalculateLodgeDurations(draft.days);
       return draft;

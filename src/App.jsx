@@ -9039,8 +9039,8 @@ const App = () => {
               </nav>
             </div>
 
-            {/* ── 하단 고정: 사용자 정보 & 로그아웃 버튼 ── */}
-            <div className="relative z-30 p-4 border-t border-slate-100 bg-white shrink-0 mt-auto">
+            {/* ── 하단 고정 메뉴 ── */}
+            <div className="relative z-[160] p-4 border-t border-slate-100 bg-white shrink-0 mt-auto">
               {canManagePlan && (
                 <div className="relative mb-2.5">
                   <button
@@ -9056,7 +9056,7 @@ const App = () => {
                     </span>
                   </button>
                   {showNavMenu && (
-                    <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[20px] border border-slate-200 bg-white/98 shadow-[0_22px_44px_-24px_rgba(15,23,42,0.26)] overflow-hidden z-[60] animate-in slide-in-from-bottom-2">
+                    <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[20px] border border-slate-200 bg-white/98 shadow-[0_22px_44px_-24px_rgba(15,23,42,0.26)] overflow-hidden z-[180] animate-in slide-in-from-bottom-2">
                       <button
                         onClick={() => { setShowPlanManager(true); setShowNavMenu(false); }}
                         className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
@@ -9162,7 +9162,7 @@ const App = () => {
         ) : (
           <>
             {/* ── 고정 헤더 ── */}
-            <div className="px-5 pt-6 pb-4 border-b border-slate-100/50 shrink-0">
+            <div className="px-5 pt-5 pb-2.5 border-b border-slate-100/60 shrink-0 bg-white/96 backdrop-blur-xl">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
                   <Package size={14} className="text-[#3182F6]" />
@@ -9322,7 +9322,7 @@ const App = () => {
                       </div>
                     )}
                     {/* 필터 및 정렬 상태 표시기 */}
-                    <div className="sticky top-0 z-20 -mx-5 mb-2 w-auto border-b border-slate-100/70 bg-white/96 px-5 pb-2 pt-3 backdrop-blur-xl">
+                    <div className="sticky top-0 z-20 -mx-5 -mt-px mb-1 w-auto border-b border-slate-100/80 bg-white/98 px-5 pb-1.5 pt-1.5 shadow-[0_10px_18px_-18px_rgba(15,23,42,0.22)] backdrop-blur-xl">
                       <div className="w-full flex flex-col gap-1">
                       <div className="flex items-start gap-1 px-1">
                         <div className="flex flex-1 flex-wrap gap-1">
@@ -10331,7 +10331,7 @@ const App = () => {
               ? `${(averageTravelMinutes / 60).toFixed(1)}시간`
               : `${Math.round(averageTravelMinutes)}분`;
             return (
-              <div className="mb-2 relative" style={{ height: Math.max(dashboardHeight + (heroPinnedCompact ? 4 : (isMobileLayout ? 5 : 6)), heroPinnedCompact ? 136 : (isMobileLayout ? 356 : 386)) }}>
+              <div className="mb-1.5 relative" style={{ height: Math.max(dashboardHeight + (heroPinnedCompact ? 0 : (isMobileLayout ? 5 : 6)), heroPinnedCompact ? 122 : (isMobileLayout ? 356 : 386)) }}>
                 {/* 풀 카드 (최상단) */}
                 <div
                   className="fixed top-0 z-[120]"
@@ -10342,7 +10342,7 @@ const App = () => {
                 >
                   <section
                     ref={dashboardRef}
-                    className={`${heroPinnedCompact ? 'mb-1.5' : 'mb-2 sm:mb-3'} transition-all duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overflow-x-visible overscroll-contain pb-5 pr-1 sm:pb-6' : ''}`}
+                    className={`${heroPinnedCompact ? 'mb-0.5' : 'mb-2 sm:mb-3'} transition-all duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overflow-x-visible overscroll-contain pb-5 pr-1 sm:pb-6' : ''}`}
                   >
                     <div className="w-full relative overflow-visible bg-transparent">
                       {canManagePlan && (
@@ -10416,7 +10416,7 @@ const App = () => {
                         )}
                       </div>
 
-                      <div className={`relative z-10 flex w-full mx-auto flex-col transition-all duration-300 ${timelineMaxClass} ${heroPinnedCompact ? 'gap-3' : 'gap-5 md:gap-6'}`}>
+                      <div className={`relative z-10 flex w-full mx-auto flex-col transition-all duration-300 ${timelineMaxClass} ${heroPinnedCompact ? 'gap-2' : 'gap-5 md:gap-6'}`}>
                         {/* 🌟 1. 타이틀 & 일정 */}
                         <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-2 px-4 pt-3 sm:px-6 sm:pt-4' : 'items-center gap-3 px-6 pt-8 text-center sm:px-8 sm:pt-10'}`}>
                           <input

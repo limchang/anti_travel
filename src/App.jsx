@@ -1,5 +1,8 @@
 /* eslint-disable no-unused-vars, react-hooks/exhaustive-deps, no-useless-escape */
 import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { CircleMarker, MapContainer, Marker, Pane, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import { db, auth, messaging } from './firebase';
 import { PlaceAddForm } from './components/place/PlaceAddForm';
 import { PlaceEditorCard, PlaceLibraryCard } from './components/place/PlaceCards';
@@ -2169,170 +2172,101 @@ const loadKakaoMapSdk = (() => {
   };
 })();
 
-const buildFallbackProjection = (points = [], width = 1000, height = 620, padding = 56) => {
-  const validPoints = (points || []).filter((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon)));
-  if (!validPoints.length) {
-    return {
-      project: () => ({ x: width / 2, y: height / 2 }),
-    };
-  }
-  const latitudes = validPoints.map((point) => Number(point.lat));
-  const longitudes = validPoints.map((point) => Number(point.lon));
-  const minLat = Math.min(...latitudes);
-  const maxLat = Math.max(...latitudes);
-  const minLon = Math.min(...longitudes);
-  const maxLon = Math.max(...longitudes);
-  const lonSpan = Math.max(0.0001, maxLon - minLon);
-  const latSpan = Math.max(0.0001, maxLat - minLat);
-  return {
-    project: (point) => {
-      const xRatio = (Number(point.lon) - minLon) / lonSpan;
-      const yRatio = (Number(point.lat) - minLat) / latSpan;
-      return {
-        x: padding + xRatio * (width - padding * 2),
-        y: height - padding - yRatio * (height - padding * 2),
-      };
-    },
-  };
+const ROUTE_PREVIEW_DEFAULT_CENTER = [33.3617, 126.5292];
+const toLeafletLatLng = (point) => {
+  const lat = Number(point?.lat);
+  const lon = Number(point?.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  return [lat, lon];
 };
 
-const RoutePreviewFallbackCanvas = ({
-  routePreviewMap = [],
-  libraryPoints = [],
-  recommendationPoints = [],
-  focusedTarget = null,
-  onMarkerClick = null,
-  height = 240,
-  className = '',
-  errorMessage = '',
-}) => {
-  const width = 1000;
-  const viewHeight = 620;
-  const focusedTimelinePointIds = focusedTarget?.kind === 'timeline'
-    ? (Array.isArray(focusedTarget?.routePointIds) && focusedTarget.routePointIds.length
-      ? focusedTarget.routePointIds
-      : [focusedTarget?.id].filter(Boolean))
-    : [];
-  const focusedOverlayKey = focusedTarget?.kind && focusedTarget?.id
-    ? `${focusedTarget.kind}:${focusedTarget.id}`
-    : '';
-  const allPoints = [
-    ...routePreviewMap.flatMap((day) => day.points || []),
-    ...(Array.isArray(libraryPoints) ? libraryPoints : []),
-    ...(Array.isArray(recommendationPoints) ? recommendationPoints : []),
-  ];
-  const { project } = buildFallbackProjection(allPoints, width, viewHeight, 56);
+const buildTimelineMarkerIcon = (dayColor, label, isFocused) => L.divIcon({
+  className: '',
+  html: `
+    <div style="
+      width:${isFocused ? '34px' : '30px'};
+      height:${isFocused ? '34px' : '30px'};
+      border-radius:999px;
+      border:${isFocused ? '3px' : '2px'} solid ${isFocused ? '#0F172A' : '#FFFFFF'};
+      background:${dayColor};
+      color:#FFFFFF;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:11px;
+      font-weight:900;
+      box-shadow:0 12px 24px -18px rgba(15,23,42,0.5);
+    ">${label}</div>
+  `,
+  iconSize: [isFocused ? 34 : 30, isFocused ? 34 : 30],
+  iconAnchor: [isFocused ? 17 : 15, isFocused ? 17 : 15],
+});
 
-  return (
-    <div className={`relative w-full overflow-hidden rounded-[18px] border border-slate-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.92),rgba(255,255,255,0.98))] ${className}`.trim()} style={{ height }}>
-      <svg viewBox={`0 0 ${width} ${viewHeight}`} className="h-full w-full">
-        <defs>
-          <linearGradient id="fallback-map-bg" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="rgba(191,219,254,0.28)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0.95)" />
-          </linearGradient>
-        </defs>
-        <rect x="0" y="0" width={width} height={viewHeight} fill="url(#fallback-map-bg)" />
-        {routePreviewMap.map((day) => (
-          <g key={`fallback-day-${day.day}`}>
-            {(Array.isArray(day.segments) ? day.segments : []).map((segment) => {
-              const segmentVertices = Array.isArray(segment.path) && segment.path.length
-                ? segment.path
-                : [segment.fromPoint, segment.toPoint].filter(Boolean);
-              const projectedPath = segmentVertices
-                .filter((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon)))
-                .map((point) => {
-                  const projected = project(point);
-                  return `${projected.x},${projected.y}`;
-                })
-                .join(' ');
-              const isFocusedSegment = focusedTarget?.kind === 'timeline'
-                && (
-                  focusedTimelinePointIds.includes(segment?.fromId)
-                  || focusedTimelinePointIds.includes(segment?.toId)
-                );
-              if (!projectedPath) return null;
-              return (
-                <polyline
-                  key={segment.id}
-                  points={projectedPath}
-                  fill="none"
-                  stroke={day.color}
-                  strokeWidth={isFocusedSegment ? 9 : 6}
-                  strokeOpacity={isFocusedSegment ? 0.98 : 0.82}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              );
-            })}
-            {(day.points || []).map((point, index) => {
-              const projected = project(point);
-              const isFocusedPoint = focusedTarget?.kind === 'timeline'
-                && (
-                  focusedTimelinePointIds.includes(point?.id)
-                  || focusedTimelinePointIds.includes(point?.itemId)
-                );
-              return (
-                <g
-                  key={`fallback-point-${point.id}`}
-                  className={typeof onMarkerClick === 'function' ? 'cursor-pointer' : ''}
-                  onClick={() => onMarkerClick?.({
-                    kind: 'timeline',
-                    id: point.itemId || point.id,
-                    pointId: point.id,
-                    day: day.day,
-                    label: point.label,
-                    address: point.address,
-                  })}
-                >
-                  <circle cx={projected.x} cy={projected.y} r={isFocusedPoint ? 16 : 12} fill={day.color} stroke={isFocusedPoint ? '#0F172A' : '#FFFFFF'} strokeWidth={isFocusedPoint ? 4 : 3} />
-                  <foreignObject x={projected.x - 44} y={projected.y + 18} width="88" height="28">
-                    <div xmlns="http://www.w3.org/1999/xhtml" className={`flex h-7 items-center justify-center rounded-full border text-[10px] font-black shadow-sm ${isFocusedPoint ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white/95 text-slate-600'}`}>
-                      {`Day ${day.day}-${index + 1}`}
-                    </div>
-                  </foreignObject>
-                </g>
-              );
-            })}
-          </g>
-        ))}
-        {[...(Array.isArray(libraryPoints) ? libraryPoints : []), ...(Array.isArray(recommendationPoints) ? recommendationPoints : [])].map((point) => {
-          const projected = project(point);
-          const isFocusedPoint = `${point.kind}:${point.id}` === focusedOverlayKey;
-          const fillColor = point.kind === 'recommendation' ? '#F97316' : '#2563EB';
-          const glyph = point.kind === 'recommendation' ? '★' : '●';
-          return (
-            <g
-              key={`fallback-overlay-${point.kind}-${point.id}`}
-              className={typeof onMarkerClick === 'function' ? 'cursor-pointer' : ''}
-              onClick={() => onMarkerClick?.({
-                kind: point.kind,
-                id: point.id,
-                label: point.label,
-                address: point.address,
-              })}
-            >
-              <circle cx={projected.x} cy={projected.y} r={isFocusedPoint ? 14 : 10} fill={fillColor} stroke={isFocusedPoint ? '#0F172A' : '#FFFFFF'} strokeWidth={isFocusedPoint ? 4 : 2.5} />
-              <foreignObject x={projected.x - 60} y={projected.y - 42} width="120" height="28">
-                <div xmlns="http://www.w3.org/1999/xhtml" className={`flex h-7 items-center justify-center gap-1 rounded-full border px-2 text-[10px] font-black shadow-sm ${isFocusedPoint ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white/95 text-slate-600'}`}>
-                  <span style={{ color: isFocusedPoint ? '#FFFFFF' : fillColor }}>{glyph}</span>
-                  <span className="truncate">{String(point.label || (point.kind === 'recommendation' ? '추천' : '내 장소'))}</span>
-                </div>
-              </foreignObject>
-            </g>
-          );
-        })}
-      </svg>
-      <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/80 bg-white/90 px-3 py-1 text-[10px] font-black text-slate-500 shadow-sm">
-        {errorMessage ? '카카오 지도 대신 동선 미리보기' : '동선 미리보기'}
-      </div>
-      {errorMessage && (
-        <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-2xl border border-amber-200 bg-amber-50/92 px-3 py-2 text-[10px] font-bold text-amber-700 shadow-sm">
-          {errorMessage}
-        </div>
-      )}
-    </div>
+const buildOverlayMarkerIcon = (fillColor, glyph, isFocused) => L.divIcon({
+  className: '',
+  html: `
+    <div style="
+      width:${isFocused ? '22px' : '18px'};
+      height:${isFocused ? '22px' : '18px'};
+      border-radius:999px;
+      border:${isFocused ? '3px' : '2px'} solid ${isFocused ? '#0F172A' : '#FFFFFF'};
+      background:${fillColor};
+      color:#FFFFFF;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:${isFocused ? '12px' : '10px'};
+      font-weight:900;
+      box-shadow:0 10px 22px -18px rgba(15,23,42,0.5);
+    ">${glyph}</div>
+  `,
+  iconSize: [isFocused ? 22 : 18, isFocused ? 22 : 18],
+  iconAnchor: [isFocused ? 11 : 9, isFocused ? 11 : 9],
+});
+
+const LeafletMapViewportController = ({
+  boundsPoints = [],
+  focusedPoints = [],
+  animateFocus = true,
+}) => {
+  const map = useMap();
+  const boundsSignature = useMemo(
+    () => boundsPoints.map((point) => `${point[0].toFixed(5)}:${point[1].toFixed(5)}`).join('|'),
+    [boundsPoints]
   );
+  const focusSignature = useMemo(
+    () => focusedPoints.map((point) => `${point[0].toFixed(5)}:${point[1].toFixed(5)}`).join('|'),
+    [focusedPoints]
+  );
+
+  useEffect(() => {
+    const syncViewport = () => {
+      map.invalidateSize({ pan: false });
+      if (focusedPoints.length >= 2) {
+        const focusBounds = L.latLngBounds(focusedPoints);
+        if (focusBounds.isValid()) {
+          map.fitBounds(focusBounds.pad(0.38), { animate: animateFocus, padding: [28, 28] });
+          return;
+        }
+      }
+      if (focusedPoints.length === 1) {
+        map.flyTo(focusedPoints[0], Math.max(map.getZoom(), 13), { duration: animateFocus ? 0.45 : 0 });
+        return;
+      }
+      if (boundsPoints.length) {
+        const bounds = L.latLngBounds(boundsPoints);
+        if (bounds.isValid()) {
+          map.fitBounds(bounds.pad(0.18), { animate: false, padding: [24, 24] });
+          return;
+        }
+      }
+      map.setView(ROUTE_PREVIEW_DEFAULT_CENTER, 10, { animate: false });
+    };
+    const timer = window.setTimeout(syncViewport, 40);
+    return () => window.clearTimeout(timer);
+  }, [animateFocus, boundsSignature, focusSignature, boundsPoints, focusedPoints, map]);
+
+  return null;
 };
 
 const RoutePreviewCanvas = ({
@@ -2345,216 +2279,202 @@ const RoutePreviewCanvas = ({
   onMarkerClick = null,
   interactive = true,
 }) => {
-  const mapRef = React.useRef(null);
-  const mapInstanceRef = React.useRef(null);
-  const overlaysRef = React.useRef([]);
-  const [renderError, setRenderError] = React.useState('');
-
-  React.useEffect(() => {
-    let cancelled = false;
-    const mapOverlayPoints = [
+  const focusedTimelinePointIds = focusedTarget?.kind === 'timeline'
+    ? (Array.isArray(focusedTarget?.routePointIds) && focusedTarget.routePointIds.length
+      ? focusedTarget.routePointIds
+      : [focusedTarget?.id].filter(Boolean))
+    : [];
+  const focusedOverlayKey = focusedTarget?.kind && focusedTarget?.id ? `${focusedTarget.kind}:${focusedTarget.id}` : '';
+  const timelineEntries = useMemo(() => (
+    routePreviewMap.flatMap((day) => (
+      (day.points || [])
+        .map((point, index) => {
+          const position = toLeafletLatLng(point);
+          if (!position) return null;
+          const pointId = point.itemId || point.id;
+          const isFocused = focusedTarget?.kind === 'timeline'
+            && (focusedTimelinePointIds.includes(point?.id) || focusedTimelinePointIds.includes(pointId));
+          return {
+            id: pointId,
+            pointId: point.id,
+            day: day.day,
+            order: index + 1,
+            label: point.label,
+            address: point.address,
+            position,
+            color: day.color,
+            isFocused,
+          };
+        })
+        .filter(Boolean)
+    ))
+  ), [focusedTarget?.kind, focusedTimelinePointIds, routePreviewMap]);
+  const segmentEntries = useMemo(() => (
+    routePreviewMap.flatMap((day) => (
+      (Array.isArray(day.segments) ? day.segments : [])
+        .map((segment, index) => {
+          const rawPath = Array.isArray(segment.path) && segment.path.length
+            ? segment.path
+            : [segment.fromPoint, segment.toPoint].filter(Boolean);
+          const positions = rawPath.map(toLeafletLatLng).filter(Boolean);
+          if (positions.length < 2) return null;
+          const isFocused = focusedTarget?.kind === 'timeline'
+            && (
+              focusedTimelinePointIds.includes(segment?.fromId)
+              || focusedTimelinePointIds.includes(segment?.toId)
+            );
+          return {
+            id: segment.id || `segment-${day.day}-${index}`,
+            positions,
+            color: day.color,
+            isFallbackLine: !(Array.isArray(segment.path) && segment.path.length),
+            isFocused,
+          };
+        })
+        .filter(Boolean)
+    ))
+  ), [focusedTarget?.kind, focusedTimelinePointIds, routePreviewMap]);
+  const overlayEntries = useMemo(() => (
+    [
       ...(Array.isArray(libraryPoints) ? libraryPoints : []),
       ...(Array.isArray(recommendationPoints) ? recommendationPoints : []),
-    ];
+    ]
+      .map((point) => {
+        const position = toLeafletLatLng(point);
+        if (!position) return null;
+        const pointKey = `${point.kind}:${point.id}`;
+        const isFocused = pointKey === focusedOverlayKey;
+        return {
+          ...point,
+          position,
+          isFocused,
+          fillColor: point.kind === 'recommendation' ? '#F97316' : '#2563EB',
+          glyph: point.kind === 'recommendation' ? '★' : '●',
+        };
+      })
+      .filter(Boolean)
+  ), [focusedOverlayKey, libraryPoints, recommendationPoints]);
+  const allBoundsPoints = useMemo(() => (
+    [
+      ...segmentEntries.flatMap((segment) => segment.positions),
+      ...timelineEntries.map((point) => point.position),
+      ...overlayEntries.map((point) => point.position),
+    ]
+  ), [overlayEntries, segmentEntries, timelineEntries]);
+  const focusedViewportPoints = useMemo(() => {
+    if (focusedTarget?.kind === 'timeline') {
+      const focusedTimelinePoints = timelineEntries
+        .filter((point) => point.isFocused)
+        .map((point) => point.position);
+      if (focusedTimelinePoints.length) return focusedTimelinePoints;
+      const focusedSegments = segmentEntries
+        .filter((segment) => segment.isFocused)
+        .flatMap((segment) => segment.positions);
+      return focusedSegments;
+    }
+    return overlayEntries
+      .filter((point) => point.isFocused)
+      .map((point) => point.position);
+  }, [focusedTarget?.kind, overlayEntries, segmentEntries, timelineEntries]);
 
-    const clearOverlays = () => {
-      overlaysRef.current.forEach((overlay) => overlay?.setMap?.(null));
-      overlaysRef.current = [];
-    };
-
-    const focusedTimelinePointIds = focusedTarget?.kind === 'timeline'
-      ? Array.isArray(focusedTarget?.routePointIds) && focusedTarget.routePointIds.length
-        ? focusedTarget.routePointIds
-        : [focusedTarget?.id].filter(Boolean)
-      : [];
-    const focusedOverlayKey = focusedTarget?.kind && focusedTarget?.id
-      ? `${focusedTarget.kind}:${focusedTarget.id}`
-      : '';
-
-    const render = async () => {
-      const timelinePoints = routePreviewMap.flatMap((day) => day.points || []);
-      const focusedTimelinePoint = timelinePoints.find((point) => (
-        focusedTarget?.kind === 'timeline'
-        && (
-          focusedTimelinePointIds.includes(point?.id)
-          || focusedTimelinePointIds.includes(point?.itemId)
-        )
-        && Number.isFinite(Number(point?.lat))
-        && Number.isFinite(Number(point?.lon))
-      ));
-      const focusedOverlayPoint = mapOverlayPoints.find((point) => (
-        `${point?.kind}:${point?.id}` === focusedOverlayKey
-        && Number.isFinite(Number(point?.lat))
-        && Number.isFinite(Number(point?.lon))
-      ));
-      const firstPoint = focusedTimelinePoint
-        || focusedOverlayPoint
-        || timelinePoints.find((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon)))
-        || mapOverlayPoints.find((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon)));
-      if (!mapRef.current || !firstPoint) {
-        clearOverlays();
-        return;
-      }
-      setRenderError('');
-      try {
-        const kakao = await loadKakaoMapSdk(KAKAO_API_KEY);
-        if (cancelled || !mapRef.current) return;
-
-        if (!mapInstanceRef.current) {
-          mapInstanceRef.current = new kakao.maps.Map(mapRef.current, {
-            center: new kakao.maps.LatLng(firstPoint.lat, firstPoint.lon),
-            level: 9,
-          });
-        }
-        const map = mapInstanceRef.current;
-        clearOverlays();
-        map.relayout();
-
-        const bounds = new kakao.maps.LatLngBounds();
-        let focusedLatLng = null;
-        routePreviewMap.forEach((day) => {
-          const segments = Array.isArray(day.segments) ? day.segments : [];
-          segments.forEach((segment) => {
-            const isFocusedSegment = focusedTarget?.kind === 'timeline'
-              && (
-                focusedTimelinePointIds.includes(segment?.fromId)
-                || focusedTimelinePointIds.includes(segment?.toId)
-              );
-            const vertices = Array.isArray(segment.path) && segment.path.length
-              ? segment.path
-              : [segment.fromPoint, segment.toPoint].filter(Boolean);
-            const path = vertices
-              .filter((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon)))
-              .map((point) => {
-                const latLng = new kakao.maps.LatLng(point.lat, point.lon);
-                bounds.extend(latLng);
-                return latLng;
-              });
-            if (path.length < 2) return;
-            const polyline = new kakao.maps.Polyline({
-              path,
-              strokeWeight: isFocusedSegment ? 7 : 5,
-              strokeColor: day.color,
-              strokeOpacity: isFocusedSegment ? 1 : 0.9,
-              strokeStyle: 'solid',
-            });
-            polyline.setMap(map);
-            overlaysRef.current.push(polyline);
-          });
-
-          day.points.forEach((point, index) => {
-            const latLng = new kakao.maps.LatLng(point.lat, point.lon);
-            bounds.extend(latLng);
-            const isFocusedPoint = focusedTarget?.kind === 'timeline'
-              && (
-                focusedTimelinePointIds.includes(point?.id)
-                || focusedTimelinePointIds.includes(point?.itemId)
-              );
-            if (isFocusedPoint) focusedLatLng = latLng;
-            const marker = new kakao.maps.Circle({
-              center: latLng,
-              radius: isFocusedPoint ? 145 : 110,
-              strokeWeight: isFocusedPoint ? 4 : 3,
-              strokeColor: isFocusedPoint ? '#0F172A' : '#FFFFFF',
-              strokeOpacity: 1,
-              fillColor: day.color,
-              fillOpacity: isFocusedPoint ? 1 : 0.96,
-            });
-            marker.setMap(map);
-            overlaysRef.current.push(marker);
-            if (typeof onMarkerClick === 'function') {
-              kakao.maps.event.addListener(marker, 'click', () => {
-                onMarkerClick({
+  return (
+    <div className={`w-full overflow-hidden rounded-[18px] bg-slate-100 ${className}`.trim()} style={{ height }}>
+      <MapContainer
+        center={ROUTE_PREVIEW_DEFAULT_CENTER}
+        zoom={10}
+        style={{ height: '100%', width: '100%' }}
+        zoomControl={false}
+        attributionControl={false}
+        dragging={interactive}
+        touchZoom={interactive}
+        doubleClickZoom={interactive}
+        scrollWheelZoom={interactive}
+        boxZoom={interactive}
+        keyboard={interactive}
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution="&copy; OpenStreetMap contributors"
+        />
+        <LeafletMapViewportController
+          boundsPoints={allBoundsPoints}
+          focusedPoints={focusedViewportPoints}
+          animateFocus={interactive}
+        />
+        <Pane name="route-lines" style={{ zIndex: 320 }}>
+          {segmentEntries.map((segment) => (
+            <Polyline
+              key={segment.id}
+              positions={segment.positions}
+              pathOptions={{
+                color: segment.color,
+                weight: segment.isFocused ? 7 : 5,
+                opacity: segment.isFocused ? 0.98 : 0.84,
+                dashArray: segment.isFallbackLine ? '6 8' : undefined,
+                lineCap: 'round',
+                lineJoin: 'round',
+              }}
+            />
+          ))}
+        </Pane>
+        <Pane name="timeline-points" style={{ zIndex: 520 }}>
+          {timelineEntries.map((point) => (
+            <Marker
+              key={`timeline-point-${point.pointId}`}
+              position={point.position}
+              icon={buildTimelineMarkerIcon(point.color, String(point.order), point.isFocused)}
+              eventHandlers={interactive && typeof onMarkerClick === 'function' ? {
+                click: () => onMarkerClick({
                   kind: 'timeline',
-                  id: point.itemId || point.id,
-                  pointId: point.id,
-                  day: day.day,
+                  id: point.id,
+                  pointId: point.pointId,
+                  day: point.day,
                   label: point.label,
                   address: point.address,
-                });
-              });
-            }
-
-            const label = new kakao.maps.CustomOverlay({
-              position: latLng,
-              yAnchor: 2.25,
-              content: `<div style="padding:2px 8px;border-radius:999px;background:${isFocusedPoint ? 'rgba(15,23,42,0.96)' : 'white'};border:1px solid ${isFocusedPoint ? 'rgba(15,23,42,0.96)' : 'rgba(226,232,240,0.96)'};font-size:10px;font-weight:800;color:${isFocusedPoint ? 'white' : '#334155'};box-shadow:0 12px 18px -16px rgba(15,23,42,0.4)">Day ${day.day}-${index + 1}</div>`,
-            });
-            label.setMap(map);
-            overlaysRef.current.push(label);
-          });
-        });
-
-        mapOverlayPoints.forEach((point) => {
-          if (!Number.isFinite(Number(point?.lat)) || !Number.isFinite(Number(point?.lon))) return;
-          const latLng = new kakao.maps.LatLng(point.lat, point.lon);
-          bounds.extend(latLng);
-          const pointKey = `${point.kind}:${point.id}`;
-          const isFocusedPoint = pointKey === focusedOverlayKey;
-          if (isFocusedPoint) focusedLatLng = latLng;
-          const fillColor = point.kind === 'recommendation' ? '#F97316' : '#2563EB';
-          const glyph = point.kind === 'recommendation' ? '★' : '●';
-          const marker = new kakao.maps.Circle({
-            center: latLng,
-            radius: isFocusedPoint ? 120 : 88,
-            strokeWeight: isFocusedPoint ? 4 : 2,
-            strokeColor: isFocusedPoint ? '#0F172A' : '#FFFFFF',
-            strokeOpacity: 1,
-            fillColor,
-            fillOpacity: isFocusedPoint ? 0.98 : 0.92,
-          });
-          marker.setMap(map);
-          overlaysRef.current.push(marker);
-          if (typeof onMarkerClick === 'function') {
-            kakao.maps.event.addListener(marker, 'click', () => {
-              onMarkerClick({
-                kind: point.kind,
-                id: point.id,
-                label: point.label,
-                address: point.address,
-              });
-            });
-          }
-
-          const textLabel = String(point.label || '').trim();
-          const clippedLabel = textLabel.length > 10 ? `${textLabel.slice(0, 10)}…` : textLabel;
-          const label = new kakao.maps.CustomOverlay({
-            position: latLng,
-            yAnchor: 2.15,
-            content: `<div style="display:flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:${isFocusedPoint ? 'rgba(15,23,42,0.94)' : 'rgba(255,255,255,0.94)'};border:1px solid ${isFocusedPoint ? 'rgba(15,23,42,0.9)' : 'rgba(226,232,240,0.96)'};font-size:10px;font-weight:800;color:${isFocusedPoint ? 'white' : '#334155'};box-shadow:0 12px 18px -16px rgba(15,23,42,0.4)"><span style="color:${isFocusedPoint ? 'white' : fillColor};font-size:11px;line-height:1">${glyph}</span><span>${clippedLabel || (point.kind === 'recommendation' ? '추천' : '내 장소')}</span></div>`,
-          });
-          label.setMap(map);
-          overlaysRef.current.push(label);
-        });
-
-        requestAnimationFrame(() => {
-          if (cancelled || !mapInstanceRef.current) return;
-          mapInstanceRef.current.relayout();
-          if (!bounds.isEmpty()) {
-            mapInstanceRef.current.setBounds(bounds, 48, 48, 48, 48);
-          }
-          if (focusedLatLng) {
-            mapInstanceRef.current.panTo(focusedLatLng);
-          }
-        });
-      } catch (error) {
-        console.warn('Route preview map render failed:', error);
-        if (!cancelled) setRenderError('카카오 지도를 불러오지 못했습니다. 경로를 다시 불러와 주세요.');
-      }
-    };
-
-    void render();
-    return () => {
-      cancelled = true;
-      clearOverlays();
-    };
-  }, [routePreviewMap, libraryPoints, recommendationPoints, focusedTarget, onMarkerClick]);
-
-  if (renderError) {
-    return <RoutePreviewFallbackCanvas routePreviewMap={routePreviewMap} libraryPoints={libraryPoints} recommendationPoints={recommendationPoints} focusedTarget={focusedTarget} onMarkerClick={onMarkerClick} height={height} className={className} errorMessage={renderError} />;
-  }
-
-  return <div ref={mapRef} className={`w-full rounded-[18px] overflow-hidden bg-slate-100 ${interactive ? '' : 'pointer-events-none'} ${className}`.trim()} style={{ height }} />;
+                }),
+              } : undefined}
+            >
+              <Tooltip direction="top" offset={[0, -14]} opacity={1} className="!rounded-xl !border !border-slate-200 !bg-white/95 !px-2 !py-1 !text-[10px] !font-black !text-slate-700 !shadow-sm">
+                <div className="max-w-[180px]">
+                  <div>{`Day ${point.day}-${point.order} · ${point.label || '일정'}`}</div>
+                  {point.address ? <div className="mt-0.5 truncate text-[9px] font-bold text-slate-400">{point.address}</div> : null}
+                </div>
+              </Tooltip>
+            </Marker>
+          ))}
+        </Pane>
+        <Pane name="overlay-points" style={{ zIndex: 620 }}>
+          {overlayEntries.map((point) => (
+            <Marker
+              key={`overlay-point-${point.kind}-${point.id}`}
+              position={point.position}
+              icon={buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
+              eventHandlers={interactive && typeof onMarkerClick === 'function' ? {
+                click: () => onMarkerClick({
+                  kind: point.kind,
+                  id: point.id,
+                  label: point.label,
+                  address: point.address,
+                }),
+              } : undefined}
+            >
+              <Tooltip direction="top" offset={[0, -10]} opacity={1} className="!rounded-xl !border !border-slate-200 !bg-white/95 !px-2 !py-1 !text-[10px] !font-black !text-slate-700 !shadow-sm">
+                <div className="max-w-[180px]">
+                  <div>{point.label || (point.kind === 'recommendation' ? '추천 장소' : '내 장소')}</div>
+                  {point.address ? <div className="mt-0.5 truncate text-[9px] font-bold text-slate-400">{point.address}</div> : null}
+                </div>
+              </Tooltip>
+            </Marker>
+          ))}
+        </Pane>
+        {!allBoundsPoints.length && (
+          <Pane name="empty-point" style={{ zIndex: 700 }}>
+            <CircleMarker center={ROUTE_PREVIEW_DEFAULT_CENTER} radius={2} pathOptions={{ color: '#CBD5E1', fillColor: '#CBD5E1', fillOpacity: 0.001, opacity: 0.001 }} />
+          </Pane>
+        )}
+      </MapContainer>
+    </div>
+  );
 };
 
 // ── AI 자동입력 학습 지침 모달 ───────────────────────────────────────────────
@@ -3389,7 +3309,6 @@ const App = () => {
   const [routePreviewDays, setRoutePreviewDays] = useState([]);
   const [routePreviewLoading, setRoutePreviewLoading] = useState(false);
   const routePreviewSegmentCacheRef = useRef({});
-  const [showRoutePreviewModal, setShowRoutePreviewModal] = useState(false);
   const [hiddenRoutePreviewEndpoints, setHiddenRoutePreviewEndpoints] = useState({});
   const [mapScope, setMapScope] = useState('all');
   const [mapDayFilter, setMapDayFilter] = useState(null);
@@ -9265,80 +9184,6 @@ const App = () => {
           </div>
         </div>
       )}
-      {ROUTE_PREVIEW_ENABLED && showRoutePreviewModal && (
-        <div className="fixed inset-0 z-[210] flex items-center justify-center" onClick={() => setShowRoutePreviewModal(false)}>
-          <div className="absolute inset-0 bg-black/35 backdrop-blur-sm" />
-          <div className="relative w-[min(520px,92vw)] rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_60px_-24px_rgba(15,23,42,0.35)] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <p className="text-[14px] font-black text-slate-800">전체 동선 지도 보기</p>
-                <p className="mt-1 text-[10px] font-bold text-slate-400">Day별 이동 흐름 요약</p>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => void refreshRoutePreviewMap()}
-                  disabled={routePreviewLoading}
-                  className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-[10px] font-black text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors disabled:opacity-50"
-                >
-                  {routePreviewLoading ? '불러오는 중' : '경로 새로 불러오기'}
-                </button>
-                <button type="button" onClick={() => setShowRoutePreviewModal(false)} className="w-8 h-8 rounded-xl border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors">
-                  <X size={14} />
-                </button>
-              </div>
-            </div>
-            <div className="p-5">
-              <div className="rounded-[24px] border border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(191,219,254,0.35),_rgba(255,255,255,0.96)_55%)] p-4">
-                <div className="mb-3 flex flex-wrap gap-2">
-                  {routePreviewMap.map((day) => (
-                    <div key={`modal-day-${day.day}`} className="inline-flex items-center gap-1.5 rounded-full bg-white/90 border border-slate-200 px-2.5 py-1 text-[10px] font-black text-slate-600 shadow-sm">
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: day.color }} />
-                      <span>Day {day.day}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mb-3 flex flex-wrap gap-2">
-                  {routePreviewEndpointActions.map((action) => (
-                    <button
-                      key={`modal-toggle-${action.id}`}
-                      type="button"
-                      onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
-                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${action.hidden ? 'border-slate-200 bg-white text-slate-400' : 'border-amber-200 bg-amber-50 text-amber-600'}`}
-                    >
-                      {action.hidden ? '복원' : '제거'}
-                      <span>{action.label}</span>
-                    </button>
-                  ))}
-                </div>
-                <div className="relative overflow-hidden rounded-[22px] border border-sky-100 bg-[linear-gradient(180deg,rgba(186,230,253,0.75),rgba(239,246,255,0.9))] p-3">
-                  {routePreviewMap.length > 0 ? (
-                    <>
-                      <RoutePreviewCanvas routePreviewMap={routePreviewMap} height={300} />
-                      {routePreviewLoading && (
-                        <div className="pointer-events-none absolute left-5 top-5 rounded-full border border-white/80 bg-white/90 px-3 py-1 text-[10px] font-black text-[#3182F6] shadow-sm">
-                          경로 다시 확인 중...
-                        </div>
-                      )}
-                    </>
-                  ) : routePreviewLoading ? (
-                    <div className="flex h-[300px] items-center justify-center text-[11px] font-bold text-slate-400">
-                      카카오 경로 불러오는 중...
-                    </div>
-                  ) : (
-                    <div className="flex h-[300px] flex-col items-center justify-center gap-1 text-center">
-                      <MapIcon size={20} className="text-slate-300" />
-                      <p className="text-[10px] font-bold text-slate-400">
-                        {routePreviewPointCount >= 2 ? '주소를 지도 위치로 아직 확인하지 못했습니다. 잠시 후 다시 확인해 주세요.' : '주소가 있는 일정이 2개 이상 있어야 경로를 표시합니다.'}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Col1 테두리 탭 (오른쪽 경계) ── */}
       <div
@@ -10070,7 +9915,7 @@ const App = () => {
                             </div>
                           ) : routePreviewLoading ? (
                             <div className="flex items-center justify-center text-[10px] font-black text-slate-400" style={{ height: rightPanelMapHeight }}>
-                              카카오 경로 확인 중...
+                              경로 정보 확인 중...
                             </div>
                           ) : (
                             <div className="flex flex-col items-center justify-center gap-1 text-center px-3" style={{ height: rightPanelMapHeight }}>

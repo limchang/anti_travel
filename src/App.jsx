@@ -1,8 +1,7 @@
 /* eslint-disable no-unused-vars, react-hooks/exhaustive-deps, no-useless-escape */
 import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { CircleMarker, MapContainer, Marker, Pane, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet';
+import { MapContainer, Marker, Pane, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import { db, auth, messaging } from './firebase';
 import { PlaceAddForm } from './components/place/PlaceAddForm';
 import { PlaceEditorCard, PlaceLibraryCard } from './components/place/PlaceCards';
@@ -2228,6 +2227,7 @@ const LeafletMapViewportController = ({
   boundsPoints = [],
   focusedPoints = [],
   animateFocus = true,
+  resizeKey = '',
 }) => {
   const map = useMap();
   const boundsSignature = useMemo(
@@ -2238,6 +2238,27 @@ const LeafletMapViewportController = ({
     () => focusedPoints.map((point) => `${point[0].toFixed(5)}:${point[1].toFixed(5)}`).join('|'),
     [focusedPoints]
   );
+
+  useEffect(() => {
+    const container = map.getContainer();
+    if (!container) return undefined;
+    let rafId = 0;
+    const syncSize = () => {
+      cancelAnimationFrame(rafId);
+      rafId = window.requestAnimationFrame(() => {
+        map.invalidateSize({ pan: false });
+      });
+    };
+    syncSize();
+    const observer = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => syncSize())
+      : null;
+    observer?.observe(container);
+    return () => {
+      cancelAnimationFrame(rafId);
+      observer?.disconnect();
+    };
+  }, [map, resizeKey]);
 
   useEffect(() => {
     const syncViewport = () => {
@@ -2264,7 +2285,7 @@ const LeafletMapViewportController = ({
     };
     const timer = window.setTimeout(syncViewport, 40);
     return () => window.clearTimeout(timer);
-  }, [animateFocus, boundsSignature, focusSignature, boundsPoints, focusedPoints, map]);
+  }, [animateFocus, boundsSignature, focusSignature, boundsPoints, focusedPoints, map, resizeKey]);
 
   return null;
 };
@@ -2279,6 +2300,18 @@ const RoutePreviewCanvas = ({
   onMarkerClick = null,
   interactive = true,
 }) => {
+  const tileProviders = useMemo(() => ([
+    {
+      id: 'osm',
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      attribution: '&copy; OpenStreetMap contributors',
+    },
+    {
+      id: 'carto',
+      url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    },
+  ]), []);
   const focusedTimelinePointIds = focusedTarget?.kind === 'timeline'
     ? (Array.isArray(focusedTarget?.routePointIds) && focusedTarget.routePointIds.length
       ? focusedTarget.routePointIds
@@ -2376,9 +2409,55 @@ const RoutePreviewCanvas = ({
       .filter((point) => point.isFocused)
       .map((point) => point.position);
   }, [focusedTarget?.kind, overlayEntries, segmentEntries, timelineEntries]);
+  const renderableTimelinePointCount = timelineEntries.length;
+  const renderableSegmentCount = segmentEntries.length;
+  const renderableOverlayCount = overlayEntries.length;
+  const hasRenderableData = renderableTimelinePointCount > 0 || renderableSegmentCount > 0 || renderableOverlayCount > 0;
+  const boundsSignature = useMemo(
+    () => allBoundsPoints.map((point) => `${point[0].toFixed(5)}:${point[1].toFixed(5)}`).join('|'),
+    [allBoundsPoints]
+  );
+  const [tileProviderIndex, setTileProviderIndex] = useState(0);
+  const [tileStatus, setTileStatus] = useState(() => (hasRenderableData ? 'loading' : 'idle'));
+  const tileFailureCountRef = useRef(0);
+
+  useEffect(() => {
+    if (!hasRenderableData) {
+      tileFailureCountRef.current = 0;
+      setTileProviderIndex(0);
+      setTileStatus('idle');
+      return;
+    }
+    tileFailureCountRef.current = 0;
+    setTileProviderIndex(0);
+    setTileStatus('loading');
+  }, [boundsSignature, hasRenderableData]);
+
+  useEffect(() => {
+    if (!hasRenderableData || tileStatus === 'ready' || tileStatus === 'error') return undefined;
+    const timer = window.setTimeout(() => {
+      if (tileProviderIndex < tileProviders.length - 1) {
+        tileFailureCountRef.current = 0;
+        setTileProviderIndex((prev) => prev + 1);
+        setTileStatus('loading');
+      } else {
+        setTileStatus('error');
+      }
+    }, 2600);
+    return () => window.clearTimeout(timer);
+  }, [hasRenderableData, tileProviderIndex, tileProviders.length, tileStatus]);
+
+  if (!hasRenderableData) {
+    return (
+      <div className={`flex w-full flex-col items-center justify-center gap-2 rounded-[18px] bg-[linear-gradient(180deg,rgba(239,246,255,0.94),rgba(255,255,255,0.98))] px-4 text-center ${className}`.trim()} style={{ height }}>
+        <MapIcon size={18} className="text-slate-300" />
+        <p className="text-[10px] font-bold text-slate-400">지도에 표시할 좌표를 아직 충분히 확인하지 못했습니다.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className={`w-full overflow-hidden rounded-[18px] bg-slate-100 ${className}`.trim()} style={{ height }}>
+    <div className={`relative w-full overflow-hidden rounded-[18px] bg-[linear-gradient(180deg,rgba(226,240,248,0.92),rgba(255,255,255,0.98))] ${className}`.trim()} style={{ height }}>
       <MapContainer
         center={ROUTE_PREVIEW_DEFAULT_CENTER}
         zoom={10}
@@ -2391,15 +2470,35 @@ const RoutePreviewCanvas = ({
         scrollWheelZoom={interactive}
         boxZoom={interactive}
         keyboard={interactive}
+        className="h-full w-full bg-[#d9edf7]"
       >
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap contributors"
+          key={tileProviders[tileProviderIndex].id}
+          url={tileProviders[tileProviderIndex].url}
+          attribution={tileProviders[tileProviderIndex].attribution}
+          eventHandlers={{
+            loading: () => setTileStatus((prev) => (prev === 'ready' ? prev : 'loading')),
+            tileloadstart: () => setTileStatus((prev) => (prev === 'ready' ? prev : 'loading')),
+            tileload: () => setTileStatus('ready'),
+            tileerror: () => {
+              tileFailureCountRef.current += 1;
+              if (tileFailureCountRef.current >= 6) {
+                if (tileProviderIndex < tileProviders.length - 1) {
+                  tileFailureCountRef.current = 0;
+                  setTileProviderIndex((prev) => prev + 1);
+                  setTileStatus('loading');
+                } else {
+                  setTileStatus('error');
+                }
+              }
+            },
+          }}
         />
         <LeafletMapViewportController
           boundsPoints={allBoundsPoints}
           focusedPoints={focusedViewportPoints}
           animateFocus={interactive}
+          resizeKey={`${height}:${interactive ? 'on' : 'off'}:${boundsSignature}`}
         />
         <Pane name="route-lines" style={{ zIndex: 320 }}>
           {segmentEntries.map((segment) => (
@@ -2467,12 +2566,17 @@ const RoutePreviewCanvas = ({
             </Marker>
           ))}
         </Pane>
-        {!allBoundsPoints.length && (
-          <Pane name="empty-point" style={{ zIndex: 700 }}>
-            <CircleMarker center={ROUTE_PREVIEW_DEFAULT_CENTER} radius={2} pathOptions={{ color: '#CBD5E1', fillColor: '#CBD5E1', fillOpacity: 0.001, opacity: 0.001 }} />
-          </Pane>
-        )}
       </MapContainer>
+      {tileStatus === 'loading' && (
+        <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/85 bg-white/92 px-3 py-1 text-[10px] font-black text-slate-500 shadow-sm">
+          지도 타일 불러오는 중...
+        </div>
+      )}
+      {tileStatus === 'error' && (
+        <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-2xl border border-amber-200 bg-amber-50/94 px-3 py-2 text-[10px] font-bold text-amber-700 shadow-sm">
+          지도 배경을 불러오지 못해 경로만 표시합니다.
+        </div>
+      )}
     </div>
   );
 };
@@ -5232,6 +5336,7 @@ const App = () => {
         lat: Number(point.lat),
         lon: Number(point.lon),
       }))
+        .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lon))
     ))
   ), [filteredRoutePreviewMap]);
   const libraryMapPoints = useMemo(() => (
@@ -5274,6 +5379,14 @@ const App = () => {
       })
       .filter(Boolean)
   ), [recommendationGeoMap, visibleRecommendationEntries]);
+  const renderableSegmentCount = useMemo(() => (
+    filteredRoutePreviewMap.reduce((count, day) => count + ((Array.isArray(day.segments) ? day.segments : []).filter((segment) => {
+      const vertices = Array.isArray(segment?.path) && segment.path.length
+        ? segment.path
+        : [segment?.fromPoint, segment?.toPoint].filter(Boolean);
+      return vertices.map(toLeafletLatLng).filter(Boolean).length >= 2;
+    }).length), 0)
+  ), [filteredRoutePreviewMap]);
   const mapDayOptions = useMemo(() => (
     routePreviewMap.map((day) => ({ day: Number(day.day), label: `Day ${day.day}` }))
   ), [routePreviewMap]);
@@ -9802,8 +9915,10 @@ const App = () => {
                   ...customPlaceCategories.map((tag) => ({ value: tag, label: getCustomTagLabel(tag), isCustom: true })),
                 ];
                 const rightPanelMapHeight = isMobileLayout ? (mapExpanded ? 196 : 94) : 220;
-                const mapHasPoints = filteredRoutePreviewMap.length > 0 || libraryMapPoints.length > 0 || recommendationMapPoints.length > 0;
-                const mapLayerSummary = `일정 ${timelinePoints.length} · 내 장소 ${libraryMapPoints.length} · 추천 ${recommendationMapPoints.length}`;
+                const renderableTimelinePointCount = timelinePoints.length;
+                const renderableOverlayCount = libraryMapPoints.length + recommendationMapPoints.length;
+                const mapHasPoints = renderableTimelinePointCount > 0 || renderableSegmentCount > 0 || renderableOverlayCount > 0;
+                const mapLayerSummary = `일정 ${renderableTimelinePointCount} · 내 장소 ${libraryMapPoints.length} · 추천 ${recommendationMapPoints.length}`;
                 const mapFocusLabel = focusedMapTarget?.kind === 'timeline'
                   ? '일정 포커스'
                   : focusedMapTarget?.kind === 'place'
@@ -9921,7 +10036,7 @@ const App = () => {
                             <div className="flex flex-col items-center justify-center gap-1 text-center px-3" style={{ height: rightPanelMapHeight }}>
                               <MapIcon size={18} className="text-slate-300" />
                               <p className="text-[10px] font-bold text-slate-400">
-                                {routePreviewPointCount >= 2 ? '주소 좌표를 아직 확인하지 못했습니다. 잠시 후 다시 확인해 주세요.' : '주소가 있는 일정 2개 이상 또는 지도용 장소가 필요합니다.'}
+                                {routePreviewPointCount >= 2 ? '지도에 표시할 좌표를 아직 충분히 확인하지 못했습니다. 잠시 후 다시 확인해 주세요.' : '주소가 있는 일정 2개 이상 또는 지도용 장소가 필요합니다.'}
                               </p>
                             </div>
                           )}

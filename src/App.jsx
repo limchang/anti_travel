@@ -3304,7 +3304,7 @@ const App = () => {
   const isNavScrolling = React.useRef(false);
   const navScrollTimeout = React.useRef(null);
   const longPressTimerRef = useRef(null);
-  const touchStartPosRef = useRef({ x: 0, y: 0 });
+  const touchStartPosRef = useRef({ x: 0, y: 0, tracking: false });
   const isDraggingActiveRef = useRef(false);
   const dragGhostRef = useRef(null);
   const [touchDragLock, setTouchDragLock] = useState(false);
@@ -3601,13 +3601,13 @@ const App = () => {
   const isMobileLayout = viewportWidth < 1100;
   const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 310;
   const leftExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : rightExpandedWidth;
-  const leftCollapsedWidth = isMobileLayout ? 0 : 44;
-  const rightCollapsedWidth = isMobileLayout ? 0 : 44;
-  const leftSidebarWidth = col1Collapsed ? leftCollapsedWidth : leftExpandedWidth;
-  const rightSidebarWidth = col2Collapsed ? rightCollapsedWidth : rightExpandedWidth;
-  const isCompactTimeline = isMobileLayout || viewportWidth < 1380 || (!col1Collapsed && !col2Collapsed && viewportWidth < 1720);
-  const mainContentLeftInset = isMobileLayout ? 0 : leftSidebarWidth;
-  const mainContentRightInset = isMobileLayout ? 0 : (col2Collapsed ? rightCollapsedWidth : rightExpandedWidth);
+  const leftCollapsedWidth = 0;
+  const rightCollapsedWidth = 0;
+  const leftSidebarWidth = isMobileLayout ? (col1Collapsed ? leftCollapsedWidth : leftExpandedWidth) : leftExpandedWidth;
+  const rightSidebarWidth = isMobileLayout ? (col2Collapsed ? rightCollapsedWidth : rightExpandedWidth) : rightExpandedWidth;
+  const isCompactTimeline = isMobileLayout || viewportWidth < 1380 || viewportWidth < 1720;
+  const mainContentLeftInset = isMobileLayout ? 0 : leftExpandedWidth;
+  const mainContentRightInset = isMobileLayout ? 0 : rightExpandedWidth;
   const calculatingRouteTarget = useMemo(() => {
     if (!calculatingRouteId) return null;
     const [dayIdxRaw, pIdxRaw] = String(calculatingRouteId).split('_');
@@ -3643,6 +3643,8 @@ const App = () => {
       setCol2Collapsed(true);
     }
     if (!isMobileLayout) {
+      setCol1Collapsed(false);
+      setCol2Collapsed(false);
       setMobileSelectedLibraryPlace(null);
       clearMobileLibraryLongPress();
     }
@@ -3661,12 +3663,46 @@ const App = () => {
 
   useEffect(() => {
     if (isMobileLayout) return;
-    const requiredWidthForBothPanels = leftExpandedWidth + rightExpandedWidth + 560 + 96;
-    if (viewportWidth >= requiredWidthForBothPanels && (col1Collapsed || col2Collapsed)) {
-      setCol1Collapsed(false);
-      setCol2Collapsed(false);
+    setCol1Collapsed(false);
+    setCol2Collapsed(false);
+  }, [viewportWidth, isMobileLayout]);
+
+  const closeMobileSidePanels = useCallback(() => {
+    if (!isMobileLayout) return;
+    setCol1Collapsed(true);
+    setCol2Collapsed(true);
+  }, [isMobileLayout]);
+
+  const handleMainColumnTouchStart = useCallback((e) => {
+    if (!isMobileLayout || e.target !== e.currentTarget) {
+      touchStartPosRef.current = { x: 0, y: 0, tracking: false };
+      return;
     }
-  }, [viewportWidth, isMobileLayout, leftExpandedWidth, rightExpandedWidth, col1Collapsed, col2Collapsed]);
+    const touch = e.touches?.[0];
+    if (!touch) {
+      touchStartPosRef.current = { x: 0, y: 0, tracking: false };
+      return;
+    }
+    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY, tracking: true };
+  }, [isMobileLayout]);
+
+  const handleMainColumnTouchEnd = useCallback((e) => {
+    const state = touchStartPosRef.current;
+    touchStartPosRef.current = { x: 0, y: 0, tracking: false };
+    if (!isMobileLayout || !state.tracking) return;
+    const touch = e.changedTouches?.[0];
+    if (!touch) return;
+    const dx = touch.clientX - state.x;
+    const dy = touch.clientY - state.y;
+    if (Math.abs(dx) < 64 || Math.abs(dx) <= Math.abs(dy) * 1.35) return;
+    if (dx > 0) {
+      setCol1Collapsed(false);
+      setCol2Collapsed(true);
+      return;
+    }
+    setCol1Collapsed(true);
+    setCol2Collapsed(false);
+  }, [isMobileLayout]);
 
   const startAutoScroll = useCallback(() => {
     if (scrollIntervalRef.current) return;
@@ -4626,19 +4662,6 @@ const App = () => {
       if (timer) window.clearTimeout(timer);
     };
   }, [heroPinnedCompact, heroSummaryExpanded]);
-
-  // 모바일 감지 → 양쪽 패널 자동 접기
-  useEffect(() => {
-    const check = () => {
-      if (window.innerWidth < 768) {
-        setCol1Collapsed(true);
-        setCol2Collapsed(true);
-      }
-    };
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
 
   // 스크롤 감지 → activeDay + activeItemId 자동 업데이트
   useEffect(() => {
@@ -9694,44 +9717,19 @@ const App = () => {
         </div>
       )}
 
-      {/* ── Col1 테두리 탭 (오른쪽 경계) ── */}
-      <div
-        className="fixed z-[221] top-1/2 transition-all duration-300"
-        style={{
-          left: isMobileLayout ? (col1Collapsed ? 12 : Math.max(8, leftSidebarWidth - 6)) : leftSidebarWidth,
-          transform: isMobileLayout ? 'translateY(-50%)' : 'translateX(-50%) translateY(-50%)'
-        }}
-      >
-        <button
-          onClick={() => setCol1Collapsed(v => !v)}
-          className="w-5 h-10 bg-white border border-[#E5E8EB] rounded-full flex items-center justify-center shadow-sm hover:border-[#3182F6] hover:text-[#3182F6] text-slate-400 transition-colors"
-        >
-          {col1Collapsed ? <ChevronRight size={11} /> : <ChevronLeft size={11} />}
-        </button>
-      </div>
-      {/* ── Col2 Toggle (Floating) ── */}
-      <div
-        className="fixed z-[231] top-1/2 transition-all duration-300 pointer-events-none"
-        style={{
-          right: isMobileLayout ? (col2Collapsed ? 12 : Math.max(8, rightSidebarWidth - 6)) : (col2Collapsed ? 44 : 310),
-          transform: isMobileLayout ? 'translateY(-50%)' : 'translateX(50%) translateY(-50%)'
-        }}
-      >
-        <button
-          onClick={() => setCol2Collapsed(v => !v)}
-          className="w-5 h-10 bg-white border border-[#E5E8EB] rounded-full flex items-center justify-center shadow-lg hover:border-[#3182F6] hover:text-[#3182F6] text-slate-400 transition-all hover:scale-110 active:scale-95 group pointer-events-auto"
-          title={col2Collapsed ? "내 장소 열기" : "내 장소 접기"}
-        >
-          {col2Collapsed ? <ChevronLeft size={11} className="group-hover:-translate-x-0.5 transition-transform" /> : <ChevronRight size={11} className="group-hover:translate-x-0.5 transition-transform" />}
-        </button>
-      </div>
+      {isMobileLayout && (!col1Collapsed || !col2Collapsed) && (
+        <div
+          className="fixed inset-0 z-[210] bg-slate-950/10 backdrop-blur-[1px]"
+          onClick={closeMobileSidePanels}
+        />
+      )}
 
       {/* ── Col1: 예산 + 일정 네비게이션 ── */}
       <div
         className="flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] z-[220] shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-visible"
         style={{ width: leftSidebarWidth }}
       >
-        {col1Collapsed ? (
+        {isMobileLayout && col1Collapsed ? (
           <div className="flex-1 flex items-center justify-center">
             <MapIcon size={14} className="text-slate-300" />
           </div>
@@ -10192,7 +10190,7 @@ const App = () => {
         className="flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[220] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-visible"
         style={{ right: 0, width: rightSidebarWidth }}
       >
-        {col2Collapsed ? (
+        {isMobileLayout && col2Collapsed ? (
           <div className="flex-1 flex flex-col items-center justify-center">
             <Package size={14} className="text-slate-300" />
           </div>
@@ -10699,9 +10697,18 @@ const App = () => {
         }
       </div>
 
-      <div className="flex-1 flex flex-col items-center w-full bg-slate-50 min-h-screen" style={{ marginLeft: mainContentLeftInset, marginRight: mainContentRightInset }}>
+      <div
+        className="flex-1 flex flex-col items-center w-full bg-slate-50 min-h-screen"
+        style={{ marginLeft: mainContentLeftInset, marginRight: mainContentRightInset }}
+      >
         {/* 일정 목록 */}
-        <div className="w-full px-4 pt-8 pb-32">
+        <div
+          className="w-full px-4 pt-8 pb-32"
+          onTouchStart={handleMainColumnTouchStart}
+          onTouchEnd={handleMainColumnTouchEnd}
+          onTouchCancel={handleMainColumnTouchEnd}
+          data-no-swipe={false}
+        >
           {isSharedReadOnly && (
             <div className={`mx-auto mb-3 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-[11px] font-black text-amber-700 ${isCompactTimeline ? 'max-w-[500px]' : 'max-w-[560px]'}`}>
               공유 일정 보기 모드입니다. (편집 권한 없음)

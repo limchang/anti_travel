@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.211",
+      "timestamp": "2026-03-15T00:09:06+09:00",
+      "message": "fix: split route map filters and always show fallback lines"
+    },
+    {
       "version": "1.3.210",
       "timestamp": "2026-03-14T23:59:13+09:00",
       "message": "refine map chrome and show stay timing in nav"
@@ -144,11 +149,6 @@
       "version": "1.3.182",
       "timestamp": "2026-03-14T02:45:39+09:00",
       "message": "fix: remove remaining MoreHorizontal icon references"
-    },
-    {
-      "version": "1.3.181",
-      "timestamp": "2026-03-14T02:42:32+09:00",
-      "message": "fix: restore MoreHorizontal import for panel menus"
     }
   ]
 }

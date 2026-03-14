@@ -2423,7 +2423,16 @@ const RoutePreviewCanvas = ({
   ), [focusedTarget?.kind, focusedTimelinePointIds, routePreviewMap]);
   const segmentEntries = useMemo(() => (
     routePreviewMap.flatMap((day) => (
-      (Array.isArray(day.segments) ? day.segments : [])
+      ((Array.isArray(day.segments) && day.segments.length)
+        ? day.segments
+        : ((day.points || []).slice(1).map((point, index) => ({
+            id: `fallback-${day.day}-${index}`,
+            fromId: day.points?.[index]?.id,
+            toId: point?.id,
+            fromPoint: day.points?.[index],
+            toPoint: point,
+            path: [],
+          }))))
         .map((segment, index) => {
           const rawPath = Array.isArray(segment.path) && segment.path.length
             ? segment.path
@@ -3504,8 +3513,10 @@ const App = () => {
   const routePreviewBuildKeyRef = useRef('');
   const routePreviewAutoRetryKeyRef = useRef('');
   const [hiddenRoutePreviewEndpoints, setHiddenRoutePreviewEndpoints] = useState({});
-  const [mapScope, setMapScope] = useState('all');
-  const [mapDayFilter, setMapDayFilter] = useState(null);
+  const [overviewMapScope, setOverviewMapScope] = useState('all');
+  const [overviewMapDayFilter, setOverviewMapDayFilter] = useState(null);
+  const [panelMapScope, setPanelMapScope] = useState('all');
+  const [panelMapDayFilter, setPanelMapDayFilter] = useState(null);
   const [mapExpanded, setMapExpanded] = useState(() => (typeof window === 'undefined' ? true : window.innerWidth >= 1100));
   const [focusedMapTarget, setFocusedMapTarget] = useState(null);
   const [showOverviewMapModal, setShowOverviewMapModal] = useState(false);
@@ -5580,13 +5591,8 @@ const App = () => {
       cancelled = true;
     };
   }, [geocodeAddress, visibleRecommendationEntries]);
-  const filteredRoutePreviewMap = useMemo(() => (
-    mapScope === 'day' && Number.isFinite(Number(mapDayFilter))
-      ? routePreviewMap.filter((day) => Number(day.day) === Number(mapDayFilter))
-      : routePreviewMap
-  ), [mapDayFilter, mapScope, routePreviewMap]);
-  const timelinePoints = useMemo(() => (
-    filteredRoutePreviewMap.flatMap((day) => (
+  const allTimelinePoints = useMemo(() => (
+    routePreviewMap.flatMap((day) => (
       (day.points || []).map((point, index) => ({
         id: point.id,
         itemId: point.itemId || point.id,
@@ -5600,15 +5606,57 @@ const App = () => {
       }))
         .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lon))
     ))
-  ), [filteredRoutePreviewMap]);
+  ), [routePreviewMap]);
+  const overviewFilteredRoutePreviewMap = useMemo(() => (
+    overviewMapScope === 'day' && Number.isFinite(Number(overviewMapDayFilter))
+      ? routePreviewMap.filter((day) => Number(day.day) === Number(overviewMapDayFilter))
+      : routePreviewMap
+  ), [overviewMapDayFilter, overviewMapScope, routePreviewMap]);
+  const panelFilteredRoutePreviewMap = useMemo(() => (
+    panelMapScope === 'day' && Number.isFinite(Number(panelMapDayFilter))
+      ? routePreviewMap.filter((day) => Number(day.day) === Number(panelMapDayFilter))
+      : routePreviewMap
+  ), [panelMapDayFilter, panelMapScope, routePreviewMap]);
+  const overviewTimelinePoints = useMemo(() => (
+    overviewFilteredRoutePreviewMap.flatMap((day) => (
+      (day.points || []).map((point, index) => ({
+        id: point.id,
+        itemId: point.itemId || point.id,
+        kind: 'timeline',
+        day: day.day,
+        order: index + 1,
+        label: point.label,
+        address: point.address,
+        lat: Number(point.lat),
+        lon: Number(point.lon),
+      }))
+        .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lon))
+    ))
+  ), [overviewFilteredRoutePreviewMap]);
+  const panelTimelinePoints = useMemo(() => (
+    panelFilteredRoutePreviewMap.flatMap((day) => (
+      (day.points || []).map((point, index) => ({
+        id: point.id,
+        itemId: point.itemId || point.id,
+        kind: 'timeline',
+        day: day.day,
+        order: index + 1,
+        label: point.label,
+        address: point.address,
+        lat: Number(point.lat),
+        lon: Number(point.lon),
+      }))
+        .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lon))
+    ))
+  ), [panelFilteredRoutePreviewMap]);
   const isMapPointNearTimelineCluster = useCallback((lat, lon) => {
-    if (!Number.isFinite(lat) || !Number.isFinite(lon) || !timelinePoints.length) return true;
-    const minDistanceKm = timelinePoints.reduce((minDistance, point) => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || !allTimelinePoints.length) return true;
+    const minDistanceKm = allTimelinePoints.reduce((minDistance, point) => {
       const distanceKm = haversineKm(lat, lon, Number(point.lat), Number(point.lon));
       return Math.min(minDistance, distanceKm);
     }, Infinity);
     return minDistanceKm <= 250;
-  }, [haversineKm, timelinePoints]);
+  }, [allTimelinePoints, haversineKm]);
   const libraryMapPoints = useMemo(() => (
     (itinerary.places || [])
       .filter(Boolean)
@@ -5651,16 +5699,25 @@ const App = () => {
   ), [isMapPointNearTimelineCluster, recommendationGeoMap, visibleRecommendationEntries]);
   const placeOverviewPointCount = libraryMapPoints.length + recommendationMapPoints.length;
   const placeOverviewHasPoints = placeOverviewPointCount > 0;
-  const renderableSegmentCount = useMemo(() => (
-    filteredRoutePreviewMap.reduce((count, day) => count + ((Array.isArray(day.segments) ? day.segments : []).filter((segment) => {
+  const overviewRenderableSegmentCount = useMemo(() => (
+    overviewFilteredRoutePreviewMap.reduce((count, day) => count + ((Array.isArray(day.segments) ? day.segments : []).filter((segment) => {
       const vertices = Array.isArray(segment?.path) && segment.path.length
         ? segment.path
         : [segment?.fromPoint, segment?.toPoint].filter(Boolean);
       return vertices.map(toLeafletLatLng).filter(Boolean).length >= 2;
     }).length), 0)
-  ), [filteredRoutePreviewMap]);
-  const routeMapHasRenderableData = timelinePoints.length > 0 || renderableSegmentCount > 0;
-  const routeMapSummary = `일정 ${timelinePoints.length} · 내 장소 ${libraryMapPoints.length} · 추천 ${recommendationMapPoints.length}`;
+  ), [overviewFilteredRoutePreviewMap]);
+  const panelRenderableSegmentCount = useMemo(() => (
+    panelFilteredRoutePreviewMap.reduce((count, day) => count + ((Array.isArray(day.segments) ? day.segments : []).filter((segment) => {
+      const vertices = Array.isArray(segment?.path) && segment.path.length
+        ? segment.path
+        : [segment?.fromPoint, segment?.toPoint].filter(Boolean);
+      return vertices.map(toLeafletLatLng).filter(Boolean).length >= 2;
+    }).length), 0)
+  ), [panelFilteredRoutePreviewMap]);
+  const overviewRouteMapHasRenderableData = overviewTimelinePoints.length > 0 || overviewRenderableSegmentCount > 0;
+  const panelRouteMapHasRenderableData = panelTimelinePoints.length > 0 || panelRenderableSegmentCount > 0;
+  const routeMapSummary = `일정 ${overviewTimelinePoints.length} · 내 장소 ${libraryMapPoints.length} · 추천 ${recommendationMapPoints.length}`;
   const mapDayOptions = useMemo(() => (
     routePreviewPointSource.map((day) => ({ day: Number(day.day), label: `Day ${day.day}` }))
   ), [routePreviewPointSource]);
@@ -5685,8 +5742,11 @@ const App = () => {
     const routePointIds = targetItem.types?.includes('ship')
       ? [`${targetItem.id}:ship-start`, `${targetItem.id}:ship-end`]
       : [targetItem.id];
-    if (mapScope === 'day' && Number.isFinite(Number(dayNum)) && Number(mapDayFilter) !== Number(dayNum)) {
-      setMapDayFilter(Number(dayNum));
+    if (overviewMapScope === 'day' && Number.isFinite(Number(dayNum)) && Number(overviewMapDayFilter) !== Number(dayNum)) {
+      setOverviewMapDayFilter(Number(dayNum));
+    }
+    if (panelMapScope === 'day' && Number.isFinite(Number(dayNum)) && Number(panelMapDayFilter) !== Number(dayNum)) {
+      setPanelMapDayFilter(Number(dayNum));
     }
     if (isMobileLayout) setMapExpanded(true);
     setFocusedMapTarget({
@@ -5696,7 +5756,7 @@ const App = () => {
       routePointIds,
     });
     if (scroll) handleNavClick(dayNum, targetItem.id);
-  }, [handleNavClick, isMobileLayout, mapDayFilter, mapScope]);
+  }, [handleNavClick, isMobileLayout, overviewMapDayFilter, overviewMapScope, panelMapDayFilter, panelMapScope]);
   const focusLibraryOnMap = useCallback((place, { scroll = false } = {}) => {
     const placeId = String(place?.id || '').trim();
     if (!placeId) return;
@@ -10289,10 +10349,10 @@ const App = () => {
                     <div className="sticky top-0 z-[260] -mx-5 -mt-px mb-1 w-auto border-b border-slate-100/80 bg-white/98 px-5 pb-2 pt-1.5 shadow-[0_10px_18px_-18px_rgba(15,23,42,0.22)] backdrop-blur-xl">
                       <div id="right-panel-map-overview" className="rounded-[22px] border border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(191,219,254,0.35),_rgba(255,255,255,0.98)_55%)] p-2 shadow-[0_18px_32px_-24px_rgba(15,23,42,0.25)]">
                         <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white/88">
-                          {routeMapHasRenderableData ? (
+                          {panelRouteMapHasRenderableData ? (
                             <div className="relative">
                               <RoutePreviewCanvas
-                                routePreviewMap={filteredRoutePreviewMap}
+                                routePreviewMap={panelFilteredRoutePreviewMap}
                                 libraryPoints={[]}
                                 recommendationPoints={[]}
                                 focusedTarget={focusedMapTarget?.kind === 'timeline' ? focusedMapTarget : null}
@@ -11106,7 +11166,7 @@ const App = () => {
                   <div className="min-w-0 flex-1">
                     <p className="text-[15px] font-black tracking-tight text-slate-900">동선 지도 크게 보기</p>
                     <p className="mt-1 text-[11px] font-bold text-slate-400 truncate">
-                      {`일정 ${timelinePoints.length} · 내 장소 ${libraryMapPoints.length} · 추천 ${recommendationMapPoints.length}`}
+                      {`일정 ${overviewTimelinePoints.length} · 내 장소 ${libraryMapPoints.length} · 추천 ${recommendationMapPoints.length}`}
                     </p>
                   </div>
                   <button
@@ -11120,7 +11180,7 @@ const App = () => {
                 </div>
                 <div className="mt-3 overflow-hidden rounded-[22px] border border-slate-200 bg-white">
                   <RoutePreviewCanvas
-                    routePreviewMap={filteredRoutePreviewMap}
+                    routePreviewMap={overviewFilteredRoutePreviewMap}
                     libraryPoints={[]}
                     recommendationPoints={[]}
                     focusedTarget={focusedMapTarget}
@@ -11558,22 +11618,22 @@ const App = () => {
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      setMapScope('all');
-                                      setMapDayFilter(null);
+                                      setOverviewMapScope('all');
+                                      setOverviewMapDayFilter(null);
                                     }}
-                                    className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${mapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                                    className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${overviewMapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
                                   >
                                     전체
                                   </button>
                                   {mapDayOptions.map((option) => {
-                                    const active = mapScope === 'day' && Number(mapDayFilter) === Number(option.day);
+                                    const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
                                     return (
                                       <button
                                         key={`hero-map-day-${option.day}`}
                                         type="button"
                                         onClick={() => {
-                                          setMapScope('day');
-                                          setMapDayFilter(option.day);
+                                          setOverviewMapScope('day');
+                                          setOverviewMapDayFilter(option.day);
                                         }}
                                         className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
                                       >
@@ -11583,9 +11643,9 @@ const App = () => {
                                   })}
                                 </div>
                                 <div className="mt-3 overflow-hidden rounded-[20px] border border-slate-200 bg-white/92">
-                                  {routeMapHasRenderableData ? (
+                                  {overviewRouteMapHasRenderableData ? (
                                     <RoutePreviewCanvas
-                                      routePreviewMap={filteredRoutePreviewMap}
+                                      routePreviewMap={overviewFilteredRoutePreviewMap}
                                       libraryPoints={[]}
                                       recommendationPoints={[]}
                                       focusedTarget={focusedMapTarget?.kind === 'timeline' ? focusedMapTarget : null}

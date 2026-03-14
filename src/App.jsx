@@ -2592,7 +2592,7 @@ const RoutePreviewCanvas = ({
           resizeKey={`${height}:${interactive ? 'on' : 'off'}:${boundsSignature}`}
         />
         <LeafletMapBackgroundClickHandler onBackgroundClick={onBackgroundClick} />
-        <Pane name="route-lines" style={{ zIndex: 120 }}>
+        <Pane name="route-lines" style={{ zIndex: 420 }}>
           {visibleSegmentEntries.map((segment) => (
             <Polyline
               key={segment.id}
@@ -2609,7 +2609,7 @@ const RoutePreviewCanvas = ({
             />
           ))}
         </Pane>
-        <Pane name="timeline-points" style={{ zIndex: 220 }}>
+        <Pane name="timeline-points" style={{ zIndex: 520 }}>
           {visibleTimelineEntries.map((point) => (
             <Marker
               key={`timeline-point-${point.pointId}`}
@@ -2637,7 +2637,7 @@ const RoutePreviewCanvas = ({
             </Marker>
           ))}
         </Pane>
-        <Pane name="overlay-points" style={{ zIndex: 320 }}>
+        <Pane name="overlay-points" style={{ zIndex: 620 }}>
           {visibleOverlayEntries.map((point) => (
             <Marker
               key={`overlay-point-${point.kind}-${point.id}`}

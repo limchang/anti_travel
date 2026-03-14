@@ -5125,6 +5125,27 @@ const App = () => {
       };
     }).filter((entry) => entry.points.length >= 1);
   }, [itinerary.days, hiddenRoutePreviewEndpoints]);
+  const routePreviewFallbackGeoByAddress = useMemo(() => {
+    const nextMap = new Map();
+    (itinerary.places || []).forEach((place) => {
+      const address = String(place?.address || place?.receipt?.address || place?.sourceLodgeAddress || '').trim();
+      const geo = normalizeGeoPoint(place?.geo, address);
+      if (!address || !hasGeoCoords(geo)) return;
+      if (!nextMap.has(address)) {
+        nextMap.set(address, geo);
+      }
+    });
+    return nextMap;
+  }, [itinerary.places]);
+  const routePreviewFallbackGeoSignature = useMemo(() => (
+    JSON.stringify(
+      [...routePreviewFallbackGeoByAddress.entries()].map(([address, geo]) => ({
+        address,
+        lat: Number.isFinite(Number(geo?.lat)) ? Number(geo.lat).toFixed(6) : '',
+        lon: Number.isFinite(Number(geo?.lon)) ? Number(geo.lon).toFixed(6) : '',
+      }))
+    )
+  ), [routePreviewFallbackGeoByAddress]);
   const routePreviewStoredDays = useMemo(() => (
     routePreviewPointSource
       .map((entry) => ({
@@ -5165,6 +5186,10 @@ const App = () => {
       }))
     )
   ), [routePreviewPointSource]);
+  const routePreviewBuildSignature = useMemo(
+    () => `${routePreviewSourceSignature}|${routePreviewFallbackGeoSignature}`,
+    [routePreviewFallbackGeoSignature, routePreviewSourceSignature]
+  );
   const buildRoutePreviewSegmentKey = useCallback((fromPoint, toPoint) => (
     `${String(fromPoint?.address || fromPoint?.id || '').trim()}__${String(toPoint?.address || toPoint?.id || '').trim()}`
   ), []);
@@ -5176,32 +5201,6 @@ const App = () => {
       })
     ))
   ), [routePreviewPointSource]);
-
-  const routePreviewFallbackGeoByAddress = useMemo(() => {
-    const nextMap = new Map();
-    (itinerary.places || []).forEach((place) => {
-      const address = String(place?.address || place?.receipt?.address || place?.sourceLodgeAddress || '').trim();
-      const geo = normalizeGeoPoint(place?.geo, address);
-      if (!address || !hasGeoCoords(geo)) return;
-      if (!nextMap.has(address)) {
-        nextMap.set(address, geo);
-      }
-    });
-    return nextMap;
-  }, [itinerary.places]);
-  const routePreviewFallbackGeoSignature = useMemo(() => (
-    JSON.stringify(
-      [...routePreviewFallbackGeoByAddress.entries()].map(([address, geo]) => ({
-        address,
-        lat: Number.isFinite(Number(geo?.lat)) ? Number(geo.lat).toFixed(6) : '',
-        lon: Number.isFinite(Number(geo?.lon)) ? Number(geo.lon).toFixed(6) : '',
-      }))
-    )
-  ), [routePreviewFallbackGeoByAddress]);
-  const routePreviewBuildSignature = useMemo(
-    () => `${routePreviewSourceSignature}|${routePreviewFallbackGeoSignature}`,
-    [routePreviewFallbackGeoSignature, routePreviewSourceSignature]
-  );
 
   const resolveRoutePreviewDays = useCallback(async ({ forceRefresh = false } = {}) => {
     const dayEntries = routePreviewPointSource;

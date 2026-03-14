@@ -512,3 +512,16 @@
 
 ### Result
 - 우측 미니맵에서 이미 정상 좌표가 보이는 일정은 메인 동선 지도에서도 즉시 경로를 구성할 수 있게 됨.
+
+### Bug
+- 배포 후 앱이 `Cannot access 'wa' before initialization` 오류로 렌더되지 않았음.
+
+### Cause
+- `routePreviewMap`, `routePreviewPointCount`를 선언하기 전에 바로 아래 `useEffect`에서 참조하고 있었음.
+- 번들링 후 축약된 변수명으로 `TDZ(Temporal Dead Zone)` 오류가 발생했음.
+
+### Action
+- `routePreviewMap`, `routePreviewPointCount` 선언을 관련 `useEffect`보다 위로 이동해 초기화 순서를 정상화.
+
+### Result
+- 동선 지도 자동 재시도 효과는 유지하면서, 앱 렌더링이 더 이상 선언 순서 오류로 죽지 않게 됨.

@@ -5334,6 +5334,19 @@ const App = () => {
     };
   }, [itinerary.days, itinerary.places, geocodeAddress]);
 
+  const routePreviewMap = useMemo(() => (
+    routePreviewDays
+      .filter((day) => Array.isArray(day.points) && day.points.length >= 1)
+      .map((day) => ({
+        ...day,
+        segments: Array.isArray(day.segments) ? day.segments : [],
+      }))
+  ), [routePreviewDays]);
+  const routePreviewPointCount = useMemo(
+    () => routePreviewPointSource.reduce((sum, day) => sum + ((day.points || []).length), 0),
+    [routePreviewPointSource]
+  );
+
   useEffect(() => {
     if (!ROUTE_PREVIEW_ENABLED) {
       setRoutePreviewDays([]);
@@ -5395,19 +5408,6 @@ const App = () => {
     routePreviewPointCount,
     routePreviewSourceSignature,
   ]);
-
-  const routePreviewMap = useMemo(() => (
-    routePreviewDays
-      .filter((day) => Array.isArray(day.points) && day.points.length >= 1)
-      .map((day) => ({
-        ...day,
-        segments: Array.isArray(day.segments) ? day.segments : [],
-      }))
-  ), [routePreviewDays]);
-  const routePreviewPointCount = useMemo(
-    () => routePreviewPointSource.reduce((sum, day) => sum + ((day.points || []).length), 0),
-    [routePreviewPointSource]
-  );
   const buildRecommendationMapId = useCallback((recommendation, index) => (
     `rec:${index}:${String(recommendation?.name || '').trim()}__${String(recommendation?.address || '').trim()}`
   ), []);

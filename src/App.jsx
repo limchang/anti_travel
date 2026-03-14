@@ -67,8 +67,10 @@ const safeLocalStorageSet = (key, value) => {
 
 const normalizeGeoPoint = (raw = {}, fallbackAddress = '') => {
   const address = String(raw?.address || fallbackAddress || '').trim();
-  const lat = Number(raw?.lat);
-  const lon = Number(raw?.lon);
+  const rawLat = raw?.lat;
+  const rawLon = raw?.lon;
+  const lat = rawLat !== '' && rawLat !== null && rawLat !== undefined ? Number(rawLat) : NaN;
+  const lon = rawLon !== '' && rawLon !== null && rawLon !== undefined ? Number(rawLon) : NaN;
   const source = String(raw?.source || '').trim();
   const updatedAt = String(raw?.updatedAt || '').trim();
   if (!address && !Number.isFinite(lat) && !Number.isFinite(lon)) return null;
@@ -81,7 +83,11 @@ const normalizeGeoPoint = (raw = {}, fallbackAddress = '') => {
   };
 };
 
-const hasGeoCoords = (geo) => Number.isFinite(Number(geo?.lat)) && Number.isFinite(Number(geo?.lon));
+const hasGeoCoords = (geo) => {
+  const lat = Number(geo?.lat);
+  const lon = Number(geo?.lon);
+  return Number.isFinite(lat) && Number.isFinite(lon) && !(lat === 0 && lon === 0) && Math.abs(lat) <= 90;
+};
 
 const isGeoStaleForAddress = (geo, address = '') => {
   const normalizedAddress = String(address || '').trim();
@@ -2178,9 +2184,24 @@ const loadKakaoMapSdk = (() => {
 
 const ROUTE_PREVIEW_DEFAULT_CENTER = [33.3617, 126.5292];
 const toLeafletLatLng = (point) => {
-  const lat = Number(point?.lat);
-  const lon = Number(point?.lon);
+  const rawLat = point?.lat;
+  const rawLon = point?.lon;
+  if (rawLat === '' || rawLat === null || rawLat === undefined) return null;
+  if (rawLon === '' || rawLon === null || rawLon === undefined) return null;
+
+  let lat = Number(rawLat);
+  let lon = Number(rawLon);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (lat === 0 && lon === 0) return null;
+
+  if (Math.abs(lat) > 90 && Math.abs(lon) <= 90) {
+    const temp = lat;
+    lat = lon;
+    lon = temp;
+  } else if (Math.abs(lat) > 90) {
+    return null;
+  }
+
   return [lat, lon];
 };
 

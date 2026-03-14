@@ -2506,7 +2506,7 @@ const RoutePreviewCanvas = ({
           resizeKey={`${height}:${interactive ? 'on' : 'off'}:${boundsSignature}`}
         />
         <LeafletMapBackgroundClickHandler onBackgroundClick={onBackgroundClick} />
-        <Pane name="route-lines" style={{ zIndex: 320 }}>
+        <Pane name="route-lines" style={{ zIndex: 120 }}>
           {segmentEntries.map((segment) => (
             <Polyline
               key={segment.id}
@@ -2523,7 +2523,7 @@ const RoutePreviewCanvas = ({
             />
           ))}
         </Pane>
-        <Pane name="timeline-points" style={{ zIndex: 520 }}>
+        <Pane name="timeline-points" style={{ zIndex: 220 }}>
           {timelineEntries.map((point) => (
             <Marker
               key={`timeline-point-${point.pointId}`}
@@ -2550,7 +2550,7 @@ const RoutePreviewCanvas = ({
             </Marker>
           ))}
         </Pane>
-        <Pane name="overlay-points" style={{ zIndex: 620 }}>
+        <Pane name="overlay-points" style={{ zIndex: 320 }}>
           {overlayEntries.map((point) => (
             <Marker
               key={`overlay-point-${point.kind}-${point.id}`}
@@ -3506,6 +3506,8 @@ const App = () => {
   const leftSidebarWidth = col1Collapsed ? leftCollapsedWidth : leftExpandedWidth;
   const rightSidebarWidth = col2Collapsed ? rightCollapsedWidth : rightExpandedWidth;
   const isCompactTimeline = isMobileLayout || viewportWidth < 1380 || (!col1Collapsed && !col2Collapsed && viewportWidth < 1720);
+  const mainContentLeftInset = isMobileLayout ? 0 : leftSidebarWidth;
+  const mainContentRightInset = isMobileLayout ? 0 : (col2Collapsed ? rightCollapsedWidth : rightExpandedWidth);
   const calculatingRouteTarget = useMemo(() => {
     if (!calculatingRouteId) return null;
     const [dayIdxRaw, pIdxRaw] = String(calculatingRouteId).split('_');
@@ -9423,7 +9425,7 @@ const App = () => {
 
       {/* ── Col1 테두리 탭 (오른쪽 경계) ── */}
       <div
-        className="fixed z-[141] top-1/2 transition-all duration-300"
+        className="fixed z-[221] top-1/2 transition-all duration-300"
         style={{
           left: isMobileLayout ? (col1Collapsed ? 12 : Math.max(8, leftSidebarWidth - 6)) : leftSidebarWidth,
           transform: isMobileLayout ? 'translateY(-50%)' : 'translateX(-50%) translateY(-50%)'
@@ -9438,7 +9440,7 @@ const App = () => {
       </div>
       {/* ── Col2 Toggle (Floating) ── */}
       <div
-        className="fixed z-[150] top-1/2 transition-all duration-300 pointer-events-none"
+        className="fixed z-[231] top-1/2 transition-all duration-300 pointer-events-none"
         style={{
           right: isMobileLayout ? (col2Collapsed ? 12 : Math.max(8, rightSidebarWidth - 6)) : (col2Collapsed ? 44 : 310),
           transform: isMobileLayout ? 'translateY(-50%)' : 'translateX(50%) translateY(-50%)'
@@ -9455,7 +9457,7 @@ const App = () => {
 
       {/* ── Col1: 예산 + 일정 네비게이션 ── */}
       <div
-        className="flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] z-[140] shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-visible"
+        className="flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] z-[220] shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-visible"
         style={{ width: leftSidebarWidth }}
       >
         {col1Collapsed ? (
@@ -9801,7 +9803,7 @@ const App = () => {
                     </span>
                   </button>
                   {showNavMenu && (
-                    <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[20px] border border-slate-200 bg-white/98 shadow-[0_22px_44px_-24px_rgba(15,23,42,0.26)] overflow-hidden z-[260] animate-in slide-in-from-bottom-2">
+                    <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[20px] border border-slate-200 bg-white/98 shadow-[0_22px_44px_-24px_rgba(15,23,42,0.26)] overflow-hidden z-[620] animate-in slide-in-from-bottom-2">
                       <button
                         onClick={() => { setShowPlanManager(true); setShowNavMenu(false); }}
                         className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
@@ -9897,7 +9899,7 @@ const App = () => {
       </div>
 
       <div
-        className="flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[140] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-visible"
+        className="flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[220] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-visible"
         style={{ right: 0, width: rightSidebarWidth }}
       >
         {col2Collapsed ? (
@@ -9949,7 +9951,7 @@ const App = () => {
                     <SlidersHorizontal size={12} />
                   </button>
                   {showPlaceMenu && (
-                    <div className="absolute right-0 top-8 z-[260] min-w-[186px] rounded-[12px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
+                    <div className="absolute right-0 top-8 z-[620] min-w-[186px] rounded-[12px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
                       <div className="mb-1 rounded-[10px] border border-slate-100 bg-slate-50/80 p-1">
                         <p className="px-1.5 pb-1 text-[9px] font-black tracking-[0.14em] text-slate-400 uppercase">카드 보기</p>
                         <div className="grid grid-cols-2 gap-1">
@@ -10112,7 +10114,7 @@ const App = () => {
                         </div>
                       </div>
                     )}
-                    <div className="sticky top-0 z-20 -mx-5 -mt-px mb-1 w-auto border-b border-slate-100/80 bg-white/98 px-5 pb-2 pt-1.5 shadow-[0_10px_18px_-18px_rgba(15,23,42,0.22)] backdrop-blur-xl">
+                    <div className="sticky top-0 z-[260] -mx-5 -mt-px mb-1 w-auto border-b border-slate-100/80 bg-white/98 px-5 pb-2 pt-1.5 shadow-[0_10px_18px_-18px_rgba(15,23,42,0.22)] backdrop-blur-xl">
                       <div id="right-panel-map-overview" className="rounded-[22px] border border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(191,219,254,0.35),_rgba(255,255,255,0.98)_55%)] p-2.5 shadow-[0_18px_32px_-24px_rgba(15,23,42,0.25)]">
                         <div className="flex items-center gap-2">
                           <div className="min-w-0 flex-1">
@@ -10486,7 +10488,7 @@ const App = () => {
         }
       </div>
 
-      <div className="flex-1 flex flex-col items-center w-full bg-slate-50 min-h-screen" style={{ marginLeft: leftSidebarWidth, marginRight: isMobileLayout ? rightSidebarWidth : (col2Collapsed ? 44 : 300) }}>
+      <div className="flex-1 flex flex-col items-center w-full bg-slate-50 min-h-screen" style={{ marginLeft: mainContentLeftInset, marginRight: mainContentRightInset }}>
         {/* 일정 목록 */}
         <div className="w-full px-4 pt-8 pb-32">
           {isSharedReadOnly && (
@@ -11286,8 +11288,8 @@ const App = () => {
                 <div
                   className="fixed top-0 z-[120]"
                   style={{
-                    left: leftSidebarWidth,
-                    right: isMobileLayout ? rightSidebarWidth : (col2Collapsed ? 44 : 300),
+                    left: mainContentLeftInset,
+                    right: mainContentRightInset,
                   }}
                 >
                   <section
@@ -11295,17 +11297,6 @@ const App = () => {
                     className={`${heroCompactActive ? 'mb-0.5' : 'mb-2 sm:mb-3'} transition-all duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overflow-x-visible overscroll-contain pb-5 pr-1 sm:pb-6' : ''}`}
                   >
                     <div className="w-full relative overflow-visible bg-transparent">
-                      {canManagePlan && (
-                        <button
-                          type="button"
-                          onClick={autoCalculateAllRoutes}
-                          disabled={isCalculatingAllRoutes}
-                          className={`absolute left-4 z-20 flex items-center justify-center border border-white/40 bg-white/85 text-slate-700 shadow-lg backdrop-blur transition-colors hover:border-[#3182F6]/50 hover:text-[#3182F6] disabled:cursor-not-allowed disabled:opacity-55 ${heroCompactActive ? 'top-2 h-9 w-9 rounded-lg' : 'top-4 h-10 w-10 rounded-xl'}`}
-                          title={isCalculatingAllRoutes ? `경로 계산 ${routeCalcProgress}%` : '경로 재계산'}
-                        >
-                          {isCalculatingAllRoutes ? <LoaderCircle size={heroCompactActive ? 14 : 16} className="animate-spin" /> : <Navigation size={heroCompactActive ? 14 : 16} />}
-                        </button>
-                      )}
                       {canManagePlan && (
                         <div className={`absolute right-4 z-20 flex items-center transition-all duration-300 ${heroCompactActive ? 'top-2 gap-1.5' : 'top-4 gap-2'}`}>
                           <button
@@ -11541,7 +11532,7 @@ const App = () => {
           })()}
           {canManagePlan && (
             <div
-              className="fixed z-[125]"
+              className="fixed z-[240] flex flex-col items-center gap-2"
               style={{
                 right: (isMobileLayout ? Math.max(rightSidebarWidth + 14, 14) : rightSidebarWidth + 18),
                 bottom: isMobileLayout ? 18 : 22,
@@ -11549,16 +11540,24 @@ const App = () => {
             >
               <button
                 type="button"
-                onClick={() => setIsEditMode((prev) => !prev)}
-                className={`flex h-12 min-w-[120px] items-center justify-center gap-2 rounded-[18px] border px-4 backdrop-blur-xl transition-all ${isEditMode ? 'border-amber-300 bg-amber-50/96 text-amber-700 shadow-[0_18px_36px_-20px_rgba(245,158,11,0.35)]' : 'border-slate-200/85 bg-white/96 text-slate-700 shadow-[0_18px_36px_-24px_rgba(15,23,42,0.4)] hover:border-[#3182F6]/40 hover:text-[#3182F6]'}`}
-                title={isEditMode ? '편집 종료' : '편집 시작'}
+                onClick={autoCalculateAllRoutes}
+                disabled={isCalculatingAllRoutes}
+                className={`flex h-12 w-12 items-center justify-center rounded-[18px] border backdrop-blur-xl transition-all ${isCalculatingAllRoutes ? 'border-[#3182F6]/30 bg-blue-50/96 text-[#3182F6] shadow-[0_18px_36px_-20px_rgba(49,130,246,0.35)]' : 'border-slate-200/85 bg-white/96 text-slate-700 shadow-[0_18px_36px_-24px_rgba(15,23,42,0.4)] hover:border-[#3182F6]/40 hover:text-[#3182F6]'}`}
+                title={isCalculatingAllRoutes ? `경로 계산 ${routeCalcProgress}%` : '전체 경로 재계산'}
               >
-                {isEditMode ? <Edit3 size={16} /> : <Lock size={16} />}
-                <span className="text-[11px] font-black">{isEditMode ? '편집 종료' : '편집 시작'}</span>
+                {isCalculatingAllRoutes ? <LoaderCircle size={18} className="animate-spin" /> : <Navigation size={18} />}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditMode((prev) => !prev)}
+                className={`flex h-12 w-12 items-center justify-center rounded-[18px] border backdrop-blur-xl transition-all ${isEditMode ? 'border-amber-300 bg-amber-50/96 text-amber-700 shadow-[0_18px_36px_-20px_rgba(245,158,11,0.35)]' : 'border-slate-200/85 bg-white/96 text-slate-700 shadow-[0_18px_36px_-24px_rgba(15,23,42,0.4)] hover:border-[#3182F6]/40 hover:text-[#3182F6]'}`}
+                title={isEditMode ? '편집 잠금' : '편집 잠금 해제'}
+              >
+                {isEditMode ? <Unlock size={18} /> : <Lock size={18} />}
               </button>
             </div>
           )}
-          <div className={`w-full mx-auto flex flex-col relative z-0 ${timelineMaxClass} gap-0`}>
+      <div className={`w-full mx-auto flex flex-col relative z-0 ${timelineMaxClass} gap-0`}>
             {totalTimelineItems === 0 && (
               <div
                 data-droptarget="empty-timeline"

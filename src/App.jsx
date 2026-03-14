@@ -144,6 +144,11 @@ const TAG_OPTIONS = [
 
 const TAG_VALUES = new Set(TAG_OPTIONS.map(t => t.value));
 const MODIFIER_TAGS = new Set(['revisit', 'new']);
+const getPreferredMapCategory = (types = [], fallbackType = 'place') => {
+  const normalized = Array.isArray(types) ? types.filter(Boolean) : [];
+  const preferred = normalized.find((type) => !MODIFIER_TAGS.has(type) && type !== 'lodge' && type !== 'place');
+  return preferred || normalized.find((type) => !MODIFIER_TAGS.has(type)) || fallbackType;
+};
 const normalizeTagOrder = (input) => {
   const list = Array.isArray(input) ? input : [];
   const modifiers = [...new Set(list.filter(t => MODIFIER_TAGS.has(t)))];
@@ -2179,10 +2184,34 @@ const toLeafletLatLng = (point) => {
   return [lat, lon];
 };
 
-const buildTimelineMarkerIcon = (dayColor, label, isFocused) => L.divIcon({
+const getMapCategoryColor = (type = 'place') => {
+  switch (type) {
+    case 'food': return '#F43F5E';
+    case 'cafe': return '#D97706';
+    case 'tour': return '#8B5CF6';
+    case 'lodge': return '#4F46E5';
+    case 'stay': return '#7C3AED';
+    case 'rest': return '#06B6D4';
+    case 'ship': return '#2563EB';
+    case 'openrun': return '#EF4444';
+    case 'view': return '#0EA5E9';
+    case 'experience': return '#10B981';
+    case 'souvenir': return '#14B8A6';
+    case 'pickup': return '#F97316';
+    default: return '#64748B';
+  }
+};
+
+const getMapCategoryLabel = (type = 'place') => {
+  const found = TAG_OPTIONS.find((tag) => tag.value === type);
+  return found?.label || '장소';
+};
+
+const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#FFFFFF') => L.divIcon({
   className: '',
   html: `
     <div style="
+      position:relative;
       width:${isFocused ? '34px' : '30px'};
       height:${isFocused ? '34px' : '30px'};
       border-radius:999px;
@@ -2195,7 +2224,20 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused) => L.divIcon({
       font-size:11px;
       font-weight:900;
       box-shadow:0 12px 24px -18px rgba(15,23,42,0.5);
-    ">${label}</div>
+    ">
+      ${label}
+      <span style="
+        position:absolute;
+        right:${isFocused ? '-1px' : '-1px'};
+        bottom:${isFocused ? '-1px' : '-1px'};
+        width:${isFocused ? '11px' : '10px'};
+        height:${isFocused ? '11px' : '10px'};
+        border-radius:999px;
+        border:2px solid #FFFFFF;
+        background:${categoryColor};
+        box-shadow:0 6px 12px -10px rgba(15,23,42,0.55);
+      "></span>
+    </div>
   `,
   iconSize: [isFocused ? 34 : 30, isFocused ? 34 : 30],
   iconAnchor: [isFocused ? 17 : 15, isFocused ? 17 : 15],
@@ -2309,6 +2351,9 @@ const RoutePreviewCanvas = ({
   onMarkerClick = null,
   onBackgroundClick = null,
   interactive = true,
+  showTimelineMarkers = true,
+  showRouteLines = true,
+  showOverlayMarkers = true,
 }) => {
   const tileProviders = useMemo(() => ([
     {
@@ -2341,6 +2386,8 @@ const RoutePreviewCanvas = ({
             address: point.address,
             position,
             color: day.color,
+            categoryColor: getMapCategoryColor(point.primaryType || 'place'),
+            categoryLabel: point.categoryLabel || getMapCategoryLabel(point.primaryType || 'place'),
             isFocused,
           };
         })
@@ -2394,29 +2441,32 @@ const RoutePreviewCanvas = ({
   ), [focusedOverlayKey, libraryPoints, recommendationPoints]);
   const allBoundsPoints = useMemo(() => (
     [
-      ...segmentEntries.flatMap((segment) => segment.positions),
-      ...timelineEntries.map((point) => point.position),
-      ...overlayEntries.map((point) => point.position),
+      ...(showRouteLines ? segmentEntries.flatMap((segment) => segment.positions) : []),
+      ...(showTimelineMarkers ? timelineEntries.map((point) => point.position) : []),
+      ...(showOverlayMarkers ? overlayEntries.map((point) => point.position) : []),
     ]
-  ), [overlayEntries, segmentEntries, timelineEntries]);
+  ), [overlayEntries, segmentEntries, showOverlayMarkers, showRouteLines, showTimelineMarkers, timelineEntries]);
   const focusedViewportPoints = useMemo(() => {
     if (focusedTarget?.kind === 'timeline') {
-      const focusedTimelinePoints = timelineEntries
+      const focusedTimelinePoints = (showTimelineMarkers ? timelineEntries : [])
         .filter((point) => point.isFocused)
         .map((point) => point.position);
       if (focusedTimelinePoints.length) return focusedTimelinePoints;
-      const focusedSegments = segmentEntries
+      const focusedSegments = (showRouteLines ? segmentEntries : [])
         .filter((segment) => segment.isFocused)
         .flatMap((segment) => segment.positions);
       return focusedSegments;
     }
-    return overlayEntries
+    return (showOverlayMarkers ? overlayEntries : [])
       .filter((point) => point.isFocused)
       .map((point) => point.position);
-  }, [focusedTarget?.kind, overlayEntries, segmentEntries, timelineEntries]);
-  const renderableTimelinePointCount = timelineEntries.length;
-  const renderableSegmentCount = segmentEntries.length;
-  const renderableOverlayCount = overlayEntries.length;
+  }, [focusedTarget?.kind, overlayEntries, segmentEntries, showOverlayMarkers, showRouteLines, showTimelineMarkers, timelineEntries]);
+  const visibleTimelineEntries = showTimelineMarkers ? timelineEntries : [];
+  const visibleSegmentEntries = showRouteLines ? segmentEntries : [];
+  const visibleOverlayEntries = showOverlayMarkers ? overlayEntries : [];
+  const renderableTimelinePointCount = visibleTimelineEntries.length;
+  const renderableSegmentCount = visibleSegmentEntries.length;
+  const renderableOverlayCount = visibleOverlayEntries.length;
   const hasRenderableData = renderableTimelinePointCount > 0 || renderableSegmentCount > 0 || renderableOverlayCount > 0;
   const boundsSignature = useMemo(
     () => allBoundsPoints.map((point) => `${point[0].toFixed(5)}:${point[1].toFixed(5)}`).join('|'),
@@ -2507,7 +2557,7 @@ const RoutePreviewCanvas = ({
         />
         <LeafletMapBackgroundClickHandler onBackgroundClick={onBackgroundClick} />
         <Pane name="route-lines" style={{ zIndex: 120 }}>
-          {segmentEntries.map((segment) => (
+          {visibleSegmentEntries.map((segment) => (
             <Polyline
               key={segment.id}
               positions={segment.positions}
@@ -2524,12 +2574,12 @@ const RoutePreviewCanvas = ({
           ))}
         </Pane>
         <Pane name="timeline-points" style={{ zIndex: 220 }}>
-          {timelineEntries.map((point) => (
+          {visibleTimelineEntries.map((point) => (
             <Marker
               key={`timeline-point-${point.pointId}`}
               position={point.position}
               bubblingMouseEvents={false}
-              icon={buildTimelineMarkerIcon(point.color, String(point.order), point.isFocused)}
+              icon={buildTimelineMarkerIcon(point.color, String(point.order), point.isFocused, point.categoryColor)}
               eventHandlers={interactive && typeof onMarkerClick === 'function' ? {
                 click: () => onMarkerClick({
                   kind: 'timeline',
@@ -2544,6 +2594,7 @@ const RoutePreviewCanvas = ({
               <Tooltip direction="top" offset={[0, -14]} opacity={1} className="!rounded-xl !border !border-slate-200 !bg-white/95 !px-2 !py-1 !text-[10px] !font-black !text-slate-700 !shadow-sm">
                 <div className="max-w-[180px]">
                   <div>{`Day ${point.day}-${point.order} · ${point.label || '일정'}`}</div>
+                  {point.categoryLabel ? <div className="mt-0.5 text-[9px] font-black" style={{ color: point.categoryColor || '#64748B' }}>{point.categoryLabel}</div> : null}
                   {point.address ? <div className="mt-0.5 truncate text-[9px] font-bold text-slate-400">{point.address}</div> : null}
                 </div>
               </Tooltip>
@@ -2551,7 +2602,7 @@ const RoutePreviewCanvas = ({
           ))}
         </Pane>
         <Pane name="overlay-points" style={{ zIndex: 320 }}>
-          {overlayEntries.map((point) => (
+          {visibleOverlayEntries.map((point) => (
             <Marker
               key={`overlay-point-${point.kind}-${point.id}`}
               position={point.position}
@@ -3430,6 +3481,7 @@ const App = () => {
   const [mapExpanded, setMapExpanded] = useState(() => (typeof window === 'undefined' ? true : window.innerWidth >= 1100));
   const [focusedMapTarget, setFocusedMapTarget] = useState(null);
   const [showOverviewMapModal, setShowOverviewMapModal] = useState(false);
+  const [showPlaceMapModal, setShowPlaceMapModal] = useState(false);
   const [placeLibraryViewMode, setPlaceLibraryViewMode] = useState('default');
   const [libraryGeoMap, setLibraryGeoMap] = useState({});
   const [recommendationGeoMap, setRecommendationGeoMap] = useState({});
@@ -4988,6 +5040,8 @@ const App = () => {
               itemId: item.id,
               pointKind: 'ship-start',
               label: `${item.activity || '페리'} 출발`,
+              primaryType: 'ship',
+              categoryLabel: '페리',
               address: startAddress,
               geo: normalizeGeoPoint(item.geoStart, startAddress),
               isEndpointToggle: item.id === firstShip?.id,
@@ -4998,6 +5052,8 @@ const App = () => {
               itemId: item.id,
               pointKind: 'ship-end',
               label: `${item.activity || '페리'} 도착`,
+              primaryType: 'ship',
+              categoryLabel: '페리',
               address: endAddress,
               geo: normalizeGeoPoint(item.geoEnd, endAddress),
               isEndpointToggle: item.id === lastShip?.id,
@@ -5014,6 +5070,8 @@ const App = () => {
             itemId: item.id,
             pointKind: 'plan',
             label: item.activity || item.name || '일정',
+            primaryType: getPreferredMapCategory(item.types, item.type || 'place'),
+            categoryLabel: getMapCategoryLabel(getPreferredMapCategory(item.types, item.type || 'place')),
             address,
             geo: normalizeGeoPoint(item.geo, address),
             isEndpointToggle: false,
@@ -5500,6 +5558,8 @@ const App = () => {
       })
       .filter((point) => point && isMapPointNearTimelineCluster(Number(point.lat), Number(point.lon)))
   ), [isMapPointNearTimelineCluster, recommendationGeoMap, visibleRecommendationEntries]);
+  const placeOverviewPointCount = libraryMapPoints.length + recommendationMapPoints.length;
+  const placeOverviewHasPoints = placeOverviewPointCount > 0;
   const renderableSegmentCount = useMemo(() => (
     filteredRoutePreviewMap.reduce((count, day) => count + ((Array.isArray(day.segments) ? day.segments : []).filter((segment) => {
       const vertices = Array.isArray(segment?.path) && segment.path.length
@@ -5508,6 +5568,8 @@ const App = () => {
       return vertices.map(toLeafletLatLng).filter(Boolean).length >= 2;
     }).length), 0)
   ), [filteredRoutePreviewMap]);
+  const routeMapHasRenderableData = timelinePoints.length > 0 || renderableSegmentCount > 0;
+  const routeMapSummary = `일정 ${timelinePoints.length} · 내 장소 ${libraryMapPoints.length} · 추천 ${recommendationMapPoints.length}`;
   const mapDayOptions = useMemo(() => (
     routePreviewMap.map((day) => ({ day: Number(day.day), label: `Day ${day.day}` }))
   ), [routePreviewMap]);
@@ -7922,9 +7984,7 @@ const App = () => {
     }
   };
   const getPreferredNavCategory = (types = [], fallbackType = 'place') => {
-    const normalized = Array.isArray(types) ? types.filter(Boolean) : [];
-    const preferred = normalized.find((type) => !MODIFIER_TAGS.has(type) && type !== 'lodge' && type !== 'place');
-    return preferred || normalized.find((type) => !MODIFIER_TAGS.has(type)) || fallbackType;
+    return getPreferredMapCategory(types, fallbackType);
   };
 
   const addPlace = (formData) => {
@@ -10062,14 +10122,12 @@ const App = () => {
                 const renderableTimelinePointCount = timelinePoints.length;
                 const renderableOverlayCount = libraryMapPoints.length + recommendationMapPoints.length;
                 const mapHasPoints = renderableTimelinePointCount > 0 || renderableSegmentCount > 0 || renderableOverlayCount > 0;
-                const mapLayerSummary = `일정 ${renderableTimelinePointCount} · 내 장소 ${libraryMapPoints.length} · 추천 ${recommendationMapPoints.length}`;
-                const mapFocusLabel = focusedMapTarget?.kind === 'timeline'
-                  ? '일정 포커스'
-                  : focusedMapTarget?.kind === 'place'
-                    ? '내 장소 포커스'
-                    : focusedMapTarget?.kind === 'recommendation'
-                      ? '추천 포커스'
-                      : '전체 동선';
+                const placeMapSummary = `내 장소 ${libraryMapPoints.length} · 추천 ${recommendationMapPoints.length}`;
+                const mapFocusLabel = focusedMapTarget?.kind === 'place'
+                  ? '내 장소 포커스'
+                  : focusedMapTarget?.kind === 'recommendation'
+                    ? '추천 포커스'
+                    : '내 장소 모아보기';
                 return (
                   <div
                     className="w-full flex flex-col gap-1.5 items-stretch"
@@ -10118,21 +10176,12 @@ const App = () => {
                       <div id="right-panel-map-overview" className="rounded-[22px] border border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(191,219,254,0.35),_rgba(255,255,255,0.98)_55%)] p-2.5 shadow-[0_18px_32px_-24px_rgba(15,23,42,0.25)]">
                         <div className="flex items-center gap-2">
                           <div className="min-w-0 flex-1">
-                            <p className="text-[11px] font-black tracking-tight text-slate-800">동선 지도</p>
-                            <p className="mt-0.5 text-[9px] font-bold text-slate-400 truncate">{mapFocusLabel} · {mapLayerSummary}</p>
+                            <p className="text-[11px] font-black tracking-tight text-slate-800">내 장소 지도</p>
+                            <p className="mt-0.5 text-[9px] font-bold text-slate-400 truncate">{mapFocusLabel} · {placeMapSummary}</p>
                           </div>
                           <button
                             type="button"
-                            onClick={() => void refreshRoutePreviewMap()}
-                            disabled={routePreviewManualRefreshing}
-                            className="shrink-0 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-black text-slate-500 transition-colors hover:border-[#3182F6] hover:text-[#3182F6] disabled:cursor-not-allowed disabled:opacity-50"
-                            title="경로 새로 불러오기"
-                          >
-                            {routePreviewManualRefreshing ? '확인 중' : '새로고침'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShowOverviewMapModal(true)}
+                            onClick={() => setShowPlaceMapModal(true)}
                             className="shrink-0 rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
                             title="지도를 크게 보기"
                           >
@@ -10149,39 +10198,11 @@ const App = () => {
                             </button>
                           )}
                         </div>
-                        <div className="mt-2 flex gap-1 overflow-x-auto no-scrollbar">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setMapScope('all');
-                              setMapDayFilter(null);
-                            }}
-                            className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${mapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                          >
-                            전체
-                          </button>
-                          {mapDayOptions.map((option) => {
-                            const active = mapScope === 'day' && Number(mapDayFilter) === Number(option.day);
-                            return (
-                              <button
-                                key={`map-day-${option.day}`}
-                                type="button"
-                                onClick={() => {
-                                  setMapScope('day');
-                                  setMapDayFilter(option.day);
-                                }}
-                                className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                              >
-                                {option.label}
-                              </button>
-                            );
-                          })}
-                        </div>
                         <div className="mt-2 overflow-hidden rounded-[18px] border border-slate-200 bg-white/88">
-                          {mapHasPoints ? (
+                          {placeOverviewHasPoints ? (
                             <div className="relative">
                               <RoutePreviewCanvas
-                                routePreviewMap={filteredRoutePreviewMap}
+                                routePreviewMap={[]}
                                 libraryPoints={libraryMapPoints}
                                 recommendationPoints={recommendationMapPoints}
                                 focusedTarget={focusedMapTarget}
@@ -10189,29 +10210,27 @@ const App = () => {
                                 onBackgroundClick={clearOverviewMapFocus}
                                 interactive={!isMobileLayout || mapExpanded}
                                 height={rightPanelMapHeight}
+                                showTimelineMarkers={false}
+                                showRouteLines={false}
+                                showOverlayMarkers
                               />
-                              {routePreviewLoading && (
-                                <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/80 bg-white/92 px-3 py-1 text-[10px] font-black text-[#3182F6] shadow-sm">
-                                  경로 다시 확인 중...
-                                </div>
-                              )}
                             </div>
                           ) : routePreviewLoading ? (
                             <div className="flex items-center justify-center text-[10px] font-black text-slate-400" style={{ height: rightPanelMapHeight }}>
-                              경로 정보 확인 중...
+                              내 장소 좌표 확인 중...
                             </div>
                           ) : (
                             <div className="flex flex-col items-center justify-center gap-1 text-center px-3" style={{ height: rightPanelMapHeight }}>
                               <MapIcon size={18} className="text-slate-300" />
                               <p className="text-[10px] font-bold text-slate-400">
-                                {routePreviewPointCount >= 2 ? '지도에 표시할 좌표를 아직 충분히 확인하지 못했습니다. 잠시 후 다시 확인해 주세요.' : '주소가 있는 일정 2개 이상 또는 지도용 장소가 필요합니다.'}
+                                내 장소 또는 추천 장소의 좌표를 아직 충분히 확인하지 못했습니다.
                               </p>
                             </div>
                           )}
                         </div>
                         {isMobileLayout && !mapExpanded && (
                           <div className="mt-2 px-1 text-[9px] font-bold text-slate-400">
-                            {mapLayerSummary}
+                            {placeMapSummary}
                           </div>
                         )}
                       </div>
@@ -11017,6 +11036,44 @@ const App = () => {
                 <div className="mt-3 overflow-hidden rounded-[22px] border border-slate-200 bg-white">
                   <RoutePreviewCanvas
                     routePreviewMap={filteredRoutePreviewMap}
+                    libraryPoints={[]}
+                    recommendationPoints={[]}
+                    focusedTarget={focusedMapTarget}
+                    onMarkerClick={handleOverviewMapMarkerClick}
+                    onBackgroundClick={clearOverviewMapFocus}
+                    interactive
+                    height={isMobileLayout ? 460 : 620}
+                    showTimelineMarkers
+                    showRouteLines
+                    showOverlayMarkers={false}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          {showPlaceMapModal && (
+            <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/42 px-4 py-6 backdrop-blur-sm" onClick={() => setShowPlaceMapModal(false)}>
+              <div
+                className="w-full max-w-[840px] rounded-[28px] border border-white/70 bg-white/96 p-4 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)]"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-black tracking-tight text-slate-900">내 장소 지도 크게 보기</p>
+                    <p className="mt-1 text-[11px] font-bold text-slate-400 truncate">{`내 장소 ${libraryMapPoints.length} · 추천 ${recommendationMapPoints.length}`}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPlaceMapModal(false)}
+                    className="shrink-0 rounded-2xl border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                    title="내 장소 지도 닫기"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="mt-3 overflow-hidden rounded-[22px] border border-slate-200 bg-white">
+                  <RoutePreviewCanvas
+                    routePreviewMap={[]}
                     libraryPoints={libraryMapPoints}
                     recommendationPoints={recommendationMapPoints}
                     focusedTarget={focusedMapTarget}
@@ -11024,6 +11081,9 @@ const App = () => {
                     onBackgroundClick={clearOverviewMapFocus}
                     interactive
                     height={isMobileLayout ? 460 : 620}
+                    showTimelineMarkers={false}
+                    showRouteLines={false}
+                    showOverlayMarkers
                   />
                 </div>
               </div>
@@ -11408,6 +11468,72 @@ const App = () => {
                         <div className="flex flex-col gap-3 px-3 transition-all duration-300 sm:px-0">
                             <div className="relative mt-1 w-full rounded-[24px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 sm:px-6 sm:py-6">
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
+                              <div className="mb-4 rounded-[24px] border border-slate-200 bg-white/88 p-3 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)]">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-[12px] font-black tracking-tight text-slate-800">동선 지도</p>
+                                    <p className="mt-0.5 text-[10px] font-bold text-slate-400 truncate">{routeMapSummary}</p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowOverviewMapModal(true)}
+                                    className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-black text-slate-500 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                                    title="동선 지도를 크게 보기"
+                                  >
+                                    크게 보기
+                                  </button>
+                                </div>
+                                <div className="mt-2 flex gap-1 overflow-x-auto no-scrollbar">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setMapScope('all');
+                                      setMapDayFilter(null);
+                                    }}
+                                    className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${mapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                                  >
+                                    전체
+                                  </button>
+                                  {mapDayOptions.map((option) => {
+                                    const active = mapScope === 'day' && Number(mapDayFilter) === Number(option.day);
+                                    return (
+                                      <button
+                                        key={`hero-map-day-${option.day}`}
+                                        type="button"
+                                        onClick={() => {
+                                          setMapScope('day');
+                                          setMapDayFilter(option.day);
+                                        }}
+                                        className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                                      >
+                                        {option.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                <div className="mt-3 overflow-hidden rounded-[20px] border border-slate-200 bg-white/92">
+                                  {routeMapHasRenderableData ? (
+                                    <RoutePreviewCanvas
+                                      routePreviewMap={filteredRoutePreviewMap}
+                                      libraryPoints={[]}
+                                      recommendationPoints={[]}
+                                      focusedTarget={focusedMapTarget?.kind === 'timeline' ? focusedMapTarget : null}
+                                      onMarkerClick={handleOverviewMapMarkerClick}
+                                      onBackgroundClick={clearOverviewMapFocus}
+                                      interactive
+                                      height={isMobileLayout ? 188 : 220}
+                                      showTimelineMarkers
+                                      showRouteLines
+                                      showOverlayMarkers={false}
+                                    />
+                                  ) : (
+                                    <div className="flex flex-col items-center justify-center gap-2 px-4 text-center" style={{ height: isMobileLayout ? 188 : 220 }}>
+                                      <MapIcon size={18} className="text-slate-300" />
+                                      <p className="text-[10px] font-bold text-slate-400">전체 일정의 경로 좌표를 아직 충분히 확인하지 못했습니다.</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                               <div className="grid grid-cols-3 gap-3 sm:gap-3">
                                   <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
                                     <div className="flex h-full flex-col items-center justify-center text-center">
@@ -11454,15 +11580,6 @@ const App = () => {
                                     </div>
                                   </div>
                               </div>
-
-                                <button
-                                  type="button"
-                                  onClick={() => setShowOverviewMapModal(true)}
-                                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-[24px] border border-slate-200 bg-white/92 px-4 py-3 text-[11px] font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-all hover:border-[#3182F6] hover:text-[#3182F6]"
-                                >
-                                  동선 지도 보기
-                                  <ArrowUpRight size={12} />
-                                </button>
                             </div>
                         </div>
                         )}

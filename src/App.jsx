@@ -5131,7 +5131,11 @@ const App = () => {
         ...entry,
         points: (entry.points || [])
           .map((point) => {
-            const geo = normalizeGeoPoint(point.geo, point.address);
+            const storedGeo = normalizeGeoPoint(point.geo, point.address);
+            const fallbackGeo = normalizeGeoPoint(routePreviewFallbackGeoByAddress.get(point.address), point.address);
+            const geo = hasGeoCoords(storedGeo) && !isGeoStaleForAddress(storedGeo, point.address)
+              ? storedGeo
+              : fallbackGeo;
             if (!hasGeoCoords(geo) || isGeoStaleForAddress(geo, point.address)) return null;
             return {
               ...point,
@@ -5142,7 +5146,7 @@ const App = () => {
           .filter(Boolean),
       }))
       .filter((entry) => entry.points.length >= 1)
-  ), [routePreviewPointSource]);
+  ), [routePreviewFallbackGeoByAddress, routePreviewPointSource]);
   const routePreviewSourceSignature = useMemo(() => (
     JSON.stringify(
       routePreviewPointSource.map((entry) => ({
@@ -5401,13 +5405,13 @@ const App = () => {
   }, [itinerary.days, itinerary.places, geocodeAddress]);
 
   const routePreviewMap = useMemo(() => (
-    routePreviewDays
+    (routePreviewDays.length ? routePreviewDays : routePreviewStoredDays)
       .filter((day) => Array.isArray(day.points) && day.points.length >= 1)
       .map((day) => ({
         ...day,
         segments: Array.isArray(day.segments) ? day.segments : [],
       }))
-  ), [routePreviewDays]);
+  ), [routePreviewDays, routePreviewStoredDays]);
   const routePreviewPointCount = useMemo(
     () => routePreviewPointSource.reduce((sum, day) => sum + ((day.points || []).length), 0),
     [routePreviewPointSource]

@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.203",
+      "timestamp": "2026-03-14T22:56:06+09:00",
+      "message": "fix: retry route map build when initial preview is empty"
+    },
+    {
       "version": "1.3.202",
       "timestamp": "2026-03-14T22:48:24+09:00",
       "message": "feat: split route map and place map views"
@@ -144,11 +149,6 @@
       "version": "1.3.174",
       "timestamp": "2026-03-14T00:48:28+09:00",
       "message": "tune: hide compact budget playbar before hero expands"
-    },
-    {
-      "version": "1.3.173",
-      "timestamp": "2026-03-14T00:36:11+09:00",
-      "message": "tune: compact budget playbar fades in place on border"
     }
   ]
 }

@@ -3475,6 +3475,7 @@ const App = () => {
   const [routePreviewManualRefreshing, setRoutePreviewManualRefreshing] = useState(false);
   const routePreviewSegmentCacheRef = useRef({});
   const routePreviewBuildKeyRef = useRef('');
+  const routePreviewAutoRetryKeyRef = useRef('');
   const [hiddenRoutePreviewEndpoints, setHiddenRoutePreviewEndpoints] = useState({});
   const [mapScope, setMapScope] = useState('all');
   const [mapDayFilter, setMapDayFilter] = useState(null);
@@ -5330,6 +5331,7 @@ const App = () => {
       setRoutePreviewDays([]);
       setRoutePreviewLoading(false);
       routePreviewBuildKeyRef.current = '';
+      routePreviewAutoRetryKeyRef.current = '';
       return undefined;
     }
     let cancelled = false;
@@ -5359,6 +5361,32 @@ const App = () => {
       cancelled = true;
     };
   }, [attachRoutePreviewSegments, routePreviewPointSource, routePreviewSourceSignature, resolveRoutePreviewDays]);
+
+  useEffect(() => {
+    if (!ROUTE_PREVIEW_ENABLED) return undefined;
+    if (routePreviewLoading || routePreviewManualRefreshing) return undefined;
+    if (routePreviewMap.length > 0) {
+      routePreviewAutoRetryKeyRef.current = routePreviewSourceSignature;
+      return undefined;
+    }
+    if (routePreviewPointCount < 2) return undefined;
+    const retryKey = `${routePreviewSourceSignature}:${routePreviewPointCount}:${routePreviewNeedsLookup ? 'lookup' : 'ready'}`;
+    if (routePreviewAutoRetryKeyRef.current === retryKey) return undefined;
+    routePreviewAutoRetryKeyRef.current = retryKey;
+    const timer = window.setTimeout(() => {
+      void refreshRoutePreviewMap();
+    }, 240);
+    return () => window.clearTimeout(timer);
+  }, [
+    ROUTE_PREVIEW_ENABLED,
+    refreshRoutePreviewMap,
+    routePreviewLoading,
+    routePreviewManualRefreshing,
+    routePreviewMap.length,
+    routePreviewNeedsLookup,
+    routePreviewPointCount,
+    routePreviewSourceSignature,
+  ]);
 
   const routePreviewMap = useMemo(() => (
     routePreviewDays

@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.216",
+      "timestamp": "2026-03-15T00:57:52+09:00",
+      "message": "fix: split move chip insert anchor and relax buffer transfer"
+    },
+    {
       "version": "1.3.215",
       "timestamp": "2026-03-15T00:37:32+09:00",
       "message": "fix: resolve route preview fallback init order"
@@ -144,11 +149,6 @@
       "version": "1.3.187",
       "timestamp": "2026-03-14T16:49:30+09:00",
       "message": "fix: tighten initial dashboard spacer height on first load"
-    },
-    {
-      "version": "1.3.186",
-      "timestamp": "2026-03-14T13:55:43+09:00",
-      "message": "fix: support overnight lodge end-time selection beyond 23h"
     }
   ]
 }

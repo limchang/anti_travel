@@ -3413,12 +3413,21 @@ const App = () => {
     }
     return null;
   };
-  const applyInsertAtDropTarget = (targetDayIdx, insertAfterPIdx, source) => {
+  const getInsertAnchorFromDragEvent = (event) => {
+    const currentTarget = event?.currentTarget;
+    if (!currentTarget || typeof currentTarget.getBoundingClientRect !== 'function') return 'prev';
+    const rect = currentTarget.getBoundingClientRect();
+    const pointerX = Number(event?.clientX);
+    if (!Number.isFinite(pointerX)) return 'prev';
+    return pointerX - rect.left >= rect.width / 2 ? 'next' : 'prev';
+  };
+  const applyInsertAtDropTarget = (targetDayIdx, insertAfterPIdx, source, options = {}) => {
+    const insertAnchor = options?.anchor === 'next' ? 'next' : 'prev';
     if (source?.kind === 'library') {
       const place = source.place;
       if (!place) return false;
       if (insertAfterPIdx < 0) addInitialItem(targetDayIdx, place);
-      else addNewItem(targetDayIdx, insertAfterPIdx, place.types, place);
+      else addNewItem(targetDayIdx, insertAfterPIdx, place.types, place, { anchor: insertAnchor });
       if (!source.isCopy) removePlace(place.id);
       return true;
     }
@@ -3437,10 +3446,10 @@ const App = () => {
           removeAlternative(payload.dayIdx, payload.pIdx, payload.altIdx);
           return true;
         }
-        insertAlternativeToTimeline(targetDayIdx, insertAfterPIdx, payload.dayIdx, payload.pIdx, payload.altIdx);
+        insertAlternativeToTimeline(targetDayIdx, insertAfterPIdx, payload.dayIdx, payload.pIdx, payload.altIdx, { anchor: insertAnchor });
         return true;
       }
-      moveTimelineItem(targetDayIdx, insertAfterPIdx, payload.dayIdx, payload.pIdx, !!source.isCopy, payload.planPos);
+      moveTimelineItem(targetDayIdx, insertAfterPIdx, payload.dayIdx, payload.pIdx, !!source.isCopy, payload.planPos, { anchor: insertAnchor });
       return true;
     }
     return false;
@@ -7310,7 +7319,7 @@ const App = () => {
 
       if (reducedMinutes > 0) {
         const prevEntry = getPreviousMainPlanEntryByIndex(nextData.days, dayIdx, pIdx);
-        if (prevEntry?.item && isAutoStretchEligible(prevEntry.item)) {
+        if (prevEntry?.item && !prevEntry.item.types?.includes('ship')) {
           const previousItem = prevEntry.item;
           const nextDuration = Math.max(0, Number(previousItem.duration) || 0) + reducedMinutes;
           previousItem.duration = nextDuration;
@@ -7852,7 +7861,7 @@ const App = () => {
     setLastAction(`'${alt.activity}'이(가) 장소 목록으로 이동되었습니다.`);
   };
 
-  const insertAlternativeToTimeline = (targetDayIdx, insertAfterPIdx, sourceDayIdx, sourcePIdx, sourceAltIdx) => {
+  const insertAlternativeToTimeline = (targetDayIdx, insertAfterPIdx, sourceDayIdx, sourcePIdx, sourceAltIdx, options = {}) => {
     saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
@@ -7865,15 +7874,12 @@ const App = () => {
 
       const targetDayPlan = nextData.days[targetDayIdx].plan;
       const prevItem = targetDayPlan[insertAfterPIdx];
+      const nextItem = targetDayPlan[insertAfterPIdx + 1];
       if (!prevItem) return nextData;
 
-      const prevEnd = getTimelineItemEndMinutes(prevItem);
-      const travelMins = parseMinsLabel(prevItem.travelTimeOverride, DEFAULT_TRAVEL_MINS);
-      const bufferMins = parseMinsLabel(prevItem.bufferTimeOverride, DEFAULT_BUFFER_MINS);
-
-      targetDayPlan.splice(insertAfterPIdx + 1, 0, {
+      const insertedItem = {
         id: `item_${Date.now()}`,
-        time: minutesToTime(prevEnd + travelMins + bufferMins),
+        time: minutesToTime(getTimelineItemEndMinutes(prevItem) + DEFAULT_TRAVEL_MINS + DEFAULT_BUFFER_MINS),
         activity: alt.activity,
         types: deepClone(alt.types || ['place']),
         revisit: typeof alt.revisit === 'boolean' ? alt.revisit : false,
@@ -7886,7 +7892,19 @@ const App = () => {
         receipt: deepClone(alt.receipt || { address: '', items: [] }),
         memo: alt.memo || '',
         ...cloneGeoForRecord(alt),
-      });
+      };
+      if (options?.anchor === 'next' && nextItem) {
+        const nextStart = timeToMinutes(nextItem.time || '00:00');
+        const nextTravel = parseMinsLabel(nextItem.travelTimeOverride, DEFAULT_TRAVEL_MINS);
+        const nextBuffer = parseMinsLabel(nextItem.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+        const anchoredStart = Math.max(0, nextStart - nextTravel - nextBuffer - Math.max(0, Number(insertedItem.duration) || 0));
+        insertedItem.time = minutesToTime(anchoredStart);
+        insertedItem.isTimeFixed = true;
+      } else {
+        insertedItem.isTimeFixed = true;
+      }
+
+      targetDayPlan.splice(insertAfterPIdx + 1, 0, insertedItem);
 
       nextData.days[targetDayIdx].plan = recalculateSchedule(targetDayPlan);
       return nextData;
@@ -7895,7 +7913,7 @@ const App = () => {
     setPendingAutoRouteJobs(prev => [...prev, { dayIdx: targetDayIdx, targetIdx: insertAfterPIdx + 1 }]);
   };
 
-  const moveTimelineItem = (targetDayIdx, insertAfterPIdx, sourceDayIdx, sourcePIdx, isCopy, activePlanPos) => {
+  const moveTimelineItem = (targetDayIdx, insertAfterPIdx, sourceDayIdx, sourcePIdx, isCopy, activePlanPos, options = {}) => {
     if (!isCopy && targetDayIdx === sourceDayIdx && insertAfterPIdx === sourcePIdx) return;
     saveHistory();
     let sourceIdToReset = null;
@@ -7945,8 +7963,22 @@ const App = () => {
         }
       }
 
-      nextData.days[targetDayIdx].plan.splice(insertAfterPIdx + 1, 0, itemToMove);
-      nextData.days[targetDayIdx].plan = recalculateSchedule(nextData.days[targetDayIdx].plan);
+      const targetDayPlan = nextData.days[targetDayIdx].plan;
+      const prevItem = targetDayPlan[insertAfterPIdx];
+      const nextItem = targetDayPlan[insertAfterPIdx + 1];
+      if (options?.anchor === 'next' && nextItem && !itemToMove.types?.includes('ship')) {
+        const nextStart = timeToMinutes(nextItem.time || '00:00');
+        const nextTravel = parseMinsLabel(nextItem.travelTimeOverride, DEFAULT_TRAVEL_MINS);
+        const nextBuffer = parseMinsLabel(nextItem.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+        const anchoredStart = Math.max(0, nextStart - nextTravel - nextBuffer - Math.max(0, Number(itemToMove.duration) || 0));
+        itemToMove.time = minutesToTime(anchoredStart);
+        itemToMove.isTimeFixed = true;
+      } else if (prevItem && !itemToMove.types?.includes('ship')) {
+        itemToMove.time = minutesToTime(getTimelineItemEndMinutes(prevItem) + DEFAULT_TRAVEL_MINS + DEFAULT_BUFFER_MINS);
+        itemToMove.isTimeFixed = true;
+      }
+      targetDayPlan.splice(insertAfterPIdx + 1, 0, itemToMove);
+      nextData.days[targetDayIdx].plan = recalculateSchedule(targetDayPlan);
       return nextData;
     });
     if (sourceIdToReset) setViewingPlanIdx(prev => { const n = { ...prev }; delete n[sourceIdToReset]; return n; });
@@ -8551,26 +8583,34 @@ const App = () => {
     setLastAction(placeData ? `'${placeData.name}'이(가) 첫 일정으로 추가되었습니다.` : '첫 일정이 추가되었습니다.');
   };
 
-  const addNewItem = (dayIdx, insertIndex, types = ['place'], placeData = null) => {
+  const addNewItem = (dayIdx, insertIndex, types = ['place'], placeData = null, options = {}) => {
     saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const dayPlan = nextData.days[dayIdx].plan;
       const prevItem = dayPlan[insertIndex];
-      const prevEnd = getTimelineItemEndMinutes(prevItem);
-
-      const travelMins = parseMinsLabel(prevItem.travelTimeOverride, DEFAULT_TRAVEL_MINS);
-      const bufferMins = parseMinsLabel(prevItem.bufferTimeOverride, DEFAULT_BUFFER_MINS);
-      const newTime = minutesToTime(prevEnd + travelMins + bufferMins);
+      const nextItem = dayPlan[insertIndex + 1];
 
       const label = PLACE_TYPES.find(t => t.types[0] === (placeData?.types?.[0] || types[0]))?.label || '장소';
-      dayPlan.splice(insertIndex + 1, 0, createTimelineItem({
+      const insertedItem = createTimelineItem({
         dayNumber: nextData.days[dayIdx]?.day || dayIdx + 1,
-        baseTime: newTime,
+        baseTime: prevItem ? minutesToTime(getTimelineItemEndMinutes(prevItem) + DEFAULT_TRAVEL_MINS + DEFAULT_BUFFER_MINS) : '09:00',
         types: placeData?.types || types,
         placeData,
         fallbackLabel: label,
-      }));
+      });
+      if (options?.anchor === 'next' && nextItem) {
+        const nextStart = timeToMinutes(nextItem.time || '00:00');
+        const nextTravel = parseMinsLabel(nextItem.travelTimeOverride, DEFAULT_TRAVEL_MINS);
+        const nextBuffer = parseMinsLabel(nextItem.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+        const anchoredStart = Math.max(0, nextStart - nextTravel - nextBuffer - Math.max(0, Number(insertedItem.duration) || 0));
+        insertedItem.time = minutesToTime(anchoredStart);
+        insertedItem.isTimeFixed = true;
+      } else if (prevItem) {
+        insertedItem.time = minutesToTime(getTimelineItemEndMinutes(prevItem) + DEFAULT_TRAVEL_MINS + DEFAULT_BUFFER_MINS);
+        insertedItem.isTimeFixed = true;
+      }
+      dayPlan.splice(insertIndex + 1, 0, insertedItem);
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
     });
@@ -9273,8 +9313,8 @@ const App = () => {
     );
   };
 
-  const renderTimelineInsertGuide = (isDropHere, warnText = '') => {
-    const activeText = warnText || '이 이동 구간에 일정을 배치합니다.';
+  const renderTimelineInsertGuide = (isDropHere, warnText = '', anchor = 'prev') => {
+    const activeText = warnText || (anchor === 'next' ? '오른쪽 기준으로 끼워 넣습니다.' : '왼쪽 기준으로 끼워 넣습니다.');
     const idleText = '이동칩 안으로 놓아 흐름에 연결';
     return (
       <div className="z-10 flex w-full items-center justify-center">
@@ -9303,6 +9343,10 @@ const App = () => {
               {isDropHere ? activeText : idleText}
             </span>
           </div>
+          <div className={`h-4 w-px ${isDropHere ? 'bg-current/20' : 'bg-slate-200'}`} />
+          <span className={`rounded-full px-2 py-1 text-[10px] font-black leading-none ${isDropHere ? 'bg-white/92 shadow-sm' : 'bg-slate-50 text-slate-400'}`}>
+            {anchor === 'next' ? '이후 기준' : '이전 기준'}
+          </span>
         </div>
       </div>
     );
@@ -13107,27 +13151,38 @@ const App = () => {
 
                             if (draggingFromLibrary || draggingFromTimeline !== null) {
                               const isDropHere = dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === pIdx;
+                              const activeAnchor = isDropHere ? (dropTarget?.anchor === 'next' ? 'next' : 'prev') : 'prev';
                               const dropWarn = isDropHere && draggingFromLibrary ? getDropWarning(draggingFromLibrary, dIdx, pIdx) : '';
                               return (
                                 <div
                                   className="z-10 w-full py-2 cursor-copy"
                                   data-droptarget={`${dIdx}-${pIdx}`}
-                                  onDragOver={(e) => { e.preventDefault(); setDropTarget({ dayIdx: dIdx, insertAfterPIdx: pIdx }); }}
+                                  onDragOver={(e) => {
+                                    e.preventDefault();
+                                    const anchor = getInsertAnchorFromDragEvent(e);
+                                    setDropTarget({ dayIdx: dIdx, insertAfterPIdx: pIdx, anchor });
+                                  }}
                                   onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null); }}
                                   onDrop={(e) => {
                                     e.preventDefault();
+                                    const anchor = getInsertAnchorFromDragEvent(e);
                                     if (draggingFromLibrary) {
-                                      addNewItem(dIdx, pIdx, draggingFromLibrary.types, draggingFromLibrary);
+                                      addNewItem(dIdx, pIdx, draggingFromLibrary.types, draggingFromLibrary, { anchor });
                                       if (!isDragCopy) removePlace(draggingFromLibrary.id);
                                     } else if (draggingFromTimeline?.altIdx !== undefined) {
-                                      insertAlternativeToTimeline(dIdx, pIdx, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx);
+                                      insertAlternativeToTimeline(dIdx, pIdx, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, draggingFromTimeline.altIdx, { anchor });
                                     } else if (draggingFromTimeline && draggingFromTimeline.altIdx === undefined) {
-                                      moveTimelineItem(dIdx, pIdx, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, isDragCopy, draggingFromTimeline.planPos);
+                                      moveTimelineItem(dIdx, pIdx, draggingFromTimeline.dayIdx, draggingFromTimeline.pIdx, isDragCopy, draggingFromTimeline.planPos, { anchor });
                                     }
                                     setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropTarget(null); setIsDragCopy(false);
                                   }}
                                 >
-                                  {renderTimelineInsertGuide(isDropHere, dropWarn)}
+                                  <div className="relative">
+                                    <div className="pointer-events-none absolute inset-y-2 left-1/2 z-10 w-px -translate-x-1/2 bg-slate-200/80" />
+                                    <div className={`pointer-events-none absolute inset-y-2 left-0 w-1/2 rounded-l-[18px] transition-colors ${isDropHere && activeAnchor === 'prev' ? (dropWarn ? 'bg-orange-100/60' : 'bg-blue-100/60') : 'bg-transparent'}`} />
+                                    <div className={`pointer-events-none absolute inset-y-2 right-0 w-1/2 rounded-r-[18px] transition-colors ${isDropHere && activeAnchor === 'next' ? (dropWarn ? 'bg-orange-100/60' : 'bg-blue-100/60') : 'bg-transparent'}`} />
+                                    {renderTimelineInsertGuide(isDropHere, dropWarn, activeAnchor)}
+                                  </div>
                                 </div>
                               );
                             }

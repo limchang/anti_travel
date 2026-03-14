@@ -6199,6 +6199,38 @@ const App = () => {
     setLastAction('종료 시간을 기준으로 소요 시간을 다시 계산했습니다.');
   };
 
+  const setPlanEndAbsoluteMinutes = (dayIdx, pIdx, nextAbsoluteMinutes, options = {}) => {
+    if (!options?.skipHistory) saveHistory();
+    setItinerary(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      const dayPlan = nextData.days?.[dayIdx]?.plan;
+      const item = dayPlan?.[pIdx];
+      if (!item) return prev;
+      dayPlan.forEach((entry) => {
+        if (!entry || entry.type === 'backup' || entry.types?.includes('ship')) return;
+        entry.isDurationFixed = false;
+      });
+      const startMinutes = timeToMinutes(item.time || '00:00');
+      const maxDuration = isOvernightLodgeTimelineItem(item) ? 1440 : 1439;
+      const absoluteEnd = Math.max(startMinutes, Math.min(startMinutes + maxDuration, Number(nextAbsoluteMinutes) || startMinutes));
+      item.duration = Math.max(0, absoluteEnd - startMinutes);
+
+      for (let idx = pIdx + 1; idx < dayPlan.length; idx += 1) {
+        const nextItem = dayPlan[idx];
+        if (!nextItem || nextItem.type === 'backup') continue;
+        const isShipFixed = nextItem.types?.includes('ship');
+        const isLodgeBarrier = isLodgeStay(nextItem.types);
+        if (isShipFixed || isLodgeBarrier) break;
+        nextItem.isTimeFixed = false;
+        nextItem.isEndTimeFixed = false;
+      }
+
+      nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      return nextData;
+    });
+    setLastAction('종료 시간을 기준으로 소요 시간을 다시 계산했습니다.');
+  };
+
   const updatePlanEndTime = (dayIdx, pIdx, delta) => {
     saveHistory();
     setItinerary(prev => {
@@ -10900,10 +10932,12 @@ const App = () => {
                                 const currentStartMinute = startMinutes % 60;
                                 const currentDurationHour = Math.floor(durationMinutes / 60);
                                 const currentDurationMinute = durationMinutes % 60;
-                                const durationHourValues = Array.from({ length: isOvernightLodgeTimelineItem(p) ? 25 : 24 }, (_, idx) => idx);
-                                const currentEndHour = Math.floor(currentEndMinutes / 60);
-                                const currentEndMinute = currentEndMinutes % 60;
                                 const canWrapEndBeforeStart = isOvernightLodgeTimelineItem(p);
+                                const durationHourValues = Array.from({ length: canWrapEndBeforeStart ? 25 : 24 }, (_, idx) => idx);
+                                const overnightEndAbsolute = Math.max(startMinutes, Math.min(startMinutes + 1440, endMinutesAbsolute));
+                                const currentEndHour = Math.floor((canWrapEndBeforeStart ? overnightEndAbsolute : currentEndMinutes) / 60);
+                                const currentEndMinute = currentEndMinutes % 60;
+                                const endHourValues = Array.from({ length: canWrapEndBeforeStart ? 48 : 24 }, (_, idx) => idx);
                                 const buildWrappedTotalMinutes = (baseHour, baseMinute, nextMinute) => {
                                   let nextHour = baseHour;
                                   const delta = nextMinute - baseMinute;
@@ -10913,11 +10947,20 @@ const App = () => {
                                 };
                                 const normalizeDayMinute = (value) => ((value % 1440) + 1440) % 1440;
                                 const clampEndNotBeforeStart = (candidateMinutes) => {
+                                  if (canWrapEndBeforeStart) {
+                                    const raw = Math.max(0, Math.min(2879, Number(candidateMinutes) || 0));
+                                    const absolute = raw < startMinutes ? raw + 1440 : raw;
+                                    return Math.max(startMinutes, Math.min(startMinutes + 1440, absolute));
+                                  }
                                   const normalized = normalizeDayMinute(candidateMinutes);
-                                  if (canWrapEndBeforeStart) return normalized;
                                   return Math.max(startMinutes, normalized);
                                 };
                                 const clampDurationMinutes = (candidateMinutes) => Math.max(0, Math.min(canWrapEndBeforeStart ? 1440 : 1439, Number(candidateMinutes) || 0));
+                                const formatEndHourValue = (nextHour) => {
+                                  if (!canWrapEndBeforeStart) return String(nextHour).padStart(2, '0');
+                                  const clockHour = ((Number(nextHour) || 0) % 24 + 24) % 24;
+                                  return `${String(clockHour).padStart(2, '0')}${nextHour >= 24 ? '+' : ''}`;
+                                };
                                 const toggleInline = (event) => {
                                   event.stopPropagation();
                                   setTimeControllerTarget((prev) => (
@@ -11071,12 +11114,17 @@ const App = () => {
                                             <TimeWheelColumn
                                               label=""
                                               value={currentEndHour}
-                                              values={Array.from({ length: 24 }, (_, idx) => idx)}
+                                              values={endHourValues}
+                                              formatter={formatEndHourValue}
                                               onInteract={bumpTimeControllerAutoClose}
                                               onDragStateChange={setIsTimeWheelDragging}
                                               onChange={(nextHour) => {
                                                 const nextTotal = clampEndNotBeforeStart((nextHour * 60) + currentEndMinute);
-                                                setPlanEndTimeValue(dIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
+                                                if (canWrapEndBeforeStart) {
+                                                  setPlanEndAbsoluteMinutes(dIdx, pIdx, nextTotal, { skipHistory: true });
+                                                } else {
+                                                  setPlanEndTimeValue(dIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
+                                                }
                                               }}
                                               accentClass="text-slate-800"
                                             />
@@ -11091,7 +11139,11 @@ const App = () => {
                                               onChange={(nextMinute) => {
                                                 const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);
                                                 const nextTotal = clampEndNotBeforeStart(wrapped);
-                                                setPlanEndTimeValue(dIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
+                                                if (canWrapEndBeforeStart) {
+                                                  setPlanEndAbsoluteMinutes(dIdx, pIdx, nextTotal, { skipHistory: true });
+                                                } else {
+                                                  setPlanEndTimeValue(dIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
+                                                }
                                               }}
                                               accentClass="text-slate-800"
                                             />
@@ -12160,13 +12212,14 @@ const App = () => {
             const startHourValues = Array.from({ length: 24 }, (_, idx) => idx);
             const currentStartHour = Math.floor(startMinutes / 60);
             const currentStartMinute = startMinutes % 60;
+            const canWrapEndBeforeStart = isOvernightLodgeTimelineItem(item);
             const currentDurationHour = Math.floor(durationMinutes / 60);
             const currentDurationMinute = durationMinutes % 60;
-            const durationHourValues = Array.from({ length: isOvernightLodgeTimelineItem(item) ? 25 : 24 }, (_, idx) => idx);
-            const endHourValues = Array.from({ length: 24 }, (_, idx) => idx);
-            const currentEndHour = Math.floor(currentEndMinutes / 60);
+            const durationHourValues = Array.from({ length: canWrapEndBeforeStart ? 25 : 24 }, (_, idx) => idx);
+            const overnightEndAbsolute = Math.max(startMinutes, Math.min(startMinutes + 1440, endMinutesAbsolute));
+            const endHourValues = Array.from({ length: canWrapEndBeforeStart ? 48 : 24 }, (_, idx) => idx);
+            const currentEndHour = Math.floor((canWrapEndBeforeStart ? overnightEndAbsolute : currentEndMinutes) / 60);
             const currentEndMinute = currentEndMinutes % 60;
-            const canWrapEndBeforeStart = isOvernightLodgeTimelineItem(item);
             const buildWrappedTotalMinutes = (baseHour, baseMinute, nextMinute) => {
               let nextHour = baseHour;
               const delta = nextMinute - baseMinute;
@@ -12176,11 +12229,20 @@ const App = () => {
             };
             const normalizeDayMinute = (value) => ((value % 1440) + 1440) % 1440;
             const clampEndNotBeforeStart = (candidateMinutes) => {
+              if (canWrapEndBeforeStart) {
+                const raw = Math.max(0, Math.min(2879, Number(candidateMinutes) || 0));
+                const absolute = raw < startMinutes ? raw + 1440 : raw;
+                return Math.max(startMinutes, Math.min(startMinutes + 1440, absolute));
+              }
               const normalized = normalizeDayMinute(candidateMinutes);
-              if (canWrapEndBeforeStart) return normalized;
               return Math.max(startMinutes, normalized);
             };
             const clampDurationMinutes = (candidateMinutes) => Math.max(0, Math.min(canWrapEndBeforeStart ? 1440 : 1439, Number(candidateMinutes) || 0));
+            const formatEndHourValue = (nextHour) => {
+              if (!canWrapEndBeforeStart) return String(nextHour).padStart(2, '0');
+              const clockHour = ((Number(nextHour) || 0) % 24 + 24) % 24;
+              return `${String(clockHour).padStart(2, '0')}${nextHour >= 24 ? '+' : ''}`;
+            };
             return (
               <div
                 data-time-modal="true"
@@ -12282,11 +12344,16 @@ const App = () => {
                         label=""
                         value={currentEndHour}
                         values={endHourValues}
+                        formatter={formatEndHourValue}
                         onInteract={bumpTimeControllerAutoClose}
                         onDragStateChange={setIsTimeWheelDragging}
                         onChange={(nextHour) => {
                           const nextTotal = clampEndNotBeforeStart((nextHour * 60) + currentEndMinute);
-                          setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
+                          if (canWrapEndBeforeStart) {
+                            setPlanEndAbsoluteMinutes(dayIdx, pIdx, nextTotal, { skipHistory: true });
+                          } else {
+                            setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
+                          }
                         }}
                         accentClass="text-slate-800"
                       />
@@ -12301,7 +12368,11 @@ const App = () => {
                         onChange={(nextMinute) => {
                           const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);
                           const nextTotal = clampEndNotBeforeStart(wrapped);
-                          setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
+                          if (canWrapEndBeforeStart) {
+                            setPlanEndAbsoluteMinutes(dayIdx, pIdx, nextTotal, { skipHistory: true });
+                          } else {
+                            setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
+                          }
                         }}
                         accentClass="text-slate-800"
                       />

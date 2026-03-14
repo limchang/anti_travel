@@ -712,8 +712,33 @@ export const PlaceLibraryCard = ({
   getMenuLineTotalValue,
   extraContent = null,
   buildBusinessQuickEditSegments,
+  viewMode = 'default',
 }) => {
   const visibleMenus = (place.receipt?.items || []).filter((menu) => menu && menu.selected !== false);
+  const isCompact = viewMode === 'compact';
+  const hasMemo = Boolean(String(place.memo || '').trim());
+  const nameRowActions = (
+    <div className="flex items-center gap-1">
+      {isCompact && (
+        <button
+          type="button"
+          onClick={onOpenMap}
+          className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+          title="네이버 지도에서 장소 검색"
+        >
+          <MapIcon size={9} />
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={onEdit}
+        className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+        title="장소 수정"
+      >
+        <Pencil size={9} />
+      </button>
+    </div>
+  );
 
   return (
   <div
@@ -736,33 +761,26 @@ export const PlaceLibraryCard = ({
         readOnly
         placeholder="장소 이름"
         onContainerClick={(event) => event.stopPropagation()}
-        actionButton={(
-          <button
-            type="button"
-            onClick={onEdit}
-            className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-            title="장소 수정"
-          >
-            <Pencil size={9} />
-          </button>
-        )}
+        actionButton={nameRowActions}
       />
-      <SharedAddressRow
-        value={place.address || place.receipt?.address || ''}
-        onChange={() => {}}
-        onContainerClick={(event) => event.stopPropagation()}
-        leading={<MapPin size={11} className="text-[#3182F6] shrink-0" />}
-        actions={(
-          <button
-            type="button"
-            onClick={onOpenMap}
-            className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-            title="네이버 지도에서 장소 검색"
-          >
-            <MapIcon size={9} />
-          </button>
-        )}
-      />
+      {!isCompact && (
+        <SharedAddressRow
+          value={place.address || place.receipt?.address || ''}
+          onChange={() => {}}
+          onContainerClick={(event) => event.stopPropagation()}
+          leading={<MapPin size={11} className="text-[#3182F6] shrink-0" />}
+          actions={(
+            <button
+              type="button"
+              onClick={onOpenMap}
+              className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+              title="네이버 지도에서 장소 검색"
+            >
+              <MapIcon size={9} />
+            </button>
+          )}
+        />
+      )}
       <SharedBusinessRow
         summary={businessSummary}
         placeholder="영업 정보 (선택)"
@@ -771,10 +789,12 @@ export const PlaceLibraryCard = ({
         quickEditSegments={buildBusinessQuickEditSegments(place.business || {})}
         onQuickEdit={(fieldKey) => onBusinessQuickEdit?.(fieldKey)}
       />
-      <SharedMemoRow value={place.memo || ''} onChange={() => {}} readOnly onContainerClick={(event) => event.stopPropagation()} />
+      {(!isCompact || hasMemo) && (
+        <SharedMemoRow value={place.memo || ''} onChange={() => {}} readOnly onContainerClick={(event) => event.stopPropagation()} />
+      )}
       {extraContent}
     </div>
-    {isExpanded && (
+    {isExpanded && !isCompact && (
       <div className="px-5 py-4 animate-in slide-in-from-top-1 bg-white border-b border-slate-100 border-dashed">
         <div className="space-y-1.5">
           {visibleMenus.map((menu, idx) => (
@@ -790,7 +810,7 @@ export const PlaceLibraryCard = ({
         </div>
       </div>
     )}
-    <SharedTotalFooter expanded={isExpanded} total={place.price} onToggle={onToggleExpand} />
+    {!isCompact && <SharedTotalFooter expanded={isExpanded} total={place.price} onToggle={onToggleExpand} />}
     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
       <button onClick={onEdit} className="p-1.5 hover:text-[#3182F6] hover:bg-blue-50 text-slate-300 rounded-md transition-all"><Pencil size={11} /></button>
       <button onClick={onDelete} className="p-1.5 hover:text-red-500 hover:bg-red-50 text-slate-300 rounded-md transition-all"><Trash2 size={11} /></button>

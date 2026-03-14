@@ -3430,6 +3430,7 @@ const App = () => {
   const [mapExpanded, setMapExpanded] = useState(() => (typeof window === 'undefined' ? true : window.innerWidth >= 1100));
   const [focusedMapTarget, setFocusedMapTarget] = useState(null);
   const [showOverviewMapModal, setShowOverviewMapModal] = useState(false);
+  const [placeLibraryViewMode, setPlaceLibraryViewMode] = useState('default');
   const [libraryGeoMap, setLibraryGeoMap] = useState({});
   const [recommendationGeoMap, setRecommendationGeoMap] = useState({});
   const routeRetryCooldownMs = 45000;
@@ -3544,6 +3545,12 @@ const App = () => {
     }
     mobileSwitchRef.current = isMobileLayout;
   }, [clearMobileLibraryLongPress, isMobileLayout]);
+
+  useEffect(() => {
+    if (placeLibraryViewMode === 'compact') {
+      setExpandedPlaceId(null);
+    }
+  }, [placeLibraryViewMode]);
 
   useEffect(() => () => {
     clearMobileLibraryLongPress();
@@ -9942,6 +9949,25 @@ const App = () => {
                   </button>
                   {showPlaceMenu && (
                     <div className="absolute right-0 top-8 z-20 min-w-[186px] rounded-[12px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
+                      <div className="mb-1 rounded-[10px] border border-slate-100 bg-slate-50/80 p-1">
+                        <p className="px-1.5 pb-1 text-[9px] font-black tracking-[0.14em] text-slate-400 uppercase">카드 보기</p>
+                        <div className="grid grid-cols-2 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setPlaceLibraryViewMode('default')}
+                            className={`rounded-[8px] px-2 py-2 text-[10px] font-black transition-colors ${placeLibraryViewMode === 'default' ? 'bg-[#3182F6] text-white shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}
+                          >
+                            기본
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPlaceLibraryViewMode('compact')}
+                            className={`rounded-[8px] px-2 py-2 text-[10px] font-black transition-colors ${placeLibraryViewMode === 'compact' ? 'bg-[#3182F6] text-white shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}
+                          >
+                            축소
+                          </button>
+                        </div>
+                      </div>
                       <button
                         type="button"
                         onClick={() => {
@@ -10369,6 +10395,7 @@ const App = () => {
                           statusChip={statusChip}
                           businessSummary={bizWarningNow ? `주의 · ${hasBizSummary ? bizSummary : '영업 정보 미설정'}` : (hasBizSummary ? bizSummary : '미설정')}
                           isExpanded={isPlaceExpanded}
+                          viewMode={placeLibraryViewMode}
                           extraContent={isLodgeStay(place.types) ? (
                             <div className="mt-0.5 rounded-2xl border border-indigo-100 bg-indigo-50/45 px-3 py-3" data-no-drag="true" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center justify-between gap-2">

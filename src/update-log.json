@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.199",
+      "timestamp": "2026-03-14T21:58:49+09:00",
+      "message": "feat: add place library compact view mode"
+    },
+    {
       "version": "1.3.198",
       "timestamp": "2026-03-14T20:48:52+09:00",
       "message": "fix: stabilize route overview map interactions"
@@ -144,11 +149,6 @@
       "version": "1.3.170",
       "timestamp": "2026-03-13T23:14:46+09:00",
       "message": "tune: move compact budget usage into hero playbar"
-    },
-    {
-      "version": "1.3.169",
-      "timestamp": "2026-03-13T23:07:45+09:00",
-      "message": "tune: collapse compact overview budget into playbar"
     }
   ]
 }

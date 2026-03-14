@@ -1595,10 +1595,18 @@ const BusinessHoursEditor = ({ business = {}, onChange, focusField = null }) => 
   );
 };
 
-const fmtDur = (mins) => {
+const fmtMinutesLabel = (mins, options = {}) => {
   const safe = Math.max(0, Math.round(Number(mins) || 0));
-  return `${safe}분`;
+  const compact = !!options.compact;
+  if (safe < 60) return `${safe}분`;
+  const hours = Math.floor(safe / 60);
+  const minutes = safe % 60;
+  if (minutes === 0) return compact ? `${hours}시` : `${hours}시간`;
+  return compact ? `${hours}시 ${minutes}분` : `${hours}시간 ${minutes}분`;
 };
+
+const fmtDur = (mins) => fmtMinutesLabel(mins);
+const fmtDurCompact = (mins) => fmtMinutesLabel(mins, { compact: true });
 const normalizeBusiness = (business = {}) => ({
   open: String(business.open || ''),
   close: String(business.close || ''),
@@ -4170,7 +4178,7 @@ const App = () => {
 
   useEffect(() => {
     let timer;
-    if (heroPinnedCompact) {
+    if (heroPinnedCompact && !heroSummaryExpanded) {
       timer = window.setTimeout(() => {
         setHeroCompactBudgetBarVisible(true);
       }, 150);
@@ -4180,7 +4188,7 @@ const App = () => {
     return () => {
       if (timer) window.clearTimeout(timer);
     };
-  }, [heroPinnedCompact]);
+  }, [heroPinnedCompact, heroSummaryExpanded]);
 
   // 모바일 감지 → 양쪽 패널 자동 접기
   useEffect(() => {
@@ -10396,8 +10404,9 @@ const App = () => {
             const averageTravelHoursLabel = averageTravelMinutes >= 60
               ? `${(averageTravelMinutes / 60).toFixed(1)}시간`
               : `${Math.round(averageTravelMinutes)}분`;
+            const heroCompactActive = heroPinnedCompact && !heroSummaryExpanded;
             return (
-              <div className="mb-1.5 relative" style={{ height: Math.max(dashboardHeight + (heroPinnedCompact ? 0 : (isMobileLayout ? 5 : 6)), heroPinnedCompact ? 122 : (isMobileLayout ? 356 : 386)) }}>
+              <div className="mb-1.5 relative" style={{ height: Math.max(dashboardHeight + (heroCompactActive ? 0 : (isMobileLayout ? 5 : 6)), heroCompactActive ? 122 : (isMobileLayout ? 356 : 386)) }}>
                 {/* 풀 카드 (최상단) */}
                 <div
                   className="fixed top-0 z-[120]"
@@ -10408,7 +10417,7 @@ const App = () => {
                 >
                   <section
                     ref={dashboardRef}
-                    className={`${heroPinnedCompact ? 'mb-0.5' : 'mb-2 sm:mb-3'} transition-all duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overflow-x-visible overscroll-contain pb-5 pr-1 sm:pb-6' : ''}`}
+                    className={`${heroCompactActive ? 'mb-0.5' : 'mb-2 sm:mb-3'} transition-all duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overflow-x-visible overscroll-contain pb-5 pr-1 sm:pb-6' : ''}`}
                   >
                     <div className="w-full relative overflow-visible bg-transparent">
                       {canManagePlan && (
@@ -10416,32 +10425,32 @@ const App = () => {
                           type="button"
                           onClick={autoCalculateAllRoutes}
                           disabled={isCalculatingAllRoutes}
-                          className={`absolute left-4 z-20 flex items-center justify-center border border-white/40 bg-white/85 text-slate-700 shadow-lg backdrop-blur transition-colors hover:border-[#3182F6]/50 hover:text-[#3182F6] disabled:cursor-not-allowed disabled:opacity-55 ${heroPinnedCompact ? 'top-2 h-9 w-9 rounded-lg' : 'top-4 h-10 w-10 rounded-xl'}`}
+                          className={`absolute left-4 z-20 flex items-center justify-center border border-white/40 bg-white/85 text-slate-700 shadow-lg backdrop-blur transition-colors hover:border-[#3182F6]/50 hover:text-[#3182F6] disabled:cursor-not-allowed disabled:opacity-55 ${heroCompactActive ? 'top-2 h-9 w-9 rounded-lg' : 'top-4 h-10 w-10 rounded-xl'}`}
                           title={isCalculatingAllRoutes ? `경로 계산 ${routeCalcProgress}%` : '경로 재계산'}
                         >
-                          {isCalculatingAllRoutes ? <LoaderCircle size={heroPinnedCompact ? 14 : 16} className="animate-spin" /> : <Navigation size={heroPinnedCompact ? 14 : 16} />}
+                          {isCalculatingAllRoutes ? <LoaderCircle size={heroCompactActive ? 14 : 16} className="animate-spin" /> : <Navigation size={heroCompactActive ? 14 : 16} />}
                         </button>
                       )}
                       {canManagePlan && (
-                        <div className={`absolute right-4 z-20 flex items-center transition-all duration-300 ${heroPinnedCompact ? 'top-2 gap-1.5' : 'top-4 gap-2'}`}>
+                        <div className={`absolute right-4 z-20 flex items-center transition-all duration-300 ${heroCompactActive ? 'top-2 gap-1.5' : 'top-4 gap-2'}`}>
                           <button
                             onClick={() => setShowPlanOptions(true)}
-                            className={`${heroPinnedCompact ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg`}
+                            className={`${heroCompactActive ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg`}
                             title="일정 옵션"
                           >
-                            <SlidersHorizontal size={heroPinnedCompact ? 14 : 16} />
+                            <SlidersHorizontal size={heroCompactActive ? 14 : 16} />
                           </button>
                           <button
                             onClick={() => setShowShareManager(true)}
-                            className={`${heroPinnedCompact ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg`}
+                            className={`${heroCompactActive ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg`}
                             title="공유 설정"
                           >
-                            <Share2 size={heroPinnedCompact ? 14 : 16} />
+                            <Share2 size={heroCompactActive ? 14 : 16} />
                           </button>
                         </div>
                       )}
                       {/* 🖼️ 배경 이미지 (고정 높이, 요약 확장과 무관) */}
-                      <div className={`absolute left-0 right-0 top-0 overflow-hidden pointer-events-none transition-all duration-300 ${heroPinnedCompact ? 'h-[124px] sm:h-[138px]' : 'h-[332px] sm:h-[356px]'}`}>
+                      <div className={`absolute left-0 right-0 top-0 overflow-hidden pointer-events-none transition-all duration-300 ${heroCompactActive ? 'h-[124px] sm:h-[138px]' : 'h-[332px] sm:h-[356px]'}`}>
                         <img
                           src={getRegionCoverImage(tripRegion)}
                           className="w-full h-full object-cover opacity-95 scale-105"
@@ -10459,7 +10468,7 @@ const App = () => {
                             style={{ width: `${Math.min(100, usedPct)}%` }}
                           />
                         </div>
-                        {heroPinnedCompact && (
+                        {heroCompactActive && (
                           <button
                             type="button"
                             onClick={() => setHeroSummaryExpanded((prev) => !prev)}
@@ -10482,33 +10491,33 @@ const App = () => {
                         )}
                       </div>
 
-                      <div className={`relative z-10 flex w-full mx-auto flex-col transition-all duration-300 ${timelineMaxClass} ${heroPinnedCompact ? 'gap-2' : 'gap-5 md:gap-6'}`}>
+                      <div className={`relative z-10 flex w-full mx-auto flex-col transition-all duration-300 ${timelineMaxClass} ${heroCompactActive ? 'gap-2' : 'gap-5 md:gap-6'}`}>
                         {/* 🌟 1. 타이틀 & 일정 */}
-                        <div className={`flex flex-col transition-all duration-300 ${heroPinnedCompact ? 'gap-2 px-4 pt-3 sm:px-6 sm:pt-4' : 'items-center gap-3 px-6 pt-8 text-center sm:px-8 sm:pt-10'}`}>
+                        <div className={`flex flex-col transition-all duration-300 ${heroCompactActive ? 'gap-2 px-4 pt-3 sm:px-6 sm:pt-4' : 'items-center gap-3 px-6 pt-8 text-center sm:px-8 sm:pt-10'}`}>
                           <input
                             value={tripRegion}
                             onChange={(e) => setTripRegion(e.target.value)}
                             placeholder="어디로 떠나시나요?"
-                            className={`bg-transparent border-none outline-none font-extrabold text-white drop-shadow-md placeholder:text-white/50 tracking-tight leading-none transition-all duration-300 ${heroPinnedCompact ? 'w-full text-center text-[26px] sm:text-[30px] whitespace-nowrap overflow-hidden text-ellipsis' : 'w-full max-w-[440px] text-center text-[36px] sm:text-[44px]'}`}
+                            className={`bg-transparent border-none outline-none font-extrabold text-white drop-shadow-md placeholder:text-white/50 tracking-tight leading-none transition-all duration-300 ${heroCompactActive ? 'w-full text-center text-[26px] sm:text-[30px] whitespace-nowrap overflow-hidden text-ellipsis' : 'w-full max-w-[440px] text-center text-[36px] sm:text-[44px]'}`}
                           />
-                          <div className={`relative mx-auto flex items-center gap-2 transition-all duration-300 ${heroPinnedCompact ? 'max-w-[360px] flex-nowrap overflow-hidden justify-center' : 'justify-center'}`}>
+                          <div className={`relative mx-auto flex items-center gap-2 transition-all duration-300 ${heroCompactActive ? 'max-w-[360px] flex-nowrap overflow-hidden justify-center' : 'justify-center'}`}>
                             <button
                               onClick={() => setShowDatePicker(v => !v)}
-                              className={`flex items-center gap-2.5 bg-white/20 backdrop-blur-md border border-white/20 transition-all group hover:bg-white/30 ${heroPinnedCompact ? 'min-w-0 shrink px-3 py-1.5 rounded-xl' : 'min-w-[260px] justify-center px-5 py-2.5 rounded-2xl'}`}
+                              className={`flex items-center gap-2.5 bg-white/20 backdrop-blur-md border border-white/20 transition-all group hover:bg-white/30 ${heroCompactActive ? 'min-w-0 shrink px-3 py-1.5 rounded-xl' : 'min-w-[260px] justify-center px-5 py-2.5 rounded-2xl'}`}
                             >
                               <Calendar size={14} className="text-white group-hover:scale-110 transition-transform shrink-0" />
-                              <div className={`flex items-center gap-1.5 pt-0.5 ${heroPinnedCompact ? 'min-w-0 whitespace-nowrap overflow-hidden' : ''}`}>
-                                <span className={`${heroPinnedCompact ? 'text-[11px] truncate' : 'text-[12px]'} font-black text-white`}>
+                              <div className={`flex items-center gap-1.5 pt-0.5 ${heroCompactActive ? 'min-w-0 whitespace-nowrap overflow-hidden' : ''}`}>
+                                <span className={`${heroCompactActive ? 'text-[11px] truncate' : 'text-[12px]'} font-black text-white`}>
                                   {tripStartDate ? tripStartDate.replace(/-/g, '. ') : '시작일'}
                                 </span>
                                 <span className="text-white/50 text-[10px] font-black">~</span>
-                                <span className={`${heroPinnedCompact ? 'text-[11px] truncate' : 'text-[12px]'} font-black text-white`}>
+                                <span className={`${heroCompactActive ? 'text-[11px] truncate' : 'text-[12px]'} font-black text-white`}>
                                   {tripEndDate ? tripEndDate.replace(/-/g, '. ') : '종료일'}
                                 </span>
                               </div>
                             </button>
-                            <div className={`bg-black/10 backdrop-blur-sm border border-white/10 transition-all duration-300 ${heroPinnedCompact ? 'shrink-0 px-3 py-1.5 rounded-xl whitespace-nowrap' : 'min-w-[84px] px-4 py-2.5 rounded-2xl text-center'}`}>
-                              <span className={`${heroPinnedCompact ? 'text-[11px] whitespace-nowrap' : 'text-[12px]'} font-black text-white/90`}>
+                            <div className={`bg-black/10 backdrop-blur-sm border border-white/10 transition-all duration-300 ${heroCompactActive ? 'shrink-0 px-3 py-1.5 rounded-xl whitespace-nowrap' : 'min-w-[84px] px-4 py-2.5 rounded-2xl text-center'}`}>
+                              <span className={`${heroCompactActive ? 'text-[11px] whitespace-nowrap' : 'text-[12px]'} font-black text-white/90`}>
                                 {tripDays > 0 ? `${tripNights}박 ${tripDays}일` : `${itinerary.days?.length || 0}일 일정`}
                               </span>
                             </div>
@@ -10529,7 +10538,7 @@ const App = () => {
                         </div>
 
                         {/* 🌟 2. 여행 한눈에 보기 */}
-                        {!heroPinnedCompact && (
+                        {!heroCompactActive && (
                         <div className="flex flex-col gap-3 px-3 transition-all duration-300 sm:px-0">
                             <div className="relative mt-1 w-full rounded-[24px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 sm:px-6 sm:py-6">
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
@@ -10541,7 +10550,7 @@ const App = () => {
                                       <p className="mt-2 text-[10px] font-bold text-slate-500 tabular-nums sm:text-[11px]">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
                                     </div>
                                   </div>
-                                  <div className={`relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroPinnedCompact ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
+                                  <div className={`relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroCompactActive ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
                                     <div className="flex h-full flex-col items-center justify-center text-center">
                                       <div className="flex items-center justify-center gap-1.5">
                                         <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
@@ -10557,8 +10566,8 @@ const App = () => {
                                           <Info size={10} />
                                         </button>
                                       </div>
-                                      <p className={`text-center leading-none font-black text-slate-800 transition-all duration-300 ${heroPinnedCompact ? 'mt-1.5 text-[17px] sm:text-[21px]' : 'mt-2 text-[21px] sm:text-[27px]'}`}>{travelIntensity.label}</p>
-                                      <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroPinnedCompact ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>{travelIntensity.note}</p>
+                                      <p className={`text-center leading-none font-black text-slate-800 transition-all duration-300 ${heroCompactActive ? 'mt-1.5 text-[17px] sm:text-[21px]' : 'mt-2 text-[21px] sm:text-[27px]'}`}>{travelIntensity.label}</p>
+                                      <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroCompactActive ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>{travelIntensity.note}</p>
                                     </div>
                                     {showTravelIntensityInfo && (
                                       <div className="absolute left-1/2 top-[calc(100%-8px)] z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
@@ -10571,11 +10580,11 @@ const App = () => {
                                       </div>
                                     )}
                                   </div>
-                                  <div className={`rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroPinnedCompact ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
+                                  <div className={`rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroCompactActive ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
                                     <div className="flex h-full flex-col items-center justify-center text-center">
                                       <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
-                                      <p className={`text-center leading-none font-black text-slate-800 tabular-nums transition-all duration-300 ${heroPinnedCompact ? 'mt-1.5 text-[18px] sm:text-[22px]' : 'mt-2 text-[22px] sm:text-[31px]'}`}>{visitPerHour.toFixed(1)}개/h</p>
-                                      <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroPinnedCompact ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>방문 일정 {visitPlanCount}개 기준</p>
+                                      <p className={`text-center leading-none font-black text-slate-800 tabular-nums transition-all duration-300 ${heroCompactActive ? 'mt-1.5 text-[18px] sm:text-[22px]' : 'mt-2 text-[22px] sm:text-[31px]'}`}>{visitPerHour.toFixed(1)}개/h</p>
+                                      <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroCompactActive ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>방문 일정 {visitPlanCount}개 기준</p>
                                     </div>
                                   </div>
                               </div>
@@ -10803,7 +10812,7 @@ const App = () => {
                                       className={`min-w-[3rem] text-center tracking-tight text-xs font-black transition-colors ${busy ? 'text-[#3182F6]' : (p._isBufferCoordinated ? 'text-orange-500' : (p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800'))}`}
                                       onClick={(e) => { e.stopPropagation(); if (p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto) resetTravelTime(dIdx, pIdx); }}
                                       title={p.travelTimeAuto && p.travelTimeOverride !== p.travelTimeAuto ? '클릭하여 경로 계산 시간으로 초기화' : undefined}
-                                    >{p.travelTimeOverride || '15분'}</span>
+                                    >{fmtDurCompact(parseMinsLabel(p.travelTimeOverride, DEFAULT_TRAVEL_MINS))}</span>
                                   <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                                   </div>
 
@@ -10839,7 +10848,7 @@ const App = () => {
                                   {/* 여유 시간 */}
                                   <div className="flex items-center gap-1.5">
                                     <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
-                                    <span className={`min-w-[3rem] text-center tracking-tight text-xs font-black transition-colors ${bufferDisplay.isCoordinated ? 'text-orange-500' : 'text-slate-500'}`}>{bufferDisplay.label}</span>
+                                    <span className={`min-w-[3rem] text-center tracking-tight text-xs font-black transition-colors ${bufferDisplay.isCoordinated ? 'text-orange-500' : 'text-slate-500'}`}>{fmtDurCompact(bufferDisplay.mins)}</span>
                                     <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                                   </div>
                                 </>
@@ -11033,7 +11042,7 @@ const App = () => {
                                             }`}
                                         >
                                           <ChevronLeft size={10} />
-                                          <span className="font-black tabular-nums text-[12px] tracking-[0.14em]">{fmtDur(p.duration).replace('분', '')}</span>
+                                          <span className="font-black tabular-nums text-[12px] tracking-[0.08em] whitespace-nowrap">{fmtDurCompact(p.duration)}</span>
                                           <ChevronRight size={10} />
                                         </button>
 

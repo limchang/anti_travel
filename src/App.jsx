@@ -5135,6 +5135,19 @@ const App = () => {
     ))
   ), [routePreviewPointSource]);
 
+  const routePreviewFallbackGeoByAddress = useMemo(() => {
+    const nextMap = new Map();
+    (itinerary.places || []).forEach((place) => {
+      const address = String(place?.address || place?.receipt?.address || place?.sourceLodgeAddress || '').trim();
+      const geo = normalizeGeoPoint(place?.geo, address);
+      if (!address || !hasGeoCoords(geo)) return;
+      if (!nextMap.has(address)) {
+        nextMap.set(address, geo);
+      }
+    });
+    return nextMap;
+  }, [itinerary.places]);
+
   const resolveRoutePreviewDays = useCallback(async ({ forceRefresh = false } = {}) => {
     const dayEntries = routePreviewPointSource;
     if (!dayEntries.length) return [];
@@ -5144,7 +5157,9 @@ const App = () => {
       for (const point of entry.points) {
         const storedGeo = normalizeGeoPoint(point.geo, point.address);
         const hasStoredGeo = hasGeoCoords(storedGeo) && !isGeoStaleForAddress(storedGeo, point.address);
-        let geo = hasStoredGeo ? storedGeo : null;
+        const fallbackGeo = normalizeGeoPoint(routePreviewFallbackGeoByAddress.get(point.address), point.address);
+        const hasFallbackGeo = hasGeoCoords(fallbackGeo) && !isGeoStaleForAddress(fallbackGeo, point.address);
+        let geo = hasStoredGeo ? storedGeo : (hasFallbackGeo ? fallbackGeo : null);
         if (forceRefresh || !geo) {
           const refreshedGeo = await geocodeAddress(point.address, { forceRefresh });
           if (hasGeoCoords(refreshedGeo)) {
@@ -5163,7 +5178,7 @@ const App = () => {
       }
     }
     return nextDays;
-  }, [geocodeAddress, routePreviewPointSource]);
+  }, [geocodeAddress, routePreviewFallbackGeoByAddress, routePreviewPointSource]);
 
   const attachRoutePreviewSegments = useCallback(async (days = [], { forceRefresh = false } = {}) => {
     if (!Array.isArray(days) || !days.length) return [];

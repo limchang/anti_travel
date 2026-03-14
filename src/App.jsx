@@ -3111,6 +3111,9 @@ const App = () => {
   const [heroPinnedCompact, setHeroPinnedCompact] = useState(false);
   const [heroCompactBudgetBarVisible, setHeroCompactBudgetBarVisible] = useState(false);
   const [heroSummaryExpanded, setHeroSummaryExpanded] = useState(false);
+  const prevHeroPinnedCompactRef = useRef(false);
+  const prevDashboardHeightRef = useRef(typeof window === 'undefined' ? 0 : (window.innerWidth < 1100 ? 320 : 360));
+  const pendingHeroScrollAdjustRef = useRef(null);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
   useEffect(() => {
     const places = itinerary.places || [];
@@ -3980,7 +3983,22 @@ const App = () => {
     if (!dashboardRef.current) return undefined;
     const syncDashboardHeight = () => {
       if (!dashboardRef.current) return;
-      setDashboardHeight(dashboardRef.current.getBoundingClientRect().height);
+      const nextHeight = dashboardRef.current.getBoundingClientRect().height;
+      setDashboardHeight(nextHeight);
+
+      const pending = pendingHeroScrollAdjustRef.current;
+      if (
+        pending
+        && pending.targetCompact === heroPinnedCompact
+        && window.scrollY > 0
+      ) {
+        const delta = nextHeight - pending.fromHeight;
+        if (Math.abs(delta) > 1) {
+          window.scrollBy({ top: delta, behavior: 'auto' });
+        }
+        pendingHeroScrollAdjustRef.current = null;
+      }
+      prevDashboardHeightRef.current = nextHeight;
     };
     syncDashboardHeight();
     const rafId = window.requestAnimationFrame(syncDashboardHeight);
@@ -3999,6 +4017,16 @@ const App = () => {
       window.removeEventListener('load', syncDashboardHeight);
     };
   }, [heroPinnedCompact, heroSummaryExpanded, isMobileLayout, leftSidebarWidth, rightSidebarWidth, col2Collapsed]);
+
+  useEffect(() => {
+    if (prevHeroPinnedCompactRef.current !== heroPinnedCompact) {
+      pendingHeroScrollAdjustRef.current = {
+        targetCompact: heroPinnedCompact,
+        fromHeight: prevDashboardHeightRef.current,
+      };
+      prevHeroPinnedCompactRef.current = heroPinnedCompact;
+    }
+  }, [heroPinnedCompact]);
 
   useEffect(() => {
     if (user && !user.isGuest) return;

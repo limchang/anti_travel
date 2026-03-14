@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.188",
+      "timestamp": "2026-03-14T16:52:37+09:00",
+      "message": "fix: preserve scroll position when hero overview compacts"
+    },
+    {
       "version": "1.3.187",
       "timestamp": "2026-03-14T16:49:30+09:00",
       "message": "fix: tighten initial dashboard spacer height on first load"
@@ -144,11 +149,6 @@
       "version": "1.3.159",
       "timestamp": "2026-03-13T22:09:26+09:00",
       "message": "feat: add inline memo row to ferry cards"
-    },
-    {
-      "version": "1.3.158",
-      "timestamp": "2026-03-13T22:06:00+09:00",
-      "message": "tune: lower hero background cutoff and move summary toggle inside overview"
     }
   ]
 }

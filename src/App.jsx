@@ -3420,6 +3420,7 @@ const App = () => {
   const [mapDayFilter, setMapDayFilter] = useState(null);
   const [mapExpanded, setMapExpanded] = useState(() => (typeof window === 'undefined' ? true : window.innerWidth >= 1100));
   const [focusedMapTarget, setFocusedMapTarget] = useState(null);
+  const [libraryGeoMap, setLibraryGeoMap] = useState({});
   const [recommendationGeoMap, setRecommendationGeoMap] = useState({});
   const routeRetryCooldownMs = 45000;
   const autoRouteQueuedRef = useRef(new Set());
@@ -5055,14 +5056,6 @@ const App = () => {
     ))
   ), [routePreviewPointSource]);
 
-  useEffect(() => {
-    if (!routePreviewStoredDays.length) return;
-    setRoutePreviewDays((prev) => {
-      if (!prev.length) return routePreviewStoredDays;
-      return prev;
-    });
-  }, [routePreviewStoredDays]);
-
   const resolveRoutePreviewDays = useCallback(async ({ forceRefresh = false } = {}) => {
     const dayEntries = routePreviewPointSource;
     if (!dayEntries.length) return [];
@@ -5070,9 +5063,7 @@ const App = () => {
     for (const entry of dayEntries) {
       const coords = [];
       for (const point of entry.points) {
-        const geo = !forceRefresh && hasGeoCoords(point.geo) && !isGeoStaleForAddress(point.geo, point.address)
-          ? point.geo
-          : await geocodeAddress(point.address, { forceRefresh });
+        const geo = await geocodeAddress(point.address, { forceRefresh });
         if (!geo?.lat || !geo?.lon) continue;
         coords.push({
           ...point,
@@ -5276,7 +5267,7 @@ const App = () => {
       }
       setRoutePreviewLoading(true);
       try {
-        const baseDays = routePreviewNeedsLookup ? await resolveRoutePreviewDays() : routePreviewStoredDays;
+        const baseDays = await resolveRoutePreviewDays();
         if (!cancelled) setRoutePreviewDays(baseDays);
         const routeDays = await attachRoutePreviewSegments(baseDays);
         if (!cancelled) setRoutePreviewDays(routeDays);
@@ -5289,7 +5280,7 @@ const App = () => {
     return () => {
       cancelled = true;
     };
-  }, [attachRoutePreviewSegments, routePreviewNeedsLookup, routePreviewPointSource, routePreviewSourceSignature, routePreviewStoredDays, resolveRoutePreviewDays]);
+  }, [attachRoutePreviewSegments, routePreviewPointSource, routePreviewSourceSignature, resolveRoutePreviewDays]);
 
   const routePreviewMap = useMemo(() => (
     routePreviewDays
@@ -5321,6 +5312,80 @@ const App = () => {
       }))
       .filter((entry) => String(entry.recommendation?.address || '').trim())
   ), [buildRecommendationMapId, perplexityNearbyModal.recommendations]);
+  useEffect(() => {
+    let cancelled = false;
+    const loadLibraryGeo = async () => {
+      const visiblePlaces = (itinerary.places || [])
+        .filter(Boolean)
+        .filter((place) => {
+          if (!placeFilterTags.length) return true;
+          const placeTags = Array.isArray(place?.types) ? place.types : [];
+          return placeFilterTags.some((tag) => placeTags.includes(tag));
+        })
+        .map((place) => ({
+          id: String(place?.id || '').trim(),
+          address: String(place?.address || place?.receipt?.address || '').trim(),
+        }))
+        .filter((entry) => entry.id && entry.address);
+      if (!visiblePlaces.length) {
+        setLibraryGeoMap({});
+        return;
+      }
+      const nextMap = {};
+      for (const place of visiblePlaces) {
+        const geo = await geocodeAddress(place.address);
+        if (cancelled) return;
+        if (hasGeoCoords(geo)) {
+          nextMap[place.id] = normalizeGeoPoint(geo, place.address);
+        }
+      }
+      if (!cancelled) {
+        setLibraryGeoMap(nextMap);
+      }
+    };
+    void loadLibraryGeo();
+    return () => {
+      cancelled = true;
+    };
+  }, [geocodeAddress, itinerary.places, placeFilterTags]);
+  useEffect(() => {
+    const libraryPlaces = Array.isArray(itinerary.places) ? itinerary.places : [];
+    if (!libraryPlaces.length || !Object.keys(libraryGeoMap).length) return;
+    setItinerary((prev) => {
+      const currentPlaces = Array.isArray(prev?.places) ? prev.places : [];
+      let changed = false;
+      const nextPlaces = currentPlaces.map((place) => {
+        const placeId = String(place?.id || '').trim();
+        const address = String(place?.address || place?.receipt?.address || '').trim();
+        const resolvedGeo = normalizeGeoPoint(libraryGeoMap[placeId], address);
+        if (!placeId || !address || !hasGeoCoords(resolvedGeo)) return place;
+        const currentGeo = normalizeGeoPoint(place?.geo, address);
+        const distanceGapKm = hasGeoCoords(currentGeo)
+          ? haversineKm(Number(currentGeo.lat), Number(currentGeo.lon), Number(resolvedGeo.lat), Number(resolvedGeo.lon))
+          : Infinity;
+        if (!hasGeoCoords(currentGeo) || isGeoStaleForAddress(currentGeo, address) || distanceGapKm > 1) {
+          changed = true;
+          return {
+            ...place,
+            geo: normalizeGeoPoint({
+              address,
+              lat: resolvedGeo.lat,
+              lon: resolvedGeo.lon,
+              source: resolvedGeo.source || 'map-preview-refresh',
+              updatedAt: resolvedGeo.updatedAt || new Date().toISOString(),
+            }, address),
+          };
+        }
+        return place;
+      });
+      if (!changed) return prev;
+      return {
+        ...prev,
+        places: nextPlaces,
+      };
+    });
+  }, [haversineKm, itinerary.places, libraryGeoMap]);
+
   useEffect(() => {
     let cancelled = false;
     const loadRecommendationGeo = async () => {
@@ -5377,7 +5442,7 @@ const App = () => {
       })
       .map((place) => {
         const address = String(place?.address || place?.receipt?.address || '').trim();
-        const geo = normalizeGeoPoint(place?.geo, address);
+        const geo = normalizeGeoPoint(libraryGeoMap[String(place?.id || '').trim()] || place?.geo, address);
         if (!address || !hasGeoCoords(geo)) return null;
         return {
           id: place.id,
@@ -5389,7 +5454,7 @@ const App = () => {
         };
       })
       .filter(Boolean)
-  ), [itinerary.places, placeFilterTags]);
+  ), [itinerary.places, libraryGeoMap, placeFilterTags]);
   const recommendationMapPoints = useMemo(() => (
     visibleRecommendationEntries
       .map(({ id, recommendation }) => {

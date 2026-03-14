@@ -3103,8 +3103,8 @@ const App = () => {
   const routeRetryCooldownMs = 45000;
   const autoRouteQueuedRef = useRef(new Set());
   const [dashboardHeight, setDashboardHeight] = useState(() => {
-    if (typeof window === 'undefined') return 480;
-    return window.innerWidth < 1100 ? 420 : 500;
+    if (typeof window === 'undefined') return 380;
+    return window.innerWidth < 1100 ? 320 : 360;
   });
   const [showTravelIntensityInfo, setShowTravelIntensityInfo] = useState(false);
   const dashboardRef = useRef(null);
@@ -3983,14 +3983,20 @@ const App = () => {
       setDashboardHeight(dashboardRef.current.getBoundingClientRect().height);
     };
     syncDashboardHeight();
+    const rafId = window.requestAnimationFrame(syncDashboardHeight);
+    const timeoutId = window.setTimeout(syncDashboardHeight, 90);
     const observer = new ResizeObserver(() => {
       syncDashboardHeight();
     });
     observer.observe(dashboardRef.current);
     window.addEventListener('resize', syncDashboardHeight);
+    window.addEventListener('load', syncDashboardHeight);
     return () => {
+      window.cancelAnimationFrame(rafId);
+      window.clearTimeout(timeoutId);
       observer.disconnect();
       window.removeEventListener('resize', syncDashboardHeight);
+      window.removeEventListener('load', syncDashboardHeight);
     };
   }, [heroPinnedCompact, heroSummaryExpanded, isMobileLayout, leftSidebarWidth, rightSidebarWidth, col2Collapsed]);
 

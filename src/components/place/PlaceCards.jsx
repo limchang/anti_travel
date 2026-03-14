@@ -718,10 +718,11 @@ export const PlaceLibraryCard = ({
   return (
   <div
     {...cardProps}
+    data-map-focus-card="true"
     className={`w-full group relative overflow-hidden rounded-[24px] border border-[#3182F6]/15 bg-white shadow-[0_10px_28px_-14px_rgba(49,130,246,0.18)] ring-1 ring-[#3182F6]/6 transition-all duration-300 ${cardProps.className || ''}`.trim()}
   >
     <div className="p-4 flex flex-col gap-2.5">
-      <div className="flex items-center gap-1.5 flex-wrap pr-12 cursor-pointer" data-no-drag="true" onClick={onEdit}>
+      <div className="flex items-center gap-1.5 flex-wrap pr-12" data-no-drag="true">
         {chips}
         {baseDistance != null && (
           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-200 bg-blue-50 text-blue-600">

@@ -5147,6 +5147,19 @@ const App = () => {
     });
     return nextMap;
   }, [itinerary.places]);
+  const routePreviewFallbackGeoSignature = useMemo(() => (
+    JSON.stringify(
+      [...routePreviewFallbackGeoByAddress.entries()].map(([address, geo]) => ({
+        address,
+        lat: Number.isFinite(Number(geo?.lat)) ? Number(geo.lat).toFixed(6) : '',
+        lon: Number.isFinite(Number(geo?.lon)) ? Number(geo.lon).toFixed(6) : '',
+      }))
+    )
+  ), [routePreviewFallbackGeoByAddress]);
+  const routePreviewBuildSignature = useMemo(
+    () => `${routePreviewSourceSignature}|${routePreviewFallbackGeoSignature}`,
+    [routePreviewFallbackGeoSignature, routePreviewSourceSignature]
+  );
 
   const resolveRoutePreviewDays = useCallback(async ({ forceRefresh = false } = {}) => {
     const dayEntries = routePreviewPointSource;
@@ -5371,10 +5384,10 @@ const App = () => {
       return undefined;
     }
     let cancelled = false;
-    if (routePreviewBuildKeyRef.current === routePreviewSourceSignature) {
+    if (routePreviewBuildKeyRef.current === routePreviewBuildSignature) {
       return undefined;
     }
-    routePreviewBuildKeyRef.current = routePreviewSourceSignature;
+    routePreviewBuildKeyRef.current = routePreviewBuildSignature;
 
     const buildRoutePreview = async () => {
       if (!routePreviewPointSource.length) {
@@ -5396,17 +5409,17 @@ const App = () => {
     return () => {
       cancelled = true;
     };
-  }, [attachRoutePreviewSegments, routePreviewPointSource, routePreviewSourceSignature, resolveRoutePreviewDays]);
+  }, [attachRoutePreviewSegments, routePreviewBuildSignature, routePreviewPointSource, resolveRoutePreviewDays]);
 
   useEffect(() => {
     if (!ROUTE_PREVIEW_ENABLED) return undefined;
     if (routePreviewLoading || routePreviewManualRefreshing) return undefined;
     if (routePreviewMap.length > 0) {
-      routePreviewAutoRetryKeyRef.current = routePreviewSourceSignature;
+      routePreviewAutoRetryKeyRef.current = routePreviewBuildSignature;
       return undefined;
     }
     if (routePreviewPointCount < 2) return undefined;
-    const retryKey = `${routePreviewSourceSignature}:${routePreviewPointCount}:${routePreviewNeedsLookup ? 'lookup' : 'ready'}`;
+    const retryKey = `${routePreviewBuildSignature}:${routePreviewPointCount}:${routePreviewNeedsLookup ? 'lookup' : 'ready'}`;
     if (routePreviewAutoRetryKeyRef.current === retryKey) return undefined;
     routePreviewAutoRetryKeyRef.current = retryKey;
     const timer = window.setTimeout(() => {
@@ -5421,7 +5434,7 @@ const App = () => {
     routePreviewMap.length,
     routePreviewNeedsLookup,
     routePreviewPointCount,
-    routePreviewSourceSignature,
+    routePreviewBuildSignature,
   ]);
   const buildRecommendationMapId = useCallback((recommendation, index) => (
     `rec:${index}:${String(recommendation?.name || '').trim()}__${String(recommendation?.address || '').trim()}`
@@ -5622,8 +5635,8 @@ const App = () => {
   const routeMapHasRenderableData = timelinePoints.length > 0 || renderableSegmentCount > 0;
   const routeMapSummary = `일정 ${timelinePoints.length} · 내 장소 ${libraryMapPoints.length} · 추천 ${recommendationMapPoints.length}`;
   const mapDayOptions = useMemo(() => (
-    routePreviewMap.map((day) => ({ day: Number(day.day), label: `Day ${day.day}` }))
-  ), [routePreviewMap]);
+    routePreviewPointSource.map((day) => ({ day: Number(day.day), label: `Day ${day.day}` }))
+  ), [routePreviewPointSource]);
   const findPlanItemContextById = useCallback((targetId) => {
     if (!targetId) return null;
     for (let dayIdx = 0; dayIdx < (itinerary.days || []).length; dayIdx += 1) {
@@ -7197,20 +7210,33 @@ const App = () => {
     saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
-      const dayPlan = nextData.days[dayIdx].plan;
-      const item = dayPlan[pIdx];
+      const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
+      if (!item) return prev;
 
-      let minutes = parseMinsLabel(item.bufferTimeOverride, DEFAULT_BUFFER_MINS);
-      minutes = Math.max(0, minutes + delta);
-      item.bufferTimeOverride = `${minutes}분`;
-      item._manualBufferTimeOverride = `${minutes}분`;
+      const currentBufferState = getBufferDisplayState(nextData.days, dayIdx, pIdx);
+      const currentMinutes = currentBufferState.mins;
+      const nextMinutes = Math.max(0, currentMinutes + delta);
+      const reducedMinutes = Math.max(0, currentMinutes - nextMinutes);
+
+      if (reducedMinutes > 0) {
+        const prevEntry = getPreviousMainPlanEntryByIndex(nextData.days, dayIdx, pIdx);
+        if (prevEntry?.item && isAutoStretchEligible(prevEntry.item)) {
+          const previousItem = prevEntry.item;
+          const nextDuration = Math.max(0, Number(previousItem.duration) || 0) + reducedMinutes;
+          previousItem.duration = nextDuration;
+          syncBaseDuration(previousItem, nextDuration);
+        }
+      }
+
+      item.bufferTimeOverride = `${nextMinutes}분`;
+      item._manualBufferTimeOverride = `${nextMinutes}분`;
       item._isBufferCoordinated = false;
 
-      nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      recalculateScheduleAcrossDays(nextData.days);
       recalculateLodgeDurations(nextData.days);
       return nextData;
     });
-    setLastAction("버퍼 시간을 조정했습니다.");
+    setLastAction(delta < 0 ? "보정시간을 줄이고 이전 일정 소요시간에 반영했습니다." : "보정 시간을 조정했습니다.");
   };
 
   const applyAutoBufferTimeById = (dayIdx, itemId) => {

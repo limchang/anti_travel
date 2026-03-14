@@ -3444,6 +3444,7 @@ const App = () => {
   const [heroPinnedCompact, setHeroPinnedCompact] = useState(false);
   const [heroCompactBudgetBarVisible, setHeroCompactBudgetBarVisible] = useState(false);
   const [heroSummaryExpanded, setHeroSummaryExpanded] = useState(false);
+  const [showHeroSummaryModal, setShowHeroSummaryModal] = useState(false);
   const prevHeroPinnedCompactRef = useRef(false);
   const prevDashboardHeightRef = useRef(typeof window === 'undefined' ? 0 : (window.innerWidth < 1100 ? 320 : 360));
   const pendingHeroScrollAdjustRef = useRef(null);
@@ -9454,7 +9455,7 @@ const App = () => {
 
       {/* ── Col1: 예산 + 일정 네비게이션 ── */}
       <div
-        className="flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] z-[140] shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-hidden"
+        className="flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] z-[140] shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-visible"
         style={{ width: leftSidebarWidth }}
       >
         {col1Collapsed ? (
@@ -9800,7 +9801,7 @@ const App = () => {
                     </span>
                   </button>
                   {showNavMenu && (
-                    <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[20px] border border-slate-200 bg-white/98 shadow-[0_22px_44px_-24px_rgba(15,23,42,0.26)] overflow-hidden z-[180] animate-in slide-in-from-bottom-2">
+                    <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[20px] border border-slate-200 bg-white/98 shadow-[0_22px_44px_-24px_rgba(15,23,42,0.26)] overflow-hidden z-[260] animate-in slide-in-from-bottom-2">
                       <button
                         onClick={() => { setShowPlanManager(true); setShowNavMenu(false); }}
                         className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
@@ -9896,7 +9897,7 @@ const App = () => {
       </div>
 
       <div
-        className="flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[140] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-hidden"
+        className="flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[140] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-visible"
         style={{ right: 0, width: rightSidebarWidth }}
       >
         {col2Collapsed ? (
@@ -9948,7 +9949,7 @@ const App = () => {
                     <SlidersHorizontal size={12} />
                   </button>
                   {showPlaceMenu && (
-                    <div className="absolute right-0 top-8 z-20 min-w-[186px] rounded-[12px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
+                    <div className="absolute right-0 top-8 z-[260] min-w-[186px] rounded-[12px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
                       <div className="mb-1 rounded-[10px] border border-slate-100 bg-slate-50/80 p-1">
                         <p className="px-1.5 pb-1 text-[9px] font-black tracking-[0.14em] text-slate-400 uppercase">카드 보기</p>
                         <div className="grid grid-cols-2 gap-1">
@@ -10814,6 +10815,15 @@ const App = () => {
                   <button
                     onClick={() => {
                       setShowPlanOptions(false);
+                      setShowHeroSummaryModal(true);
+                    }}
+                    className="flex-1 py-2 rounded-xl border border-slate-200 bg-white text-[11px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                  >
+                    여행 요약 보기
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowPlanOptions(false);
                       setShowPlanManager(true);
                     }}
                     className="flex-1 py-2 rounded-xl border border-slate-200 bg-white text-[11px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
@@ -11336,10 +11346,10 @@ const App = () => {
                         {heroCompactActive && (
                           <button
                             type="button"
-                            onClick={() => setHeroSummaryExpanded((prev) => !prev)}
+                            onClick={() => setShowOverviewMapModal(true)}
                             className={`pointer-events-auto absolute inset-x-0 bottom-0 z-[12] flex h-8 items-start justify-center bg-transparent transition-opacity duration-200 ease-out ${heroCompactBudgetBarVisible ? 'opacity-100' : 'opacity-0'}`}
-                            aria-label={heroSummaryExpanded ? '여행 요약 닫기' : '여행 요약 확장'}
-                            title={heroSummaryExpanded ? '여행 요약 닫기' : '여행 요약 확장'}
+                            aria-label="동선 지도 보기"
+                            title="동선 지도 보기"
                           >
                             {compactHeroAlert && (
                               <span
@@ -11454,7 +11464,34 @@ const App = () => {
                                   </div>
                               </div>
 
-                              {heroSummaryExpanded && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowOverviewMapModal(true)}
+                                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-[24px] border border-slate-200 bg-white/92 px-4 py-3 text-[11px] font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-all hover:border-[#3182F6] hover:text-[#3182F6]"
+                                >
+                                  동선 지도 보기
+                                  <ArrowUpRight size={12} />
+                                </button>
+                            </div>
+                        </div>
+                        )}
+                        {showHeroSummaryModal && (
+                          <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/36 px-4 py-6 backdrop-blur-sm" onClick={() => setShowHeroSummaryModal(false)}>
+                            <div className="w-full max-w-[560px] rounded-[28px] border border-white/70 bg-white/96 p-4 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)]" onClick={(event) => event.stopPropagation()}>
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <p className="text-[15px] font-black tracking-tight text-slate-900">여행 요약</p>
+                                  <p className="mt-1 text-[11px] font-bold text-slate-400">일정 흐름과 예산 분포를 한 번에 확인</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowHeroSummaryModal(false)}
+                                  className="shrink-0 rounded-2xl border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                                  title="여행 요약 닫기"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </div>
                               <div className="mt-4 w-full rounded-[24px] border border-slate-200 bg-white/92 p-4 text-left shadow-[0_16px_32px_-24px_rgba(15,23,42,0.24)]">
                                 <p className="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">신규 / 재방문 비율 비교</p>
                                 <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden flex">
@@ -11471,7 +11508,6 @@ const App = () => {
                                     <p className="text-[14px] font-black text-blue-700 tabular-nums">{revisitCount}개 ({revisitPct}%)</p>
                                   </div>
                                 </div>
-
                                 <div className="mt-3 pt-3 border-t border-slate-200">
                                   <p className="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">카테고리별 지출 비율</p>
                                   {categorySpendRows.length === 0 ? (
@@ -11493,17 +11529,8 @@ const App = () => {
                                   )}
                                 </div>
                               </div>
-                            )}
-                                <button
-                                  type="button"
-                                  onClick={() => setHeroSummaryExpanded(v => !v)}
-                                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-[24px] border border-slate-200 bg-white/92 px-4 py-3 text-[11px] font-black text-slate-600 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.3)] transition-all hover:border-[#3182F6] hover:text-[#3182F6]"
-                                >
-                                  여행 요약 {heroSummaryExpanded ? '닫기' : '확장'}
-                                  <ChevronDown size={12} className={`transition-transform ${heroSummaryExpanded ? 'rotate-180' : ''}`} />
-                                </button>
                             </div>
-                        </div>
+                          </div>
                         )}
                       </div>
                     </div>

@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.213",
+      "timestamp": "2026-03-15T00:19:14+09:00",
+      "message": "tune: use place points only in right panel minimap"
+    },
+    {
       "version": "1.3.212",
       "timestamp": "2026-03-15T00:14:39+09:00",
       "message": "fix: raise route polyline pane above map tiles"
@@ -144,11 +149,6 @@
       "version": "1.3.184",
       "timestamp": "2026-03-14T03:06:09+09:00",
       "message": "fix: simplify overnight lodge end-time mechanics"
-    },
-    {
-      "version": "1.3.183",
-      "timestamp": "2026-03-14T02:55:15+09:00",
-      "message": "fix: allow overnight lodge end wheel to wrap before start"
     }
   ]
 }

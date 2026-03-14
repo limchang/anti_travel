@@ -10349,31 +10349,31 @@ const App = () => {
                     <div className="sticky top-0 z-[260] -mx-5 -mt-px mb-1 w-auto border-b border-slate-100/80 bg-white/98 px-5 pb-2 pt-1.5 shadow-[0_10px_18px_-18px_rgba(15,23,42,0.22)] backdrop-blur-xl">
                       <div id="right-panel-map-overview" className="rounded-[22px] border border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(191,219,254,0.35),_rgba(255,255,255,0.98)_55%)] p-2 shadow-[0_18px_32px_-24px_rgba(15,23,42,0.25)]">
                         <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white/88">
-                          {panelRouteMapHasRenderableData ? (
+                          {placeOverviewHasPoints ? (
                             <div className="relative">
                               <RoutePreviewCanvas
-                                routePreviewMap={panelFilteredRoutePreviewMap}
-                                libraryPoints={[]}
-                                recommendationPoints={[]}
-                                focusedTarget={focusedMapTarget?.kind === 'timeline' ? focusedMapTarget : null}
+                                routePreviewMap={[]}
+                                libraryPoints={libraryMapPoints}
+                                recommendationPoints={recommendationMapPoints}
+                                focusedTarget={focusedMapTarget}
                                 onMarkerClick={handleOverviewMapMarkerClick}
                                 onBackgroundClick={clearOverviewMapFocus}
                                 interactive={!isMobileLayout || mapExpanded}
                                 height={rightPanelMapHeight}
-                                showTimelineMarkers
-                                showRouteLines
-                                showOverlayMarkers={false}
+                                showTimelineMarkers={false}
+                                showRouteLines={false}
+                                showOverlayMarkers
                               />
                             </div>
                           ) : routePreviewLoading ? (
                             <div className="flex items-center justify-center text-[10px] font-black text-slate-400" style={{ height: rightPanelMapHeight }}>
-                              경로 좌표 확인 중...
+                              내 장소 좌표 확인 중...
                             </div>
                           ) : (
                             <div className="flex flex-col items-center justify-center gap-1 text-center px-3" style={{ height: rightPanelMapHeight }}>
                               <MapIcon size={18} className="text-slate-300" />
                               <p className="text-[10px] font-bold text-slate-400">
-                                전체 일정의 경로 좌표를 아직 충분히 확인하지 못했습니다.
+                                내 장소 좌표를 아직 충분히 확인하지 못했습니다.
                               </p>
                             </div>
                           )}

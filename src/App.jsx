@@ -5142,7 +5142,15 @@ const App = () => {
     for (const entry of dayEntries) {
       const coords = [];
       for (const point of entry.points) {
-        const geo = await geocodeAddress(point.address, { forceRefresh });
+        const storedGeo = normalizeGeoPoint(point.geo, point.address);
+        const hasStoredGeo = hasGeoCoords(storedGeo) && !isGeoStaleForAddress(storedGeo, point.address);
+        let geo = hasStoredGeo ? storedGeo : null;
+        if (forceRefresh || !geo) {
+          const refreshedGeo = await geocodeAddress(point.address, { forceRefresh });
+          if (hasGeoCoords(refreshedGeo)) {
+            geo = refreshedGeo;
+          }
+        }
         if (!geo?.lat || !geo?.lon) continue;
         coords.push({
           ...point,

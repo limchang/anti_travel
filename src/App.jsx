@@ -3694,6 +3694,7 @@ const App = () => {
       business: normalizeBusiness(placeData?.business || {}),
       price: isStandaloneLodgeSegment ? 0 : (placeData ? (priceFromReceipt || placeData.price || 0) : 0),
       duration: Number(placeData?.duration || (isShip ? 330 : 60)),
+      baseDuration: Number(placeData?.baseDuration ?? placeData?.duration ?? (isShip ? 330 : 60)),
       sailDuration: Number(placeData?.sailDuration || (isShip ? 240 : 0)) || undefined,
       startPoint: placeData?.startPoint,
       endPoint: placeData?.endPoint,
@@ -3712,6 +3713,7 @@ const App = () => {
     };
     if (isShip) ensureShipItemDefaults(nextItem, dayNumber);
     if (isFullLodge) ensureLodgeStaySegments(nextItem);
+    ensureBaseDuration(nextItem);
     applyGeoFieldsToRecord(nextItem);
     return nextItem;
   };
@@ -3849,6 +3851,7 @@ const App = () => {
             const nextItem = { ...p };
             if (!nextItem.receipt) nextItem.receipt = { address: nextItem.address || '', items: [] };
             if (!Array.isArray(nextItem.receipt.items)) nextItem.receipt.items = [];
+            ensureBaseDuration(nextItem);
             applyGeoFieldsToRecord(nextItem);
             return nextItem;
           })
@@ -4349,6 +4352,37 @@ const App = () => {
     isFullLodgeStayItem(item)
     || (isStandaloneLodgeSegmentItem(item) && String(item?.segmentType || '').trim() === 'stay')
   );
+  const getBaseDurationValue = (item = {}) => {
+    const current = Math.max(0, Number(item?.duration) || 0);
+    const stored = Number(item?.baseDuration);
+    return Number.isFinite(stored) && stored >= 0 ? stored : current;
+  };
+  const ensureBaseDuration = (item = {}) => {
+    if (!item || item.type === 'backup') return 0;
+    const safe = getBaseDurationValue(item);
+    item.baseDuration = safe;
+    return safe;
+  };
+  const syncBaseDuration = (item = {}, minutes = item?.duration) => {
+    if (!item || item.type === 'backup') return 0;
+    const safe = Math.max(0, Number(minutes) || 0);
+    item.baseDuration = safe;
+    return safe;
+  };
+  const primeTimelineDurationFromBase = (item = {}) => {
+    if (!item || item.type === 'backup') return;
+    const baseDuration = ensureBaseDuration(item);
+    if (item.types?.includes('ship') || isOvernightLodgeTimelineItem(item)) return;
+    if (item.isDurationFixed || item.isEndTimeFixed) return;
+    item.duration = baseDuration;
+  };
+  const isAutoStretchEligible = (item = {}) => {
+    if (!item || item.type === 'backup') return false;
+    if (item.types?.includes('ship') || item.types?.includes('pickup')) return false;
+    if (item.isDurationFixed || item.isEndTimeFixed) return false;
+    if (isOvernightLodgeTimelineItem(item)) return false;
+    return true;
+  };
   const getPlanReceiptSelectedTotal = (item = {}) => {
     const receiptItems = Array.isArray(item?.receipt?.items) ? item.receipt.items : null;
     if (!receiptItems?.length) return Number(item?.price || 0);
@@ -5515,6 +5549,7 @@ const App = () => {
       const lodgeItem = day.plan.find(p => p.id === lastMain.id);
       if (lodgeItem) {
         lodgeItem.duration = duration;
+        syncBaseDuration(lodgeItem, duration);
         if (!lodgeItem.lodgeCheckoutTime) lodgeItem.lodgeCheckoutTime = minutesToTime(derivedCheckoutMins);
       }
     }
@@ -5802,8 +5837,8 @@ const App = () => {
     item._isBufferCoordinated = bufferState.isCoordinated;
   };
 
-  const recalculateSchedule = (dayPlan) => {
-    if (!Array.isArray(dayPlan)) return [];
+  const runSchedulePass = (dayPlan) => {
+    if (!Array.isArray(dayPlan)) return dayPlan;
     const mainIndices = [];
     for (let idx = 0; idx < dayPlan.length; idx += 1) {
       const item = dayPlan[idx];
@@ -5820,6 +5855,7 @@ const App = () => {
 
       item._timingConflict = false;
       item._timingConflictReason = '';
+      ensureBaseDuration(item);
 
       const duration = Math.max(0, Number(item.duration) || 0);
 
@@ -5830,8 +5866,10 @@ const App = () => {
           const shipTimeline = getShipTimeline(item);
           item.time = minutesToTime(shipTimeline.loadStart);
           item.duration = Math.max(0, shipTimeline.disembark - shipTimeline.loadStart);
+          syncBaseDuration(item, item.duration);
           prevEndMinutes = shipTimeline.disembark;
         } else {
+          if (isOvernightLodgeTimelineItem(item)) syncBaseDuration(item, duration);
           prevEndMinutes = start + duration;
         }
         continue;
@@ -5850,7 +5888,6 @@ const App = () => {
       if (item.isTimeFixed) {
         startMinutes = timeToMinutes(item.time || '00:00');
         const baseArrival = prevEndMinutes + travel;
-        // 고정 시작시간은 기준값으로 보고, 그 시각에 맞도록 보정시간을 다시 산정한다.
         effectiveBuffer = Math.max(0, startMinutes - baseArrival);
         item.bufferTimeOverride = `${effectiveBuffer}분`;
         item._manualBufferTimeOverride = `${effectiveBuffer}분`;
@@ -5867,16 +5904,18 @@ const App = () => {
         const shipTimeline = getShipTimeline(item);
         prevEndMinutes = shipTimeline.disembark;
         item.duration = Math.max(0, shipTimeline.disembark - timeToMinutes(item.time || '00:00'));
+        syncBaseDuration(item, item.duration);
       } else {
         const effectiveDuration = Math.max(0, Number(item.duration) || 0);
         item.duration = effectiveDuration;
+        if (isOvernightLodgeTimelineItem(item)) syncBaseDuration(item, effectiveDuration);
         prevEndMinutes = startMinutes + effectiveDuration;
       }
     }
     return dayPlan;
   };
 
-  const recalculateScheduleAcrossDays = (days) => {
+  const runSchedulePassAcrossDays = (days) => {
     if (!Array.isArray(days)) return days;
 
     let prevEndMinutes = null;
@@ -5888,6 +5927,7 @@ const App = () => {
 
         item._timingConflict = false;
         item._timingConflictReason = '';
+        ensureBaseDuration(item);
 
         const duration = Math.max(0, Number(item.duration) || 0);
 
@@ -5898,8 +5938,10 @@ const App = () => {
             const shipTimeline = getShipTimeline(item);
             item.time = minutesToTime(shipTimeline.loadStart);
             item.duration = Math.max(0, shipTimeline.disembark - shipTimeline.loadStart);
+            syncBaseDuration(item, item.duration);
             prevEndMinutes = shipTimeline.disembark;
           } else {
+            if (isOvernightLodgeTimelineItem(item)) syncBaseDuration(item, duration);
             prevEndMinutes = start + duration;
           }
           continue;
@@ -5932,14 +5974,78 @@ const App = () => {
           const shipTimeline = getShipTimeline(item);
           prevEndMinutes = shipTimeline.disembark;
           item.duration = Math.max(0, shipTimeline.disembark - timeToMinutes(item.time || '00:00'));
+          syncBaseDuration(item, item.duration);
         } else {
           const effectiveDuration = Math.max(0, Number(item.duration) || 0);
           item.duration = effectiveDuration;
+          if (isOvernightLodgeTimelineItem(item)) syncBaseDuration(item, effectiveDuration);
           prevEndMinutes = startMinutes + effectiveDuration;
         }
       }
     }
 
+    return days;
+  };
+
+  const applyAutoStretchAcrossTimeline = (days = []) => {
+    let changed = false;
+    for (let dayIdx = 0; dayIdx < days.length; dayIdx += 1) {
+      const dayPlan = days?.[dayIdx]?.plan || [];
+      for (let pIdx = 0; pIdx < dayPlan.length; pIdx += 1) {
+        const item = dayPlan[pIdx];
+        if (!item || item.type === 'backup') continue;
+        const prevEntry = getPreviousMainPlanEntryByIndex(days, dayIdx, pIdx);
+        if (!prevEntry?.item) continue;
+
+        const bufferState = getBufferDisplayState(days, dayIdx, pIdx);
+        const transfer = Math.max(0, bufferState.mins - DEFAULT_BUFFER_MINS);
+        if (transfer <= 0) continue;
+        if (!isAutoStretchEligible(prevEntry.item)) continue;
+
+        const previousItem = prevEntry.item;
+        const nextDuration = ensureBaseDuration(previousItem) + transfer;
+        if (Math.max(0, Number(previousItem.duration) || 0) !== nextDuration) {
+          previousItem.duration = nextDuration;
+          changed = true;
+        }
+
+        if (!item.isTimeFixed) {
+          item.bufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
+          item._manualBufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
+          item._isBufferCoordinated = false;
+          changed = true;
+        }
+      }
+    }
+    return changed;
+  };
+
+  const recalculateSchedule = (dayPlan) => {
+    if (!Array.isArray(dayPlan)) return [];
+    dayPlan.forEach((item) => {
+      ensureBaseDuration(item);
+      primeTimelineDurationFromBase(item);
+    });
+    runSchedulePass(dayPlan);
+    const timelineSnapshot = [{ day: 1, plan: dayPlan }];
+    if (applyAutoStretchAcrossTimeline(timelineSnapshot)) {
+      runSchedulePass(dayPlan);
+    }
+    return dayPlan;
+  };
+
+  const recalculateScheduleAcrossDays = (days) => {
+    if (!Array.isArray(days)) return days;
+    days.forEach((day) => {
+      (day?.plan || []).forEach((item) => {
+        ensureBaseDuration(item);
+        primeTimelineDurationFromBase(item);
+      });
+    });
+    runSchedulePassAcrossDays(days);
+    if (applyAutoStretchAcrossTimeline(days)) {
+      runSchedulePassAcrossDays(days);
+    }
     return days;
   };
 
@@ -6136,6 +6242,7 @@ const App = () => {
       const item = dayPlan[pIdx];
       const maxDuration = isOvernightLodgeTimelineItem(item) ? 1440 : 1439;
       item.duration = Math.max(0, Math.min(maxDuration, (item.duration || 0) + delta));
+      syncBaseDuration(item, item.duration);
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
     });
@@ -6151,6 +6258,7 @@ const App = () => {
       const maxDuration = isOvernightLodgeTimelineItem(item) ? 1440 : 1439;
       const nextMinutes = Math.max(0, Math.min(maxDuration, Number(minutes) || 0));
       item.duration = nextMinutes;
+      syncBaseDuration(item, nextMinutes);
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
     });
@@ -6169,6 +6277,7 @@ const App = () => {
       const maxDuration = isOvernightLodgeTimelineItem(item) ? 1440 : 1439;
       const targetHour = Math.max(0, Math.min(isOvernightLodgeTimelineItem(item) ? 24 : 23, Number(nextHour) || 0));
       item.duration = Math.max(0, Math.min(maxDuration, targetHour * 60));
+      syncBaseDuration(item, item.duration);
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
     });
@@ -6189,6 +6298,7 @@ const App = () => {
       if (delta > 30) delta -= 60;
       if (delta < -30) delta += 60;
       item.duration = Math.max(0, Math.min(maxDuration, currentTotal + delta));
+      syncBaseDuration(item, item.duration);
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
     });
@@ -6223,6 +6333,7 @@ const App = () => {
         : endMinutesRaw < startMinutes;
       const endMinutes = shouldWrapToNextDay ? endMinutesRaw + 1440 : endMinutesRaw;
       item.duration = Math.max(0, endMinutes - startMinutes);
+      syncBaseDuration(item, item.duration);
 
       // 종료 시각을 직접 조정하면 뒤 일정은 하드 고정(페리/숙박) 전까지 유동으로 풀어 밀리게 한다.
       for (let idx = pIdx + 1; idx < dayPlan.length; idx += 1) {
@@ -6256,6 +6367,7 @@ const App = () => {
       const maxDuration = isOvernightLodgeTimelineItem(item) ? 1440 : 1439;
       const absoluteEnd = Math.max(startMinutes, Math.min(startMinutes + maxDuration, Number(nextAbsoluteMinutes) || startMinutes));
       item.duration = Math.max(0, absoluteEnd - startMinutes);
+      syncBaseDuration(item, item.duration);
 
       for (let idx = pIdx + 1; idx < dayPlan.length; idx += 1) {
         const nextItem = dayPlan[idx];
@@ -6284,6 +6396,7 @@ const App = () => {
       const currentEndMinutes = startMinutes + (item.duration || 0);
       const nextEndMinutes = currentEndMinutes + delta;
       item.duration = Math.max(0, nextEndMinutes - startMinutes);
+      syncBaseDuration(item, item.duration);
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;
     });
@@ -6457,6 +6570,7 @@ const App = () => {
       const draft = JSON.parse(JSON.stringify(prev));
       const dayPlan = draft.days?.[dayIdx]?.plan || [];
       const p = draft.days[dayIdx].plan[pIdx];
+      syncBaseDuration(p, p.duration);
       p.isDurationFixed = !p.isDurationFixed;
       if (p.isDurationFixed) p.isEndTimeFixed = false;
       draft.days[dayIdx].plan = recalculateSchedule(dayPlan);
@@ -6470,6 +6584,7 @@ const App = () => {
       const draft = JSON.parse(JSON.stringify(prev));
       const dayPlan = draft.days?.[dayIdx]?.plan || [];
       const p = draft.days[dayIdx].plan[pIdx];
+      syncBaseDuration(p, p.duration);
       p.isEndTimeFixed = !p.isEndTimeFixed;
       if (p.isEndTimeFixed) p.isDurationFixed = false;
       draft.days[dayIdx].plan = recalculateSchedule(dayPlan);
@@ -7961,6 +8076,7 @@ const App = () => {
                 const nextItem = { ...p };
                 if (!nextItem.receipt) nextItem.receipt = { address: nextItem.address || '', items: [] };
                 if (!Array.isArray(nextItem.receipt.items)) nextItem.receipt.items = [];
+                ensureBaseDuration(nextItem);
                 applyGeoFieldsToRecord(nextItem);
                 return nextItem;
               })
@@ -8045,6 +8161,7 @@ const App = () => {
               if (updatedP.receipt?.items) {
                 updatedP.price = updatedP.receipt.items.reduce((sum, m) => sum + (m.selected ? getMenuLineTotal(m) : 0), 0);
               }
+              ensureBaseDuration(updatedP);
               applyGeoFieldsToRecord(updatedP);
               return updatedP;
             })

@@ -1824,7 +1824,7 @@ const formatPushTimestampLabel = (timestamp) => {
   else relative = `${days}일 전`;
   return `${yyyy}.${mm}.${dd} ${hh}:${min} (${relative})`;
 };
-const ROUTE_PREVIEW_ENABLED = false;
+const ROUTE_PREVIEW_ENABLED = true;
 const ROUTE_PREVIEW_COLORS = ['#34C759', '#FF8A3D', '#8B5CF6', '#3182F6', '#EF4444', '#14B8A6'];
 const TIME_WHEEL_ITEM_HEIGHT = 28;
 
@@ -2165,7 +2165,16 @@ const loadKakaoMapSdk = (() => {
   };
 })();
 
-const RoutePreviewCanvas = ({ routePreviewMap = [], height = 240, className = '' }) => {
+const RoutePreviewCanvas = ({
+  routePreviewMap = [],
+  height = 240,
+  className = '',
+  libraryPoints = [],
+  recommendationPoints = [],
+  focusedTarget = null,
+  onMarkerClick = null,
+  interactive = true,
+}) => {
   const mapRef = React.useRef(null);
   const mapInstanceRef = React.useRef(null);
   const overlaysRef = React.useRef([]);
@@ -2173,14 +2182,45 @@ const RoutePreviewCanvas = ({ routePreviewMap = [], height = 240, className = ''
 
   React.useEffect(() => {
     let cancelled = false;
+    const mapOverlayPoints = [
+      ...(Array.isArray(libraryPoints) ? libraryPoints : []),
+      ...(Array.isArray(recommendationPoints) ? recommendationPoints : []),
+    ];
 
     const clearOverlays = () => {
       overlaysRef.current.forEach((overlay) => overlay?.setMap?.(null));
       overlaysRef.current = [];
     };
 
+    const focusedTimelinePointIds = focusedTarget?.kind === 'timeline'
+      ? Array.isArray(focusedTarget?.routePointIds) && focusedTarget.routePointIds.length
+        ? focusedTarget.routePointIds
+        : [focusedTarget?.id].filter(Boolean)
+      : [];
+    const focusedOverlayKey = focusedTarget?.kind && focusedTarget?.id
+      ? `${focusedTarget.kind}:${focusedTarget.id}`
+      : '';
+
     const render = async () => {
-      const firstPoint = routePreviewMap.flatMap((day) => day.points || []).find((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon)));
+      const timelinePoints = routePreviewMap.flatMap((day) => day.points || []);
+      const focusedTimelinePoint = timelinePoints.find((point) => (
+        focusedTarget?.kind === 'timeline'
+        && (
+          focusedTimelinePointIds.includes(point?.id)
+          || focusedTimelinePointIds.includes(point?.itemId)
+        )
+        && Number.isFinite(Number(point?.lat))
+        && Number.isFinite(Number(point?.lon))
+      ));
+      const focusedOverlayPoint = mapOverlayPoints.find((point) => (
+        `${point?.kind}:${point?.id}` === focusedOverlayKey
+        && Number.isFinite(Number(point?.lat))
+        && Number.isFinite(Number(point?.lon))
+      ));
+      const firstPoint = focusedTimelinePoint
+        || focusedOverlayPoint
+        || timelinePoints.find((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon)))
+        || mapOverlayPoints.find((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon)));
       if (!mapRef.current || !firstPoint) {
         clearOverlays();
         return;
@@ -2201,9 +2241,15 @@ const RoutePreviewCanvas = ({ routePreviewMap = [], height = 240, className = ''
         map.relayout();
 
         const bounds = new kakao.maps.LatLngBounds();
+        let focusedLatLng = null;
         routePreviewMap.forEach((day) => {
           const segments = Array.isArray(day.segments) ? day.segments : [];
           segments.forEach((segment) => {
+            const isFocusedSegment = focusedTarget?.kind === 'timeline'
+              && (
+                focusedTimelinePointIds.includes(segment?.fromId)
+                || focusedTimelinePointIds.includes(segment?.toId)
+              );
             const vertices = Array.isArray(segment.path) && segment.path.length
               ? segment.path
               : [segment.fromPoint, segment.toPoint].filter(Boolean);
@@ -2217,9 +2263,9 @@ const RoutePreviewCanvas = ({ routePreviewMap = [], height = 240, className = ''
             if (path.length < 2) return;
             const polyline = new kakao.maps.Polyline({
               path,
-              strokeWeight: 5,
+              strokeWeight: isFocusedSegment ? 7 : 5,
               strokeColor: day.color,
-              strokeOpacity: 0.96,
+              strokeOpacity: isFocusedSegment ? 1 : 0.9,
               strokeStyle: 'solid',
             });
             polyline.setMap(map);
@@ -2229,26 +2275,86 @@ const RoutePreviewCanvas = ({ routePreviewMap = [], height = 240, className = ''
           day.points.forEach((point, index) => {
             const latLng = new kakao.maps.LatLng(point.lat, point.lon);
             bounds.extend(latLng);
+            const isFocusedPoint = focusedTarget?.kind === 'timeline'
+              && (
+                focusedTimelinePointIds.includes(point?.id)
+                || focusedTimelinePointIds.includes(point?.itemId)
+              );
+            if (isFocusedPoint) focusedLatLng = latLng;
             const marker = new kakao.maps.Circle({
               center: latLng,
-              radius: 110,
-              strokeWeight: 3,
-              strokeColor: '#FFFFFF',
+              radius: isFocusedPoint ? 145 : 110,
+              strokeWeight: isFocusedPoint ? 4 : 3,
+              strokeColor: isFocusedPoint ? '#0F172A' : '#FFFFFF',
               strokeOpacity: 1,
               fillColor: day.color,
-              fillOpacity: 0.98,
+              fillOpacity: isFocusedPoint ? 1 : 0.96,
             });
             marker.setMap(map);
             overlaysRef.current.push(marker);
+            if (typeof onMarkerClick === 'function') {
+              kakao.maps.event.addListener(marker, 'click', () => {
+                onMarkerClick({
+                  kind: 'timeline',
+                  id: point.itemId || point.id,
+                  pointId: point.id,
+                  day: day.day,
+                  label: point.label,
+                  address: point.address,
+                });
+              });
+            }
 
             const label = new kakao.maps.CustomOverlay({
               position: latLng,
               yAnchor: 2.25,
-              content: `<div style="padding:2px 7px;border-radius:999px;background:white;border:1px solid rgba(226,232,240,0.96);font-size:10px;font-weight:800;color:#334155;box-shadow:0 12px 18px -16px rgba(15,23,42,0.4)">Day ${day.day}-${index + 1}</div>`,
+              content: `<div style="padding:2px 8px;border-radius:999px;background:${isFocusedPoint ? 'rgba(15,23,42,0.96)' : 'white'};border:1px solid ${isFocusedPoint ? 'rgba(15,23,42,0.96)' : 'rgba(226,232,240,0.96)'};font-size:10px;font-weight:800;color:${isFocusedPoint ? 'white' : '#334155'};box-shadow:0 12px 18px -16px rgba(15,23,42,0.4)">Day ${day.day}-${index + 1}</div>`,
             });
             label.setMap(map);
             overlaysRef.current.push(label);
           });
+        });
+
+        mapOverlayPoints.forEach((point) => {
+          if (!Number.isFinite(Number(point?.lat)) || !Number.isFinite(Number(point?.lon))) return;
+          const latLng = new kakao.maps.LatLng(point.lat, point.lon);
+          bounds.extend(latLng);
+          const pointKey = `${point.kind}:${point.id}`;
+          const isFocusedPoint = pointKey === focusedOverlayKey;
+          if (isFocusedPoint) focusedLatLng = latLng;
+          const fillColor = point.kind === 'recommendation' ? '#F97316' : '#2563EB';
+          const glyph = point.kind === 'recommendation' ? '★' : '●';
+          const marker = new kakao.maps.Circle({
+            center: latLng,
+            radius: isFocusedPoint ? 120 : 88,
+            strokeWeight: isFocusedPoint ? 4 : 2,
+            strokeColor: isFocusedPoint ? '#0F172A' : '#FFFFFF',
+            strokeOpacity: 1,
+            fillColor,
+            fillOpacity: isFocusedPoint ? 0.98 : 0.92,
+          });
+          marker.setMap(map);
+          overlaysRef.current.push(marker);
+          if (typeof onMarkerClick === 'function') {
+            kakao.maps.event.addListener(marker, 'click', () => {
+              onMarkerClick({
+                kind: point.kind,
+                id: point.id,
+                label: point.label,
+                address: point.address,
+              });
+            });
+          }
+
+          const textLabel = String(point.label || '').trim();
+          const clippedLabel = textLabel.length > 10 ? `${textLabel.slice(0, 10)}…` : textLabel;
+          const label = new kakao.maps.CustomOverlay({
+            position: latLng,
+            yAnchor: 2.15,
+            content: `<div style="display:flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:${isFocusedPoint ? 'rgba(15,23,42,0.94)' : 'rgba(255,255,255,0.94)'};border:1px solid ${isFocusedPoint ? 'rgba(15,23,42,0.9)' : 'rgba(226,232,240,0.96)'};font-size:10px;font-weight:800;color:${isFocusedPoint ? 'white' : '#334155'};box-shadow:0 12px 18px -16px rgba(15,23,42,0.4)"><span style="color:${isFocusedPoint ? 'white' : fillColor};font-size:11px;line-height:1">${glyph}</span><span>${clippedLabel || (point.kind === 'recommendation' ? '추천' : '내 장소')}</span></div>`,
+          });
+          label.setMap(map);
+          overlaysRef.current.push(label);
         });
 
         requestAnimationFrame(() => {
@@ -2256,6 +2362,9 @@ const RoutePreviewCanvas = ({ routePreviewMap = [], height = 240, className = ''
           mapInstanceRef.current.relayout();
           if (!bounds.isEmpty()) {
             mapInstanceRef.current.setBounds(bounds, 48, 48, 48, 48);
+          }
+          if (focusedLatLng) {
+            mapInstanceRef.current.panTo(focusedLatLng);
           }
         });
       } catch (error) {
@@ -2269,7 +2378,7 @@ const RoutePreviewCanvas = ({ routePreviewMap = [], height = 240, className = ''
       cancelled = true;
       clearOverlays();
     };
-  }, [routePreviewMap]);
+  }, [routePreviewMap, libraryPoints, recommendationPoints, focusedTarget, onMarkerClick]);
 
   if (renderError) {
     return (
@@ -2279,7 +2388,7 @@ const RoutePreviewCanvas = ({ routePreviewMap = [], height = 240, className = ''
     );
   }
 
-  return <div ref={mapRef} className={`w-full rounded-[18px] overflow-hidden bg-slate-100 ${className}`.trim()} style={{ height }} />;
+  return <div ref={mapRef} className={`w-full rounded-[18px] overflow-hidden bg-slate-100 ${interactive ? '' : 'pointer-events-none'} ${className}`.trim()} style={{ height }} />;
 };
 
 // ── AI 자동입력 학습 지침 모달 ───────────────────────────────────────────────
@@ -2948,6 +3057,14 @@ const App = () => {
         } else {
           setBasePlanRef({ id: found.id, name: found.activity, address: '' });
         }
+        setFocusedMapTarget({
+          kind: 'timeline',
+          id: found.id,
+          day: dayNum,
+          routePointIds: found.types?.includes('ship')
+            ? [`${found.id}:ship-start`, `${found.id}:ship-end`]
+            : [found.id],
+        });
       }
     }
 
@@ -3108,6 +3225,11 @@ const App = () => {
   const routePreviewSegmentCacheRef = useRef({});
   const [showRoutePreviewModal, setShowRoutePreviewModal] = useState(false);
   const [hiddenRoutePreviewEndpoints, setHiddenRoutePreviewEndpoints] = useState({});
+  const [mapScope, setMapScope] = useState('all');
+  const [mapDayFilter, setMapDayFilter] = useState(null);
+  const [mapExpanded, setMapExpanded] = useState(() => (typeof window === 'undefined' ? true : window.innerWidth >= 1100));
+  const [focusedMapTarget, setFocusedMapTarget] = useState(null);
+  const [recommendationGeoMap, setRecommendationGeoMap] = useState({});
   const routeRetryCooldownMs = 45000;
   const autoRouteQueuedRef = useRef(new Set());
   const [dashboardHeight, setDashboardHeight] = useState(() => {
@@ -4651,6 +4773,8 @@ const App = () => {
             const endAddress = String(item.endAddress || item.endPoint || '').trim();
             const startPoint = {
               id: startKey,
+              itemId: item.id,
+              pointKind: 'ship-start',
               label: `${item.activity || '페리'} 출발`,
               address: startAddress,
               geo: normalizeGeoPoint(item.geoStart, startAddress),
@@ -4659,6 +4783,8 @@ const App = () => {
             };
             const endPoint = {
               id: endKey,
+              itemId: item.id,
+              pointKind: 'ship-end',
               label: `${item.activity || '페리'} 도착`,
               address: endAddress,
               geo: normalizeGeoPoint(item.geoEnd, endAddress),
@@ -4673,6 +4799,8 @@ const App = () => {
           if (!address) return [];
           return [{
             id: item.id,
+            itemId: item.id,
+            pointKind: 'plan',
             label: item.activity || item.name || '일정',
             address,
             geo: normalizeGeoPoint(item.geo, address),
@@ -4958,6 +5086,180 @@ const App = () => {
     () => routePreviewPointSource.reduce((sum, day) => sum + ((day.points || []).length), 0),
     [routePreviewPointSource]
   );
+  const buildRecommendationMapId = useCallback((recommendation, index) => (
+    `rec:${index}:${String(recommendation?.name || '').trim()}__${String(recommendation?.address || '').trim()}`
+  ), []);
+  useEffect(() => {
+    if (!isMobileLayout) {
+      setMapExpanded(true);
+    } else {
+      setMapExpanded(false);
+    }
+  }, [isMobileLayout]);
+  const visibleRecommendationEntries = useMemo(() => (
+    (perplexityNearbyModal.recommendations || [])
+      .map((recommendation, index) => ({
+        id: buildRecommendationMapId(recommendation, index),
+        recommendation,
+      }))
+      .filter((entry) => String(entry.recommendation?.address || '').trim())
+  ), [buildRecommendationMapId, perplexityNearbyModal.recommendations]);
+  useEffect(() => {
+    let cancelled = false;
+    const loadRecommendationGeo = async () => {
+      if (!visibleRecommendationEntries.length) {
+        setRecommendationGeoMap({});
+        return;
+      }
+      const nextMap = {};
+      for (const entry of visibleRecommendationEntries) {
+        const address = String(entry.recommendation?.address || '').trim();
+        const geo = await geocodeAddress(address);
+        if (cancelled) return;
+        if (hasGeoCoords(geo)) {
+          nextMap[entry.id] = normalizeGeoPoint(geo, address);
+        }
+      }
+      if (!cancelled) {
+        setRecommendationGeoMap((prev) => ({ ...prev, ...nextMap }));
+      }
+    };
+    void loadRecommendationGeo();
+    return () => {
+      cancelled = true;
+    };
+  }, [geocodeAddress, visibleRecommendationEntries]);
+  const filteredRoutePreviewMap = useMemo(() => (
+    mapScope === 'day' && Number.isFinite(Number(mapDayFilter))
+      ? routePreviewMap.filter((day) => Number(day.day) === Number(mapDayFilter))
+      : routePreviewMap
+  ), [mapDayFilter, mapScope, routePreviewMap]);
+  const timelinePoints = useMemo(() => (
+    filteredRoutePreviewMap.flatMap((day) => (
+      (day.points || []).map((point, index) => ({
+        id: point.id,
+        itemId: point.itemId || point.id,
+        kind: 'timeline',
+        day: day.day,
+        order: index + 1,
+        label: point.label,
+        address: point.address,
+        lat: Number(point.lat),
+        lon: Number(point.lon),
+      }))
+    ))
+  ), [filteredRoutePreviewMap]);
+  const libraryMapPoints = useMemo(() => (
+    (itinerary.places || [])
+      .filter(Boolean)
+      .filter((place) => {
+        if (!placeFilterTags.length) return true;
+        const placeTags = Array.isArray(place?.types) ? place.types : [];
+        return placeFilterTags.some((tag) => placeTags.includes(tag));
+      })
+      .map((place) => {
+        const address = String(place?.address || place?.receipt?.address || '').trim();
+        const geo = normalizeGeoPoint(place?.geo, address);
+        if (!address || !hasGeoCoords(geo)) return null;
+        return {
+          id: place.id,
+          kind: 'place',
+          label: place.name || '내 장소',
+          address,
+          lat: Number(geo.lat),
+          lon: Number(geo.lon),
+        };
+      })
+      .filter(Boolean)
+  ), [itinerary.places, placeFilterTags]);
+  const recommendationMapPoints = useMemo(() => (
+    visibleRecommendationEntries
+      .map(({ id, recommendation }) => {
+        const address = String(recommendation?.address || '').trim();
+        const geo = normalizeGeoPoint(recommendationGeoMap[id], address);
+        if (!address || !hasGeoCoords(geo)) return null;
+        return {
+          id,
+          kind: 'recommendation',
+          label: recommendation?.name || '추천 장소',
+          address,
+          lat: Number(geo.lat),
+          lon: Number(geo.lon),
+        };
+      })
+      .filter(Boolean)
+  ), [recommendationGeoMap, visibleRecommendationEntries]);
+  const mapDayOptions = useMemo(() => (
+    routePreviewMap.map((day) => ({ day: Number(day.day), label: `Day ${day.day}` }))
+  ), [routePreviewMap]);
+  const findPlanItemContextById = useCallback((targetId) => {
+    if (!targetId) return null;
+    for (let dayIdx = 0; dayIdx < (itinerary.days || []).length; dayIdx += 1) {
+      const day = itinerary.days?.[dayIdx];
+      const pIdx = (day?.plan || []).findIndex((item) => item?.id === targetId);
+      if (pIdx >= 0) {
+        return {
+          item: day.plan[pIdx],
+          dayIdx,
+          pIdx,
+          dayNum: day.day,
+        };
+      }
+    }
+    return null;
+  }, [itinerary.days]);
+  const focusTimelineOnMap = useCallback((targetItem, dayNum, { scroll = false } = {}) => {
+    if (!targetItem?.id) return;
+    const routePointIds = targetItem.types?.includes('ship')
+      ? [`${targetItem.id}:ship-start`, `${targetItem.id}:ship-end`]
+      : [targetItem.id];
+    if (mapScope === 'day' && Number.isFinite(Number(dayNum)) && Number(mapDayFilter) !== Number(dayNum)) {
+      setMapDayFilter(Number(dayNum));
+    }
+    if (isMobileLayout) setMapExpanded(true);
+    setFocusedMapTarget({
+      kind: 'timeline',
+      id: targetItem.id,
+      day: dayNum,
+      routePointIds,
+    });
+    if (scroll) handleNavClick(dayNum, targetItem.id);
+  }, [handleNavClick, isMobileLayout, mapDayFilter, mapScope]);
+  const focusLibraryOnMap = useCallback((place, { scroll = false } = {}) => {
+    const placeId = String(place?.id || '').trim();
+    if (!placeId) return;
+    if (isMobileLayout) setMapExpanded(true);
+    setFocusedMapTarget({ kind: 'place', id: placeId });
+    if (scroll) {
+      document.getElementById(`library-place-${placeId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [isMobileLayout]);
+  const focusRecommendationOnMap = useCallback((recommendationId, { scroll = false } = {}) => {
+    if (!recommendationId) return;
+    if (isMobileLayout) setMapExpanded(true);
+    setFocusedMapTarget({ kind: 'recommendation', id: recommendationId });
+    if (scroll) {
+      document.getElementById(`recommendation-card-${recommendationId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [isMobileLayout]);
+  const handleOverviewMapMarkerClick = useCallback((target) => {
+    if (!target) return;
+    if (target.kind === 'timeline') {
+      const found = findPlanItemContextById(target.id);
+      if (found?.item) {
+        focusTimelineOnMap(found.item, found.dayNum, { scroll: true });
+      }
+      return;
+    }
+    if (target.kind === 'place') {
+      const place = (itinerary.places || []).find((entry) => entry?.id === target.id);
+      if (place) focusLibraryOnMap(place, { scroll: true });
+      return;
+    }
+    if (target.kind === 'recommendation') {
+      focusRecommendationOnMap(target.id, { scroll: true });
+    }
+  }, [findPlanItemContextById, focusLibraryOnMap, focusRecommendationOnMap, focusTimelineOnMap, itinerary.places]);
 
   const normalizeAlternative = (alt = {}) => {
     const receipt = alt.receipt
@@ -7252,11 +7554,16 @@ const App = () => {
     setExpandedId(prev => (prev === id ? null : id));
     if (expandedId !== id) {
       let found = null;
+      let foundDay = null;
       for (const d of itinerary.days || []) {
         found = d.plan?.find(p => p.id === id);
-        if (found) break;
+        if (found) {
+          foundDay = d.day;
+          break;
+        }
       }
       if (found) {
+        focusTimelineOnMap(found, foundDay);
         const addr = getRouteAddress(found, 'to');
         if (addr) {
           setBasePlanRef({ id: found.id, name: found.activity, address: addr });
@@ -9483,6 +9790,16 @@ const App = () => {
                   ...TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map((tag) => ({ ...tag, isCustom: false })),
                   ...customPlaceCategories.map((tag) => ({ value: tag, label: getCustomTagLabel(tag), isCustom: true })),
                 ];
+                const rightPanelMapHeight = isMobileLayout ? (mapExpanded ? 196 : 94) : 220;
+                const mapHasPoints = filteredRoutePreviewMap.length > 0 || libraryMapPoints.length > 0 || recommendationMapPoints.length > 0;
+                const mapLayerSummary = `일정 ${timelinePoints.length} · 내 장소 ${libraryMapPoints.length} · 추천 ${recommendationMapPoints.length}`;
+                const mapFocusLabel = focusedMapTarget?.kind === 'timeline'
+                  ? '일정 포커스'
+                  : focusedMapTarget?.kind === 'place'
+                    ? '내 장소 포커스'
+                    : focusedMapTarget?.kind === 'recommendation'
+                      ? '추천 포커스'
+                      : '전체 동선';
                 return (
                   <div className="w-full flex flex-col gap-1.5 items-stretch">
                     {draggingFromTimeline && (
@@ -9512,9 +9829,99 @@ const App = () => {
                         </div>
                       </div>
                     )}
-                    {/* 필터 및 정렬 상태 표시기 */}
-                    <div className="sticky top-0 z-20 -mx-5 -mt-px mb-1 w-auto border-b border-slate-100/80 bg-white/98 px-5 pb-1.5 pt-1.5 shadow-[0_10px_18px_-18px_rgba(15,23,42,0.22)] backdrop-blur-xl">
-                      <div className="w-full flex flex-col gap-1">
+                    <div className="sticky top-0 z-20 -mx-5 -mt-px mb-1 w-auto border-b border-slate-100/80 bg-white/98 px-5 pb-2 pt-1.5 shadow-[0_10px_18px_-18px_rgba(15,23,42,0.22)] backdrop-blur-xl">
+                      <div className="rounded-[22px] border border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(191,219,254,0.35),_rgba(255,255,255,0.98)_55%)] p-2.5 shadow-[0_18px_32px_-24px_rgba(15,23,42,0.25)]">
+                        <div className="flex items-center gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-black tracking-tight text-slate-800">동선 지도</p>
+                            <p className="mt-0.5 text-[9px] font-bold text-slate-400 truncate">{mapFocusLabel} · {mapLayerSummary}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => void refreshRoutePreviewMap()}
+                            disabled={routePreviewLoading}
+                            className="shrink-0 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-black text-slate-500 transition-colors hover:border-[#3182F6] hover:text-[#3182F6] disabled:cursor-not-allowed disabled:opacity-50"
+                            title="경로 새로 불러오기"
+                          >
+                            {routePreviewLoading ? '확인 중' : '새로고침'}
+                          </button>
+                          {isMobileLayout && (
+                            <button
+                              type="button"
+                              onClick={() => setMapExpanded((prev) => !prev)}
+                              className="shrink-0 rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                              title={mapExpanded ? '지도 접기' : '지도 펼치기'}
+                            >
+                              {mapExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                            </button>
+                          )}
+                        </div>
+                        <div className="mt-2 flex gap-1 overflow-x-auto no-scrollbar">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMapScope('all');
+                              setMapDayFilter(null);
+                            }}
+                            className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${mapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                          >
+                            전체
+                          </button>
+                          {mapDayOptions.map((option) => {
+                            const active = mapScope === 'day' && Number(mapDayFilter) === Number(option.day);
+                            return (
+                              <button
+                                key={`map-day-${option.day}`}
+                                type="button"
+                                onClick={() => {
+                                  setMapScope('day');
+                                  setMapDayFilter(option.day);
+                                }}
+                                className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                              >
+                                {option.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div className="mt-2 overflow-hidden rounded-[18px] border border-slate-200 bg-white/88">
+                          {mapHasPoints ? (
+                            <div className="relative">
+                              <RoutePreviewCanvas
+                                routePreviewMap={filteredRoutePreviewMap}
+                                libraryPoints={libraryMapPoints}
+                                recommendationPoints={recommendationMapPoints}
+                                focusedTarget={focusedMapTarget}
+                                onMarkerClick={handleOverviewMapMarkerClick}
+                                interactive={!isMobileLayout || mapExpanded}
+                                height={rightPanelMapHeight}
+                              />
+                              {routePreviewLoading && (
+                                <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/80 bg-white/92 px-3 py-1 text-[10px] font-black text-[#3182F6] shadow-sm">
+                                  경로 다시 확인 중...
+                                </div>
+                              )}
+                            </div>
+                          ) : routePreviewLoading ? (
+                            <div className="flex items-center justify-center text-[10px] font-black text-slate-400" style={{ height: rightPanelMapHeight }}>
+                              카카오 경로 확인 중...
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center gap-1 text-center px-3" style={{ height: rightPanelMapHeight }}>
+                              <MapIcon size={18} className="text-slate-300" />
+                              <p className="text-[10px] font-bold text-slate-400">
+                                {routePreviewPointCount >= 2 ? '주소 좌표를 아직 확인하지 못했습니다. 잠시 후 다시 확인해 주세요.' : '주소가 있는 일정 2개 이상 또는 지도용 장소가 필요합니다.'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        {isMobileLayout && !mapExpanded && (
+                          <div className="mt-2 px-1 text-[9px] font-bold text-slate-400">
+                            {mapLayerSummary}
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-2 w-full flex flex-col gap-1">
                       <div className="flex items-start gap-1 px-1">
                         <div className="flex flex-1 flex-wrap gap-1">
                           {filterTagOptions.map(t => {
@@ -9580,8 +9987,8 @@ const App = () => {
                         <div
                           onClick={() => {
                             setBasePlanRef(null);
-                            setLastAction("거리순 정렬을 해제하고 이름순으로 정렬했습니다.");
-                          }}
+                          setLastAction("거리순 정렬을 해제하고 이름순으로 정렬했습니다.");
+                        }}
                           className="w-full px-3 py-2 rounded-[14px] border border-blue-100 bg-blue-50/50 text-[11px] font-black text-[#3182F6] flex items-center gap-1.5 shadow-[0_2px_8px_-2px_rgba(49,130,246,0.08)] cursor-pointer hover:bg-blue-100 transition-colors mt-1"
                         >
                           <MapPin size={12} className="text-blue-400" />
@@ -9600,12 +10007,13 @@ const App = () => {
                       const chips = place.types ? place.types.map(t => getCategoryBadge(t)) : [getCategoryBadge('place')];
                       const isPlaceExpanded = expandedPlaceId === place.id;
                       const isMobilePlaceSelected = isMobileLayout && mobileSelectedLibraryPlace?.id === place.id;
+                      const isMapFocusedPlace = focusedMapTarget?.kind === 'place' && focusedMapTarget.id === place.id;
                       const bizWarningNow = getBusinessWarningNow(place.business);
                       const bizSummary = formatBusinessSummary(place.business, place);
                       const hasBizSummary = bizSummary !== '미설정';
                       const openStatus = isOpenAt(place.business); // true=영업중, false=마감, null=정보없음
                       const baseDistance = placeDistanceMap[place.id];
-                      const placeCardClass = `${draggingFromLibrary?.id === place.id ? 'opacity-40 animate-pulse' : 'hover:shadow-[0_14px_32px_-14px_rgba(49,130,246,0.22)] hover:border-[#3182F6]/25'} ${isPlaceExpanded ? 'scale-[1.01]' : ''} ${isMobilePlaceSelected ? 'border-[#3182F6]/55 ring-2 ring-[#3182F6]/18 shadow-[0_18px_34px_-20px_rgba(49,130,246,0.35)]' : ''}`.trim();
+                      const placeCardClass = `${draggingFromLibrary?.id === place.id ? 'opacity-40 animate-pulse' : 'hover:shadow-[0_14px_32px_-14px_rgba(49,130,246,0.22)] hover:border-[#3182F6]/25'} ${isPlaceExpanded ? 'scale-[1.01]' : ''} ${(isMobilePlaceSelected || isMapFocusedPlace) ? 'border-[#3182F6]/55 ring-2 ring-[#3182F6]/18 shadow-[0_18px_34px_-20px_rgba(49,130,246,0.35)]' : ''}`.trim();
                       const statusChip = (
                         <>
                           {bizWarningNow
@@ -9627,6 +10035,8 @@ const App = () => {
                           key={place.id}
                           buildBusinessQuickEditSegments={buildBusinessQuickEditSegments}
                           cardProps={{
+                            id: `library-place-${place.id}`,
+                            onClickCapture: () => focusLibraryOnMap(place),
                             draggable: !isMobileLayout && isEditMode,
                             onTouchStart: (e) => {
                               if (isMobileLayout) {
@@ -10320,8 +10730,16 @@ const App = () => {
                           {perplexityNearbyModal.summary}
                         </div>
                       )}
-                      {perplexityNearbyModal.recommendations.map((recommendation, index) => (
-                        <div key={`${recommendation.name}-${index}`} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.2)]">
+                      {perplexityNearbyModal.recommendations.map((recommendation, index) => {
+                        const recommendationId = buildRecommendationMapId(recommendation, index);
+                        const isFocusedRecommendation = focusedMapTarget?.kind === 'recommendation' && focusedMapTarget.id === recommendationId;
+                        return (
+                        <div
+                          key={`${recommendation.name}-${index}`}
+                          id={`recommendation-card-${recommendationId}`}
+                          onClick={() => focusRecommendationOnMap(recommendationId)}
+                          className={`rounded-2xl border bg-white px-4 py-4 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.2)] transition-colors ${isFocusedRecommendation ? 'border-[#3182F6]/45 ring-2 ring-[#3182F6]/15' : 'border-slate-200'}`}
+                        >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
@@ -10368,7 +10786,8 @@ const App = () => {
                             </div>
                           )}
                         </div>
-                      ))}
+                        );
+                      })}
                       {!perplexityNearbyModal.recommendations.length && (
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-center text-[11px] font-bold text-slate-500">
                           추천 결과가 없습니다. 주소를 더 정확히 입력하거나 Gemini/Perplexity 키 상태를 확인해 주세요.
@@ -10845,6 +11264,7 @@ const App = () => {
                 const hasPlanB = planBCount > 0;
                 const planPos = viewingPlanIdx[p.id] ?? 0;
                 const isPlanBActive = planPos > 0;
+                const isMapFocusedTimeline = focusedMapTarget?.kind === 'timeline' && focusedMapTarget.id === p.id;
 
                 let stateStyles;
                 if (isLodge) stateStyles = 'bg-[linear-gradient(180deg,rgba(244,245,255,0.98),rgba(255,255,255,0.98))] border-indigo-200 shadow-[0_12px_28px_-12px_rgba(99,102,241,0.18)]';
@@ -10979,6 +11399,7 @@ const App = () => {
                     <div
                       data-plan-card-shell="true"
                       data-dropitem={`${dIdx}-${pIdx}`}
+                      onClickCapture={() => focusTimelineOnMap(p, d.day)}
                       draggable={isEditMode}
                       onTouchStart={(e) => {
                         if (!isEditMode) {
@@ -11040,7 +11461,7 @@ const App = () => {
                           setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropOnItem(null); setIsDragCopy(false);
                         }
                       }}
-                      className={`relative z-10 w-full flex flex-col transition-all group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${isTimelineDragActive ? 'scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''}`}
+                      className={`relative z-10 w-full flex flex-col transition-all group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${isTimelineDragActive ? 'scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${isMapFocusedTimeline ? 'scale-[1.01]' : ''}`}
                     >
 
 

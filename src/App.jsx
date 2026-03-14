@@ -2207,41 +2207,68 @@ const getMapCategoryLabel = (type = 'place') => {
   return found?.label || '장소';
 };
 
-const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#FFFFFF') => L.divIcon({
-  className: '',
-  html: `
-    <div style="
-      position:relative;
-      width:${isFocused ? '34px' : '30px'};
-      height:${isFocused ? '34px' : '30px'};
-      border-radius:999px;
-      border:${isFocused ? '3px' : '2px'} solid ${isFocused ? '#0F172A' : '#FFFFFF'};
-      background:${dayColor};
-      color:#FFFFFF;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:11px;
-      font-weight:900;
-      box-shadow:0 12px 24px -18px rgba(15,23,42,0.5);
-    ">
-      ${label}
-      <span style="
-        position:absolute;
-        right:${isFocused ? '-1px' : '-1px'};
-        bottom:${isFocused ? '-1px' : '-1px'};
-        width:${isFocused ? '11px' : '10px'};
-        height:${isFocused ? '11px' : '10px'};
-        border-radius:999px;
-        border:2px solid #FFFFFF;
-        background:${categoryColor};
-        box-shadow:0 6px 12px -10px rgba(15,23,42,0.55);
-      "></span>
-    </div>
-  `,
-  iconSize: [isFocused ? 34 : 30, isFocused ? 34 : 30],
-  iconAnchor: [isFocused ? 17 : 15, isFocused ? 17 : 15],
-});
+const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#FFFFFF', categoryLabel = '') => {
+  const shortCategoryLabel = String(categoryLabel || '').trim().slice(0, 2);
+  return L.divIcon({
+    className: '',
+    html: `
+      <div style="
+        position:relative;
+        width:${isFocused ? '40px' : '36px'};
+        height:${isFocused ? '44px' : '40px'};
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:flex-start;
+      ">
+        ${shortCategoryLabel ? `<span style="
+          margin-bottom:3px;
+          min-width:${isFocused ? '24px' : '22px'};
+          height:${isFocused ? '14px' : '13px'};
+          padding:0 4px;
+          border-radius:999px;
+          background:${categoryColor};
+          color:#FFFFFF;
+          font-size:${isFocused ? '8px' : '7px'};
+          font-weight:900;
+          line-height:${isFocused ? '14px' : '13px'};
+          text-align:center;
+          box-shadow:0 8px 16px -12px rgba(15,23,42,0.5);
+        ">${shortCategoryLabel}</span>` : ''}
+        <div style="
+          position:relative;
+          width:${isFocused ? '34px' : '30px'};
+          height:${isFocused ? '34px' : '30px'};
+          border-radius:999px;
+          border:${isFocused ? '3px' : '2px'} solid ${isFocused ? '#0F172A' : '#FFFFFF'};
+          background:${dayColor};
+          color:#FFFFFF;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          font-size:11px;
+          font-weight:900;
+          box-shadow:0 12px 24px -18px rgba(15,23,42,0.5);
+        ">
+          ${label}
+          <span style="
+            position:absolute;
+            right:${isFocused ? '-1px' : '-1px'};
+            bottom:${isFocused ? '-1px' : '-1px'};
+            width:${isFocused ? '11px' : '10px'};
+            height:${isFocused ? '11px' : '10px'};
+            border-radius:999px;
+            border:2px solid #FFFFFF;
+            background:${categoryColor};
+            box-shadow:0 6px 12px -10px rgba(15,23,42,0.55);
+          "></span>
+        </div>
+      </div>
+    `,
+    iconSize: [isFocused ? 40 : 36, isFocused ? 44 : 40],
+    iconAnchor: [isFocused ? 20 : 18, isFocused ? 31 : 28],
+  });
+};
 
 const buildOverlayMarkerIcon = (fillColor, glyph, isFocused) => L.divIcon({
   className: '',
@@ -2564,8 +2591,8 @@ const RoutePreviewCanvas = ({
               bubblingMouseEvents={false}
               pathOptions={{
                 color: segment.color,
-                weight: segment.isFocused ? 7 : 5,
-                opacity: segment.isFocused ? 0.98 : 0.84,
+                weight: segment.isFocused ? 7 : (segment.isFallbackLine ? 4 : 6),
+                opacity: segment.isFocused ? 0.98 : (segment.isFallbackLine ? 0.45 : 0.9),
                 dashArray: segment.isFallbackLine ? '6 8' : undefined,
                 lineCap: 'round',
                 lineJoin: 'round',
@@ -2579,7 +2606,7 @@ const RoutePreviewCanvas = ({
               key={`timeline-point-${point.pointId}`}
               position={point.position}
               bubblingMouseEvents={false}
-              icon={buildTimelineMarkerIcon(point.color, String(point.order), point.isFocused, point.categoryColor)}
+              icon={buildTimelineMarkerIcon(point.color, String(point.order), point.isFocused, point.categoryColor, point.categoryLabel)}
               eventHandlers={interactive && typeof onMarkerClick === 'function' ? {
                 click: () => onMarkerClick({
                   kind: 'timeline',
@@ -9711,6 +9738,19 @@ const App = () => {
                               const showBufferConnector = !!nextNavItem && ((nextNavBufferState?.isCoordinated) || nextNavBufferMins >= 30);
                               const navDropWarn = draggingFromLibrary ? getDropWarning(draggingFromLibrary, dNavIdx, pIdx) : '';
                               const navDragPayload = { dayIdx: dNavIdx, pIdx };
+                              let navDisplayDuration = p.duration;
+                              if (isLastLodge) {
+                                const nextDay = itinerary.days[dNavIdx + 1];
+                                const nextMain = (nextDay?.plan || []).filter(x => x.type !== 'backup');
+                                if (nextMain.length) {
+                                  const nf = nextMain[0];
+                                  const cin = timeToMinutes(p.time || '00:00');
+                                  const cout = timeToMinutes(nf.time)
+                                    - parseMinsLabel(nf.travelTimeOverride, DEFAULT_TRAVEL_MINS)
+                                    - parseMinsLabel(nf.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+                                  navDisplayDuration = Math.max(30, (cout <= cin ? cout + 1440 : cout) - cin);
+                                }
+                              }
                               return (
                                 <React.Fragment key={p.id}>
                                   {isLastLodge && <div className="mt-1.5 border-t border-dashed border-indigo-100/90" />}
@@ -9764,8 +9804,9 @@ const App = () => {
                                     className={`${isLastLodge ? 'flex flex-col' : 'grid grid-cols-[2.45rem_1fr_auto]'} items-center gap-1.5 rounded-[14px] border px-2 py-1.5 text-left transition-all ${p._timingConflict ? 'border-red-200 bg-red-50/85 shadow-[0_8px_18px_-16px_rgba(239,68,68,0.55)] hover:bg-red-100/80' : isLastLodge ? 'mt-2 border-indigo-200 bg-[linear-gradient(180deg,rgba(238,242,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-20px_rgba(99,102,241,0.28)] hover:border-indigo-300 hover:bg-indigo-50/90' : isActive ? 'border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-18px_rgba(49,130,246,0.42)]' : 'border-slate-200/85 bg-white/96 shadow-[0_8px_18px_-18px_rgba(15,23,42,0.18)] hover:border-slate-300 hover:bg-slate-50/90'}`}
                                   >
                                     {isLastLodge ? (
-                                      <div className="w-full min-w-0 flex flex-col gap-1">
-                                        <div className="flex items-center gap-1.5 min-w-0">
+                                      <div className="grid w-full min-w-0 grid-cols-[2.45rem_1fr_auto] items-center gap-1.5">
+                                        <span className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6]' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}>{p.time || '--:--'}</span>
+                                        <div className="min-w-0 flex items-center gap-1.5 overflow-hidden">
                                           <div className={`shrink-0 scale-[0.88] origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-70'}`}>{getCategoryBadge(navPrimaryType)}</div>
                                           <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-600' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-500'}`}>{p.activity}</span>
                                           {isRouteLoadingNav && (
@@ -9780,6 +9821,23 @@ const App = () => {
                                             </span>
                                           )}
                                         </div>
+                                        {navDisplayDuration > 0 ? (
+                                          <div className="shrink-0 flex items-center gap-1">
+                                            {navBizWarn && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={navBizWarn} />}
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                openNaverPlaceSearch(getPlaceSearchName(p), p.receipt?.address || p.address || '');
+                                              }}
+                                              data-no-drag="true"
+                                              className={`text-[8px] font-black rounded-md px-1.5 py-0.5 leading-none whitespace-nowrap border transition-colors ${navDisplayDuration >= 120 ? 'text-orange-500 bg-orange-50 border-orange-200 hover:bg-orange-100' : isActive ? 'text-slate-500 bg-slate-100 border-slate-200 hover:text-[#3182F6]' : 'text-slate-400 bg-slate-50 border-slate-200 hover:text-[#3182F6] hover:bg-slate-100'}`}
+                                              title="네이버 지도에서 장소 검색"
+                                            >
+                                              {fmtDur(navDisplayDuration)}
+                                            </button>
+                                          </div>
+                                        ) : <span />}
                                       </div>
                                     ) : (
                                       <>
@@ -9800,19 +9858,7 @@ const App = () => {
                                           )}
                                         </div>
                                         {!p.types?.includes('ship') && (() => {
-                                          let dispDur = p.duration;
-                                          if (isLastLodge) {
-                                            const nextDay = itinerary.days[dNavIdx + 1];
-                                            const nextMain = (nextDay?.plan || []).filter(x => x.type !== 'backup');
-                                            if (nextMain.length) {
-                                              const nf = nextMain[0];
-                                              const cin = timeToMinutes(p.time || '00:00');
-                                              const cout = timeToMinutes(nf.time)
-                                                - parseMinsLabel(nf.travelTimeOverride, DEFAULT_TRAVEL_MINS)
-                                                - parseMinsLabel(nf.bufferTimeOverride, DEFAULT_BUFFER_MINS);
-                                              dispDur = Math.max(30, (cout <= cin ? cout + 1440 : cout) - cin);
-                                            }
-                                          }
+                                          const dispDur = navDisplayDuration;
                                           if (!(dispDur > 0)) return null;
                                           return (
                                             <div className="shrink-0 flex items-center gap-1">
@@ -9940,7 +9986,7 @@ const App = () => {
                     </span>
                   </button>
                   {showNavMenu && (
-                    <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[20px] border border-slate-200 bg-white/98 shadow-[0_22px_44px_-24px_rgba(15,23,42,0.26)] overflow-hidden z-[620] animate-in slide-in-from-bottom-2">
+                    <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[20px] border border-slate-200 bg-white/98 shadow-[0_22px_44px_-24px_rgba(15,23,42,0.26)] overflow-hidden z-[9990] animate-in slide-in-from-bottom-2">
                       <button
                         onClick={() => { setShowPlanManager(true); setShowNavMenu(false); }}
                         className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
@@ -10088,7 +10134,7 @@ const App = () => {
                     <SlidersHorizontal size={12} />
                   </button>
                   {showPlaceMenu && (
-                    <div className="absolute right-0 top-8 z-[620] min-w-[186px] rounded-[12px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
+                    <div className="absolute right-0 top-8 z-[9990] min-w-[186px] rounded-[12px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
                       <div className="mb-1 rounded-[10px] border border-slate-100 bg-slate-50/80 p-1">
                         <p className="px-1.5 pb-1 text-[9px] font-black tracking-[0.14em] text-slate-400 uppercase">카드 보기</p>
                         <div className="grid grid-cols-2 gap-1">
@@ -10241,69 +10287,8 @@ const App = () => {
                       </div>
                     )}
                     <div className="sticky top-0 z-[260] -mx-5 -mt-px mb-1 w-auto border-b border-slate-100/80 bg-white/98 px-5 pb-2 pt-1.5 shadow-[0_10px_18px_-18px_rgba(15,23,42,0.22)] backdrop-blur-xl">
-                      <div id="right-panel-map-overview" className="rounded-[22px] border border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(191,219,254,0.35),_rgba(255,255,255,0.98)_55%)] p-2.5 shadow-[0_18px_32px_-24px_rgba(15,23,42,0.25)]">
-                        <div className="flex items-center gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[11px] font-black tracking-tight text-slate-800">동선 지도</p>
-                            <p className="mt-0.5 text-[9px] font-bold text-slate-400 truncate">{routeMapSummary}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={refreshRoutePreviewMap}
-                            disabled={routePreviewManualRefreshing || routePreviewLoading}
-                            className="shrink-0 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-[10px] font-black text-slate-500 transition-colors hover:border-[#3182F6] hover:text-[#3182F6] disabled:cursor-wait disabled:opacity-60"
-                            title="경로 새로고침"
-                          >
-                            {routePreviewManualRefreshing ? '확인 중' : '새로고침'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShowOverviewMapModal(true)}
-                            className="shrink-0 rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
-                            title="지도를 크게 보기"
-                          >
-                            <ArrowUpRight size={12} />
-                          </button>
-                          {isMobileLayout && (
-                            <button
-                              type="button"
-                              onClick={() => setMapExpanded((prev) => !prev)}
-                              className="shrink-0 rounded-xl border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
-                              title={mapExpanded ? '지도 접기' : '지도 펼치기'}
-                            >
-                              {mapExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                            </button>
-                          )}
-                        </div>
-                        <div className="mt-2 flex gap-1 overflow-x-auto no-scrollbar">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setMapScope('all');
-                              setMapDayFilter(null);
-                            }}
-                            className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${mapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                          >
-                            전체
-                          </button>
-                          {mapDayOptions.map((option) => {
-                            const active = mapScope === 'day' && Number(mapDayFilter) === Number(option.day);
-                            return (
-                              <button
-                                key={`right-map-day-${option.day}`}
-                                type="button"
-                                onClick={() => {
-                                  setMapScope('day');
-                                  setMapDayFilter(option.day);
-                                }}
-                                className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                              >
-                                {option.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <div className="mt-2 overflow-hidden rounded-[18px] border border-slate-200 bg-white/88">
+                      <div id="right-panel-map-overview" className="rounded-[22px] border border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(191,219,254,0.35),_rgba(255,255,255,0.98)_55%)] p-2 shadow-[0_18px_32px_-24px_rgba(15,23,42,0.25)]">
+                        <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white/88">
                           {routeMapHasRenderableData ? (
                             <div className="relative">
                               <RoutePreviewCanvas
@@ -10333,11 +10318,6 @@ const App = () => {
                             </div>
                           )}
                         </div>
-                        {isMobileLayout && !mapExpanded && (
-                          <div className="mt-2 px-1 text-[9px] font-bold text-slate-400">
-                            {routeMapSummary}
-                          </div>
-                        )}
                       </div>
                       <div className="mt-2 w-full flex flex-col gap-1">
                       <div className="flex items-start gap-1 px-1">
@@ -11574,21 +11554,7 @@ const App = () => {
                             <div className="relative mt-1 w-full rounded-[24px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 sm:px-6 sm:py-6">
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
                               <div className="mb-4 rounded-[24px] border border-slate-200 bg-white/88 p-3 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)]">
-                                <div className="flex items-center justify-between gap-3">
-                                  <div className="min-w-0">
-                                    <p className="text-[12px] font-black tracking-tight text-slate-800">동선 지도</p>
-                                    <p className="mt-0.5 text-[10px] font-bold text-slate-400 truncate">{routeMapSummary}</p>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => setShowOverviewMapModal(true)}
-                                    className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-black text-slate-500 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
-                                    title="동선 지도를 크게 보기"
-                                  >
-                                    크게 보기
-                                  </button>
-                                </div>
-                                <div className="mt-2 flex gap-1 overflow-x-auto no-scrollbar">
+                                <div className="flex gap-1 overflow-x-auto no-scrollbar">
                                   <button
                                     type="button"
                                     onClick={() => {

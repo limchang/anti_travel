@@ -3412,7 +3412,9 @@ const App = () => {
   const [routeCalcProgress, setRouteCalcProgress] = useState(0);
   const [routePreviewDays, setRoutePreviewDays] = useState([]);
   const [routePreviewLoading, setRoutePreviewLoading] = useState(false);
+  const [routePreviewManualRefreshing, setRoutePreviewManualRefreshing] = useState(false);
   const routePreviewSegmentCacheRef = useRef({});
+  const routePreviewBuildKeyRef = useRef('');
   const [hiddenRoutePreviewEndpoints, setHiddenRoutePreviewEndpoints] = useState({});
   const [mapScope, setMapScope] = useState('all');
   const [mapDayFilter, setMapDayFilter] = useState(null);
@@ -5023,6 +5025,24 @@ const App = () => {
       }))
       .filter((entry) => entry.points.length >= 1)
   ), [routePreviewPointSource]);
+  const routePreviewSourceSignature = useMemo(() => (
+    JSON.stringify(
+      routePreviewPointSource.map((entry) => ({
+        day: entry.day,
+        points: (entry.points || []).map((point) => {
+          const geo = normalizeGeoPoint(point.geo, point.address);
+          return {
+            id: point.id,
+            itemId: point.itemId || '',
+            pointKind: point.pointKind || '',
+            address: point.address || '',
+            lat: Number.isFinite(Number(geo?.lat)) ? Number(geo.lat).toFixed(6) : '',
+            lon: Number.isFinite(Number(geo?.lon)) ? Number(geo.lon).toFixed(6) : '',
+          };
+        }),
+      }))
+    )
+  ), [routePreviewPointSource]);
   const buildRoutePreviewSegmentKey = useCallback((fromPoint, toPoint) => (
     `${String(fromPoint?.address || fromPoint?.id || '').trim()}__${String(toPoint?.address || toPoint?.id || '').trim()}`
   ), []);
@@ -5119,6 +5139,7 @@ const App = () => {
 
   const refreshRoutePreviewMap = useCallback(async () => {
     if (!ROUTE_PREVIEW_ENABLED) return;
+    setRoutePreviewManualRefreshing(true);
     setRoutePreviewLoading(true);
     setLastAction('메인 경로 지도를 현재 주소 기준으로 다시 불러오는 중입니다...');
     try {
@@ -5126,11 +5147,13 @@ const App = () => {
       setRoutePreviewDays(nextDays);
       const routeDays = await attachRoutePreviewSegments(nextDays, { forceRefresh: true });
       setRoutePreviewDays(routeDays);
+      routePreviewBuildKeyRef.current = routePreviewSourceSignature;
       setLastAction(routeDays.length ? '메인 경로 지도를 새로 불러왔습니다.' : '지도에 표시할 경로를 아직 찾지 못했습니다.');
     } finally {
+      setRoutePreviewManualRefreshing(false);
       setRoutePreviewLoading(false);
     }
-  }, [attachRoutePreviewSegments, resolveRoutePreviewDays]);
+  }, [attachRoutePreviewSegments, resolveRoutePreviewDays, routePreviewSourceSignature]);
 
   useEffect(() => {
     let cancelled = false;
@@ -5237,9 +5260,14 @@ const App = () => {
     if (!ROUTE_PREVIEW_ENABLED) {
       setRoutePreviewDays([]);
       setRoutePreviewLoading(false);
+      routePreviewBuildKeyRef.current = '';
       return undefined;
     }
     let cancelled = false;
+    if (routePreviewBuildKeyRef.current === routePreviewSourceSignature) {
+      return undefined;
+    }
+    routePreviewBuildKeyRef.current = routePreviewSourceSignature;
 
     const buildRoutePreview = async () => {
       if (!routePreviewPointSource.length) {
@@ -5261,7 +5289,7 @@ const App = () => {
     return () => {
       cancelled = true;
     };
-  }, [attachRoutePreviewSegments, routePreviewNeedsLookup, routePreviewPointSource, routePreviewStoredDays, resolveRoutePreviewDays]);
+  }, [attachRoutePreviewSegments, routePreviewNeedsLookup, routePreviewPointSource, routePreviewSourceSignature, routePreviewStoredDays, resolveRoutePreviewDays]);
 
   const routePreviewMap = useMemo(() => (
     routePreviewDays
@@ -9965,11 +9993,11 @@ const App = () => {
                           <button
                             type="button"
                             onClick={() => void refreshRoutePreviewMap()}
-                            disabled={routePreviewLoading}
+                            disabled={routePreviewManualRefreshing}
                             className="shrink-0 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-black text-slate-500 transition-colors hover:border-[#3182F6] hover:text-[#3182F6] disabled:cursor-not-allowed disabled:opacity-50"
                             title="경로 새로 불러오기"
                           >
-                            {routePreviewLoading ? '확인 중' : '새로고침'}
+                            {routePreviewManualRefreshing ? '확인 중' : '새로고침'}
                           </button>
                           {isMobileLayout && (
                             <button

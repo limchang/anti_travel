@@ -164,6 +164,10 @@ export default async function handler(req, res) {
     toAddress = '',
     fromName = '',
     toName = '',
+    fromLat,
+    fromLon,
+    toLat,
+    toLon,
   } = req.body || {};
 
   if (!String(fromAddress).trim() || !String(toAddress).trim()) {
@@ -172,9 +176,17 @@ export default async function handler(req, res) {
 
   try {
     const geocoder = restKey ? geocodeWithKakao : geocodeWithNominatim;
+
+    const resolveCoord = async (lat, lon, addr, name) => {
+      if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lon))) {
+        return { lat: Number(lat), lon: Number(lon), source: 'client-geo' };
+      }
+      return geocoder({ address: addr, placeName: name, restKey });
+    };
+
     const [fromCoord, toCoord] = await Promise.all([
-      geocoder({ address: fromAddress, placeName: fromName, restKey }),
-      geocoder({ address: toAddress, placeName: toName, restKey }),
+      resolveCoord(fromLat, fromLon, fromAddress, fromName),
+      resolveCoord(toLat, toLon, toAddress, toName),
     ]);
     if (!fromCoord || !toCoord) {
       return res.status(422).json({ error: 'geocode failed', fromCoord: !!fromCoord, toCoord: !!toCoord });

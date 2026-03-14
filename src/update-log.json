@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.218",
+      "timestamp": "2026-03-15T08:24:00+09:00",
+      "message": "fix: 꼬불꼬불한 실제 카카오 길찾기 경로가 지도에 반영되도록 개선 및 신규 업데이트 모달 추가"
+    },
+    {
       "version": "1.3.217",
       "timestamp": "2026-03-15T01:14:21+09:00",
       "message": "fix: lock desktop 3-column layout and add mobile panel swipe"

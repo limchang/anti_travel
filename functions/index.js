@@ -437,8 +437,10 @@ exports.routeVerify = onRequest({ invoker: 'public' }, async (req, res) => {
   }
 
   const resolveCoord = async (lat, lon, addr, name) => {
-    if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lon))) {
-      return { lat: Number(lat), lon: Number(lon), source: 'client-geo' };
+    const nLat = lat !== null && lat !== undefined && lat !== '' ? Number(lat) : NaN;
+    const nLon = lon !== null && lon !== undefined && lon !== '' ? Number(lon) : NaN;
+    if (Number.isFinite(nLat) && Number.isFinite(nLon) && !(nLat === 0 && nLon === 0) && Math.abs(nLat) <= 90) {
+      return { lat: nLat, lon: nLon, source: 'client-geo' };
     }
     return geocodeWithKakao({ address: addr, placeName: name, restKey });
   };

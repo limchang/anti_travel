@@ -5073,22 +5073,47 @@ const App = () => {
         `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(key)}&size=1`,
         { headers: { Authorization: `KakaoAK ${KAKAO_API_KEY}` } }
       );
-      if (!res.ok) return null;
-      const data = await res.json();
-      const first = data?.documents?.[0];
-      if (!first) return null;
-      const coord = {
-        address: String(first.road_address?.address_name || first.address?.address_name || key).trim(),
-        lat: parseFloat(first.y),
-        lon: parseFloat(first.x),
-        source: 'kakao-rest-address',
-        updatedAt: new Date().toISOString(),
-      };
-      geoCacheRef.current[key] = coord;
-      return coord;
-    } catch {
-      return null;
-    }
+      if (res.ok) {
+        const data = await res.json();
+        const first = data?.documents?.[0];
+        if (first) {
+          const coord = {
+            address: String(first.road_address?.address_name || first.address?.address_name || key).trim(),
+            lat: parseFloat(first.y),
+            lon: parseFloat(first.x),
+            source: 'kakao-rest-address',
+            updatedAt: new Date().toISOString(),
+          };
+          geoCacheRef.current[key] = coord;
+          return coord;
+        }
+      }
+    } catch { /* next */ }
+
+    // 키워드 검색 추가 시도 (장소명/터미널명 등)
+    try {
+      const res = await fetch(
+        `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(key)}&size=1`,
+        { headers: { Authorization: `KakaoAK ${KAKAO_API_KEY}` } }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const first = data?.documents?.[0];
+        if (first) {
+          const coord = {
+            address: String(first.road_address_name || first.address_name || key).trim(),
+            lat: parseFloat(first.y),
+            lon: parseFloat(first.x),
+            source: 'kakao-rest-keyword',
+            updatedAt: new Date().toISOString(),
+          };
+          geoCacheRef.current[key] = coord;
+          return coord;
+        }
+      }
+    } catch { /* next */ }
+
+    return null;
   }, []);
 
   const geoSyncRequestKeyRef = useRef('');

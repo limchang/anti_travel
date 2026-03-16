@@ -2476,7 +2476,7 @@ const calcBearingDeg = (p1, p2) => {
 };
 
 const buildArrowIcon = (color, bearingDeg, isFocused) => {
-  const sz = isFocused ? 14 : 11;
+  const sz = isFocused ? 9 : 7;
   return L.divIcon({
     className: '',
     html: `<div style="

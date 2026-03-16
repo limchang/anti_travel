@@ -5,9 +5,9 @@ import { MapContainer, Marker, Pane, Polyline, TileLayer, Tooltip, useMap, useMa
 import { db, auth, messaging } from './firebase';
 import { PlaceAddForm } from './components/place/PlaceAddForm';
 import { PlaceEditorCard, PlaceLibraryCard } from './components/place/PlaceCards';
-import { getToken, onMessage } from 'firebase/messaging';
 import updateLog from './update-log.json';
 import { collection, doc, getDoc, getDocs, setDoc, query, limit } from 'firebase/firestore';
+
 import { onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import {
   Navigation, MessageSquare, LogOut, User as UserIcon,
@@ -3048,6 +3048,8 @@ const App = () => {
   const [shareSettings, setShareSettings] = useState({ visibility: 'private', permission: 'viewer' });
   const [isSharedReadOnly, setIsSharedReadOnly] = useState(false);
   const [sharedSource, setSharedSource] = useState(null); // { ownerId, planId }
+  const [isDirty, setIsDirty] = useState(false);
+
   const entryChooserShownRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
   const [draggingFromLibrary, setDraggingFromLibrary] = useState(null);
@@ -3215,61 +3217,8 @@ const App = () => {
     safeLocalStorageSet('ai_smart_fill_config', JSON.stringify(sanitizeAiSmartFillConfigForStorage(aiSmartFillConfig)));
   }, [aiSmartFillConfig]);
 
-  // Web Push (FCM) 등록 및 수신 설정
-  useEffect(() => {
-    let unsubscribe = () => { };
+  // Web Push (FCM) 비활성화 (사용량 최소화)
 
-    const setupPush = async () => {
-      try {
-        if (typeof window === 'undefined' || typeof Notification === 'undefined' || !('serviceWorker' in navigator)) {
-          return;
-        }
-
-        const serviceWorkerUrl = `${import.meta.env.BASE_URL || '/'}firebase-messaging-sw.js`;
-        const registration = await navigator.serviceWorker.register(serviceWorkerUrl);
-        const permission = Notification.permission === 'granted'
-          ? 'granted'
-          : await Notification.requestPermission();
-        if (permission !== 'granted') return;
-
-        const token = await getToken(messaging, {
-          vapidKey: 'BHz_T_119pUOfcByY9_S2Eon9N60MIs17h_7-gXWl4SNDmI7jX27p_R4pYw7XN-Q5O4V4e1_vX9_Y',
-          serviceWorkerRegistration: registration,
-        }).catch((e) => {
-          console.warn('FCM Token error:', e);
-          return '';
-        });
-
-        if (token) {
-          console.log('FCM Token:', token);
-          if (auth.currentUser && !auth.currentUser.isGuest) {
-            const payload = {
-              token,
-              updatedAt: new Date().toISOString(),
-              userAgent: navigator.userAgent,
-              version: APP_VERSION,
-              platform: 'web',
-            };
-            await setDoc(doc(db, `users/${auth.currentUser.uid}/private/push`), payload, { merge: true });
-            await setDoc(doc(db, `users/${auth.currentUser.uid}/private/pushTokens/${makePushTokenDocId(token)}`), payload, { merge: true });
-          }
-        }
-
-        unsubscribe = onMessage(messaging, (payload) => {
-          console.log('Foreground Message received:', payload);
-          if (payload.notification) {
-            showInfoToast(`🔔 ${payload.notification.title}: ${payload.notification.body}`);
-          }
-        });
-      } catch (error) {
-        console.error('Push setup failed:', error);
-      }
-    };
-
-    setupPush();
-
-    return () => unsubscribe();
-  }, [user?.uid]);
 
   const [planVariantPicker, setPlanVariantPicker] = useState(null); // { dayIdx, pIdx, left, top }
   const conflictAlertKeyRef = useRef('');
@@ -3280,59 +3229,11 @@ const App = () => {
   const [activeDay, setActiveDay] = useState(1);
   const [activeItemId, setActiveItemId] = useState(null);
 
-  // AI 학습 피드백 자동 제출: 카드가 닫힐 때 혹은 편집 모드가 끝날 때 체크
-  useEffect(() => {
-    if (!expandedId && aiLearningCapture?.itemId && aiLearningCapture.itemId !== 'new') {
-      const targetId = aiLearningCapture.itemId;
-      // 현재 일정에서 해당 아이템 찾기
-      let found = null;
-      for (const day of itinerary.days || []) {
-        found = day.plan?.find(p => p.id === targetId);
-        if (found) break;
-      }
-      if (found) {
-        submitAiLearningCase(found, targetId);
-      }
-    }
-  }, [expandedId, aiLearningCapture]);
+  // AI 학습 피드백 자동 제출 비활성화 (사용량 및 프라이버시 보호)
 
-  const submitAiLearningCase = async (finalData, targetId) => {
-    if (!aiLearningCapture || !aiLearningCapture.aiResult) return;
-    if (aiLearningCapture.itemId !== targetId && aiLearningCapture.itemId !== 'new') return;
 
-    // 단순 비교를 위해 필드 정규화
-    const aiComp = JSON.stringify(aiLearningCapture.aiResult);
-    const userComp = JSON.stringify({
-      name: finalData.name || finalData.activity || '',
-      address: finalData.address || (finalData.receipt?.address) || '',
-      business: finalData.business || {},
-      menus: (finalData.receipt?.items || []).map(m => ({ name: m.name, price: m.price }))
-    });
+  const submitAiLearningCase = async () => { /* disabled to minimize firebase usage */ };
 
-    if (aiComp === userComp) return; // 변경사항 없으면 스킵
-
-    try {
-      const docRef = doc(collection(db, 'meta', 'aiLearning', 'cases'));
-      await setDoc(docRef, {
-        timestamp: new Date().toISOString(),
-        itemId: targetId,
-        inputType: aiLearningCapture.inputType,
-        rawSource: aiLearningCapture.rawSource,
-        aiResult: aiLearningCapture.aiResult,
-        userFixed: {
-          name: finalData.name || finalData.activity || '',
-          address: finalData.address || (finalData.receipt?.address) || '',
-          business: finalData.business || {},
-          menus: (finalData.receipt?.items || []).map(m => ({ name: m.name, price: m.price }))
-        },
-        version: APP_VERSION
-      });
-      console.log("AI Learning feedback captured.");
-      setAiLearningCapture(null);
-    } catch (e) {
-      console.warn("AI Feedback logging failed", e);
-    }
-  };
   const isNavScrolling = React.useRef(false);
   const navScrollTimeout = React.useRef(null);
   const longPressTimerRef = useRef(null);
@@ -3543,7 +3444,19 @@ const App = () => {
   const [businessEditorTarget, setBusinessEditorTarget] = useState(null); // {dayIdx, pIdx}
   const [viewingPlanIdx, setViewingPlanIdx] = useState({}); // {[itemId]: altIdx} — -1 = main plan A
   const [ferryEditField, setFerryEditField] = useState(null); // { pId, field: 'load'|'depart' }
-  const [routeCache, setRouteCache] = useState({});
+  const [routeCache, setRouteCache] = useState(() => {
+    try {
+      const saved = localStorage.getItem('anti_planer_route_cache');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      safeLocalStorageSet('anti_planer_route_cache', JSON.stringify(routeCache));
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [routeCache]);
+
   const [calculatingRouteId, setCalculatingRouteId] = useState(null);
   const [isCalculatingAllRoutes, setIsCalculatingAllRoutes] = useState(false);
   const [routeCalcProgress, setRouteCalcProgress] = useState(0);
@@ -3551,8 +3464,20 @@ const App = () => {
   const [routePreviewLoading, setRoutePreviewLoading] = useState(false);
   const [routePreviewManualRefreshing, setRoutePreviewManualRefreshing] = useState(false);
   const routePreviewSegmentCacheRef = useRef({});
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('anti_planer_preview_segment_cache');
+      if (saved) routePreviewSegmentCacheRef.current = JSON.parse(saved);
+    } catch { /* ignore */ }
+    const timer = setInterval(() => {
+      safeLocalStorageSet('anti_planer_preview_segment_cache', JSON.stringify(routePreviewSegmentCacheRef.current));
+    }, 15000);
+    return () => clearInterval(timer);
+  }, []);
+
   const routePreviewBuildKeyRef = useRef('');
   const routePreviewAutoRetryKeyRef = useRef('');
+
   const [hiddenRoutePreviewEndpoints, setHiddenRoutePreviewEndpoints] = useState({});
   const [overviewMapScope, setOverviewMapScope] = useState('all');
   const [overviewMapDayFilter, setOverviewMapDayFilter] = useState(null);
@@ -4087,28 +4012,29 @@ const App = () => {
   const getPlanItemPrimaryAddress = (item = {}) => String(item?.receipt?.address || item?.address || item?.sourceLodgeAddress || '').trim();
   const getShipStartAddress = (item = {}) => String(item?.receipt?.address || item?.startPoint || '').trim();
   const getShipEndAddress = (item = {}) => String(item?.endAddress || item?.endPoint || '').trim();
-  const applyGeoFieldsToRecord = (record = {}) => {
+  const applyGeoFieldsToRecord = (record = {}, forceRefresh = false) => {
     if (!record || typeof record !== 'object') return record;
     if (Array.isArray(record?.types) && record.types.includes('ship')) {
       const startAddress = getShipStartAddress(record);
       const endAddress = getShipEndAddress(record);
-      record.geoStart = isGeoStaleForAddress(record.geoStart, startAddress)
+      record.geoStart = (forceRefresh || isGeoStaleForAddress(record.geoStart, startAddress))
         ? normalizeGeoPoint({ address: startAddress }, startAddress)
         : normalizeGeoPoint(record.geoStart, startAddress);
-      record.geoEnd = isGeoStaleForAddress(record.geoEnd, endAddress)
+      record.geoEnd = (forceRefresh || isGeoStaleForAddress(record.geoEnd, endAddress))
         ? normalizeGeoPoint({ address: endAddress }, endAddress)
         : normalizeGeoPoint(record.geoEnd, endAddress);
       delete record.geo;
       return record;
     }
     const address = getPlanItemPrimaryAddress(record);
-    record.geo = isGeoStaleForAddress(record.geo, address)
+    record.geo = (forceRefresh || isGeoStaleForAddress(record.geo, address))
       ? normalizeGeoPoint({ address }, address)
       : normalizeGeoPoint(record.geo, address);
     delete record.geoStart;
     delete record.geoEnd;
     return record;
   };
+
 
   const cloneGeoForRecord = (record = {}) => {
     if (Array.isArray(record?.types) && record.types.includes('ship')) {
@@ -4817,6 +4743,18 @@ const App = () => {
     return Math.max(raw, byRoadSpeed + signalPenalty, byStraight + signalPenalty, shortTripFloor);
   };
   const geoCacheRef = useRef({});
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('anti_planer_geo_cache');
+      if (saved) geoCacheRef.current = JSON.parse(saved);
+    } catch { /* ignore */ }
+    const timer = setInterval(() => {
+      safeLocalStorageSet('anti_planer_geo_cache', JSON.stringify(geoCacheRef.current));
+    }, 12000);
+    return () => clearInterval(timer);
+  }, []);
+
+
 
   const formatDistanceText = (distance) => {
     const num = Number(distance);
@@ -5117,6 +5055,8 @@ const App = () => {
   }, []);
 
   const geoSyncRequestKeyRef = useRef('');
+  const geoSyncLastRunRef = useRef(0);
+
   const deepClone = (value) => JSON.parse(JSON.stringify(value));
   const routePreviewEndpointActions = useMemo(() => {
     const allShips = (itinerary.days || []).flatMap((day, dayIdx) => (
@@ -5237,9 +5177,8 @@ const App = () => {
   ), [routePreviewFallbackGeoByAddress]);
   const routePreviewStoredDays = useMemo(() => (
     routePreviewPointSource
-      .map((entry) => ({
-        ...entry,
-        points: (entry.points || [])
+      .map((entry) => {
+        const points = (entry.points || [])
           .map((point) => {
             const storedGeo = normalizeGeoPoint(point.geo, point.address);
             const fallbackGeo = normalizeGeoPoint(routePreviewFallbackGeoByAddress.get(point.address), point.address);
@@ -5247,16 +5186,23 @@ const App = () => {
               ? storedGeo
               : fallbackGeo;
             if (!hasGeoCoords(geo) || isGeoStaleForAddress(geo, point.address)) return null;
-            return {
-              ...point,
-              lat: Number(geo.lat),
-              lon: Number(geo.lon),
-            };
+            return { ...point, lat: Number(geo.lat), lon: Number(geo.lon) };
           })
-          .filter(Boolean),
-      }))
+          .filter(Boolean);
+
+        const segments = [];
+        for (let idx = 1; idx < points.length; idx += 1) {
+          const skey = buildRoutePreviewSegmentKey(points[idx - 1], points[idx]);
+          const cached = routePreviewSegmentCacheRef.current[skey];
+          if (cached && cached.path && cached.path.length > 0) {
+            segments.push(cached);
+          }
+        }
+        return { ...entry, points, segments };
+      })
       .filter((entry) => entry.points.length >= 1)
-  ), [routePreviewFallbackGeoByAddress, routePreviewPointSource]);
+  ), [buildRoutePreviewSegmentKey, routePreviewFallbackGeoByAddress, routePreviewPointSource]);
+
   const routePreviewSourceSignature = useMemo(() => (
     JSON.stringify(
       routePreviewPointSource.map((entry) => ({
@@ -5279,9 +5225,16 @@ const App = () => {
     () => `${routePreviewSourceSignature}|${routePreviewFallbackGeoSignature}`,
     [routePreviewFallbackGeoSignature, routePreviewSourceSignature]
   );
-  const buildRoutePreviewSegmentKey = useCallback((fromPoint, toPoint) => (
-    `${String(fromPoint?.address || fromPoint?.id || '').trim()}__${String(toPoint?.address || toPoint?.id || '').trim()}`
-  ), []);
+  const buildRoutePreviewSegmentKey = useCallback((fromPoint, toPoint) => {
+    const fA = String(fromPoint?.address || fromPoint?.id || '').trim();
+    const tA = String(toPoint?.address || toPoint?.id || '').trim();
+    const fL = Number.isFinite(Number(fromPoint?.lat)) ? Number(fromPoint.lat).toFixed(6) : '0';
+    const fO = Number.isFinite(Number(fromPoint?.lon)) ? Number(fromPoint.lon).toFixed(6) : '0';
+    const tL = Number.isFinite(Number(toPoint?.lat)) ? Number(toPoint.lat).toFixed(6) : '0';
+    const tO = Number.isFinite(Number(toPoint?.lon)) ? Number(toPoint.lon).toFixed(6) : '0';
+    return `${fA}:${fL},${fO}__${tA}:${tL},${tO}`;
+  }, []);
+
   const routePreviewNeedsLookup = useMemo(() => (
     routePreviewPointSource.some((entry) => (
       (entry.points || []).some((point) => {
@@ -5305,23 +5258,24 @@ const App = () => {
         let geo = hasStoredGeo ? storedGeo : (hasFallbackGeo ? fallbackGeo : null);
         if (forceRefresh || !geo) {
           const refreshedGeo = await geocodeAddress(point.address, { forceRefresh });
-          if (hasGeoCoords(refreshedGeo)) {
-            geo = refreshedGeo;
-          }
+          if (hasGeoCoords(refreshedGeo)) geo = refreshedGeo;
         }
         if (!geo?.lat || !geo?.lon) continue;
-        coords.push({
-          ...point,
-          lat: Number(geo.lat),
-          lon: Number(geo.lon),
-        });
+        coords.push({ ...point, lat: Number(geo.lat), lon: Number(geo.lon) });
       }
       if (coords.length >= 1) {
-        nextDays.push({ ...entry, points: coords, segments: [] });
+        const segments = [];
+        for (let idx = 1; idx < coords.length; idx += 1) {
+          const skey = buildRoutePreviewSegmentKey(coords[idx - 1], coords[idx]);
+          const cached = routePreviewSegmentCacheRef.current[skey];
+          if (cached && cached.path && cached.path.length > 0) segments.push(cached);
+        }
+        nextDays.push({ ...entry, points: coords, segments });
       }
     }
     return nextDays;
-  }, [geocodeAddress, routePreviewFallbackGeoByAddress, routePreviewPointSource]);
+  }, [buildRoutePreviewSegmentKey, geocodeAddress, routePreviewFallbackGeoByAddress, routePreviewPointSource]);
+
 
   const attachRoutePreviewSegments = useCallback(async (days = [], { forceRefresh = false } = {}) => {
     if (!Array.isArray(days) || !days.length) return [];
@@ -5355,7 +5309,10 @@ const App = () => {
               durationMins: route.durationMins,
               path: Array.isArray(route.path) ? route.path.filter((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon))) : [],
             };
-            routePreviewSegmentCacheRef.current[cacheKey] = segment;
+            if (segment.path.length > 0 || Number.isFinite(Number(segment.distance))) {
+              routePreviewSegmentCacheRef.current[cacheKey] = segment;
+            }
+
           } catch (error) {
             console.warn('route preview segment failed:', fromPoint.address, toPoint.address, error);
             segment = {
@@ -5379,9 +5336,11 @@ const App = () => {
 
   const refreshRoutePreviewMap = useCallback(async () => {
     if (!ROUTE_PREVIEW_ENABLED) return;
+    geoSyncRequestKeyRef.current = ''; // Throttle 초기화하여 동기화 엔진 즉시 가동 허용
     setRoutePreviewManualRefreshing(true);
     setRoutePreviewLoading(true);
-    setLastAction('메인 경로 지도를 현재 주소 기준으로 다시 불러오는 중입니다...');
+    setLastAction('지도 정보를 강제 새로고침하는 중입니다...');
+
     try {
       const nextDays = await resolveRoutePreviewDays({ forceRefresh: true });
       setRoutePreviewDays(nextDays);
@@ -5431,8 +5390,12 @@ const App = () => {
     }
 
     const requestKey = jobs.map((job) => `${job.kind}:${job.field}:${job.address}`).join('|');
-    if (geoSyncRequestKeyRef.current === requestKey) return undefined;
+    const now = Date.now();
+    if (geoSyncRequestKeyRef.current === requestKey && (now - geoSyncLastRunRef.current < 5000)) return undefined;
+
     geoSyncRequestKeyRef.current = requestKey;
+    geoSyncLastRunRef.current = now;
+
 
     const syncGeo = async () => {
       const uniqueAddresses = [...new Set(jobs.map((job) => job.address))];
@@ -5558,7 +5521,8 @@ const App = () => {
     routePreviewAutoRetryKeyRef.current = retryKey;
     const timer = window.setTimeout(() => {
       void refreshRoutePreviewMap();
-    }, 240);
+    }, 3000);
+
     return () => window.clearTimeout(timer);
   }, [
     ROUTE_PREVIEW_ENABLED,
@@ -7578,16 +7542,17 @@ const App = () => {
     });
   };
 
-  const updateAddress = (dayIdx, pIdx, value) => {
+  const updateAddress = (dayIdx, pIdx, value, forceRefresh = false) => {
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const item = nextData.days[dayIdx].plan[pIdx];
       if (!item.receipt) item.receipt = { address: '', items: [] };
       item.receipt.address = value;
-      applyGeoFieldsToRecord(item);
+      applyGeoFieldsToRecord(item, forceRefresh);
       return nextData;
     });
   };
+
 
   const updateActivityName = (dayIdx, pIdx, value) => {
     setItinerary(prev => {
@@ -8996,7 +8961,7 @@ const App = () => {
     }
   }, [user, isSharedReadOnly]);
 
-  // Firestore 저장 (1초 디바운스, 사용자 UID 기준)
+  // Firestore 저장 감시 (자동 저장은 Guest만 로컬 저장, 회원은 isDirty 표시)
   useEffect(() => {
     if (!user || loading || !itinerary || !itinerary.days || itinerary.days.length === 0) return;
     if (isSharedReadOnly) return;
@@ -9005,40 +8970,34 @@ const App = () => {
       return;
     }
     const planId = currentPlanId || 'main';
-    const timer = setTimeout(() => {
-      const payload = {
-        ...itinerary,
-        routeFlowMeta: buildRouteFlowMeta(itinerary.days || []),
-        tripRegion,
-        tripStartDate,
-        tripEndDate,
-        planTitle: itinerary.planTitle || `${tripRegion || '여행'} 일정`,
-        planCode: itinerary.planCode || makePlanCode(tripRegion || '여행', tripStartDate || ''),
-        share: normalizeShare(itinerary.share || shareSettings),
-        updatedAt: Date.now(),
-      };
-      latestSaveJobRef.current = { planId, payload };
-      void enqueueItinerarySave(planId, payload);
-    }, 350);
-    return () => clearTimeout(timer);
-  }, [itinerary, loading, user, currentPlanId, tripRegion, tripStartDate, tripEndDate, isSharedReadOnly, shareSettings, enqueueItinerarySave]);
+    const payload = {
+      ...itinerary,
+      routeFlowMeta: buildRouteFlowMeta(itinerary.days || []),
+      tripRegion,
+      tripStartDate,
+      tripEndDate,
+      planTitle: itinerary.planTitle || `${tripRegion || '여행'} 일정`,
+      planCode: itinerary.planCode || makePlanCode(tripRegion || '여행', tripStartDate || ''),
+      share: normalizeShare(itinerary.share || shareSettings),
+      updatedAt: Date.now(),
+    };
+    latestSaveJobRef.current = { planId, payload };
+    setIsDirty(true);
+  }, [itinerary, loading, user, currentPlanId, tripRegion, tripStartDate, tripEndDate, isSharedReadOnly, shareSettings]);
 
-  useEffect(() => {
-    const flushSave = () => {
-      const job = latestSaveJobRef.current;
-      if (!job) return;
-      void enqueueItinerarySave(job.planId, job.payload);
-    };
-    const handleVisibility = () => {
-      if (document.visibilityState === 'hidden') flushSave();
-    };
-    window.addEventListener('pagehide', flushSave);
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => {
-      window.removeEventListener('pagehide', flushSave);
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, [enqueueItinerarySave]);
+  const saveItineraryManually = async () => {
+    const job = latestSaveJobRef.current;
+    if (!job) return;
+    setLastAction('저장 중...');
+    await enqueueItinerarySave(job.planId, job.payload);
+    setIsDirty(false);
+    setLastAction('저장 완료 ✓');
+
+  };
+
+
+  // 페이지 이탈 시 자동 플러시 비활성화 (사용자 명시적 저장만 허용)
+
 
   // Firestore 로드 (사용자 UID 기준 + 마이그레이션 로직)
   useEffect(() => {
@@ -9821,11 +9780,21 @@ const App = () => {
                 <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
                   <MapIcon size={14} className="text-[#3182F6]" />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <h2 className="text-[13px] font-black tracking-[0.18em] text-slate-800 uppercase leading-none">Anti Planer</h2>
                   <p className="mt-1 text-[10px] font-bold text-slate-400 leading-none">v{APP_VERSION} · {pushTimeLabel}</p>
                 </div>
+                {user && !user.isGuest && (
+                  <button
+                    onClick={saveItineraryManually}
+                    className={`shrink-0 px-2.5 py-1.5 rounded-xl text-[10px] font-black border transition-all flex items-center gap-1.5 ${isDirty ? 'bg-amber-500 border-amber-400 text-white shadow-[0_4px_12px_rgba(245,158,11,0.4)] animate-pulse' : 'bg-slate-50 border-slate-100 text-slate-400 opacity-60'}`}
+                  >
+                    <CheckSquare size={10} />
+                    {isDirty ? '저장' : '완료'}
+                  </button>
+                )}
               </div>
+
             </div>
             {/* ── 스크롤 컨텐츠 ── */}
             <div className="flex-1 overflow-y-auto overscroll-none no-scrollbar py-6 px-5 flex flex-col">
@@ -11789,33 +11758,44 @@ const App = () => {
                             <div className="relative mt-1 w-full rounded-[24px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 sm:px-6 sm:py-6">
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
                               <div className="mb-4 rounded-[24px] border border-slate-200 bg-white/88 p-3 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)]">
-                                <div className="flex gap-1 overflow-x-auto no-scrollbar">
+                                <div className="flex items-center justify-between gap-3 px-1">
+                                  <div className="flex gap-1 overflow-x-auto no-scrollbar py-0.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOverviewMapScope('all');
+                                        setOverviewMapDayFilter(null);
+                                      }}
+                                      className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${overviewMapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                                    >
+                                      전체
+                                    </button>
+                                    {mapDayOptions.map((option) => {
+                                      const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
+                                      return (
+                                        <button
+                                          key={`hero-map-day-${option.day}`}
+                                          type="button"
+                                          onClick={() => {
+                                            setOverviewMapScope('day');
+                                            setOverviewMapDayFilter(option.day);
+                                          }}
+                                          className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                                        >
+                                          {option.label}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
                                   <button
                                     type="button"
-                                    onClick={() => {
-                                      setOverviewMapScope('all');
-                                      setOverviewMapDayFilter(null);
-                                    }}
-                                    className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${overviewMapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                                    onClick={refreshRoutePreviewMap}
+                                    disabled={routePreviewManualRefreshing || routePreviewLoading}
+                                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black transition-all ${routePreviewManualRefreshing || routePreviewLoading ? 'border-slate-100 bg-slate-50 text-slate-300' : 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:border-amber-300 shadow-sm'}`}
                                   >
-                                    전체
+                                    <Sparkles size={10} className={routePreviewManualRefreshing || routePreviewLoading ? '' : 'animate-pulse'} />
+                                    <span>{routePreviewManualRefreshing || routePreviewLoading ? '새로고침 중...' : '경로 재설정'}</span>
                                   </button>
-                                  {mapDayOptions.map((option) => {
-                                    const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
-                                    return (
-                                      <button
-                                        key={`hero-map-day-${option.day}`}
-                                        type="button"
-                                        onClick={() => {
-                                          setOverviewMapScope('day');
-                                          setOverviewMapDayFilter(option.day);
-                                        }}
-                                        className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                                      >
-                                        {option.label}
-                                      </button>
-                                    );
-                                  })}
                                 </div>
                                 <div className="mt-3 overflow-hidden rounded-[20px] border border-slate-200 bg-white/92">
                                   {overviewRouteMapHasRenderableData ? (
@@ -13072,8 +13052,24 @@ const App = () => {
                                           </button>
                                           <button
                                             type="button"
-                                            onClick={(e) => { e.stopPropagation(); void handleAutoAddr(); }}
-                                            title="일정 이름으로 주소 자동 검색"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const handleForcedAutoAddr = async () => {
+                                                if (isSearchingAddr || !p.activity?.trim()) return;
+                                                isSearchingAddr = true;
+                                                try {
+                                                  const found = await searchAddressFromPlaceName(getPlaceSearchName(p), tripRegion);
+                                                  if (found?.address) {
+                                                    updateAddress(dIdx, pIdx, found.address, true); // forceRefresh=true
+                                                    setLastAction(`'${p.activity}' 주소 및 지도 정보를 강제 새로고침했습니다.`);
+                                                  }
+                                                } catch (e) { /* silent */ }
+                                                finally { isSearchingAddr = false; }
+                                              };
+                                              void handleForcedAutoAddr();
+                                            }}
+                                            title="일정 이름으로 주소 및 지도 정보 강제 새로고침"
+
                                             className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
                                           >
                                             <Sparkles size={9} />

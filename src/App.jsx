@@ -12772,7 +12772,7 @@ const App = () => {
                                     const lodgeCheckinKey = `${dIdx}-${pIdx}-lodge-in`;
                                     const checkoutTarget = timeControllerTarget?.key === lodgeCheckoutKey;
                                     const checkinTarget = timeControllerTarget?.key === lodgeCheckinKey;
-                                    const lodgeStep = 1;
+                                    const lodgeStep = timeControlStep || 1;
                                     const isOvernightLodgeItem = isOvernightLodgeTimelineItem(p);
                                     const nextDay = itinerary.days[dIdx + 1];
                                     const nextItem = nextDay?.plan?.find(candidate => candidate?.type !== 'backup');

@@ -3464,6 +3464,7 @@ const App = () => {
   const [routePreviewDays, setRoutePreviewDays] = useState([]);
   const [routePreviewLoading, setRoutePreviewLoading] = useState(false);
   const [routePreviewManualRefreshing, setRoutePreviewManualRefreshing] = useState(false);
+  const [showOverviewLibraryPoints, setShowOverviewLibraryPoints] = useState(false);
   const routePreviewSegmentCacheRef = useRef({});
   useEffect(() => {
     try {
@@ -5343,7 +5344,7 @@ const App = () => {
     setLastAction('지도 정보를 강제 새로고침하는 중입니다...');
 
     try {
-      const nextDays = await resolveRoutePreviewDays({ forceRefresh: true });
+      const nextDays = await resolveRoutePreviewDays({ forceRefresh: false });
       setRoutePreviewDays(nextDays);
       const routeDays = await attachRoutePreviewSegments(nextDays, { forceRefresh: true });
       setRoutePreviewDays(routeDays);
@@ -11790,6 +11791,14 @@ const App = () => {
                                   </div>
                                   <button
                                     type="button"
+                                    onClick={() => setShowOverviewLibraryPoints((prev) => !prev)}
+                                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black transition-all ${showOverviewLibraryPoints ? 'border-purple-200 bg-purple-50 text-purple-600 hover:bg-purple-100' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                                  >
+                                    <MapPin size={10} />
+                                    <span>내 장소</span>
+                                  </button>
+                                  <button
+                                    type="button"
                                     onClick={refreshRoutePreviewMap}
                                     disabled={routePreviewManualRefreshing || routePreviewLoading}
                                     className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black transition-all ${routePreviewManualRefreshing || routePreviewLoading ? 'border-slate-100 bg-slate-50 text-slate-300' : 'border-blue-200 bg-blue-50 text-[#3182F6] hover:bg-blue-100 hover:border-blue-300 shadow-sm'}`}
@@ -11802,7 +11811,7 @@ const App = () => {
                                   {overviewRouteMapHasRenderableData ? (
                                     <RoutePreviewCanvas
                                       routePreviewMap={overviewFilteredRoutePreviewMap}
-                                      libraryPoints={[]}
+                                      libraryPoints={showOverviewLibraryPoints ? libraryMapPoints : []}
                                       recommendationPoints={[]}
                                       focusedTarget={focusedMapTarget?.kind === 'timeline' ? focusedMapTarget : null}
                                       onMarkerClick={handleOverviewMapMarkerClick}
@@ -11811,7 +11820,7 @@ const App = () => {
                                       height={isMobileLayout ? 188 : 220}
                                       showTimelineMarkers
                                       showRouteLines
-                                      showOverlayMarkers={false}
+                                      showOverlayMarkers={showOverviewLibraryPoints}
                                     />
                                   ) : (
                                     <div className="flex flex-col items-center justify-center gap-2 px-4 text-center" style={{ height: isMobileLayout ? 188 : 220 }}>

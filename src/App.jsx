@@ -2437,6 +2437,43 @@ const buildOverlayMarkerIcon = (fillColor, glyph, isFocused) => L.divIcon({
   iconAnchor: [isFocused ? 11 : 9, isFocused ? 11 : 9],
 });
 
+const buildSegmentLabelIcon = (color, label, angleDeg, isFocused) => {
+  const arrowRot = Math.round(angleDeg);
+  const w = isFocused ? 68 : 58;
+  const h = isFocused ? 22 : 18;
+  return L.divIcon({
+    className: '',
+    html: `
+      <div style="
+        display:flex;
+        align-items:center;
+        gap:3px;
+        height:${h}px;
+        padding:0 7px 0 5px;
+        border-radius:999px;
+        background:${color};
+        color:#fff;
+        font-size:${isFocused ? '10px' : '9px'};
+        font-weight:900;
+        white-space:nowrap;
+        box-shadow:0 4px 12px -6px rgba(15,23,42,0.5);
+        border:2px solid rgba(255,255,255,0.85);
+        pointer-events:none;
+      ">
+        <span style="
+          display:inline-block;
+          font-size:${isFocused ? '11px' : '10px'};
+          line-height:1;
+          transform:rotate(${arrowRot}deg);
+        ">▶</span>
+        <span style="letter-spacing:-0.3px;">${label}</span>
+      </div>
+    `,
+    iconSize: [w, h],
+    iconAnchor: [w / 2, h / 2],
+  });
+};
+
 const LeafletMapViewportController = ({
   boundsPoints = [],
   focusedPoints = [],
@@ -2590,12 +2627,23 @@ const RoutePreviewCanvas = ({
               focusedTimelinePointIds.includes(segment?.fromId)
               || focusedTimelinePointIds.includes(segment?.toId)
             );
+          // 중간점 계산
+          const midIdx = Math.floor(positions.length / 2);
+          const midPos = positions[midIdx] || positions[0];
+          // 방향각 계산 (중간 구간)
+          const p1 = positions[Math.max(0, midIdx - 1)];
+          const p2 = positions[Math.min(positions.length - 1, midIdx + 1)];
+          const angleDeg = p1 && p2 ? Math.atan2(p2[1] - p1[1], p2[0] - p1[0]) * 180 / Math.PI : 0;
           return {
             id: segment.id || `segment-${day.day}-${index}`,
             positions,
             color: day.color,
             isFallbackLine: !(Array.isArray(segment.path) && segment.path.length),
             isFocused,
+            midPos,
+            angleDeg,
+            durationMins: Number.isFinite(Number(segment.durationMins)) ? Number(segment.durationMins) : null,
+            distance: Number.isFinite(Number(segment.distance)) ? Number(segment.distance) : null,
           };
         })
         .filter(Boolean)
@@ -2754,6 +2802,24 @@ const RoutePreviewCanvas = ({
               }}
             />
           ))}
+        </Pane>
+        <Pane name="route-labels" style={{ zIndex: 470 }}>
+          {visibleSegmentEntries.map((segment) => {
+            if (!segment.midPos || segment.isFallbackLine) return null;
+            const mins = segment.durationMins;
+            if (!mins) return null;
+            const label = mins >= 60
+              ? `${Math.floor(mins / 60)}시간${mins % 60 > 0 ? ` ${mins % 60}분` : ''}`
+              : `${mins}분`;
+            return (
+              <Marker
+                key={`segment-label-${segment.id}`}
+                position={segment.midPos}
+                bubblingMouseEvents={false}
+                icon={buildSegmentLabelIcon(segment.color, label, segment.angleDeg, segment.isFocused)}
+              />
+            );
+          })}
         </Pane>
         <Pane name="timeline-points" style={{ zIndex: 520 }}>
           {visibleTimelineEntries.map((point) => (
@@ -6014,7 +6080,7 @@ const App = () => {
     }
   }, [findPlanItemContextById, focusLibraryOnMap, focusRecommendationOnMap, focusTimelineOnMap, itinerary.places]);
 
-  const handleOverviewMapLibraryAddClick = useCallback(({ id: placeId }) => {
+  const handleOverviewMapLibraryAddClick = ({ id: placeId }) => {
     if (!placeId || focusedMapTarget?.kind !== 'timeline') return;
     const place = (itinerary.places || []).find((entry) => entry?.id === placeId);
     if (!place) return;
@@ -6022,7 +6088,7 @@ const App = () => {
     if (!found) return;
     addNewItem(found.dayIdx, found.pIdx, place.types || ['place'], place, { anchor: 'next' });
     triggerUndoToast(`'${place.name || '장소'}'를 ${found.dayNum}일차 일정에 추가했습니다.`);
-  }, [focusedMapTarget, itinerary.places, findPlanItemContextById, addNewItem]);
+  };
 
   const normalizeAlternative = (alt = {}) => {
     const receipt = alt.receipt

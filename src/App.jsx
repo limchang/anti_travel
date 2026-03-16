@@ -2490,7 +2490,7 @@ const buildArrowIcon = (color, bearingDeg, isFocused) => {
       filter:drop-shadow(0 1px 2px rgba(15,23,42,0.35));
     ">
       <svg width="${sz}" height="${sz}" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="6,0 12,10 6,7 0,10" fill="white" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+        <polygon points="6,0 12,10 6,7 0,10" fill="white"/>
       </svg>
     </div>`,
     iconSize: [sz, sz],
@@ -2847,7 +2847,7 @@ const RoutePreviewCanvas = ({
               bubblingMouseEvents={false}
               pathOptions={{
                 color: segment.color,
-                weight: segment.isFocused ? 7 : (segment.isFallbackLine ? 4 : 6),
+                weight: segment.isFocused ? 9 : (segment.isFallbackLine ? 4 : 7),
                 opacity: segment.isFocused ? 0.98 : (segment.isFallbackLine ? 0.45 : 0.9),
                 dashArray: segment.isFallbackLine ? '6 8' : undefined,
                 lineCap: 'round',
@@ -7667,27 +7667,64 @@ const App = () => {
       const currentBufferState = getBufferDisplayState(nextData.days, dayIdx, pIdx);
       const currentMinutes = currentBufferState.mins;
       const nextMinutes = Math.max(0, currentMinutes + delta);
-      const reducedMinutes = Math.max(0, currentMinutes - nextMinutes);
 
-      if (reducedMinutes > 0) {
+      if (delta < 0) {
+        // 보정시간 줄이기 → 이전 일정 소요시간 증가 (기존 로직)
+        const reducedMinutes = Math.max(0, currentMinutes - nextMinutes);
+        if (reducedMinutes > 0) {
+          const prevEntry = getPreviousMainPlanEntryByIndex(nextData.days, dayIdx, pIdx);
+          if (prevEntry?.item && !prevEntry.item.types?.includes('ship')) {
+            const previousItem = prevEntry.item;
+            const nextDuration = Math.max(0, Number(previousItem.duration) || 0) + reducedMinutes;
+            previousItem.duration = nextDuration;
+            syncBaseDuration(previousItem, nextDuration);
+          }
+        }
+        item.bufferTimeOverride = `${nextMinutes}분`;
+        item._manualBufferTimeOverride = `${nextMinutes}분`;
+        item._isBufferCoordinated = false;
+      } else {
+        // 보정시간 늘리기 → 무조건 가능하게
         const prevEntry = getPreviousMainPlanEntryByIndex(nextData.days, dayIdx, pIdx);
-        if (prevEntry?.item && !prevEntry.item.types?.includes('ship')) {
-          const previousItem = prevEntry.item;
-          const nextDuration = Math.max(0, Number(previousItem.duration) || 0) + reducedMinutes;
-          previousItem.duration = nextDuration;
-          syncBaseDuration(previousItem, nextDuration);
+        const prevItem = prevEntry?.item;
+        const travelMins = parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
+
+        if (prevItem && !prevItem.types?.includes('ship')) {
+          const prevEnd = getAbsoluteTimelineItemEndMinutes(prevItem, prevEntry.dayIdx);
+          const currentStart = (dayIdx * 1440) + timeToMinutes(item.time || '00:00');
+          const newStart = currentStart + delta;
+          const gap = newStart - prevEnd - travelMins; // 이동 후 남는 여백
+
+          if (gap >= 0) {
+            // 여유 있음: 시작시간 뒤로 밀기
+            item.time = minutesToTime(newStart % 1440);
+            item.isTimeFixed = true;
+            item.bufferTimeOverride = `${gap}분`;
+            item._manualBufferTimeOverride = `${gap}분`;
+            item._isBufferCoordinated = gap > 0;
+          } else {
+            // 여유 없음: 시작시간 밀고 앞 일정 보정시간 초과분 표시 (강제 진행)
+            item.time = minutesToTime(newStart % 1440);
+            item.isTimeFixed = true;
+            item.bufferTimeOverride = '0분';
+            item._manualBufferTimeOverride = '0분';
+            item._isBufferCoordinated = false;
+            // 앞 일정에 자동보정 플래그 표시
+            prevItem._isAutoBufferAdjusted = true;
+          }
+        } else {
+          // 이전 일정 없음: 단순 보정시간 증가
+          item.bufferTimeOverride = `${nextMinutes}분`;
+          item._manualBufferTimeOverride = `${nextMinutes}분`;
+          item._isBufferCoordinated = false;
         }
       }
-
-      item.bufferTimeOverride = `${nextMinutes}분`;
-      item._manualBufferTimeOverride = `${nextMinutes}분`;
-      item._isBufferCoordinated = false;
 
       recalculateScheduleAcrossDays(nextData.days);
       recalculateLodgeDurations(nextData.days);
       return nextData;
     });
-    setLastAction(delta < 0 ? "보정시간을 줄이고 이전 일정 소요시간에 반영했습니다." : "보정 시간을 조정했습니다.");
+    setLastAction(delta < 0 ? "보정시간을 줄이고 이전 일정 소요시간에 반영했습니다." : "보정 시간을 늘리고 시작 시간을 조정했습니다.");
   };
 
   const applyAutoBufferTimeById = (dayIdx, itemId) => {
@@ -12455,7 +12492,7 @@ const App = () => {
                                   {/* 여유 시간 */}
                                   <div className="flex items-center gap-1.5">
                                     <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
-                                    <span className={`min-w-[3rem] text-center tracking-tight text-xs font-black transition-colors ${bufferDisplay.isCoordinated ? 'text-orange-500' : 'text-slate-500'}`}>{fmtDurCompact(bufferDisplay.mins)}</span>
+                                    <span className={`min-w-[3rem] text-center tracking-tight text-xs font-black transition-colors ${p._isAutoBufferAdjusted ? 'text-red-500' : bufferDisplay.isCoordinated ? 'text-orange-500' : 'text-slate-500'}`}>{fmtDurCompact(bufferDisplay.mins)}</span>
                                     <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                                   </div>
                                 </>
@@ -13626,13 +13663,14 @@ const App = () => {
                             return (
                               <div className="z-10 my-3 flex w-full flex-col items-center justify-center">
                                 <div id={`travel-chip-${dIdx}-${pIdx}`} className="flex w-full items-center justify-center">
-                                  <div className="flex w-full items-center justify-center rounded-[18px] border border-slate-200 bg-white px-4 py-2.5 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] gap-2">
+                                  <div className={`flex w-full items-center justify-center rounded-[18px] border px-4 py-2.5 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] gap-2 transition-colors ${prevIsAutoAdjusted ? 'border-red-300 bg-red-50/80' : 'border-slate-200 bg-white'}`}>
                                     {(() => {
                                       const rid = `${dIdx}_${pIdx + 1}`;
                                       const busy = calculatingRouteId === rid;
                                       const routeEntry = routeFlowLookup[nextItem.id] || getRouteFlowEntry(itinerary.days || [], dIdx, pIdx + 1);
                                       const nextPlanIdx = d.plan.findIndex((entry) => entry?.id === nextItem.id);
                                       const nextBufferDisplay = getBufferDisplayState(itinerary.days, dIdx, nextPlanIdx);
+                                      const prevIsAutoAdjusted = !!p._isAutoBufferAdjusted;
                                       return (
                                         <>
                                           {/* 이동 시간 */}

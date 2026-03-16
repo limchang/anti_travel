@@ -13663,72 +13663,67 @@ const App = () => {
                             return (
                               <div className="z-10 my-3 flex w-full flex-col items-center justify-center">
                                 <div id={`travel-chip-${dIdx}-${pIdx}`} className="flex w-full items-center justify-center">
-                                  <div className={`flex w-full items-center justify-center rounded-[18px] border px-4 py-2.5 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] gap-2 transition-colors ${prevIsAutoAdjusted ? 'border-red-300 bg-red-50/80' : 'border-slate-200 bg-white'}`}>
-                                    {(() => {
-                                      const rid = `${dIdx}_${pIdx + 1}`;
-                                      const busy = calculatingRouteId === rid;
-                                      const routeEntry = routeFlowLookup[nextItem.id] || getRouteFlowEntry(itinerary.days || [], dIdx, pIdx + 1);
-                                      const nextPlanIdx = d.plan.findIndex((entry) => entry?.id === nextItem.id);
-                                      const nextBufferDisplay = getBufferDisplayState(itinerary.days, dIdx, nextPlanIdx);
-                                      const prevIsAutoAdjusted = !!p._isAutoBufferAdjusted;
-                                      return (
-                                        <>
-                                          {/* 이동 시간 */}
-                                          <div className="flex items-center gap-1.5">
-                                            <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
+                                  {(() => {
+                                    const rid = `${dIdx}_${pIdx + 1}`;
+                                    const busy = calculatingRouteId === rid;
+                                    const routeEntry = routeFlowLookup[nextItem.id] || getRouteFlowEntry(itinerary.days || [], dIdx, pIdx + 1);
+                                    const nextPlanIdx = d.plan.findIndex((entry) => entry?.id === nextItem.id);
+                                    const nextBufferDisplay = getBufferDisplayState(itinerary.days, dIdx, nextPlanIdx);
+                                    const prevIsAutoAdjusted = !!p._isAutoBufferAdjusted;
+                                    return (
+                                      <div className={`flex w-full items-center justify-center rounded-[18px] border px-4 py-2.5 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] gap-2 transition-colors ${prevIsAutoAdjusted ? 'border-red-300 bg-red-50/80' : 'border-slate-200 bg-white'}`}>
+                                        {/* 이동 시간 */}
+                                        <div className="flex items-center gap-1.5">
+                                          <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, -TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
+                                          <span
+                                            className={`min-w-[3rem] text-center tracking-tight text-xs font-black ${busy ? 'text-[#3182F6]' : (nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800')}`}
+                                            onClick={(e) => { e.stopPropagation(); if (nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto) resetTravelTime(dIdx, pIdx + 1); }}
+                                            title={nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto ? '클릭하여 경로 계산 시간으로 초기화' : undefined}
+                                          >{nextItem.travelTimeOverride || '15분'}</span>
+                                          <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
+                                        </div>
+                                        {/* 거리 */}
+                                        <button
+                                          type="button"
+                                          className={`flex items-center gap-1 text-xs font-bold transition-colors ${busy ? 'text-[#3182F6]' : 'text-slate-400 hover:text-[#3182F6]'}`}
+                                          title={busy ? '경로 계산 중' : '구간 거리'}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (busy) return;
+                                            const prevAddr = routeEntry.fromAddress;
+                                            const toAddr = routeEntry.toAddress;
+                                            if (!prevAddr || !toAddr) {
+                                              setLastAction("길찾기용 출발/도착 주소가 필요합니다.");
+                                              return;
+                                            }
+                                            openNaverRouteSearch(p.activity || '출발지', prevAddr, nextItem.activity || '도착지', toAddr);
+                                          }}
+                                        >
+                                          {busy ? <LoaderCircle size={11} className="animate-spin" /> : <MapIcon size={11} />}
+                                          <span>{busy ? '계산중' : getRouteDistanceStatus(routeEntry)}</span>
+                                        </button>
+                                        {/* 자동경로 */}
+                                        <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1, { forceRefresh: true }); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-[#3182F6]/10 text-[#3182F6] border-[#3182F6]/30' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
+                                          {busy ? <LoaderCircle size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                                        </button>
+                                        {/* 구분선 */}
+                                        <div className="w-px h-4 bg-slate-200 mx-0.5" />
+                                        <div className="flex items-center gap-1.5">
+                                          <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
+                                          <div className="flex flex-col items-center">
                                             <span
-                                              className={`min-w-[3rem] text-center tracking-tight text-xs font-black ${busy ? 'text-[#3182F6]' : (nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto ? 'text-[#3182F6] cursor-pointer' : 'text-slate-800')}`}
-                                              onClick={(e) => { e.stopPropagation(); if (nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto) resetTravelTime(dIdx, pIdx + 1); }}
-                                              title={nextItem.travelTimeAuto && nextItem.travelTimeOverride !== nextItem.travelTimeAuto ? '클릭하여 경로 계산 시간으로 초기화' : undefined}
-                                            >{nextItem.travelTimeOverride || '15분'}</span>
-                                            <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
+                                              className={`min-w-[3rem] cursor-pointer text-center tracking-tight text-xs font-black transition-colors ${nextBufferDisplay.isCoordinated ? 'text-orange-500 hover:text-orange-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                              onClick={(e) => { e.stopPropagation(); applyAutoBufferTimeById(dIdx, nextItem.id); }}
+                                              title="클릭하여 보정시간을 10분 기본값으로 초기화"
+                                            >
+                                              {nextBufferDisplay.label}
+                                            </span>
                                           </div>
-                                          {/* 거리 */}
-                                          <button
-                                            type="button"
-                                            className={`flex items-center gap-1 text-xs font-bold transition-colors ${busy ? 'text-[#3182F6]' : 'text-slate-400 hover:text-[#3182F6]'}`}
-                                            title={busy ? '경로 계산 중' : '구간 거리'}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              if (busy) return;
-                                              const prevAddr = routeEntry.fromAddress;
-                                              const toAddr = routeEntry.toAddress;
-                                              if (!prevAddr || !toAddr) {
-                                                setLastAction("길찾기용 출발/도착 주소가 필요합니다.");
-                                                return;
-                                              }
-                                              openNaverRouteSearch(p.activity || '출발지', prevAddr, nextItem.activity || '도착지', toAddr);
-                                            }}
-                                          >
-                                            {busy ? <LoaderCircle size={11} className="animate-spin" /> : <MapIcon size={11} />}
-                                            <span>{busy ? '계산중' : getRouteDistanceStatus(routeEntry)}</span>
-                                          </button>
-                                          {/* 자동경로 */}
-                                          <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1, { forceRefresh: true }); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-[#3182F6]/10 text-[#3182F6] border-[#3182F6]/30' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
-                                            {busy ? <LoaderCircle size={10} className="animate-spin" /> : <Sparkles size={10} />}
-                                          </button>
-                                          {/* 구분선 */}
-                                          <div className="w-px h-4 bg-slate-200 mx-0.5" />
-                                          <div className="flex items-center gap-1.5">
-                                            <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, -BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Minus size={10} /></button>
-                                            <div className="flex flex-col items-center">
-                                              <span
-                                                className={`min-w-[3rem] cursor-pointer text-center tracking-tight text-xs font-black transition-colors ${nextBufferDisplay.isCoordinated ? 'text-orange-500 hover:text-orange-600' : 'text-slate-500 hover:text-slate-700'}`}
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  applyAutoBufferTimeById(dIdx, nextItem.id);
-                                                }}
-                                                title="클릭하여 보정시간을 10분 기본값으로 초기화"
-                                              >
-                                                {nextBufferDisplay.label}
-                                              </span>
-                                            </div>
-                                            <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
-                                          </div>
-                                        </>
-                                      );
-                                    })()}
-                                  </div>
+                                          <button onClick={(e) => { e.stopPropagation(); updateBufferTime(dIdx, pIdx + 1, BUFFER_STEP); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                                 {renderMobileLibraryInsertSlot(dIdx, pIdx, `mobile-insert-between-${dIdx}-${pIdx}`)}
                               </div>

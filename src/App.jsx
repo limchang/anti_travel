@@ -3507,7 +3507,7 @@ const App = () => {
   const [focusedMapTarget, setFocusedMapTarget] = useState(null);
   const [showOverviewMapModal, setShowOverviewMapModal] = useState(false);
   const [showPlaceMapModal, setShowPlaceMapModal] = useState(false);
-  const [placeLibraryViewMode, setPlaceLibraryViewMode] = useState('default');
+  const [placeLibraryViewMode, setPlaceLibraryViewMode] = useState('compact');
   const [libraryGeoMap, setLibraryGeoMap] = useState({});
   const [recommendationGeoMap, setRecommendationGeoMap] = useState({});
   const routeRetryCooldownMs = 45000;
@@ -11974,7 +11974,7 @@ const App = () => {
               className="fixed z-[240] flex flex-col items-center gap-2"
               style={{
                 right: (isMobileLayout ? Math.max(rightSidebarWidth + 14, 14) : rightSidebarWidth + 18),
-                bottom: isMobileLayout ? 18 : 22,
+                bottom: isMobileLayout ? 74 : 22,
               }}
             >
               <button

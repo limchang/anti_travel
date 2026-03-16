@@ -11773,11 +11773,9 @@ const App = () => {
                         </div>
 
                         {/* 🌟 2. 여행 한눈에 보기 */}
-                        {!heroCompactActive && (
-                          <div className="flex flex-col gap-3 px-3 transition-all duration-300 sm:px-0">
-                            <div className="relative mt-1 w-full rounded-[24px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 sm:px-6 sm:py-6">
-                              <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
-                              <div className="mb-4 rounded-[24px] border border-slate-200 bg-white/88 p-3 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)]">
+                        <div className="flex flex-col gap-3 px-3 transition-all duration-300 sm:px-0">
+                          <div className="rounded-[24px] border border-slate-200 bg-white/88 p-3 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)]">
+                              <div className="mb-0">
                                 <div className="flex items-center justify-between gap-2 px-1">
                                   <div className="flex gap-1 overflow-x-auto no-scrollbar py-0.5 flex-1 min-w-0">
                                     <button
@@ -11835,8 +11833,9 @@ const App = () => {
                                       disabled={routePreviewManualRefreshing || routePreviewLoading}
                                       className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${routePreviewManualRefreshing || routePreviewLoading ? 'border-slate-100 bg-slate-50 text-slate-300' : 'border-blue-200 bg-blue-50 text-[#3182F6] hover:bg-blue-100 hover:border-blue-300 shadow-sm'}`}
                                     >
-                                      <Sparkles size={10} className={routePreviewManualRefreshing || routePreviewLoading ? '' : 'animate-pulse'} />
-                                      <span>{routePreviewManualRefreshing || routePreviewLoading ? '새로고침 중...' : '새로고침'}</span>
+                                      {routePreviewManualRefreshing || routePreviewLoading
+                                        ? <LoaderCircle size={10} className="animate-spin" />
+                                        : <Sparkles size={10} className="animate-pulse" />}
                                     </button>
                                     <button
                                       type="button"
@@ -11873,6 +11872,10 @@ const App = () => {
                                 </div>
                                 )}
                               </div>
+                          </div>
+                          {!heroCompactActive && (
+                            <div className="relative w-full rounded-[24px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl sm:px-6 sm:py-6">
+                              <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
                               <div className="grid grid-cols-3 gap-3 sm:gap-3">
                                 <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
                                   <div className="flex h-full flex-col items-center justify-center text-center">
@@ -11920,8 +11923,8 @@ const App = () => {
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                         {showHeroSummaryModal && (
                           <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/36 px-4 py-6 backdrop-blur-sm" onClick={() => setShowHeroSummaryModal(false)}>
                             <div className="w-full max-w-[560px] rounded-[28px] border border-white/70 bg-white/96 p-4 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)]" onClick={(event) => event.stopPropagation()}>

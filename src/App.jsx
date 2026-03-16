@@ -11977,15 +11977,6 @@ const App = () => {
                 bottom: isMobileLayout ? 18 : 22,
               }}
             >
-               <button
-                type="button"
-                onClick={refreshRoutePreviewMap}
-                disabled={routePreviewManualRefreshing || routePreviewLoading}
-                className={`flex h-12 w-12 items-center justify-center rounded-[18px] border backdrop-blur-xl transition-all ${routePreviewManualRefreshing || routePreviewLoading ? 'border-[#3182F6]/30 bg-blue-50/96 text-[#3182F6] shadow-[0_18px_36px_-20px_rgba(49,130,246,0.35)]' : 'border-slate-200/85 bg-white/96 text-slate-700 shadow-[0_18px_36px_-24px_rgba(15,23,42,0.4)] hover:border-[#3182F6]/40 hover:text-[#3182F6]'}`}
-                title={routePreviewManualRefreshing || routePreviewLoading ? '경로 새로고침 중...' : '일정 경로 새로고침'}
-              >
-                {routePreviewManualRefreshing || routePreviewLoading ? <LoaderCircle size={18} className="animate-spin" /> : <Sparkles size={18} className="animate-pulse" />}
-              </button>
               <button
                 type="button"
                 onClick={autoCalculateAllRoutes}

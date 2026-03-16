@@ -3124,6 +3124,7 @@ const App = () => {
   const [expandedPlaceId, setExpandedPlaceId] = useState(null);
   const [pendingPlanMenuFocus, setPendingPlanMenuFocus] = useState(null); // { dayIdx, pIdx, menuIdx }
   const [timeControllerTarget, setTimeControllerTarget] = useState(null); // { kind, dayIdx, pIdx, left, top, width }
+  const [timeControlStep, setTimeControlStep] = useState(1);
   const [timelineEndTimeDraft, setTimelineEndTimeDraft] = useState(null); // { key, value }
   const [lodgeCheckoutDraft, setLodgeCheckoutDraft] = useState(null); // { key, value }
   const [isTimeWheelDragging, setIsTimeWheelDragging] = useState(false);

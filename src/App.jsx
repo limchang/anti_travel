@@ -10162,7 +10162,7 @@ const App = () => {
             </div>
 
             {/* ── 하단 고정 메뉴 ── */}
-            <div className="relative z-[160] p-4 border-t border-slate-100 bg-white shrink-0 mt-auto">
+            <div className="relative p-4 border-t border-slate-100 bg-white shrink-0 mt-auto">
               {canManagePlan && (
                 <div className="relative mb-2.5">
                   <button
@@ -10284,7 +10284,7 @@ const App = () => {
         ) : (
           <>
             {/* ── 고정 헤더 ── */}
-            <div className="px-5 pt-5 pb-2.5 border-b border-slate-100/60 shrink-0 bg-white/96 backdrop-blur-xl">
+            <div className="px-5 pt-5 pb-2.5 border-b border-slate-100/60 shrink-0 bg-white">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
                   <Package size={14} className="text-[#3182F6]" />
@@ -10478,7 +10478,7 @@ const App = () => {
                         </div>
                       </div>
                     )}
-                    <div className="sticky top-0 z-[260] -mx-5 -mt-px mb-1 w-auto border-b border-slate-100/80 bg-white/98 px-5 pb-2 pt-1.5 shadow-[0_10px_18px_-18px_rgba(15,23,42,0.22)] backdrop-blur-xl">
+                    <div className="sticky top-0 z-[10] -mx-5 -mt-px mb-1 w-auto border-b border-slate-100/80 bg-white px-5 pb-2 pt-1.5 shadow-[0_10px_18px_-18px_rgba(15,23,42,0.22)]">
                       <div id="right-panel-map-overview" className="rounded-[22px] border border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(191,219,254,0.35),_rgba(255,255,255,0.98)_55%)] p-2 shadow-[0_18px_32px_-24px_rgba(15,23,42,0.25)]">
                         <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white/88">
                           {placeOverviewHasPoints ? (

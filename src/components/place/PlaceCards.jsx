@@ -437,8 +437,20 @@ export const PlaceEditorCard = ({
         setAddressSearchNote?.('검색 결과가 없습니다.');
         return;
       }
-      updateDraft((current) => ({ ...current, address: foundAddress.address }));
-      setAddressSearchNote?.('주소가 자동 입력되었습니다.');
+      const nextDraft = createDraft({
+        ...safeDraft,
+        address: foundAddress.address,
+        business: normalizeBusiness({}),
+        receipt: { ...safeDraft.receipt, items: [] },
+      });
+      onDraftChange(nextDraft);
+      setAddressSearchNote?.('주소가 자동 입력되었으며, 기존 정보는 초기화되었습니다.');
+
+      // 기존 항목(ID가 있는 경우)이면 자동 저장 시도
+      if (nextDraft.id) {
+        setAddressSearchNote?.('주소 정보 동기화로 인해 자동 저장되었습니다.');
+        onSubmit(nextDraft);
+      }
     } catch {
       setAddressSearchNote?.('자동 입력에 실패했습니다.');
     } finally {

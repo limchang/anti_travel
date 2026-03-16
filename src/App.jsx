@@ -9541,8 +9541,8 @@ const App = () => {
                     setEditPlaceDraft((current) => createPlaceEditorDraft(current, {
                       name: nextName,
                       address: nextAddress,
-                      business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
-                      receipt: { ...(current.receipt || {}), items: parsed.menus?.length ? buildSmartFillMenuItems(parsed.menus) : (current.receipt?.items || []) },
+                      business: normalizeBusiness(parsed.business || {}),
+                      receipt: { ...(current.receipt || {}), items: buildSmartFillMenuItems(parsed.menus || []) },
                     }));
                     showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 슈퍼 자동 채우기 완료' : '슈퍼 자동 채우기 완료');
                   } else {
@@ -9656,8 +9656,8 @@ const App = () => {
                     setEditPlanDraft((current) => createPlaceEditorDraft(current, {
                       name: nextName,
                       address: nextAddress,
-                      business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
-                      receipt: { ...(current.receipt || {}), items: parsed.menus?.length ? buildSmartFillMenuItems(parsed.menus) : (current.receipt?.items || []) },
+                      business: normalizeBusiness(parsed.business || {}),
+                      receipt: { ...(current.receipt || {}), items: buildSmartFillMenuItems(parsed.menus || []) },
                     }));
                     showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 슈퍼 자동 채우기 완료' : '슈퍼 자동 채우기 완료');
                   } else {
@@ -11791,10 +11791,10 @@ const App = () => {
                                     type="button"
                                     onClick={refreshRoutePreviewMap}
                                     disabled={routePreviewManualRefreshing || routePreviewLoading}
-                                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black transition-all ${routePreviewManualRefreshing || routePreviewLoading ? 'border-slate-100 bg-slate-50 text-slate-300' : 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:border-amber-300 shadow-sm'}`}
+                                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black transition-all ${routePreviewManualRefreshing || routePreviewLoading ? 'border-slate-100 bg-slate-50 text-slate-300' : 'border-blue-200 bg-blue-50 text-[#3182F6] hover:bg-blue-100 hover:border-blue-300 shadow-sm'}`}
                                   >
                                     <Sparkles size={10} className={routePreviewManualRefreshing || routePreviewLoading ? '' : 'animate-pulse'} />
-                                    <span>{routePreviewManualRefreshing || routePreviewLoading ? '새로고침 중...' : '경로 재설정'}</span>
+                                    <span>{routePreviewManualRefreshing || routePreviewLoading ? '새로고침 중...' : '일정 경로 새로고침'}</span>
                                   </button>
                                 </div>
                                 <div className="mt-3 overflow-hidden rounded-[20px] border border-slate-200 bg-white/92">
@@ -11941,6 +11941,15 @@ const App = () => {
                 bottom: isMobileLayout ? 18 : 22,
               }}
             >
+               <button
+                type="button"
+                onClick={refreshRoutePreviewMap}
+                disabled={routePreviewManualRefreshing || routePreviewLoading}
+                className={`flex h-12 w-12 items-center justify-center rounded-[18px] border backdrop-blur-xl transition-all ${routePreviewManualRefreshing || routePreviewLoading ? 'border-[#3182F6]/30 bg-blue-50/96 text-[#3182F6] shadow-[0_18px_36px_-20px_rgba(49,130,246,0.35)]' : 'border-slate-200/85 bg-white/96 text-slate-700 shadow-[0_18px_36px_-24px_rgba(15,23,42,0.4)] hover:border-[#3182F6]/40 hover:text-[#3182F6]'}`}
+                title={routePreviewManualRefreshing || routePreviewLoading ? '경로 새로고침 중...' : '일정 경로 새로고침'}
+              >
+                {routePreviewManualRefreshing || routePreviewLoading ? <LoaderCircle size={18} className="animate-spin" /> : <Sparkles size={18} className="animate-pulse" />}
+              </button>
               <button
                 type="button"
                 onClick={autoCalculateAllRoutes}

@@ -8931,7 +8931,8 @@ const App = () => {
     saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
-      const p = nextData.days[dayIdx].plan[targetIdx];
+      const p = nextData.days?.[dayIdx]?.plan?.[targetIdx];
+      if (!p) return prev;
       p.distance = distance;
       p.travelTimeOverride = `${durationMins}분`;
       p.travelTimeAuto = `${durationMins}분`;

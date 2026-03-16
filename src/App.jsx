@@ -5540,7 +5540,7 @@ const App = () => {
     if (routePreviewAutoRetryKeyRef.current === retryKey) return undefined;
     routePreviewAutoRetryKeyRef.current = retryKey;
     const timer = window.setTimeout(() => {
-      void refreshRoutePreviewMap();
+      routePreviewBuildKeyRef.current = '';
     }, 3000);
 
     return () => window.clearTimeout(timer);
@@ -11775,7 +11775,9 @@ const App = () => {
 
                         {/* 🌟 2. 여행 한눈에 보기 */}
                         <div className="flex flex-col gap-3 px-3 transition-all duration-300 sm:px-0">
-                          <div className="rounded-[24px] border border-slate-200 bg-white/88 p-3 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)]">
+                          <div className="relative mt-1 w-full rounded-[24px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 sm:px-6 sm:py-6">
+                            <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
+                            <div className="mb-4 rounded-[24px] border border-slate-200 bg-white/88 p-3 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)]">
                               <div className="mb-0">
                                 <div className="flex items-center justify-between gap-2 px-1">
                                   <div className="flex gap-1 overflow-x-auto no-scrollbar py-0.5 flex-1 min-w-0">
@@ -11873,11 +11875,9 @@ const App = () => {
                                 </div>
                                 )}
                               </div>
-                          </div>
-                          {!heroCompactActive && (
-                            <div className="relative w-full rounded-[24px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl sm:px-6 sm:py-6">
-                              <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
-                              <div className="grid grid-cols-3 gap-3 sm:gap-3">
+                            </div>
+                            {!heroCompactActive && (
+                              <div className="grid grid-cols-3 gap-3 sm:gap-3 mt-4">
                                 <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
                                   <div className="flex h-full flex-col items-center justify-center text-center">
                                     <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
@@ -11923,8 +11923,8 @@ const App = () => {
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
                         {showHeroSummaryModal && (
                           <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/36 px-4 py-6 backdrop-blur-sm" onClick={() => setShowHeroSummaryModal(false)}>

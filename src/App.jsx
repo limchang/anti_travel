@@ -2866,7 +2866,7 @@ const RoutePreviewCanvas = ({
         </Pane>
         <Pane name="route-arrows" style={{ zIndex: 460 }}>
           {(() => {
-            const arrowStep = Math.max(1, Math.round(Math.pow(2, 13 - mapZoom)));
+            const arrowStep = Math.max(1, Math.round(Math.pow(3, 13 - mapZoom)));
             return visibleSegmentEntries.flatMap((segment) =>
               (segment.arrowPoints || [])
                 .filter((_, i) => i % arrowStep === 0)

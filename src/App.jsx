@@ -8121,12 +8121,16 @@ const App = () => {
         ...cloneGeoForRecord(alt),
       };
       if (options?.anchor === 'next' && nextItem) {
+        const nextTravel = DEFAULT_TRAVEL_MINS;
+        const nextBuffer = DEFAULT_BUFFER_MINS;
         const nextStart = timeToMinutes(nextItem.time || '00:00');
-        const nextTravel = parseMinsLabel(nextItem.travelTimeOverride, DEFAULT_TRAVEL_MINS);
-        const nextBuffer = parseMinsLabel(nextItem.bufferTimeOverride, DEFAULT_BUFFER_MINS);
         const anchoredStart = Math.max(0, nextStart - nextTravel - nextBuffer - Math.max(0, Number(insertedItem.duration) || 0));
         insertedItem.time = minutesToTime(anchoredStart);
         insertedItem.isTimeFixed = true;
+        nextItem.travelTimeOverride = `${DEFAULT_TRAVEL_MINS}분`;
+        nextItem.bufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
+        nextItem._manualBufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
+        nextItem._isBufferCoordinated = false;
       } else {
         insertedItem.isTimeFixed = true;
       }
@@ -8194,12 +8198,17 @@ const App = () => {
       const prevItem = targetDayPlan[insertAfterPIdx];
       const nextItem = targetDayPlan[insertAfterPIdx + 1];
       if (options?.anchor === 'next' && nextItem && !itemToMove.types?.includes('ship')) {
+        const nextTravel = DEFAULT_TRAVEL_MINS;
+        const nextBuffer = DEFAULT_BUFFER_MINS;
         const nextStart = timeToMinutes(nextItem.time || '00:00');
-        const nextTravel = parseMinsLabel(nextItem.travelTimeOverride, DEFAULT_TRAVEL_MINS);
-        const nextBuffer = parseMinsLabel(nextItem.bufferTimeOverride, DEFAULT_BUFFER_MINS);
         const anchoredStart = Math.max(0, nextStart - nextTravel - nextBuffer - Math.max(0, Number(itemToMove.duration) || 0));
         itemToMove.time = minutesToTime(anchoredStart);
         itemToMove.isTimeFixed = true;
+        // 이후 기준 삽입 시 nextItem의 이동/버퍼 시간 초기화 (새 경로 기준)
+        nextItem.travelTimeOverride = `${DEFAULT_TRAVEL_MINS}분`;
+        nextItem.bufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
+        nextItem._manualBufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
+        nextItem._isBufferCoordinated = false;
       } else if (prevItem && !itemToMove.types?.includes('ship')) {
         itemToMove.time = minutesToTime(getTimelineItemEndMinutes(prevItem) + DEFAULT_TRAVEL_MINS + DEFAULT_BUFFER_MINS);
         itemToMove.isTimeFixed = true;
@@ -8827,12 +8836,16 @@ const App = () => {
         fallbackLabel: label,
       });
       if (options?.anchor === 'next' && nextItem) {
+        const nextTravel = DEFAULT_TRAVEL_MINS;
+        const nextBuffer = DEFAULT_BUFFER_MINS;
         const nextStart = timeToMinutes(nextItem.time || '00:00');
-        const nextTravel = parseMinsLabel(nextItem.travelTimeOverride, DEFAULT_TRAVEL_MINS);
-        const nextBuffer = parseMinsLabel(nextItem.bufferTimeOverride, DEFAULT_BUFFER_MINS);
         const anchoredStart = Math.max(0, nextStart - nextTravel - nextBuffer - Math.max(0, Number(insertedItem.duration) || 0));
         insertedItem.time = minutesToTime(anchoredStart);
         insertedItem.isTimeFixed = true;
+        nextItem.travelTimeOverride = `${DEFAULT_TRAVEL_MINS}분`;
+        nextItem.bufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
+        nextItem._manualBufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
+        nextItem._isBufferCoordinated = false;
       } else if (prevItem) {
         insertedItem.time = minutesToTime(getTimelineItemEndMinutes(prevItem) + DEFAULT_TRAVEL_MINS + DEFAULT_BUFFER_MINS);
         insertedItem.isTimeFixed = true;
@@ -9544,7 +9557,7 @@ const App = () => {
   };
 
   const renderTimelineInsertGuide = (isDropHere, warnText = '', anchor = 'prev') => {
-    const activeText = warnText || (anchor === 'next' ? '오른쪽 기준으로 끼워 넣습니다.' : '왼쪽 기준으로 끼워 넣습니다.');
+    const activeText = warnText || (anchor === 'next' ? '이후 일정 시간 기준으로 역산합니다.' : '이전 일정 시간 기준으로 배치합니다.');
     const idleText = '이동칩 안으로 놓아 흐름에 연결';
     return (
       <div className="z-10 flex w-full items-center justify-center">

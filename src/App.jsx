@@ -11722,25 +11722,17 @@ const App = () => {
                             style={{ width: `${Math.min(100, usedPct)}%` }}
                           />
                         </div>
-                        {heroCompactActive && (
-                          <button
-                            type="button"
-                            onClick={() => setShowOverviewMapModal(true)}
-                            className={`pointer-events-auto absolute inset-x-0 bottom-0 z-[12] flex h-8 items-start justify-center bg-transparent transition-opacity duration-200 ease-out ${heroCompactBudgetBarVisible ? 'opacity-100' : 'opacity-0'}`}
-                            aria-label="동선 지도 보기"
-                            title="동선 지도 보기"
-                          >
-                            {compactHeroAlert && (
-                              <span
-                                className={`mt-1 inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black tracking-tight shadow-[0_10px_22px_-18px_rgba(15,23,42,0.45)] backdrop-blur-md ${compactHeroAlert.tone === 'danger'
-                                  ? 'border-red-200/80 bg-red-50/88 text-red-600'
-                                  : 'border-amber-200/80 bg-amber-50/88 text-amber-600'
-                                  }`}
-                              >
-                                {compactHeroAlert.label}
-                              </span>
-                            )}
-                          </button>
+                        {heroCompactActive && compactHeroAlert && (
+                          <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-[12] flex h-8 items-start justify-center bg-transparent transition-opacity duration-200 ease-out ${heroCompactBudgetBarVisible ? 'opacity-100' : 'opacity-0'}`}>
+                            <span
+                              className={`mt-1 inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black tracking-tight shadow-[0_10px_22px_-18px_rgba(15,23,42,0.45)] backdrop-blur-md ${compactHeroAlert.tone === 'danger'
+                                ? 'border-red-200/80 bg-red-50/88 text-red-600'
+                                : 'border-amber-200/80 bg-amber-50/88 text-amber-600'
+                                }`}
+                            >
+                              {compactHeroAlert.label}
+                            </span>
+                          </div>
                         )}
                       </div>
 
@@ -11901,15 +11893,17 @@ const App = () => {
                               )}
                             </div>
                           )}
-                          <div className="flex justify-center py-1">
-                            <button
-                              type="button"
-                              onClick={() => setOverviewMapHidden((prev) => !prev)}
-                              className="flex items-center gap-1 px-3 py-1 rounded-full border border-slate-200 bg-white/80 text-[10px] font-black text-slate-400 hover:border-slate-300 hover:text-slate-600 transition-all shadow-sm"
-                            >
-                              {overviewMapHidden ? <><ChevronDown size={11} /><span>지도 열기</span></> : <><ChevronUp size={11} /><span>지도 접기</span></>}
-                            </button>
-                          </div>
+                          {!heroCompactActive && (
+                            <div className="flex justify-center py-1">
+                              <button
+                                type="button"
+                                onClick={() => setOverviewMapHidden((prev) => !prev)}
+                                className="flex items-center gap-1 px-3 py-1 rounded-full border border-slate-200 bg-white/80 text-[10px] font-black text-slate-400 hover:border-slate-300 hover:text-slate-600 transition-all shadow-sm"
+                              >
+                                {overviewMapHidden ? <><ChevronDown size={11} /><span>지도 열기</span></> : <><ChevronUp size={11} /><span>지도 접기</span></>}
+                              </button>
+                            </div>
+                          )}
                         </div>
                         {showHeroSummaryModal && (
                           <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/36 px-4 py-6 backdrop-blur-sm" onClick={() => setShowHeroSummaryModal(false)}>

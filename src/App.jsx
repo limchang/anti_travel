@@ -2437,41 +2437,95 @@ const buildOverlayMarkerIcon = (fillColor, glyph, isFocused) => L.divIcon({
   iconAnchor: [isFocused ? 11 : 9, isFocused ? 11 : 9],
 });
 
-const buildSegmentLabelIcon = (color, label, angleDeg, isFocused) => {
-  const arrowRot = Math.round(angleDeg);
-  const w = isFocused ? 68 : 58;
-  const h = isFocused ? 22 : 18;
+const buildSegmentLabelIcon = (color, label, isFocused) => {
+  const w = isFocused ? 64 : 54;
+  const h = isFocused ? 20 : 17;
   return L.divIcon({
     className: '',
     html: `
       <div style="
         display:flex;
         align-items:center;
-        gap:3px;
+        justify-content:center;
         height:${h}px;
-        padding:0 7px 0 5px;
+        padding:0 7px;
         border-radius:999px;
         background:${color};
         color:#fff;
         font-size:${isFocused ? '10px' : '9px'};
         font-weight:900;
         white-space:nowrap;
-        box-shadow:0 4px 12px -6px rgba(15,23,42,0.5);
-        border:2px solid rgba(255,255,255,0.85);
+        box-shadow:0 4px 12px -6px rgba(15,23,42,0.55);
+        border:2px solid rgba(255,255,255,0.9);
         pointer-events:none;
-      ">
-        <span style="
-          display:inline-block;
-          font-size:${isFocused ? '11px' : '10px'};
-          line-height:1;
-          transform:rotate(${arrowRot}deg);
-        ">▶</span>
-        <span style="letter-spacing:-0.3px;">${label}</span>
-      </div>
+        letter-spacing:-0.3px;
+      ">${label}</div>
     `,
     iconSize: [w, h],
     iconAnchor: [w / 2, h / 2],
   });
+};
+
+// leaflet [lat,lon] 배열에서 두 점 사이 각도(deg, 동=0, 북=90 등 지도 기준)
+const calcBearingDeg = (p1, p2) => {
+  if (!p1 || !p2) return 0;
+  // CSS transform rotate: 오른쪽이 0, 시계방향 증가 → atan2(dLon, dLat) * (180/π) - 90
+  const dLat = p2[0] - p1[0];
+  const dLon = p2[1] - p1[1];
+  return Math.atan2(dLon, dLat) * (180 / Math.PI);
+};
+
+const buildArrowIcon = (color, bearingDeg, isFocused) => {
+  const sz = isFocused ? 14 : 11;
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:${sz}px;
+      height:${sz}px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+      transform:rotate(${Math.round(bearingDeg)}deg);
+      filter:drop-shadow(0 1px 2px rgba(15,23,42,0.35));
+    ">
+      <svg width="${sz}" height="${sz}" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="6,0 12,10 6,7 0,10" fill="${color}" stroke="rgba(255,255,255,0.85)" stroke-width="1.2" stroke-linejoin="round"/>
+      </svg>
+    </div>`,
+    iconSize: [sz, sz],
+    iconAnchor: [sz / 2, sz / 2],
+  });
+};
+
+// 경로 좌표 배열을 픽셀 간격(m 기준)으로 샘플링해서 화살표 배치 위치+각도 반환
+const sampleRouteArrows = (positions, intervalMeters = 120) => {
+  if (!positions || positions.length < 2) return [];
+  const R = 6371000;
+  const toRad = (d) => d * Math.PI / 180;
+  const dist = (a, b) => {
+    const dLat = toRad(b[0] - a[0]);
+    const dLon = toRad(b[1] - a[1]);
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+  };
+  const arrows = [];
+  let accumulated = 0;
+  let nextThreshold = intervalMeters * 0.5; // 첫 화살표는 중간에서 시작
+  for (let i = 1; i < positions.length; i += 1) {
+    const segDist = dist(positions[i - 1], positions[i]);
+    const prev = accumulated;
+    accumulated += segDist;
+    while (nextThreshold <= accumulated) {
+      const ratio = segDist > 0 ? (nextThreshold - prev) / segDist : 0;
+      const lat = positions[i - 1][0] + ratio * (positions[i][0] - positions[i - 1][0]);
+      const lon = positions[i - 1][1] + ratio * (positions[i][1] - positions[i - 1][1]);
+      const bearing = calcBearingDeg(positions[i - 1], positions[i]);
+      arrows.push({ pos: [lat, lon], bearing });
+      nextThreshold += intervalMeters;
+    }
+  }
+  return arrows;
 };
 
 const LeafletMapViewportController = ({
@@ -2627,21 +2681,20 @@ const RoutePreviewCanvas = ({
               focusedTimelinePointIds.includes(segment?.fromId)
               || focusedTimelinePointIds.includes(segment?.toId)
             );
-          // 중간점 계산
+          const isFallbackLine = !(Array.isArray(segment.path) && segment.path.length);
+          // 중간점 (소요시간 라벨용)
           const midIdx = Math.floor(positions.length / 2);
           const midPos = positions[midIdx] || positions[0];
-          // 방향각 계산 (중간 구간)
-          const p1 = positions[Math.max(0, midIdx - 1)];
-          const p2 = positions[Math.min(positions.length - 1, midIdx + 1)];
-          const angleDeg = p1 && p2 ? Math.atan2(p2[1] - p1[1], p2[0] - p1[0]) * 180 / Math.PI : 0;
+          // 화살표 샘플링 (실제 경로만)
+          const arrowPoints = isFallbackLine ? [] : sampleRouteArrows(positions, 90);
           return {
             id: segment.id || `segment-${day.day}-${index}`,
             positions,
             color: day.color,
-            isFallbackLine: !(Array.isArray(segment.path) && segment.path.length),
+            isFallbackLine,
             isFocused,
             midPos,
-            angleDeg,
+            arrowPoints,
             durationMins: Number.isFinite(Number(segment.durationMins)) ? Number(segment.durationMins) : null,
             distance: Number.isFinite(Number(segment.distance)) ? Number(segment.distance) : null,
           };
@@ -2803,6 +2856,18 @@ const RoutePreviewCanvas = ({
             />
           ))}
         </Pane>
+        <Pane name="route-arrows" style={{ zIndex: 460 }}>
+          {visibleSegmentEntries.flatMap((segment) =>
+            (segment.arrowPoints || []).map((ap, i) => (
+              <Marker
+                key={`arrow-${segment.id}-${i}`}
+                position={ap.pos}
+                bubblingMouseEvents={false}
+                icon={buildArrowIcon(segment.color, ap.bearing, segment.isFocused)}
+              />
+            ))
+          )}
+        </Pane>
         <Pane name="route-labels" style={{ zIndex: 470 }}>
           {visibleSegmentEntries.map((segment) => {
             if (!segment.midPos || segment.isFallbackLine) return null;
@@ -2816,7 +2881,7 @@ const RoutePreviewCanvas = ({
                 key={`segment-label-${segment.id}`}
                 position={segment.midPos}
                 bubblingMouseEvents={false}
-                icon={buildSegmentLabelIcon(segment.color, label, segment.angleDeg, segment.isFocused)}
+                icon={buildSegmentLabelIcon(segment.color, label, segment.isFocused)}
               />
             );
           })}

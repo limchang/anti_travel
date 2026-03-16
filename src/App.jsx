@@ -2234,19 +2234,26 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
   const borderW = isFocused ? 3 : 2;
   const tailW = isFocused ? 7 : 6;
   const tailH = isFocused ? 10 : 8;
-  const tagH = shortCategoryLabel ? (isFocused ? 16 : 14) : 0;
-  const tagGap = shortCategoryLabel ? 3 : 0;
+  // focused이면 항상 라벨 표시, 아니면 hover시만 표시
+  const tagH = isFocused ? (shortCategoryLabel ? 16 : 0) : (shortCategoryLabel ? 14 : 0);
+  const tagGap = (tagH > 0) ? 3 : 0;
+  const uid = `tm${Math.random().toString(36).slice(2,7)}`;
   return L.divIcon({
     className: '',
     html: `
-      <div style="
+      <style>
+        #${uid}:hover .tl-tag { opacity:1 !important; transform:translateY(0) !important; }
+        #${uid}:hover .tl-circle { box-shadow:0 6px 20px -6px rgba(15,23,42,0.7)${isFocused ? ',0 0 0 3px rgba(15,23,42,0.15)' : ''} !important; }
+      </style>
+      <div id="${uid}" style="
         position:relative;
         display:flex;
         flex-direction:column;
         align-items:center;
         width:${sz}px;
+        cursor:pointer;
       ">
-        ${shortCategoryLabel ? `<span style="
+        ${shortCategoryLabel ? `<span class="tl-tag" style="
           margin-bottom:${tagGap}px;
           min-width:${isFocused ? '30px' : '26px'};
           height:${tagH}px;
@@ -2261,8 +2268,12 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
           white-space:nowrap;
           box-shadow:0 4px 10px -4px rgba(15,23,42,0.45);
           letter-spacing:0.02em;
+          opacity:${isFocused ? 1 : 0};
+          transform:${isFocused ? 'translateY(0)' : 'translateY(4px)'};
+          transition:opacity 0.15s,transform 0.15s;
+          pointer-events:none;
         ">${shortCategoryLabel}</span>` : ''}
-        <div style="
+        <div class="tl-circle" style="
           position:relative;
           width:${sz}px;
           height:${sz}px;
@@ -2277,6 +2288,7 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
           font-weight:900;
           box-shadow:0 6px 20px -8px rgba(15,23,42,0.6)${isFocused ? ',0 0 0 3px rgba(15,23,42,0.15)' : ''};
           letter-spacing:-0.5px;
+          transition:box-shadow 0.15s;
         ">
           ${label}
           ${shortCategoryLabel ? `<span style="
@@ -2302,28 +2314,53 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
         "></div>
       </div>
     `,
-    iconSize: [sz, tagH + tagGap + sz + tailH],
-    iconAnchor: [sz / 2, tagH + tagGap + sz + tailH],
+    iconSize: [sz, (isFocused ? tagH + tagGap : 0) + sz + tailH],
+    iconAnchor: [sz / 2, (isFocused ? tagH + tagGap : 0) + sz + tailH],
   });
 };
 
-const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused) => {
-  const shortLabel = String(categoryLabel || '').trim().slice(0, 2) || '●';
+const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd = false) => {
+  const shortLabel = String(categoryLabel || '').trim().slice(0, 2) || '장소';
   const sz = isFocused ? 28 : 24;
   const tailW = isFocused ? 5 : 4;
   const tailH = isFocused ? 8 : 6;
-  const tagH = isFocused ? 15 : 13;
-  const tagGap = 2;
+  const uid = `lb${Math.random().toString(36).slice(2,7)}`;
   return L.divIcon({
     className: '',
     html: `
-      <div style="
+      <style>
+        #${uid}:hover .lb-label { opacity:1 !important; transform:translateY(0) !important; }
+        #${uid}:hover .lb-circle { box-shadow:0 6px 18px -6px rgba(15,23,42,0.65) !important; }
+        ${canAdd ? `#${uid}:hover .lb-add { opacity:1 !important; transform:translateY(0) scale(1) !important; }` : ''}
+      </style>
+      <div id="${uid}" style="
         display:flex;
         flex-direction:column;
         align-items:center;
         width:${sz}px;
+        cursor:pointer;
+        position:relative;
       ">
-        <div style="
+        <span class="lb-label" style="
+          margin-bottom:2px;
+          min-width:${isFocused ? '28px' : '24px'};
+          height:${isFocused ? 15 : 13}px;
+          padding:0 5px;
+          border-radius:999px;
+          background:${categoryColor};
+          color:#fff;
+          font-size:${isFocused ? '8px' : '7px'};
+          font-weight:900;
+          line-height:${isFocused ? '15px' : '13px'};
+          text-align:center;
+          white-space:nowrap;
+          box-shadow:0 4px 8px -4px rgba(15,23,42,0.4);
+          opacity:${isFocused ? 1 : 0};
+          transform:${isFocused ? 'translateY(0)' : 'translateY(4px)'};
+          transition:opacity 0.15s,transform 0.15s;
+          pointer-events:none;
+        ">${shortLabel}</span>
+        <div class="lb-circle" style="
           position:relative;
           width:${sz}px;
           height:${sz}px;
@@ -2334,12 +2371,12 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused) => {
           display:flex;
           align-items:center;
           justify-content:center;
-          font-size:${isFocused ? '8px' : '7px'};
+          font-size:${isFocused ? '10px' : '9px'};
           font-weight:900;
           line-height:1;
-          letter-spacing:0.01em;
           box-shadow:0 6px 18px -8px rgba(15,23,42,0.55)${isFocused ? ',0 0 0 3px rgba(15,23,42,0.12)' : ''};
           white-space:nowrap;
+          transition:box-shadow 0.15s;
         ">${shortLabel}</div>
         <div style="
           width:0;
@@ -2350,10 +2387,31 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused) => {
           filter:drop-shadow(0 2px 3px rgba(15,23,42,0.25));
           margin-top:-1px;
         "></div>
+        ${canAdd ? `<div class="lb-add" style="
+          position:absolute;
+          top:-6px;
+          right:-6px;
+          width:16px;
+          height:16px;
+          border-radius:999px;
+          background:#3182F6;
+          color:#fff;
+          font-size:12px;
+          font-weight:900;
+          line-height:16px;
+          text-align:center;
+          box-shadow:0 3px 8px -3px rgba(49,130,246,0.6);
+          border:2px solid #fff;
+          opacity:0;
+          transform:translateY(4px) scale(0.8);
+          transition:opacity 0.15s,transform 0.15s;
+          pointer-events:none;
+          z-index:9;
+        ">+</div>` : ''}
       </div>
     `,
-    iconSize: [sz, sz + tailH],
-    iconAnchor: [sz / 2, sz + tailH],
+    iconSize: [sz, (isFocused ? 17 : 0) + sz + tailH],
+    iconAnchor: [sz / 2, (isFocused ? 17 : 0) + sz + tailH],
   });
 };
 
@@ -2463,6 +2521,7 @@ const RoutePreviewCanvas = ({
   recommendationPoints = [],
   focusedTarget = null,
   onMarkerClick = null,
+  onLibraryMarkerAddClick = null,
   onBackgroundClick = null,
   interactive = true,
   showTimelineMarkers = true,
@@ -2725,32 +2784,37 @@ const RoutePreviewCanvas = ({
           ))}
         </Pane>
         <Pane name="overlay-points" style={{ zIndex: 620 }}>
-          {visibleOverlayEntries.map((point) => (
-            <Marker
-              key={`overlay-point-${point.kind}-${point.id}`}
-              position={point.position}
-              bubblingMouseEvents={false}
-              icon={point.kind === 'place'
-                ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', point.isFocused)
-                : buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
-              eventHandlers={interactive && typeof onMarkerClick === 'function' ? {
-                click: () => onMarkerClick({
-                  kind: point.kind,
-                  id: point.id,
-                  label: point.label,
-                  address: point.address,
-                }),
-              } : undefined}
-            >
-              <Tooltip direction="top" offset={[0, -10]} opacity={1} className="!rounded-xl !border !border-slate-200 !bg-white/95 !px-2 !py-1 !text-[10px] !font-black !text-slate-700 !shadow-sm">
-                <div className="max-w-[180px]">
-                  <div>{point.label || (point.kind === 'recommendation' ? '추천 장소' : '내 장소')}</div>
-                  {point.categoryLabel && point.kind === 'place' ? <div className="mt-0.5 text-[9px] font-black" style={{ color: point.categoryColor || '#64748B' }}>{point.categoryLabel}</div> : null}
-                  {point.address ? <div className="mt-0.5 truncate text-[9px] font-bold text-slate-400">{point.address}</div> : null}
-                </div>
-              </Tooltip>
-            </Marker>
-          ))}
+          {visibleOverlayEntries.map((point) => {
+            const canAdd = interactive && point.kind === 'place' && focusedTarget?.kind === 'timeline' && typeof onLibraryMarkerAddClick === 'function';
+            return (
+              <Marker
+                key={`overlay-point-${point.kind}-${point.id}`}
+                position={point.position}
+                bubblingMouseEvents={false}
+                icon={point.kind === 'place'
+                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', point.isFocused, canAdd)
+                  : buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
+                eventHandlers={interactive ? {
+                  click: () => {
+                    if (canAdd) {
+                      onLibraryMarkerAddClick({ id: point.id, label: point.label });
+                    } else if (typeof onMarkerClick === 'function') {
+                      onMarkerClick({ kind: point.kind, id: point.id, label: point.label, address: point.address });
+                    }
+                  },
+                } : undefined}
+              >
+                <Tooltip direction="top" offset={[0, -10]} opacity={1} className="!rounded-xl !border !border-slate-200 !bg-white/95 !px-2 !py-1 !text-[10px] !font-black !text-slate-700 !shadow-sm">
+                  <div className="max-w-[180px]">
+                    <div>{point.label || (point.kind === 'recommendation' ? '추천 장소' : '내 장소')}</div>
+                    {point.categoryLabel && point.kind === 'place' ? <div className="mt-0.5 text-[9px] font-black" style={{ color: point.categoryColor || '#64748B' }}>{point.categoryLabel}</div> : null}
+                    {point.address ? <div className="mt-0.5 truncate text-[9px] font-bold text-slate-400">{point.address}</div> : null}
+                    {canAdd ? <div className="mt-1 rounded-md bg-[#3182F6] px-2 py-0.5 text-center text-[9px] font-black text-white">+ 선택 일정 다음에 추가</div> : null}
+                  </div>
+                </Tooltip>
+              </Marker>
+            );
+          })}
         </Pane>
       </MapContainer>
       {tileStatus === 'loading' && (
@@ -5949,6 +6013,16 @@ const App = () => {
       focusRecommendationOnMap(target.id, { scroll: true });
     }
   }, [findPlanItemContextById, focusLibraryOnMap, focusRecommendationOnMap, focusTimelineOnMap, itinerary.places]);
+
+  const handleOverviewMapLibraryAddClick = useCallback(({ id: placeId }) => {
+    if (!placeId || focusedMapTarget?.kind !== 'timeline') return;
+    const place = (itinerary.places || []).find((entry) => entry?.id === placeId);
+    if (!place) return;
+    const found = findPlanItemContextById(focusedMapTarget.id);
+    if (!found) return;
+    addNewItem(found.dayIdx, found.pIdx, place.types || ['place'], place, { anchor: 'next' });
+    triggerUndoToast(`'${place.name || '장소'}'를 ${found.dayNum}일차 일정에 추가했습니다.`);
+  }, [focusedMapTarget, itinerary.places, findPlanItemContextById, addNewItem]);
 
   const normalizeAlternative = (alt = {}) => {
     const receipt = alt.receipt
@@ -10545,6 +10619,7 @@ const App = () => {
                                 recommendationPoints={recommendationMapPoints}
                                 focusedTarget={focusedMapTarget}
                                 onMarkerClick={handleOverviewMapMarkerClick}
+                                onLibraryMarkerAddClick={handleOverviewMapLibraryAddClick}
                                 onBackgroundClick={clearOverviewMapFocus}
                                 interactive={!isMobileLayout || mapExpanded}
                                 height={rightPanelMapHeight}
@@ -11892,6 +11967,7 @@ const App = () => {
                                       recommendationPoints={[]}
                                       focusedTarget={focusedMapTarget?.kind === 'timeline' ? focusedMapTarget : null}
                                       onMarkerClick={handleOverviewMapMarkerClick}
+                                      onLibraryMarkerAddClick={handleOverviewMapLibraryAddClick}
                                       onBackgroundClick={clearOverviewMapFocus}
                                       interactive
                                       height={isMobileLayout ? 188 : 220}

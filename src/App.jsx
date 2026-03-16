@@ -5176,6 +5176,16 @@ const App = () => {
       }))
     )
   ), [routePreviewFallbackGeoByAddress]);
+  const buildRoutePreviewSegmentKey = useCallback((fromPoint, toPoint) => {
+    const fA = String(fromPoint?.address || fromPoint?.id || '').trim();
+    const tA = String(toPoint?.address || toPoint?.id || '').trim();
+    const fL = Number.isFinite(Number(fromPoint?.lat)) ? Number(fromPoint.lat).toFixed(6) : '0';
+    const fO = Number.isFinite(Number(fromPoint?.lon)) ? Number(fromPoint.lon).toFixed(6) : '0';
+    const tL = Number.isFinite(Number(toPoint?.lat)) ? Number(toPoint.lat).toFixed(6) : '0';
+    const tO = Number.isFinite(Number(toPoint?.lon)) ? Number(toPoint.lon).toFixed(6) : '0';
+    return `${fA}:${fL},${fO}__${tA}:${tL},${tO}`;
+  }, []);
+
   const routePreviewStoredDays = useMemo(() => (
     routePreviewPointSource
       .map((entry) => {
@@ -5226,16 +5236,6 @@ const App = () => {
     () => `${routePreviewSourceSignature}|${routePreviewFallbackGeoSignature}`,
     [routePreviewFallbackGeoSignature, routePreviewSourceSignature]
   );
-  const buildRoutePreviewSegmentKey = useCallback((fromPoint, toPoint) => {
-    const fA = String(fromPoint?.address || fromPoint?.id || '').trim();
-    const tA = String(toPoint?.address || toPoint?.id || '').trim();
-    const fL = Number.isFinite(Number(fromPoint?.lat)) ? Number(fromPoint.lat).toFixed(6) : '0';
-    const fO = Number.isFinite(Number(fromPoint?.lon)) ? Number(fromPoint.lon).toFixed(6) : '0';
-    const tL = Number.isFinite(Number(toPoint?.lat)) ? Number(toPoint.lat).toFixed(6) : '0';
-    const tO = Number.isFinite(Number(toPoint?.lon)) ? Number(toPoint.lon).toFixed(6) : '0';
-    return `${fA}:${fL},${fO}__${tA}:${tL},${tO}`;
-  }, []);
-
   const routePreviewNeedsLookup = useMemo(() => (
     routePreviewPointSource.some((entry) => (
       (entry.points || []).some((point) => {

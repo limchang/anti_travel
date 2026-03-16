@@ -2533,6 +2533,7 @@ const LeafletMapViewportController = ({
   focusedPoints = [],
   animateFocus = true,
   resizeKey = '',
+  scopeKey = '',
 }) => {
   const map = useMap();
   const boundsSignature = useMemo(
@@ -2565,8 +2566,28 @@ const LeafletMapViewportController = ({
     };
   }, [map, resizeKey]);
 
+  // scopeKey(탭 전환)가 바뀔 때만 전체 bounds로 리셋
   useEffect(() => {
-    const syncViewport = () => {
+    if (!scopeKey) return undefined;
+    const timer = window.setTimeout(() => {
+      map.invalidateSize({ pan: false });
+      if (boundsPoints.length) {
+        const bounds = L.latLngBounds(boundsPoints);
+        if (bounds.isValid()) {
+          map.fitBounds(bounds.pad(0.18), { animate: false, padding: [24, 24] });
+          return;
+        }
+      }
+      map.setView(ROUTE_PREVIEW_DEFAULT_CENTER, 10, { animate: false });
+    }, 40);
+    return () => window.clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopeKey]);
+
+  // focusedPoints가 바뀔 때 포커스 이동 (줌 강제 변경 없음 - 사용자 줌 유지)
+  useEffect(() => {
+    if (!focusSignature) return undefined;
+    const timer = window.setTimeout(() => {
       map.invalidateSize({ pan: false });
       if (focusedPoints.length >= 2) {
         const focusBounds = L.latLngBounds(focusedPoints);
@@ -2577,20 +2598,11 @@ const LeafletMapViewportController = ({
       }
       if (focusedPoints.length === 1) {
         map.flyTo(focusedPoints[0], Math.max(map.getZoom(), 13), { duration: animateFocus ? 0.45 : 0 });
-        return;
       }
-      if (boundsPoints.length) {
-        const bounds = L.latLngBounds(boundsPoints);
-        if (bounds.isValid()) {
-          map.fitBounds(bounds.pad(0.18), { animate: false, padding: [24, 24] });
-          return;
-        }
-      }
-      map.setView(ROUTE_PREVIEW_DEFAULT_CENTER, 10, { animate: false });
-    };
-    const timer = window.setTimeout(syncViewport, 40);
+    }, 40);
     return () => window.clearTimeout(timer);
-  }, [animateFocus, boundsSignature, focusSignature, boundsPoints, focusedPoints, map, resizeKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusSignature]);
 
   return null;
 };
@@ -2618,6 +2630,7 @@ const RoutePreviewCanvas = ({
   showTimelineMarkers = true,
   showRouteLines = true,
   showOverlayMarkers = true,
+  scopeKey = '',
 }) => {
   const tileProviders = useMemo(() => ([
     {
@@ -2837,7 +2850,8 @@ const RoutePreviewCanvas = ({
           boundsPoints={allBoundsPoints}
           focusedPoints={focusedViewportPoints}
           animateFocus={interactive}
-          resizeKey={`${height}:${interactive ? 'on' : 'off'}:${boundsSignature}`}
+          resizeKey={`${height}:${interactive ? 'on' : 'off'}`}
+          scopeKey={`${scopeKey}:${boundsSignature}`}
         />
         <LeafletMapBackgroundClickHandler onBackgroundClick={onBackgroundClick} />
         {(() => {
@@ -6110,6 +6124,8 @@ const App = () => {
       setPanelMapDayFilter(Number(dayNum));
     }
     if (isMobileLayout) setMapExpanded(true);
+    // 편집 모드에서 일정 선택 시 내장소 마커 자동 표시 (+ 아이콘으로 바로 추가 가능)
+    if (isEditMode) setShowOverviewLibraryPoints(true);
     setFocusedMapTarget({
       kind: 'timeline',
       id: targetItem.id,
@@ -6117,7 +6133,7 @@ const App = () => {
       routePointIds,
     });
     if (scroll) handleNavClick(dayNum, targetItem.id);
-  }, [handleNavClick, isMobileLayout, overviewMapDayFilter, overviewMapScope, panelMapDayFilter, panelMapScope]);
+  }, [handleNavClick, isMobileLayout, isEditMode, overviewMapDayFilter, overviewMapScope, panelMapDayFilter, panelMapScope]);
   const focusLibraryOnMap = useCallback((place, { scroll = false } = {}) => {
     const placeId = String(place?.id || '').trim();
     if (!placeId) return;
@@ -11699,6 +11715,7 @@ const App = () => {
                     showTimelineMarkers
                     showRouteLines
                     showOverlayMarkers={false}
+                    scopeKey={`${overviewMapScope}:${overviewMapDayFilter ?? 'all'}`}
                   />
                 </div>
               </div>
@@ -12168,6 +12185,7 @@ const App = () => {
                                       showTimelineMarkers
                                       showRouteLines
                                       showOverlayMarkers={showOverviewLibraryPoints}
+                                      scopeKey={`${overviewMapScope}:${overviewMapDayFilter ?? 'all'}`}
                                     />
                                   ) : (
                                     <div className="flex flex-col items-center justify-center gap-2 px-4 text-center" style={{ height: isMobileLayout ? 188 : 220 }}>

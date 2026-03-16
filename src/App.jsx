@@ -2230,64 +2230,81 @@ const getMapCategoryLabel = (type = 'place') => {
 
 const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#FFFFFF', categoryLabel = '') => {
   const shortCategoryLabel = String(categoryLabel || '').trim().slice(0, 2);
+  const sz = isFocused ? 34 : 30;
+  const borderW = isFocused ? 3 : 2;
+  const dotSz = isFocused ? 11 : 10;
+  const tailW = 6;
+  const tailH = isFocused ? 9 : 8;
+  const totalH = sz + tailH;
+  const tagH = shortCategoryLabel ? (isFocused ? 14 : 13) : 0;
+  const tagGap = shortCategoryLabel ? 3 : 0;
   return L.divIcon({
     className: '',
     html: `
       <div style="
         position:relative;
-        width:${isFocused ? '40px' : '36px'};
-        height:${isFocused ? '44px' : '40px'};
         display:flex;
         flex-direction:column;
         align-items:center;
-        justify-content:flex-start;
+        width:${sz}px;
       ">
         ${shortCategoryLabel ? `<span style="
-          margin-bottom:3px;
+          margin-bottom:${tagGap}px;
           min-width:${isFocused ? '24px' : '22px'};
-          height:${isFocused ? '14px' : '13px'};
+          height:${tagH}px;
           padding:0 4px;
           border-radius:999px;
           background:${categoryColor};
-          color:#FFFFFF;
+          color:#fff;
           font-size:${isFocused ? '8px' : '7px'};
           font-weight:900;
-          line-height:${isFocused ? '14px' : '13px'};
+          line-height:${tagH}px;
           text-align:center;
-          box-shadow:0 8px 16px -12px rgba(15,23,42,0.5);
+          white-space:nowrap;
+          box-shadow:0 4px 8px -4px rgba(15,23,42,0.4);
         ">${shortCategoryLabel}</span>` : ''}
         <div style="
           position:relative;
-          width:${isFocused ? '34px' : '30px'};
-          height:${isFocused ? '34px' : '30px'};
+          width:${sz}px;
+          height:${sz}px;
           border-radius:999px;
-          border:${isFocused ? '3px' : '2px'} solid ${isFocused ? '#0F172A' : '#FFFFFF'};
+          border:${borderW}px solid ${isFocused ? '#0F172A' : '#fff'};
           background:${dayColor};
-          color:#FFFFFF;
+          color:#fff;
           display:flex;
           align-items:center;
           justify-content:center;
-          font-size:11px;
+          font-size:${isFocused ? '12px' : '11px'};
           font-weight:900;
-          box-shadow:0 12px 24px -18px rgba(15,23,42,0.5);
+          box-shadow:0 6px 18px -8px rgba(15,23,42,0.55)${isFocused ? ',0 0 0 3px rgba(15,23,42,0.12)' : ''};
+          letter-spacing:-0.5px;
         ">
           ${label}
           <span style="
             position:absolute;
-            right:${isFocused ? '-1px' : '-1px'};
-            bottom:${isFocused ? '-1px' : '-1px'};
-            width:${isFocused ? '11px' : '10px'};
-            height:${isFocused ? '11px' : '10px'};
+            right:-1px;
+            bottom:-1px;
+            width:${dotSz}px;
+            height:${dotSz}px;
             border-radius:999px;
-            border:2px solid #FFFFFF;
+            border:2px solid #fff;
             background:${categoryColor};
-            box-shadow:0 6px 12px -10px rgba(15,23,42,0.55);
+            box-shadow:0 3px 8px -4px rgba(15,23,42,0.5);
           "></span>
         </div>
+        <div style="
+          width:0;
+          height:0;
+          border-left:${tailW}px solid transparent;
+          border-right:${tailW}px solid transparent;
+          border-top:${tailH}px solid ${dayColor};
+          filter:drop-shadow(0 3px 3px rgba(15,23,42,0.25));
+          margin-top:-1px;
+        "></div>
       </div>
     `,
-    iconSize: [isFocused ? 40 : 36, isFocused ? 44 : 40],
-    iconAnchor: [isFocused ? 20 : 18, isFocused ? 31 : 28],
+    iconSize: [sz, tagH + tagGap + sz + tailH],
+    iconAnchor: [sz / 2, tagH + tagGap + sz + tailH],
   });
 };
 
@@ -3465,6 +3482,7 @@ const App = () => {
   const [routePreviewLoading, setRoutePreviewLoading] = useState(false);
   const [routePreviewManualRefreshing, setRoutePreviewManualRefreshing] = useState(false);
   const [showOverviewLibraryPoints, setShowOverviewLibraryPoints] = useState(false);
+  const [overviewMapHidden, setOverviewMapHidden] = useState(false);
   const routePreviewSegmentCacheRef = useRef({});
   useEffect(() => {
     try {
@@ -11760,8 +11778,8 @@ const App = () => {
                             <div className="relative mt-1 w-full rounded-[24px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 sm:px-6 sm:py-6">
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
                               <div className="mb-4 rounded-[24px] border border-slate-200 bg-white/88 p-3 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)]">
-                                <div className="flex items-center justify-between gap-3 px-1">
-                                  <div className="flex gap-1 overflow-x-auto no-scrollbar py-0.5">
+                                <div className="flex items-center justify-between gap-2 px-1">
+                                  <div className="flex gap-1 overflow-x-auto no-scrollbar py-0.5 flex-1 min-w-0">
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -11789,24 +11807,48 @@ const App = () => {
                                       );
                                     })}
                                   </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => setShowOverviewLibraryPoints((prev) => !prev)}
-                                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black transition-all ${showOverviewLibraryPoints ? 'border-purple-200 bg-purple-50 text-purple-600 hover:bg-purple-100' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                                  >
-                                    <MapPin size={10} />
-                                    <span>내 장소</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={refreshRoutePreviewMap}
-                                    disabled={routePreviewManualRefreshing || routePreviewLoading}
-                                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black transition-all ${routePreviewManualRefreshing || routePreviewLoading ? 'border-slate-100 bg-slate-50 text-slate-300' : 'border-blue-200 bg-blue-50 text-[#3182F6] hover:bg-blue-100 hover:border-blue-300 shadow-sm'}`}
-                                  >
-                                    <Sparkles size={10} className={routePreviewManualRefreshing || routePreviewLoading ? '' : 'animate-pulse'} />
-                                    <span>{routePreviewManualRefreshing || routePreviewLoading ? '새로고침 중...' : '일정 경로 새로고침'}</span>
-                                  </button>
+                                  <div className="flex shrink-0 items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowOverviewLibraryPoints((prev) => !prev)}
+                                      className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${showOverviewLibraryPoints ? 'border-purple-200 bg-purple-50 text-purple-600' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                                      title="내 장소 표시 토글"
+                                    >
+                                      <MapPin size={10} />
+                                      <span>내 장소</span>
+                                    </button>
+                                    {routePreviewEndpointActions.map((action) => (
+                                      <button
+                                        key={action.id}
+                                        type="button"
+                                        onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
+                                        className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${action.hidden ? 'border-orange-200 bg-orange-50 text-orange-500' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                                        title={action.label}
+                                      >
+                                        <Anchor size={10} />
+                                        <span>{action.id.endsWith('ship-start') ? '출발지' : '도착지'}</span>
+                                      </button>
+                                    ))}
+                                    <button
+                                      type="button"
+                                      onClick={refreshRoutePreviewMap}
+                                      disabled={routePreviewManualRefreshing || routePreviewLoading}
+                                      className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${routePreviewManualRefreshing || routePreviewLoading ? 'border-slate-100 bg-slate-50 text-slate-300' : 'border-blue-200 bg-blue-50 text-[#3182F6] hover:bg-blue-100 hover:border-blue-300 shadow-sm'}`}
+                                    >
+                                      <Sparkles size={10} className={routePreviewManualRefreshing || routePreviewLoading ? '' : 'animate-pulse'} />
+                                      <span>{routePreviewManualRefreshing || routePreviewLoading ? '새로고침 중...' : '새로고침'}</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setOverviewMapHidden((prev) => !prev)}
+                                      className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full border border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600 transition-all"
+                                      title={overviewMapHidden ? '지도 보기' : '지도 숨기기'}
+                                    >
+                                      {overviewMapHidden ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+                                    </button>
+                                  </div>
                                 </div>
+                                {!overviewMapHidden && (
                                 <div className="mt-3 overflow-hidden rounded-[20px] border border-slate-200 bg-white/92">
                                   {overviewRouteMapHasRenderableData ? (
                                     <RoutePreviewCanvas
@@ -11829,6 +11871,7 @@ const App = () => {
                                     </div>
                                   )}
                                 </div>
+                                )}
                               </div>
                               <div className="grid grid-cols-3 gap-3 sm:gap-3">
                                 <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">

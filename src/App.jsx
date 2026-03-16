@@ -5105,6 +5105,23 @@ const App = () => {
     return actions;
   }, [itinerary.days, hiddenRoutePreviewEndpoints]);
 
+  // 페리 출발지/도착지 초기값 off
+  const endpointInitializedRef = useRef(false);
+  useEffect(() => {
+    if (endpointInitializedRef.current) return;
+    const allShips = (itinerary.days || []).flatMap((day) => (
+      (day.plan || []).filter((item) => item && item.type !== 'backup' && item.types?.includes('ship'))
+    ));
+    if (!allShips.length) return;
+    endpointInitializedRef.current = true;
+    const firstShip = allShips[0];
+    const lastShip = allShips[allShips.length - 1];
+    setHiddenRoutePreviewEndpoints({
+      [`${firstShip.id}:ship-start`]: true,
+      [`${lastShip.id}:ship-end`]: true,
+    });
+  }, [itinerary.days]);
+
   const routePreviewPointSource = useMemo(() => {
     const allShips = (itinerary.days || []).flatMap((day, dayIdx) => (
       (day.plan || [])
@@ -11775,36 +11792,26 @@ const App = () => {
 
                         {/* 🌟 2. 여행 한눈에 보기 */}
                         <div className="flex flex-col gap-3 px-3 transition-all duration-300 sm:px-0">
-                          <div className="relative mt-1 w-full rounded-[24px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 sm:px-6 sm:py-6">
-                            <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
-                            <div className="mb-4 rounded-[24px] border border-slate-200 bg-white/88 p-3 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)]">
-                              <div className="mb-0">
+                          {!overviewMapHidden && (
+                            <div className="relative mt-1 w-full rounded-[24px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 sm:px-6 sm:py-6">
+                              <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
+                              <div className="mb-4 rounded-[24px] border border-slate-200 bg-white/88 p-3 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)]">
                                 <div className="flex items-center justify-between gap-2 px-1">
                                   <div className="flex gap-1 overflow-x-auto no-scrollbar py-0.5 flex-1 min-w-0">
                                     <button
                                       type="button"
-                                      onClick={() => {
-                                        setOverviewMapScope('all');
-                                        setOverviewMapDayFilter(null);
-                                      }}
+                                      onClick={() => { setOverviewMapScope('all'); setOverviewMapDayFilter(null); }}
                                       className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${overviewMapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                                    >
-                                      전체
-                                    </button>
+                                    >전체</button>
                                     {mapDayOptions.map((option) => {
                                       const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
                                       return (
                                         <button
                                           key={`hero-map-day-${option.day}`}
                                           type="button"
-                                          onClick={() => {
-                                            setOverviewMapScope('day');
-                                            setOverviewMapDayFilter(option.day);
-                                          }}
+                                          onClick={() => { setOverviewMapScope('day'); setOverviewMapDayFilter(option.day); }}
                                           className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                                        >
-                                          {option.label}
-                                        </button>
+                                        >{option.label}</button>
                                       );
                                     })}
                                   </div>
@@ -11813,10 +11820,8 @@ const App = () => {
                                       type="button"
                                       onClick={() => setShowOverviewLibraryPoints((prev) => !prev)}
                                       className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${showOverviewLibraryPoints ? 'border-purple-200 bg-purple-50 text-purple-600' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                                      title="내 장소 표시 토글"
                                     >
-                                      <MapPin size={10} />
-                                      <span>내 장소</span>
+                                      <MapPin size={10} /><span>내 장소</span>
                                     </button>
                                     {routePreviewEndpointActions.map((action) => (
                                       <button
@@ -11826,31 +11831,11 @@ const App = () => {
                                         className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${action.hidden ? 'border-orange-200 bg-orange-50 text-orange-500' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
                                         title={action.label}
                                       >
-                                        <Anchor size={10} />
-                                        <span>{action.id.endsWith('ship-start') ? '출발지' : '도착지'}</span>
+                                        <Anchor size={10} /><span>{action.id.endsWith('ship-start') ? '출발지' : '도착지'}</span>
                                       </button>
                                     ))}
-                                    <button
-                                      type="button"
-                                      onClick={refreshRoutePreviewMap}
-                                      disabled={routePreviewManualRefreshing || routePreviewLoading}
-                                      className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${routePreviewManualRefreshing || routePreviewLoading ? 'border-slate-100 bg-slate-50 text-slate-300' : 'border-blue-200 bg-blue-50 text-[#3182F6] hover:bg-blue-100 hover:border-blue-300 shadow-sm'}`}
-                                    >
-                                      {routePreviewManualRefreshing || routePreviewLoading
-                                        ? <LoaderCircle size={10} className="animate-spin" />
-                                        : <Sparkles size={10} className="animate-pulse" />}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setOverviewMapHidden((prev) => !prev)}
-                                      className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full border border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600 transition-all"
-                                      title={overviewMapHidden ? '지도 보기' : '지도 숨기기'}
-                                    >
-                                      {overviewMapHidden ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
-                                    </button>
                                   </div>
                                 </div>
-                                {!overviewMapHidden && (
                                 <div className="mt-3 overflow-hidden rounded-[20px] border border-slate-200 bg-white/92">
                                   {overviewRouteMapHasRenderableData ? (
                                     <RoutePreviewCanvas
@@ -11873,57 +11858,57 @@ const App = () => {
                                     </div>
                                   )}
                                 </div>
-                                )}
                               </div>
+                              {!heroCompactActive && (
+                                <div className="grid grid-cols-3 gap-3 sm:gap-3">
+                                  <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
+                                    <div className="flex h-full flex-col items-center justify-center text-center">
+                                      <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
+                                      <p className="mt-2 text-[22px] leading-none font-black text-[#3182F6] tabular-nums sm:text-[31px]">{usedPct}%</p>
+                                      <p className="mt-2 text-[10px] font-bold text-slate-500 tabular-nums sm:text-[11px]">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
+                                    </div>
+                                  </div>
+                                  <div className={`relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroCompactActive ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
+                                    <div className="flex h-full flex-col items-center justify-center text-center">
+                                      <div className="flex items-center justify-center gap-1.5">
+                                        <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
+                                        <button type="button" onClick={(e) => { e.stopPropagation(); setShowTravelIntensityInfo((prev) => !prev); }} className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition-colors hover:border-[#3182F6]/40 hover:text-[#3182F6]" title="여행 강도 계산식 보기">
+                                          <Info size={10} />
+                                        </button>
+                                      </div>
+                                      <p className={`text-center leading-none font-black text-slate-800 transition-all duration-300 ${heroCompactActive ? 'mt-1.5 text-[17px] sm:text-[21px]' : 'mt-2 text-[21px] sm:text-[27px]'}`}>{travelIntensity.label}</p>
+                                      <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroCompactActive ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>{travelIntensity.note}</p>
+                                    </div>
+                                    {showTravelIntensityInfo && (
+                                      <div className="absolute left-1/2 top-[calc(100%-8px)] z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
+                                        <p className="mt-2 text-[11px] font-bold text-slate-600">시간당 방문 수: {visitPerHour.toFixed(2)}개</p>
+                                        <p className="mt-1 text-[11px] font-bold text-slate-600">하루 활동 시간: 평균 {averageSpanHours.toFixed(1)}시간</p>
+                                        <p className="mt-1 text-[11px] font-bold text-slate-600">하루 이동 시간: 평균 {averageTravelHoursLabel}</p>
+                                        <p className="mt-1 text-[11px] font-bold text-slate-600">숙소 고정 제약: {lodgingConstraintCount}개</p>
+                                        <p className="mt-2 text-[10px] font-bold text-slate-400">방문 수는 `숙소/휴식/페리`를 제외한 일정만 세며, 숙소의 고정 체크인/체크아웃도 강도 점수에 반영합니다.</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className={`rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroCompactActive ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
+                                    <div className="flex h-full flex-col items-center justify-center text-center">
+                                      <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
+                                      <p className={`text-center leading-none font-black text-slate-800 tabular-nums transition-all duration-300 ${heroCompactActive ? 'mt-1.5 text-[18px] sm:text-[22px]' : 'mt-2 text-[22px] sm:text-[31px]'}`}>{visitPerHour.toFixed(1)}개/h</p>
+                                      <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroCompactActive ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>방문 일정 {visitPlanCount}개 기준</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            {!heroCompactActive && (
-                              <div className="grid grid-cols-3 gap-3 sm:gap-3 mt-4">
-                                <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
-                                  <div className="flex h-full flex-col items-center justify-center text-center">
-                                    <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
-                                    <p className="mt-2 text-[22px] leading-none font-black text-[#3182F6] tabular-nums sm:text-[31px]">{usedPct}%</p>
-                                    <p className="mt-2 text-[10px] font-bold text-slate-500 tabular-nums sm:text-[11px]">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
-                                  </div>
-                                </div>
-                                <div className={`relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroCompactActive ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
-                                  <div className="flex h-full flex-col items-center justify-center text-center">
-                                    <div className="flex items-center justify-center gap-1.5">
-                                      <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setShowTravelIntensityInfo((prev) => !prev);
-                                        }}
-                                        className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition-colors hover:border-[#3182F6]/40 hover:text-[#3182F6]"
-                                        title="여행 강도 계산식 보기"
-                                      >
-                                        <Info size={10} />
-                                      </button>
-                                    </div>
-                                    <p className={`text-center leading-none font-black text-slate-800 transition-all duration-300 ${heroCompactActive ? 'mt-1.5 text-[17px] sm:text-[21px]' : 'mt-2 text-[21px] sm:text-[27px]'}`}>{travelIntensity.label}</p>
-                                    <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroCompactActive ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>{travelIntensity.note}</p>
-                                  </div>
-                                  {showTravelIntensityInfo && (
-                                    <div className="absolute left-1/2 top-[calc(100%-8px)] z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
-                                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
-                                      <p className="mt-2 text-[11px] font-bold text-slate-600">시간당 방문 수: {visitPerHour.toFixed(2)}개</p>
-                                      <p className="mt-1 text-[11px] font-bold text-slate-600">하루 활동 시간: 평균 {averageSpanHours.toFixed(1)}시간</p>
-                                      <p className="mt-1 text-[11px] font-bold text-slate-600">하루 이동 시간: 평균 {averageTravelHoursLabel}</p>
-                                      <p className="mt-1 text-[11px] font-bold text-slate-600">숙소 고정 제약: {lodgingConstraintCount}개</p>
-                                      <p className="mt-2 text-[10px] font-bold text-slate-400">방문 수는 `숙소/휴식/페리`를 제외한 일정만 세며, 숙소의 고정 체크인/체크아웃도 강도 점수에 반영합니다.</p>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className={`rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroCompactActive ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
-                                  <div className="flex h-full flex-col items-center justify-center text-center">
-                                    <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
-                                    <p className={`text-center leading-none font-black text-slate-800 tabular-nums transition-all duration-300 ${heroCompactActive ? 'mt-1.5 text-[18px] sm:text-[22px]' : 'mt-2 text-[22px] sm:text-[31px]'}`}>{visitPerHour.toFixed(1)}개/h</p>
-                                    <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroCompactActive ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>방문 일정 {visitPlanCount}개 기준</p>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
+                          )}
+                          <div className="flex justify-center py-1">
+                            <button
+                              type="button"
+                              onClick={() => setOverviewMapHidden((prev) => !prev)}
+                              className="flex items-center gap-1 px-3 py-1 rounded-full border border-slate-200 bg-white/80 text-[10px] font-black text-slate-400 hover:border-slate-300 hover:text-slate-600 transition-all shadow-sm"
+                            >
+                              {overviewMapHidden ? <><ChevronDown size={11} /><span>지도 열기</span></> : <><ChevronUp size={11} /><span>지도 접기</span></>}
+                            </button>
                           </div>
                         </div>
                         {showHeroSummaryModal && (

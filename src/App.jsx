@@ -2331,7 +2331,6 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
       <style>
         #${uid}:hover .lb-label { opacity:1 !important; transform:translateY(0) !important; }
         #${uid}:hover .lb-circle { box-shadow:0 6px 18px -6px rgba(15,23,42,0.65) !important; }
-        ${canAdd ? `#${uid}:hover .lb-add { opacity:1 !important; transform:translateY(0) scale(1) !important; }` : ''}
       </style>
       <div id="${uid}" style="
         display:flex;
@@ -2391,21 +2390,17 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
           position:absolute;
           top:-6px;
           right:-6px;
-          width:16px;
-          height:16px;
+          width:18px;
+          height:18px;
           border-radius:999px;
           background:#3182F6;
           color:#fff;
-          font-size:12px;
+          font-size:13px;
           font-weight:900;
-          line-height:16px;
+          line-height:18px;
           text-align:center;
           box-shadow:0 3px 8px -3px rgba(49,130,246,0.6);
           border:2px solid #fff;
-          opacity:0;
-          transform:translateY(4px) scale(0.8);
-          transition:opacity 0.15s,transform 0.15s;
-          pointer-events:none;
           z-index:9;
         ">+</div>` : ''}
       </div>
@@ -2768,6 +2763,14 @@ const RoutePreviewCanvas = ({
     () => allBoundsPoints.map((point) => `${point[0].toFixed(5)}:${point[1].toFixed(5)}`).join('|'),
     [allBoundsPoints]
   );
+  // overlay(내장소) 제외한 timeline+segment만의 signature - 내장소 토글 시 지도 배율 변경 방지
+  const routeOnlyBoundsSignature = useMemo(() => {
+    const pts = [
+      ...(showRouteLines ? segmentEntries.flatMap((s) => s.positions) : []),
+      ...(showTimelineMarkers ? timelineEntries.map((p) => p.position) : []),
+    ];
+    return pts.map((p) => `${p[0].toFixed(5)}:${p[1].toFixed(5)}`).join('|');
+  }, [segmentEntries, showRouteLines, showTimelineMarkers, timelineEntries]);
   const [tileProviderIndex, setTileProviderIndex] = useState(0);
   const [mapZoom, setMapZoom] = useState(10);
   const [tileStatus, setTileStatus] = useState(() => (hasRenderableData ? 'loading' : 'idle'));
@@ -2851,7 +2854,7 @@ const RoutePreviewCanvas = ({
           focusedPoints={focusedViewportPoints}
           animateFocus={interactive}
           resizeKey={`${height}:${interactive ? 'on' : 'off'}`}
-          scopeKey={`${scopeKey}:${boundsSignature}`}
+          scopeKey={scopeKey || routeOnlyBoundsSignature}
         />
         <LeafletMapBackgroundClickHandler onBackgroundClick={onBackgroundClick} />
         {(() => {

@@ -2490,7 +2490,7 @@ const buildArrowIcon = (color, bearingDeg, isFocused) => {
       filter:drop-shadow(0 1px 2px rgba(15,23,42,0.35));
     ">
       <svg width="${sz}" height="${sz}" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="6,0 12,10 6,7 0,10" fill="${color}" stroke="rgba(255,255,255,0.85)" stroke-width="1.2" stroke-linejoin="round"/>
+        <polygon points="6,0 12,10 6,7 0,10" fill="white" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
       </svg>
     </div>`,
     iconSize: [sz, sz],

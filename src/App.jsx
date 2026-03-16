@@ -2756,6 +2756,7 @@ const RoutePreviewCanvas = ({
     [allBoundsPoints]
   );
   const [tileProviderIndex, setTileProviderIndex] = useState(0);
+  const [mapZoom, setMapZoom] = useState(10);
   const [tileStatus, setTileStatus] = useState(() => (hasRenderableData ? 'loading' : 'idle'));
   const tileFailureCountRef = useRef(0);
 
@@ -2839,6 +2840,13 @@ const RoutePreviewCanvas = ({
           resizeKey={`${height}:${interactive ? 'on' : 'off'}:${boundsSignature}`}
         />
         <LeafletMapBackgroundClickHandler onBackgroundClick={onBackgroundClick} />
+        {(() => {
+          const ZoomTracker = () => {
+            useMapEvents({ zoomend: (e) => setMapZoom(e.target.getZoom()) });
+            return null;
+          };
+          return <ZoomTracker />;
+        })()}
         <Pane name="route-lines" style={{ zIndex: 420 }}>
           {visibleSegmentEntries.map((segment) => (
             <Polyline
@@ -2857,16 +2865,21 @@ const RoutePreviewCanvas = ({
           ))}
         </Pane>
         <Pane name="route-arrows" style={{ zIndex: 460 }}>
-          {visibleSegmentEntries.flatMap((segment) =>
-            (segment.arrowPoints || []).map((ap, i) => (
-              <Marker
-                key={`arrow-${segment.id}-${i}`}
-                position={ap.pos}
-                bubblingMouseEvents={false}
-                icon={buildArrowIcon(segment.color, ap.bearing, segment.isFocused)}
-              />
-            ))
-          )}
+          {(() => {
+            const arrowStep = Math.max(1, Math.round(Math.pow(2, 13 - mapZoom)));
+            return visibleSegmentEntries.flatMap((segment) =>
+              (segment.arrowPoints || [])
+                .filter((_, i) => i % arrowStep === 0)
+                .map((ap, i) => (
+                  <Marker
+                    key={`arrow-${segment.id}-${i}`}
+                    position={ap.pos}
+                    bubblingMouseEvents={false}
+                    icon={buildArrowIcon(segment.color, ap.bearing, segment.isFocused)}
+                  />
+                ))
+            );
+          })()}
         </Pane>
         <Pane name="route-labels" style={{ zIndex: 470 }}>
           {visibleSegmentEntries.map((segment) => {

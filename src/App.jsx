@@ -15,7 +15,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw
+  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -13438,7 +13438,7 @@ const App = () => {
           </div >
 
           {isMobileLayout && mobileSelectedLibraryPlace && (
-            <div className="fixed inset-x-0 bottom-32 z-[319] flex justify-center px-4">
+            <div className="fixed inset-x-0 bottom-16 z-[319] flex justify-center px-4">
               <div className="flex w-full max-w-[360px] items-center gap-3 rounded-2xl border border-[#3182F6]/20 bg-white/96 px-4 py-3 shadow-[0_18px_34px_-18px_rgba(49,130,246,0.38)] backdrop-blur-xl">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-[#3182F6]">
                   <Package size={16} />
@@ -13502,9 +13502,42 @@ const App = () => {
           }
 
 
+          {/* ── 모바일 하단 탭 바 ── */}
+          {isMobileLayout && (
+            <div className="fixed inset-x-0 bottom-0 z-[230] flex h-14 items-stretch border-t border-slate-200 bg-white/97 backdrop-blur-xl shadow-[0_-6px_20px_-10px_rgba(15,23,42,0.12)]">
+              <button
+                type="button"
+                onClick={() => { setCol1Collapsed(true); setCol2Collapsed(true); }}
+                className={`flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors ${col1Collapsed && col2Collapsed ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <CalendarDays size={18} strokeWidth={col1Collapsed && col2Collapsed ? 2.5 : 2} />
+                <span className={`text-[10px] font-black ${col1Collapsed && col2Collapsed ? 'text-[#3182F6]' : 'text-slate-400'}`}>일정</span>
+                {col1Collapsed && col2Collapsed && <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[#3182F6]" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setCol1Collapsed(false); setCol2Collapsed(true); }}
+                className={`flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors ${!col1Collapsed ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <MapIcon size={18} strokeWidth={!col1Collapsed ? 2.5 : 2} />
+                <span className={`text-[10px] font-black ${!col1Collapsed ? 'text-[#3182F6]' : 'text-slate-400'}`}>네비</span>
+                {!col1Collapsed && <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[#3182F6]" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setCol1Collapsed(true); setCol2Collapsed(false); }}
+                className={`flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors ${!col2Collapsed ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <Package size={18} strokeWidth={!col2Collapsed ? 2.5 : 2} />
+                <span className={`text-[10px] font-black ${!col2Collapsed ? 'text-[#3182F6]' : 'text-slate-400'}`}>내 장소</span>
+                {!col2Collapsed && <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[#3182F6]" />}
+              </button>
+            </div>
+          )}
+
           {
             draggingFromTimeline && (
-              <div className="fixed left-1/2 -translate-x-1/2 bottom-4 z-[230] w-[min(680px,94vw)]">
+              <div className="fixed left-1/2 -translate-x-1/2 bottom-16 z-[231] w-[min(680px,94vw)]">
                 <div className="grid grid-cols-3 gap-2">
                   <div
                     data-drag-action="move_to_library"

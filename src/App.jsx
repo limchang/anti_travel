@@ -2476,7 +2476,7 @@ const calcBearingDeg = (p1, p2) => {
 };
 
 const buildArrowIcon = (color, bearingDeg, isFocused) => {
-  const sz = isFocused ? 9 : 7;
+  const sz = isFocused ? 8 : 6;
   return L.divIcon({
     className: '',
     html: `<div style="
@@ -2686,7 +2686,7 @@ const RoutePreviewCanvas = ({
           const midIdx = Math.floor(positions.length / 2);
           const midPos = positions[midIdx] || positions[0];
           // 화살표 샘플링 (실제 경로만)
-          const arrowPoints = isFallbackLine ? [] : sampleRouteArrows(positions, 90);
+          const arrowPoints = isFallbackLine ? [] : sampleRouteArrows(positions, 150);
           return {
             id: segment.id || `segment-${day.day}-${index}`,
             positions,
@@ -2847,7 +2847,7 @@ const RoutePreviewCanvas = ({
               bubblingMouseEvents={false}
               pathOptions={{
                 color: segment.color,
-                weight: segment.isFocused ? 9 : (segment.isFallbackLine ? 4 : 7),
+                weight: segment.isFocused ? 10 : (segment.isFallbackLine ? 4 : 8),
                 opacity: segment.isFocused ? 0.98 : (segment.isFallbackLine ? 0.45 : 0.9),
                 dashArray: segment.isFallbackLine ? '6 8' : undefined,
                 lineCap: 'round',

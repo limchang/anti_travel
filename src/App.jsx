@@ -2610,7 +2610,7 @@ const LeafletMapBackgroundClickHandler = ({ onBackgroundClick }) => {
   return null;
 };
 
-const LeafletMapContextMenuHandler = ({ onContextMenu }) => {
+const LeafletMapContextMenuHandler = ({ onContextMenu, onMapMove }) => {
   useMapEvents({
     contextmenu: (e) => {
       const map = e.target;
@@ -2618,6 +2618,8 @@ const LeafletMapContextMenuHandler = ({ onContextMenu }) => {
       onContextMenu?.({ lat: e.latlng.lat, lng: e.latlng.lng, x: containerPoint.x, y: containerPoint.y, zoom: map.getZoom() });
     },
     click: () => onContextMenu?.(null),
+    move: (e) => onMapMove?.(e.target),
+    zoom: (e) => onMapMove?.(e.target),
   });
   return null;
 };
@@ -3010,6 +3012,14 @@ const RoutePreviewCanvas = ({
           } catch {
             setContextMenuInfo({ ...info, locationName: '' });
           }
+        }} onMapMove={(map) => {
+          setContextMenuInfo(prev => {
+            if (!prev) return prev;
+            try {
+              const pt = map.latLngToContainerPoint([prev.lat, prev.lng]);
+              return { ...prev, x: pt.x, y: pt.y, zoom: map.getZoom() };
+            } catch { return prev; }
+          });
         }} />
         {(() => {
           const ZoomTracker = () => {
@@ -3242,15 +3252,15 @@ const RoutePreviewCanvas = ({
       {/* 우클릭 컨텍스트 메뉴 */}
       {contextMenuInfo && (
         <div
-          style={{ position: 'absolute', left: contextMenuInfo.x, top: contextMenuInfo.y, zIndex: 99999, pointerEvents: 'auto' }}
-          className="bg-white border border-slate-200 rounded-[12px] shadow-[0_8px_24px_-8px_rgba(15,23,42,0.22)] overflow-hidden min-w-[160px]"
+          style={{ position: 'absolute', left: contextMenuInfo.x, top: contextMenuInfo.y, zIndex: 99999, pointerEvents: 'auto', transform: 'translate(8px, 8px)' }}
+          className="bg-white border border-slate-200 rounded-[14px] shadow-[0_8px_28px_-6px_rgba(15,23,42,0.26)] overflow-hidden min-w-[180px]"
           onClick={(e) => e.stopPropagation()}
         >
           {contextMenuInfo.locationName && (
-            <div className="px-3 py-1.5 border-b border-slate-100 text-[9px] font-black text-slate-400">{contextMenuInfo.locationName}</div>
+            <div className="px-3 py-2 border-b border-slate-100 text-[10px] font-black text-slate-500 tracking-tight">{contextMenuInfo.locationName}</div>
           )}
           <button
-            className="w-full px-3 py-2 text-left text-[11px] font-black text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+            className="w-full px-3 py-2 text-left text-[11px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 border-b border-slate-100"
             onClick={() => {
               const { lat, lng, zoom } = contextMenuInfo;
               window.open(`https://map.naver.com/p/entry/coords/${lat},${lng}?c=${lng},${lat},${Math.max(14, zoom)},0,0,0,dh`, '_blank', 'noopener,noreferrer');
@@ -3259,18 +3269,27 @@ const RoutePreviewCanvas = ({
           >
             <MapIcon size={11} className="text-[#3182F6] shrink-0" /> 네이버 지도로 열기
           </button>
-          <button
-            className="w-full px-3 py-2 text-left text-[11px] font-black text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-            onClick={() => {
-              const { lat, lng, zoom, locationName } = contextMenuInfo;
-              const query = locationName ? `${locationName} 가볼만한 곳` : '가볼만한 곳';
-              const zoomLevel = Math.max(14, zoom);
-              window.open(`https://map.naver.com/p/search/${encodeURIComponent(query)}?searchType=place&c=${lng},${lat},${zoomLevel},0,0,0,dh`, '_blank', 'noopener,noreferrer');
-              setContextMenuInfo(null);
-            }}
-          >
-            <Navigation size={11} className="text-emerald-500 shrink-0" /> {contextMenuInfo.locationName ? `${contextMenuInfo.locationName} 가볼만한 곳` : '가볼만한 곳'} 검색
-          </button>
+          {[
+            { label: '가볼만한 곳', keyword: '가볼만한 곳', icon: <Navigation size={11} className="text-emerald-500 shrink-0" /> },
+            { label: '맛집', keyword: '맛집', icon: <Utensils size={11} className="text-rose-500 shrink-0" /> },
+            { label: '카페', keyword: '카페', icon: <Coffee size={11} className="text-amber-500 shrink-0" /> },
+          ].map(({ label, keyword, icon }) => {
+            const { lat, lng, zoom, locationName } = contextMenuInfo;
+            const query = locationName ? `${locationName} ${keyword}` : keyword;
+            const zoomLevel = Math.max(14, zoom);
+            return (
+              <button
+                key={keyword}
+                className="w-full px-3 py-2 text-left text-[11px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                onClick={() => {
+                  window.open(`https://map.naver.com/p/search/${encodeURIComponent(query)}?searchType=place&c=${lng},${lat},${zoomLevel},0,0,0,dh`, '_blank', 'noopener,noreferrer');
+                  setContextMenuInfo(null);
+                }}
+              >
+                {icon} {locationName ? `${locationName} ${label}` : label} 검색
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

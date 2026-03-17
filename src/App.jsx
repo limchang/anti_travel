@@ -2280,7 +2280,7 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
   const shortLabel = String(categoryLabel || '장소').trim().slice(0, 2);
   const bgColor = canAdd ? '#3182F6' : categoryColor;
   const opacity = canAdd ? 1 : (isFocused ? 0.95 : (timelineFocused ? 0.88 : 0.85));
-  const sz = canAdd ? (isFocused ? 26 : 22) : (isFocused ? 22 : 18);
+  const sz = canAdd ? (isFocused ? 26 : 22) : (isFocused ? 44 : 36);
   const shadow = canAdd
     ? 'drop-shadow(0 4px 10px rgba(49,130,246,0.5))'
     : isFocused
@@ -2309,7 +2309,7 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
 
   // 내장소: 네모 모양, anchor 중앙 (일정 마커가 위에 있을 때 아래에 표시되도록)
   const borderStyle = isFocused ? `2px solid rgba(255,255,255,0.95)` : `2px solid rgba(255,255,255,0.85)`;
-  const radius = isFocused ? '5px' : '4px';
+  const radius = isFocused ? '10px' : '8px';
   return L.divIcon({
     className: '',
     html: `
@@ -2320,7 +2320,7 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
           display:flex;align-items:center;justify-content:center;
         ">
           <span style="
-            font-size:${isFocused?'8px':'7px'};
+            font-size:${isFocused?'16px':'14px'};
             font-weight:900;color:#fff;line-height:1;
           ">${shortLabel}</span>
         </div>

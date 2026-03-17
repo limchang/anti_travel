@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.233",
+      "timestamp": "2026-03-17T13:43:04+09:00",
+      "message": "build: 자동 빌드 타임스탬프 갱신"
+    },
+    {
       "version": "1.3.232",
       "timestamp": "2026-03-17T13:34:30+09:00",
       "message": "build: 자동 빌드 타임스탬프 갱신"
@@ -144,11 +149,6 @@
       "version": "1.3.200",
       "timestamp": "2026-03-14T22:09:57+09:00",
       "message": "feat: move route map entry to hero bar"
-    },
-    {
-      "version": "1.3.199",
-      "timestamp": "2026-03-14T21:58:49+09:00",
-      "message": "feat: add place library compact view mode"
     }
   ]
 }

@@ -10121,7 +10121,8 @@ const App = () => {
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
           <div className="relative px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceEditorCard
-              className="w-[min(460px,calc(100vw-24px))] mx-auto"
+              className="mx-auto"
+              style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }}
               maxModalHeight="85vh"
               title="장소 수정"
               draft={editPlaceDraft}
@@ -10245,7 +10246,8 @@ const App = () => {
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
           <div className="relative px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceEditorCard
-              className="w-[min(460px,calc(100vw-24px))] mx-auto"
+              className="mx-auto"
+              style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }}
               maxModalHeight="85vh"
               title="일정 수정"
               draft={editPlanDraft}
@@ -10359,7 +10361,7 @@ const App = () => {
       {isAddingPlace && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={resetNewPlaceDraft}>
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-          <div className="relative w-full flex justify-center px-3" onClick={(e) => e.stopPropagation()}>
+          <div className="relative flex justify-center px-3" style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }} onClick={(e) => e.stopPropagation()}>
             <PlaceAddForm
               newPlaceName={newPlaceName}
               setNewPlaceName={setNewPlaceName}
@@ -11002,11 +11004,14 @@ const App = () => {
                 </div>
                 <button
                   onClick={() => {
+                    if (addPlaceLongPressTimerRef._fired) { addPlaceLongPressTimerRef._fired = false; return; }
                     if (isAddingPlace) resetNewPlaceDraft();
                     else { setIsAddingPlaceAutoFill(false); setIsAddingPlace(true); }
                   }}
                   onMouseDown={() => {
+                    addPlaceLongPressTimerRef._fired = false;
                     addPlaceLongPressTimerRef.current = setTimeout(async () => {
+                      addPlaceLongPressTimerRef._fired = true;
                       showInfoToast('⚡ 클립보드에서 장소 정보를 분석 중…', { durationMs: 2000 });
                       try {
                         const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
@@ -11041,7 +11046,9 @@ const App = () => {
                   onMouseUp={() => clearTimeout(addPlaceLongPressTimerRef.current)}
                   onMouseLeave={() => clearTimeout(addPlaceLongPressTimerRef.current)}
                   onTouchStart={() => {
+                    addPlaceLongPressTimerRef._fired = false;
                     addPlaceLongPressTimerRef.current = setTimeout(async () => {
+                      addPlaceLongPressTimerRef._fired = true;
                       showInfoToast('⚡ 클립보드에서 장소 정보를 분석 중…', { durationMs: 2000 });
                       try {
                         const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });

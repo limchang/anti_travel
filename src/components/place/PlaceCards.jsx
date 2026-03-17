@@ -349,6 +349,7 @@ const SharedTotalFooter = ({ expanded, onToggle, total }) => (
 
 export const PlaceEditorCard = ({
   className = '',
+  style: styleProp = undefined,
   maxModalHeight = null,
   title,
   draft,
@@ -462,7 +463,7 @@ export const PlaceEditorCard = ({
   return (
     <div
       className={`w-full rounded-[24px] border border-slate-200 bg-white shadow-[0_12px_30px_-18px_rgba(15,23,42,0.25)] overflow-hidden flex flex-col ${className}`.trim()}
-      style={maxModalHeight ? { maxHeight: maxModalHeight } : undefined}
+      style={{ ...(maxModalHeight ? { maxHeight: maxModalHeight } : {}), ...styleProp }}
     >
       <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between shrink-0">
         <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.18em]">{title}</p>

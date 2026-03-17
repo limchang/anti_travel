@@ -10912,7 +10912,7 @@ const App = () => {
 
             {/* ── 스크롤 컨텐츠 ── */}
             <div
-              className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-5 pt-0 pb-2 flex flex-col"
+              className="flex-1 flex flex-col overflow-hidden"
               data-library-dropzone="true"
               onDragOver={(e) => { if (draggingFromTimeline) e.preventDefault(); }}
               onDrop={(e) => {
@@ -10964,7 +10964,7 @@ const App = () => {
                 ];
                 return (
                   <div
-                    className="w-full flex flex-col gap-1.5 items-stretch"
+                    className="flex flex-col flex-1 overflow-hidden"
                     onClickCapture={(event) => {
                       const targetEl = event.target instanceof Element ? event.target : null;
                       if (!targetEl) return;
@@ -10979,33 +10979,8 @@ const App = () => {
                       clearOverviewMapFocus();
                     }}
                   >
-                    {draggingFromTimeline && (
-                      <div
-                        className={`w-full mb-2 rounded-[20px] border-2 border-dashed px-4 py-4 flex items-center justify-center gap-3 text-center transition-all ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6] shadow-[0_12px_26px_-18px_rgba(49,130,246,0.45)]' : 'border-slate-200 bg-white/90 text-slate-500'}`}
-                        data-drag-action="move_to_library"
-                        onDragOver={(e) => { e.preventDefault(); setDragBottomTarget('move_to_library'); }}
-                        onDragLeave={() => setDragBottomTarget(prev => (prev === 'move_to_library' ? '' : prev))}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          const payload = draggingFromTimeline;
-                          if (!payload) return;
-                          if (payload.altIdx !== undefined) {
-                            dropAltOnLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
-                          } else {
-                            dropTimelineItemOnLibrary(payload.dayIdx, payload.pIdx);
-                          }
-                          triggerUndoToast("내 장소로 이동되었습니다.");
-                          setDragBottomTarget('');
-                          setDraggingFromTimeline(null);
-                        }}
-                      >
-                        <Package size={18} />
-                        <div className="flex flex-col items-start">
-                          <span className="text-[12px] font-black">여기에 드래그해서 내 장소로 이동</span>
-                          <span className="text-[10px] font-bold opacity-70">일정 카드나 플랜 B를 놓으면 오른쪽 목록으로 옮깁니다.</span>
-                        </div>
-                      </div>
-                    )}
+                    {/* ── 고정 영역: 지도 + 카테고리 필터 ── */}
+                    <div className="shrink-0 px-5 pt-0 flex flex-col gap-1.5">
                     {/* 지도 뷰 - 목록 위 고정 */}
                     <div id="right-panel-map-overview" className="shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-hidden shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2">
                       {/* 지도 본체 + 오버레이 버튼 */}
@@ -11137,6 +11112,36 @@ const App = () => {
                         <MapPin size={10} className="text-blue-400 shrink-0" />
                         <span className="truncate flex-1"><span className="text-blue-700">{basePlanRef.name}</span> 기준 거리순</span>
                         <span className="text-[9px] text-blue-300">✕</span>
+                      </div>
+                    )}
+                    </div>{/* 고정 영역 닫기 */}
+                    {/* ── 스크롤 영역: 카드 목록 ── */}
+                    <div className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-5 pb-2 flex flex-col">
+                    {draggingFromTimeline && (
+                      <div
+                        className={`w-full mb-2 rounded-[20px] border-2 border-dashed px-4 py-4 flex items-center justify-center gap-3 text-center transition-all ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6] shadow-[0_12px_26px_-18px_rgba(49,130,246,0.45)]' : 'border-slate-200 bg-white/90 text-slate-500'}`}
+                        data-drag-action="move_to_library"
+                        onDragOver={(e) => { e.preventDefault(); setDragBottomTarget('move_to_library'); }}
+                        onDragLeave={() => setDragBottomTarget(prev => (prev === 'move_to_library' ? '' : prev))}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const payload = draggingFromTimeline;
+                          if (!payload) return;
+                          if (payload.altIdx !== undefined) {
+                            dropAltOnLibrary(payload.dayIdx, payload.pIdx, payload.altIdx);
+                          } else {
+                            dropTimelineItemOnLibrary(payload.dayIdx, payload.pIdx);
+                          }
+                          triggerUndoToast("내 장소로 이동되었습니다.");
+                          setDragBottomTarget('');
+                          setDraggingFromTimeline(null);
+                        }}
+                      >
+                        <Package size={18} />
+                        <div className="flex flex-col items-start">
+                          <span className="text-[12px] font-black">여기에 드래그해서 내 장소로 이동</span>
+                          <span className="text-[10px] font-bold opacity-70">일정 카드나 플랜 B를 놓으면 오른쪽 목록으로 옮깁니다.</span>
+                        </div>
                       </div>
                     )}
                     {visiblePlaces.length === 0 && !isAddingPlace && (
@@ -11328,6 +11333,7 @@ const App = () => {
                       );
                     })}
                     </div>{/* grid-cols-2 닫기 */}
+                    </div>{/* 스크롤 영역 닫기 */}
                   </div>
                 );
               })()}

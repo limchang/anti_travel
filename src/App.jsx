@@ -11356,13 +11356,23 @@ const App = () => {
                   onClick={() => {
                     if (addPlaceLongPressTimerRef._fired) { addPlaceLongPressTimerRef._fired = false; return; }
                     if (isAddingPlace) resetNewPlaceDraft();
-                    else { setIsAddingPlaceAutoFill(false); setIsAddingPlace(true); }
+                    else {
+                      // 단일 카테고리만 활성화 상태면 그 카테고리를 기본값으로 적용
+                      const allTagValues = TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map(t => t.value);
+                      const activeTags = allTagValues.filter(v => !placeFilterTags.includes(v));
+                      if (activeTags.length === 1 && activeTags[0] !== 'food') {
+                        setNewPlaceTypes([activeTags[0]]);
+                      }
+                      setIsAddingPlaceAutoFill(false); setIsAddingPlace(true);
+                    }
                   }}
                   onMouseDown={() => {
                     addPlaceLongPressTimerRef._fired = false;
                     addPlaceLongPressTimerRef.current = setTimeout(async () => {
                       addPlaceLongPressTimerRef._fired = true;
                       showInfoToast('⚡ 클립보드에서 장소 정보를 분석 중…', { durationMs: 2000 });
+                      const allTagValues = TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map(t => t.value);
+                      const activeSingleTag = (() => { const a = allTagValues.filter(v => !placeFilterTags.includes(v)); return a.length === 1 ? a[0] : null; })();
                       try {
                         const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
                         const parsed = result?.parsed;
@@ -11372,9 +11382,10 @@ const App = () => {
                             const searchRes = await searchAddressFromPlaceName(parsed.name, tripRegion);
                             if (searchRes?.address) address = searchRes.address;
                           }
+                          const parsedTypes = parsed.types?.length ? parsed.types.filter(t => t !== 'place') : (activeSingleTag ? [activeSingleTag] : []);
                           addPlace({
                             name: parsed.name,
-                            types: ['quick', ...(parsed.types?.length ? parsed.types.filter(t => t !== 'place') : [])],
+                            types: ['quick', ...parsedTypes],
                             menus: parsed.menus?.length ? parsed.menus : [],
                             address,
                             memo: '',
@@ -11383,11 +11394,13 @@ const App = () => {
                           showInfoToast(`⚡ '${parsed.name}' 내 장소에 추가됐습니다!`, { durationMs: 2400 });
                         } else {
                           showInfoToast('정보를 찾지 못했습니다. 일반 추가로 전환합니다.');
+                          if (activeSingleTag) setNewPlaceTypes([activeSingleTag]);
                           setIsAddingPlaceAutoFill(false);
                           setIsAddingPlace(true);
                         }
                       } catch {
                         showInfoToast('자동채우기 오류. 일반 추가로 전환합니다.');
+                        if (activeSingleTag) setNewPlaceTypes([activeSingleTag]);
                         setIsAddingPlaceAutoFill(false);
                         setIsAddingPlace(true);
                       }
@@ -11400,6 +11413,8 @@ const App = () => {
                     addPlaceLongPressTimerRef.current = setTimeout(async () => {
                       addPlaceLongPressTimerRef._fired = true;
                       showInfoToast('⚡ 클립보드에서 장소 정보를 분석 중…', { durationMs: 2000 });
+                      const allTagValues = TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map(t => t.value);
+                      const activeSingleTag = (() => { const a = allTagValues.filter(v => !placeFilterTags.includes(v)); return a.length === 1 ? a[0] : null; })();
                       try {
                         const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
                         const parsed = result?.parsed;
@@ -11409,9 +11424,10 @@ const App = () => {
                             const searchRes = await searchAddressFromPlaceName(parsed.name, tripRegion);
                             if (searchRes?.address) address = searchRes.address;
                           }
+                          const parsedTypes = parsed.types?.length ? parsed.types.filter(t => t !== 'place') : (activeSingleTag ? [activeSingleTag] : []);
                           addPlace({
                             name: parsed.name,
-                            types: ['quick', ...(parsed.types?.length ? parsed.types.filter(t => t !== 'place') : [])],
+                            types: ['quick', ...parsedTypes],
                             menus: parsed.menus?.length ? parsed.menus : [],
                             address,
                             memo: '',
@@ -11420,11 +11436,13 @@ const App = () => {
                           showInfoToast(`⚡ '${parsed.name}' 내 장소에 추가됐습니다!`, { durationMs: 2400 });
                         } else {
                           showInfoToast('정보를 찾지 못했습니다. 일반 추가로 전환합니다.');
+                          if (activeSingleTag) setNewPlaceTypes([activeSingleTag]);
                           setIsAddingPlaceAutoFill(false);
                           setIsAddingPlace(true);
                         }
                       } catch {
                         showInfoToast('자동채우기 오류. 일반 추가로 전환합니다.');
+                        if (activeSingleTag) setNewPlaceTypes([activeSingleTag]);
                         setIsAddingPlaceAutoFill(false);
                         setIsAddingPlace(true);
                       }

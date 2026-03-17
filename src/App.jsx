@@ -15,7 +15,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw, AlignLeft
+  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw, AlignLeft, Maximize2, Minimize2
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -3772,7 +3772,7 @@ const App = () => {
   const [showLibraryCategoryModal, setShowLibraryCategoryModal] = useState(false);
   const [focusedLibraryMarkerId, setFocusedLibraryMarkerId] = useState(null); // 내장소 마커 두 단계 클릭: 첫 클릭 = + 모드
   const [libraryCategoryModalPos, setLibraryCategoryModalPos] = useState({ top: 200, right: 16 });
-  const [overviewMapHidden, setOverviewMapHidden] = useState(false);
+  const [overviewMapExpanded, setOverviewMapExpanded] = useState(false);
   const routePreviewSegmentCacheRef = useRef({});
   useEffect(() => {
     try {
@@ -10882,16 +10882,29 @@ const App = () => {
                               );
                             })}
                           </div>
-                          {routePreviewEndpointActions.map((action) => (
+                          <div className="flex items-center gap-1 shrink-0">
+                            {routePreviewEndpointActions.map((action) => (
+                              <button
+                                key={action.id}
+                                type="button"
+                                onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
+                                className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[9px] font-black transition-all ${action.hidden ? 'border-orange-200 bg-orange-50 text-orange-500' : 'border-slate-200 bg-white text-slate-500'}`}
+                              >
+                                <Anchor size={9} /><span>{action.id.endsWith('ship-start') ? '출발' : '도착'}</span>
+                              </button>
+                            ))}
                             <button
-                              key={action.id}
                               type="button"
-                              onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
-                              className={`shrink-0 flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[9px] font-black transition-all ${action.hidden ? 'border-orange-200 bg-orange-50 text-orange-500' : 'border-slate-200 bg-white text-slate-500'}`}
+                              onClick={() => setOverviewMapExpanded(v => !v)}
+                              className="flex items-center justify-center w-5 h-5 rounded-full border border-slate-200 bg-white text-slate-400 hover:text-slate-600 hover:border-slate-300 transition-all"
+                              title={overviewMapExpanded ? '지도 축소' : '지도 확대'}
                             >
-                              <Anchor size={9} /><span>{action.id.endsWith('ship-start') ? '출발' : '도착'}</span>
+                              {overviewMapExpanded
+                                ? <Minimize2 size={10} />
+                                : <Maximize2 size={10} />
+                              }
                             </button>
-                          ))}
+                          </div>
                         </div>
                         {/* 지도 - 1:1 비율 */}
                         <div style={{ aspectRatio: '1 / 1' }}>
@@ -10914,6 +10927,81 @@ const App = () => {
                           />
                         </div>
                       </div>
+                      {/* 확장 지도 오버레이 */}
+                      {overviewMapExpanded && (
+                        <div
+                          className="fixed z-[600] inset-0 bg-black/30 backdrop-blur-[2px]"
+                          onClick={() => setOverviewMapExpanded(false)}
+                        />
+                      )}
+                      {overviewMapExpanded && (
+                        <div
+                          id="right-panel-map-overview-expanded"
+                          className="fixed z-[601] rounded-[24px] border border-slate-200 bg-white overflow-hidden shadow-[0_20px_60px_-12px_rgba(15,23,42,0.4)]"
+                          style={{ top: '50%', right: 16, transform: 'translateY(-50%)', width: 'min(460px, calc(100vw - 32px))', aspectRatio: '1 / 1' }}
+                        >
+                          {/* 확장 모드 필터 바 */}
+                          <div className="flex items-center justify-between gap-1.5 px-3 pt-2.5 pb-2 border-b border-slate-100">
+                            <div className="flex gap-1 overflow-x-auto no-scrollbar flex-1 min-w-0">
+                              <button
+                                type="button"
+                                onClick={() => { setOverviewMapScope('all'); setOverviewMapDayFilter(null); }}
+                                className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${overviewMapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
+                              >전체</button>
+                              {mapDayOptions.map((option) => {
+                                const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
+                                return (
+                                  <button
+                                    key={`lib-map-day-expanded-${option.day}`}
+                                    type="button"
+                                    onClick={() => { setOverviewMapScope('day'); setOverviewMapDayFilter(option.day); }}
+                                    className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
+                                  >{option.label}</button>
+                                );
+                              })}
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {routePreviewEndpointActions.map((action) => (
+                                <button
+                                  key={action.id}
+                                  type="button"
+                                  onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
+                                  className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[9px] font-black transition-all ${action.hidden ? 'border-orange-200 bg-orange-50 text-orange-500' : 'border-slate-200 bg-white text-slate-500'}`}
+                                >
+                                  <Anchor size={9} /><span>{action.id.endsWith('ship-start') ? '출발' : '도착'}</span>
+                                </button>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => setOverviewMapExpanded(false)}
+                                className="flex items-center justify-center w-6 h-6 rounded-full border border-slate-200 bg-white text-slate-400 hover:text-slate-600 hover:border-slate-300 transition-all"
+                              >
+                                <Minimize2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+                          {/* 확장 지도 본체 */}
+                          <div style={{ height: 'calc(100% - 44px)' }}>
+                            <RoutePreviewCanvas
+                              routePreviewMap={overviewFilteredRoutePreviewMap}
+                              libraryPoints={libraryMapPoints}
+                              recommendationPoints={recommendationMapPoints}
+                              focusedTarget={focusedMapTarget}
+                              onMarkerClick={handleOverviewMapMarkerClick}
+                              onLibraryMarkerAddClick={handleOverviewMapLibraryAddClick}
+                              onLibraryMarkerFocus={setFocusedLibraryMarkerId}
+                              focusedLibraryMarkerId={focusedLibraryMarkerId}
+                              onBackgroundClick={clearOverviewMapFocus}
+                              interactive
+                              height="100%"
+                              showTimelineMarkers
+                              showRouteLines
+                              showOverlayMarkers
+                              scopeKey={`lib:${overviewMapScope}:${overviewMapDayFilter ?? 'all'}:expanded`}
+                            />
+                          </div>
+                        </div>
+                      )}
                       <div className="mt-2 w-full flex flex-col gap-1">
                         <div className="flex items-start gap-1 px-1">
                           <div className="flex flex-1 flex-wrap gap-1">

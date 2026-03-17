@@ -5693,6 +5693,27 @@ const App = () => {
     }
   }, [attachRoutePreviewSegments, resolveRoutePreviewDays, routePreviewSourceSignature]);
 
+  // 장소 추가/삭제 시 지도 자동 새로고침 + 추가된 장소 포커스
+  const prevPlacesLenRef = React.useRef((itinerary.places || []).length);
+  useEffect(() => {
+    const cur = (itinerary.places || []).length;
+    const prev = prevPlacesLenRef.current;
+    prevPlacesLenRef.current = cur;
+    if (cur === prev) return;
+    // 추가된 경우: 마지막 장소로 포커스
+    if (cur > prev) {
+      const newPlace = itinerary.places[itinerary.places.length - 1];
+      if (newPlace?.id) {
+        setFocusedMapTarget({ kind: 'place', id: newPlace.id });
+        setTimeout(() => {
+          document.getElementById(`library-place-${newPlace.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
+    // 추가/삭제 모두 지도 새로고침
+    refreshRoutePreviewMap();
+  }, [itinerary.places]);
+
   useEffect(() => {
     let cancelled = false;
     const jobs = [];
@@ -10928,63 +10949,8 @@ const App = () => {
                     )}
                     {/* 지도 뷰 - 목록 위 고정 */}
                     <div id="right-panel-map-overview" className="shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-hidden shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2">
-                      {/* Day 필터 + 출발/도착 토글 */}
-                      <div className="flex items-center justify-between gap-1 px-2.5 pt-2 pb-1.5 border-b border-slate-100">
-                        <div className="flex gap-1 overflow-x-auto no-scrollbar flex-1 min-w-0">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (overviewMapScope === 'all') {
-                                // 이미 전체 선택 중 → 일정 표시 토글
-                                setOverviewMapRouteVisible((v) => !v);
-                              } else {
-                                // Day 선택 중 → 전체로 전환 + 일정 표시 켜기
-                                setOverviewMapScope('all');
-                                setOverviewMapDayFilter(null);
-                                setOverviewMapRouteVisible(true);
-                              }
-                            }}
-                            className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${overviewMapScope === 'all' && overviewMapRouteVisible ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : overviewMapScope === 'all' && !overviewMapRouteVisible ? 'border-slate-300 bg-slate-100 text-slate-400 line-through' : 'border-slate-200 bg-white text-slate-500'}`}
-                          >전체</button>
-                          {mapDayOptions.map((option) => {
-                            const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
-                            return (
-                              <button
-                                key={`lib-map-day-${option.day}`}
-                                type="button"
-                                onClick={() => {
-                                  setOverviewMapScope('day');
-                                  setOverviewMapDayFilter(option.day);
-                                  setOverviewMapRouteVisible(true);
-                                }}
-                                className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
-                              >{option.label}</button>
-                            );
-                          })}
-                        </div>
-                        <div className="flex gap-1 shrink-0">
-                          {routePreviewEndpointActions.map((action) => (
-                            <button
-                              key={action.id}
-                              type="button"
-                              onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
-                              className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[9px] font-black transition-all ${action.hidden ? 'border-orange-200 bg-orange-50 text-orange-500' : 'border-slate-200 bg-white text-slate-500'}`}
-                            >
-                              <Anchor size={9} /><span>{action.id.endsWith('ship-start') ? '출발' : '도착'}</span>
-                            </button>
-                          ))}
-                          <button
-                            type="button"
-                            onClick={refreshRoutePreviewMap}
-                            disabled={routePreviewManualRefreshing}
-                            className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[9px] font-black transition-all ${routePreviewManualRefreshing ? 'border-blue-200 bg-blue-50 text-blue-300' : 'border-slate-200 bg-white text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
-                          >
-                            <RotateCcw size={9} className={routePreviewManualRefreshing ? 'animate-spin' : ''} />
-                          </button>
-                        </div>
-                      </div>
-                      {/* 지도 본체 - 1:1 비율 */}
-                      <div style={{ aspectRatio: '1 / 1' }}>
+                      {/* 지도 본체 + 오버레이 버튼 */}
+                      <div style={{ aspectRatio: '1 / 1' }} className="relative">
                         <RoutePreviewCanvas
                           routePreviewMap={overviewFilteredRoutePreviewMap}
                           libraryPoints={libraryMapPoints}
@@ -11004,6 +10970,54 @@ const App = () => {
                           showOverlayMarkers
                           scopeKey={`lib:${overviewMapScope}:${overviewMapDayFilter ?? 'all'}:${overviewMapRouteVisible ? 'r' : 'nr'}`}
                         />
+                        {/* 오버레이 버튼: 좌상단 Day 필터 */}
+                        <div className="absolute top-2 left-2 flex gap-1 flex-wrap max-w-[70%] z-[500]" data-no-map-clear="true">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (overviewMapScope === 'all') {
+                                setOverviewMapRouteVisible((v) => !v);
+                              } else {
+                                setOverviewMapScope('all');
+                                setOverviewMapDayFilter(null);
+                                setOverviewMapRouteVisible(true);
+                              }
+                            }}
+                            className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black shadow-sm backdrop-blur-sm transition-colors ${overviewMapScope === 'all' && overviewMapRouteVisible ? 'border-[#3182F6]/40 bg-white/90 text-[#3182F6]' : overviewMapScope === 'all' && !overviewMapRouteVisible ? 'border-slate-300 bg-white/80 text-slate-400 line-through' : 'border-slate-200 bg-white/80 text-slate-500'}`}
+                          >전체</button>
+                          {mapDayOptions.map((option) => {
+                            const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
+                            return (
+                              <button
+                                key={`lib-map-day-ov-${option.day}`}
+                                type="button"
+                                onClick={() => { setOverviewMapScope('day'); setOverviewMapDayFilter(option.day); setOverviewMapRouteVisible(true); }}
+                                className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black shadow-sm backdrop-blur-sm transition-colors ${active ? 'border-[#3182F6]/40 bg-white/90 text-[#3182F6]' : 'border-slate-200 bg-white/80 text-slate-500'}`}
+                              >{option.label}</button>
+                            );
+                          })}
+                        </div>
+                        {/* 오버레이 버튼: 우상단 출발/도착 + 새로고침 */}
+                        <div className="absolute top-2 right-2 flex gap-1 z-[500]" data-no-map-clear="true">
+                          {routePreviewEndpointActions.map((action) => (
+                            <button
+                              key={action.id}
+                              type="button"
+                              onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
+                              className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[9px] font-black shadow-sm backdrop-blur-sm transition-all ${action.hidden ? 'border-orange-200 bg-white/90 text-orange-500' : 'border-slate-200 bg-white/80 text-slate-500'}`}
+                            >
+                              <Anchor size={9} /><span>{action.id.endsWith('ship-start') ? '출발' : '도착'}</span>
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={refreshRoutePreviewMap}
+                            disabled={routePreviewManualRefreshing}
+                            className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[9px] font-black shadow-sm backdrop-blur-sm transition-all ${routePreviewManualRefreshing ? 'border-blue-200 bg-white/80 text-blue-300' : 'border-slate-200 bg-white/80 text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+                          >
+                            <RotateCcw size={9} className={routePreviewManualRefreshing ? 'animate-spin' : ''} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                     {/* 카테고리 필터 + 카테고리 관리 */}

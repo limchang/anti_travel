@@ -1,6 +1,16 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.240",
+      "timestamp": "2026-03-17T13:58:40+09:00",
+      "message": "build: 자동 빌드 타임스탬프 갱신"
+    },
+    {
+      "version": "1.3.239",
+      "timestamp": "2026-03-17T13:53:49+09:00",
+      "message": "build: 자동 빌드 타임스탬프 갱신"
+    },
+    {
       "version": "1.3.238",
       "timestamp": "2026-03-17T13:53:39+09:00",
       "message": "build: 자동 빌드 타임스탬프 갱신"
@@ -139,16 +149,6 @@
       "version": "1.3.207",
       "timestamp": "2026-03-14T23:29:30+09:00",
       "message": "fix: restore day route view in right panel mini map"
-    },
-    {
-      "version": "1.3.206",
-      "timestamp": "2026-03-14T23:23:06+09:00",
-      "message": "fix: reuse place geo in main route map"
-    },
-    {
-      "version": "1.3.205",
-      "timestamp": "2026-03-14T23:10:22+09:00",
-      "message": "fix: resolve route preview initialization order error"
     }
   ]
 }

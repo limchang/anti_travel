@@ -3557,6 +3557,7 @@ const App = () => {
   const [planOptionEndDate, setPlanOptionEndDate] = useState('');
   const [planOptionBudget, setPlanOptionBudget] = useState('0');
   // 초기 상태 안전하게 설정
+  const itineraryRef = useRef(null); // 항상 최신 itinerary를 참조 (선언 순서 중요)
   const [itinerary, setItinerary] = useState({ days: [], places: [], placeTrash: [] });
   itineraryRef.current = itinerary; // 매 렌더마다 최신 itinerary 동기 반영
   const customPlaceCategories = useMemo(() => {
@@ -3592,7 +3593,6 @@ const App = () => {
   const timeControllerAutoCloseTimerRef = useRef(null);
   const saveQueueRef = useRef({ inFlight: false, pending: null });
   const latestSaveJobRef = useRef(null);
-  const itineraryRef = useRef(null); // 항상 최신 itinerary를 참조
   const clearTimeControllerAutoClose = useCallback(() => {
     if (timeControllerAutoCloseTimerRef.current) {
       clearTimeout(timeControllerAutoCloseTimerRef.current);

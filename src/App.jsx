@@ -5561,6 +5561,8 @@ const App = () => {
     if (Number.isFinite(Number(cachedRoute?.distance)) && Number(cachedRoute.distance) >= 0) {
       return formatDistanceText(cachedRoute.distance);
     }
+    // ship 타입은 targetItem.distance가 해상거리이므로 fallback으로 사용 안 함
+    if (routeEntry?.targetItem?.types?.includes('ship')) return '-';
     return formatDistanceText(routeEntry?.targetItem?.distance);
   };
   const shouldAutoCalculateRoute = (dayIdx, targetIdx) => {
@@ -14448,8 +14450,7 @@ const App = () => {
                                           >{nextItem.travelTimeOverride || '15분'}</span>
                                           <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                                         </div>
-                                        {/* 거리 — 다음 아이템이 ship이면 출발항까지 거리만 (ship.distance는 해상거리라 숨김) */}
-                                        {!nextItem.types?.includes('ship') && (
+                                        {/* 거리 */}
                                         <button
                                           type="button"
                                           className={`flex items-center gap-1 text-xs font-bold transition-colors ${busy ? 'text-[#3182F6]' : 'text-slate-400 hover:text-[#3182F6]'}`}
@@ -14469,7 +14470,6 @@ const App = () => {
                                           {busy ? <LoaderCircle size={11} className="animate-spin" /> : <MapIcon size={11} />}
                                           <span>{busy ? '계산중' : getRouteDistanceStatus(routeEntry)}</span>
                                         </button>
-                                        )}
                                         {/* 자동경로 */}
                                         <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1, { forceRefresh: true }); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-[#3182F6]/10 text-[#3182F6] border-[#3182F6]/30' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
                                           {busy ? <LoaderCircle size={10} className="animate-spin" /> : <Sparkles size={10} />}

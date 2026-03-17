@@ -3508,6 +3508,8 @@ const App = () => {
   const [draggingFromLibrary, setDraggingFromLibrary] = useState(null);
   const [mobileSelectedLibraryPlace, setMobileSelectedLibraryPlace] = useState(null);
   const [placeFilterTags, setPlaceFilterTags] = useState([]); // 내 장소 필터링 태그
+  const filterLongPressTimerRef = useRef(null);
+  const filterLongPressFiredRef = useRef(false);
   const [showPlaceCategoryManager, setShowPlaceCategoryManager] = useState(false);
   const [showPlaceMenu, setShowPlaceMenu] = useState(false);
   const [showPlaceTrash, setShowPlaceTrash] = useState(false);
@@ -11341,9 +11343,7 @@ const App = () => {
                           }}
                           className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${placeFilterTags.length === 0 ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
                         >전체</button>
-                        {(() => {
-                          const filterLongPressRef = { current: null, _fired: false };
-                          return filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0).map(t => {
+                        {filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0).map(t => {
                             const excluded = placeFilterTags.includes(t.value);
                             const activeColor = {
                               food: 'bg-rose-500 border-rose-500 text-white',
@@ -11365,25 +11365,26 @@ const App = () => {
                               <button
                                 key={t.value}
                                 onMouseDown={() => {
-                                  filterLongPressRef._fired = false;
-                                  filterLongPressRef.current = setTimeout(() => {
-                                    filterLongPressRef._fired = true;
-                                    // 단독 선택: 이 카테고리만 제외 해제, 나머지 모두 제외
+                                  filterLongPressFiredRef.current = false;
+                                  clearTimeout(filterLongPressTimerRef.current);
+                                  filterLongPressTimerRef.current = setTimeout(() => {
+                                    filterLongPressFiredRef.current = true;
                                     setPlaceFilterTags(allActive.filter(x => x.value !== t.value).map(x => x.value));
                                   }, 500);
                                 }}
-                                onMouseUp={() => clearTimeout(filterLongPressRef.current)}
-                                onMouseLeave={() => clearTimeout(filterLongPressRef.current)}
+                                onMouseUp={() => clearTimeout(filterLongPressTimerRef.current)}
+                                onMouseLeave={() => clearTimeout(filterLongPressTimerRef.current)}
                                 onTouchStart={() => {
-                                  filterLongPressRef._fired = false;
-                                  filterLongPressRef.current = setTimeout(() => {
-                                    filterLongPressRef._fired = true;
+                                  filterLongPressFiredRef.current = false;
+                                  clearTimeout(filterLongPressTimerRef.current);
+                                  filterLongPressTimerRef.current = setTimeout(() => {
+                                    filterLongPressFiredRef.current = true;
                                     setPlaceFilterTags(allActive.filter(x => x.value !== t.value).map(x => x.value));
                                   }, 500);
                                 }}
-                                onTouchEnd={() => clearTimeout(filterLongPressRef.current)}
+                                onTouchEnd={() => clearTimeout(filterLongPressTimerRef.current)}
                                 onClick={() => {
-                                  if (filterLongPressRef._fired) return;
+                                  if (filterLongPressFiredRef.current) return;
                                   setPlaceFilterTags(prev => excluded ? prev.filter(v => v !== t.value) : [...prev, t.value]);
                                 }}
                                 className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${excluded ? 'bg-slate-100 text-slate-300 border-slate-200 line-through' : activeColor}`}
@@ -11392,8 +11393,7 @@ const App = () => {
                                 <span className={`ml-1 px-0.5 rounded text-[8px] font-black ${excluded ? 'text-slate-300' : 'text-white/80'}`}>{categoryCounts[t.value]}</span>
                               </button>
                             );
-                          });
-                        })()}
+                          })}
                       </div>
                       <button
                         type="button"

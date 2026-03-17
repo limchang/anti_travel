@@ -6022,10 +6022,24 @@ const App = () => {
     }, Infinity);
     return minDistanceKm <= 250;
   }, [allTimelinePoints, haversineKm]);
+  const lodgesWithActiveSegments = useMemo(() => {
+    const ids = new Set();
+    for (const day of (itinerary.days || [])) {
+      for (const item of (day.plan || [])) {
+        if (isStandaloneLodgeSegmentItem(item) && item.sourceLodgeId) {
+          ids.add(String(item.sourceLodgeId));
+        }
+      }
+    }
+    return ids;
+  }, [itinerary.days, isStandaloneLodgeSegmentItem]);
+
   const libraryMapPoints = useMemo(() => (
     (itinerary.places || [])
       .filter(Boolean)
       .filter((place) => {
+        // 숙소가 세그먼트로 일정에 나가있으면 지도에 표시 안 함
+        if (isLodgeStay(place?.types) && lodgesWithActiveSegments.has(String(place?.id || ''))) return false;
         if (!placeFilterTags.length) return true;
         const placeTags = Array.isArray(place?.types) ? place.types : [];
         return placeFilterTags.some((tag) => placeTags.includes(tag));
@@ -6048,7 +6062,7 @@ const App = () => {
         };
       })
       .filter((point) => point && isMapPointNearTimelineCluster(Number(point.lat), Number(point.lon)))
-  ), [isMapPointNearTimelineCluster, itinerary.places, libraryGeoMap, placeFilterTags]);
+  ), [isLodgeStay, isMapPointNearTimelineCluster, itinerary.places, libraryGeoMap, lodgesWithActiveSegments, placeFilterTags]);
   const recommendationMapPoints = useMemo(() => (
     visibleRecommendationEntries
       .map(({ id, recommendation }) => {
@@ -6175,6 +6189,15 @@ const App = () => {
     const found = findPlanItemContextById(focusedMapTarget.id);
     if (!found) return;
     addNewItem(found.dayIdx, found.pIdx, place.types || ['place'], place, { anchor: 'next' });
+    // 드래그로 일정에 넣는 것과 동일하게 내장소에서 제거 (중복 방지)
+    setItinerary((prev) => {
+      const existingTrash = Array.isArray(prev.placeTrash) ? prev.placeTrash : [];
+      return {
+        ...prev,
+        places: (prev.places || []).filter((p) => p.id !== placeId),
+        placeTrash: [{ ...deepClone(place), deletedAt: Date.now() }, ...existingTrash.filter((p) => p?.id !== placeId)],
+      };
+    });
     triggerUndoToast(`'${place.name || '장소'}'를 ${found.dayNum}일차 일정에 추가했습니다.`);
   };
 

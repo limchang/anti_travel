@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars, react-hooks/exhaustive-deps, no-useless-escape */
 import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
 import L from 'leaflet';
-import { MapContainer, Marker, Pane, Polyline, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, Pane, Polyline, Popup, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import { db, auth, messaging } from './firebase';
 import { PlaceAddForm } from './components/place/PlaceAddForm';
 import { PlaceEditorCard, PlaceLibraryCard } from './components/place/PlaceCards';
@@ -2274,46 +2274,51 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
   });
 };
 
-const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd = false, extraTailH = 0, timelineFocused = false) => {
+const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0) => {
   // 내장소 마커: 네모 모양 — 일정(원형) 마커와 시각적으로 구분
-  // canAdd 모드는 원형 유지
-  const shortLabel = String(categoryLabel || '장소').trim().slice(0, 2);
-  const bgColor = canAdd ? '#3182F6' : categoryColor;
-  const opacity = 1;
-  const sz = canAdd ? (isFocused ? 26 : 22) : (isFocused ? 36 : 28);
-  const shadow = canAdd
-    ? 'drop-shadow(0 4px 10px rgba(49,130,246,0.5))'
-    : isFocused
-      ? 'drop-shadow(0 3px 8px rgba(15,23,42,0.3))'
-      : 'drop-shadow(0 1px 3px rgba(15,23,42,0.18))';
+  const isCluster = clusterCount > 1;
+  const bgColor = isCluster ? '#1E40AF' : categoryColor;
+  const sz = isFocused ? 36 : 28;
+  const shadow = isFocused
+    ? 'drop-shadow(0 3px 8px rgba(15,23,42,0.3))'
+    : 'drop-shadow(0 1px 3px rgba(15,23,42,0.18))';
+  const borderStyle = isFocused ? `2px solid rgba(255,255,255,0.95)` : `2px solid rgba(255,255,255,0.85)`;
+  const radius = isFocused ? '10px' : '8px';
 
-  if (canAdd) {
-    // canAdd: 원형 유지 (기존 스타일)
-    const tailW = isFocused ? 4 : 3;
-    const tailH = isFocused ? 6 : 5;
-    const totalH = sz + tailH;
+  if (isCluster) {
+    // 클러스터 마커: 원형 + 갯수 배지
+    const csz = isFocused ? 38 : 30;
+    const badgeSz = isFocused ? 16 : 14;
     return L.divIcon({
       className: '',
       html: `
-        <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};opacity:${opacity};">
-          <div style="width:${sz}px;height:${sz}px;border-radius:999px;background:${bgColor};border:2px solid rgba(255,255,255,0.9);display:flex;align-items:center;justify-content:center;">
-            <span style="font-size:${isFocused?'13px':'11px'};font-weight:900;color:#fff;line-height:1;">+</span>
+        <div style="position:relative;width:${csz}px;height:${csz}px;cursor:pointer;filter:${shadow};">
+          <div style="
+            width:${csz}px;height:${csz}px;border-radius:${radius};
+            background:${bgColor};border:${borderStyle};
+            display:flex;align-items:center;justify-content:center;
+          ">
+            <span style="font-size:${isFocused?'12px':'10px'};font-weight:900;color:#fff;line-height:1;">내장소</span>
           </div>
-          <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${bgColor};opacity:0.7;margin-top:-1px;"></div>
+          <div style="
+            position:absolute;top:-5px;right:-5px;
+            width:${badgeSz}px;height:${badgeSz}px;border-radius:999px;
+            background:#EF4444;border:1.5px solid #fff;
+            display:flex;align-items:center;justify-content:center;
+            font-size:${isFocused?'9px':'8px'};font-weight:900;color:#fff;line-height:1;
+          ">${clusterCount}</div>
         </div>
       `,
-      iconSize: [sz, totalH],
-      iconAnchor: [sz / 2, totalH],
+      iconSize: [csz, csz],
+      iconAnchor: [csz / 2, csz / 2],
     });
   }
 
-  // 내장소: 네모 모양, anchor 중앙 (일정 마커가 위에 있을 때 아래에 표시되도록)
-  const borderStyle = isFocused ? `2px solid rgba(255,255,255,0.95)` : `2px solid rgba(255,255,255,0.85)`;
-  const radius = isFocused ? '10px' : '8px';
+  const shortLabel = String(categoryLabel || '장소').trim().slice(0, 2);
   return L.divIcon({
     className: '',
     html: `
-      <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};opacity:${opacity};">
+      <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
         <div style="
           width:${sz}px;height:${sz}px;border-radius:${radius};
           background:${bgColor};border:${borderStyle};
@@ -2708,22 +2713,54 @@ const RoutePreviewCanvas = ({
   const visibleSegmentEntries = showRouteLines ? segmentEntries : [];
   const rawVisibleOverlayEntries = showOverlayMarkers ? overlayEntries : [];
 
-  // 같은 좌표에 겹치는 마커들을 방사형으로 분산
+  // 클러스터 + 방사형 분산 처리
   const [visibleTimelineEntries, visibleOverlayEntries] = useMemo(() => {
     const OFFSET_DEG = 0.00018; // 약 20m
+    const CLUSTER_DEG = 0.00012; // 클러스터 묶음 반경 (~13m)
     const posKey = (pos) => `${Number(pos[0]).toFixed(5)}:${Number(pos[1]).toFixed(5)}`;
-    // 모든 마커 위치 수집 (timeline + overlay)
+
+    // 1) 내장소(place) 마커끼리 근접 클러스터링 (같은 posKey 기준)
+    const placeGroups = new Map();
+    rawVisibleOverlayEntries.forEach((e) => {
+      if (e.kind !== 'place') return;
+      const k = posKey(e.position);
+      if (!placeGroups.has(k)) placeGroups.set(k, []);
+      placeGroups.get(k).push(e);
+    });
+
+    // 클러스터 마커 목록 (3개 이상이면 하나로 묶음, 2개는 방사형으로)
+    const clusteredOverlayEntries = [];
+    const clusteredPlaceIds = new Set();
+    placeGroups.forEach((entries) => {
+      if (entries.length >= 3) {
+        // 클러스터: 대표 마커 하나로 합치기
+        const rep = entries[0];
+        clusteredOverlayEntries.push({
+          ...rep,
+          _clusterCount: entries.length,
+          _clusterIds: entries.map((e) => e.id),
+          _clusterItems: entries,
+        });
+        entries.forEach((e) => clusteredPlaceIds.add(e.id));
+      }
+      // 2개 이하는 그대로 통과 (방사형 처리)
+    });
+
+    // 클러스터에 포함되지 않은 overlay 엔트리
+    const remainingOverlay = rawVisibleOverlayEntries.filter((e) => !clusteredPlaceIds.has(e.id));
+    const processedOverlay = [...remainingOverlay, ...clusteredOverlayEntries];
+
+    // 2) timeline + 남은 overlay 방사형 분산
     const groups = new Map();
     const allEntries = [
       ...rawVisibleTimelineEntries.map((e) => ({ ...e, _layer: 'timeline' })),
-      ...rawVisibleOverlayEntries.map((e) => ({ ...e, _layer: 'overlay' })),
+      ...processedOverlay.map((e) => ({ ...e, _layer: 'overlay' })),
     ];
     allEntries.forEach((e) => {
       const k = posKey(e.position);
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k).push(e);
     });
-    // 2개 이상 겹치면 방사형 오프셋 적용
     const offsetMap = new Map();
     groups.forEach((entries) => {
       if (entries.length < 2) return;
@@ -2737,12 +2774,13 @@ const RoutePreviewCanvas = ({
         ]);
       });
     });
-    const applyOffset = (entries) => entries.map((e) => {
-      const off = offsetMap.get(allEntries.find((a) => a._layer === e._layer && a.id === e.id && a.pointId === e.pointId));
+    const applyOffset = (entries, layer) => entries.map((e) => {
+      const match = allEntries.find((a) => a._layer === layer && a.id === e.id && a.pointId === e.pointId);
+      const off = match ? offsetMap.get(match) : null;
       return off ? { ...e, position: off } : e;
     });
-    const tl = applyOffset(rawVisibleTimelineEntries.map((e) => ({ ...e, _layer: 'timeline' })));
-    const ov = applyOffset(rawVisibleOverlayEntries.map((e) => ({ ...e, _layer: 'overlay' })));
+    const tl = applyOffset(rawVisibleTimelineEntries.map((e) => ({ ...e, _layer: 'timeline' })), 'timeline');
+    const ov = applyOffset(processedOverlay.map((e) => ({ ...e, _layer: 'overlay' })), 'overlay');
     return [tl, ov];
   }, [rawVisibleTimelineEntries, rawVisibleOverlayEntries]);
   const renderableTimelinePointCount = visibleTimelineEntries.length;
@@ -2946,36 +2984,73 @@ const RoutePreviewCanvas = ({
           {(() => {
             const timelineFocusActive = focusedTarget?.kind === 'timeline' && focusedTimelinePointIds.length > 0;
             return visibleOverlayEntries.map((point) => {
-            // 두 단계 클릭: place 마커를 누르면 먼저 + 모드로 전환, 다시 누르면 일정 추가
+            const isCluster = !!(point._clusterCount && point._clusterCount > 1);
+            const clusterCount = isCluster ? point._clusterCount : 0;
             const isFocusedLibrary = point.kind === 'place' && focusedLibraryMarkerId === point.id;
-            const canAdd = interactive && point.kind === 'place' && isFocusedLibrary && typeof onLibraryMarkerAddClick === 'function';
+            // 클러스터 팝업에 표시할 아이템들
+            const clusterItems = isCluster ? (point._clusterItems || []) : [];
             return (
               <Marker
                 key={`overlay-point-${point.kind}-${point.id}`}
                 position={point.position}
                 bubblingMouseEvents={false}
                 icon={point.kind === 'place'
-                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', point.isFocused, canAdd, 0, timelineFocusActive)
+                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount)
                   : buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
                 eventHandlers={interactive ? {
                   click: () => {
                     if (point.kind === 'place') {
-                      if (isFocusedLibrary) {
-                        // 두 번째 클릭: 일정 추가
-                        if (typeof onLibraryMarkerAddClick === 'function') {
-                          onLibraryMarkerAddClick({ id: point.id, label: point.label });
-                        }
-                        if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(null);
-                      } else {
-                        // 첫 번째 클릭: + 모드로 전환
-                        if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(point.id);
-                      }
+                      if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(point.id);
                     } else if (typeof onMarkerClick === 'function') {
                       onMarkerClick({ kind: point.kind, id: point.id, label: point.label, address: point.address });
                     }
                   },
                 } : undefined}
-              />
+              >
+                {interactive && point.kind === 'place' && isFocusedLibrary && (
+                  <Popup
+                    offset={[0, -14]}
+                    closeButton={false}
+                    autoPan={false}
+                    className="library-marker-popup"
+                  >
+                    <div style={{ minWidth: '160px', maxWidth: '220px', padding: '0', fontFamily: 'inherit' }}>
+                      {isCluster ? (
+                        // 클러스터 팝업: 목록 표시
+                        <div>
+                          <div style={{ padding: '8px 10px 4px', fontSize: '10px', fontWeight: 900, color: '#64748B', borderBottom: '1px solid #F1F5F9' }}>
+                            내장소 {clusterCount}곳
+                          </div>
+                          {clusterItems.map((item) => (
+                            <div key={item.id} style={{ padding: '6px 10px', borderBottom: '1px solid #F1F5F9' }}>
+                              <div style={{ fontSize: '11px', fontWeight: 900, color: '#1E293B', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</div>
+                              {item.address && <div style={{ fontSize: '9px', color: '#94A3B8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.address}</div>}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); if (typeof onLibraryMarkerAddClick === 'function') onLibraryMarkerAddClick({ id: item.id, label: item.label }); if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(null); }}
+                                style={{ marginTop: '4px', width: '100%', padding: '3px 6px', borderRadius: '6px', background: '#3182F6', color: '#fff', fontSize: '10px', fontWeight: 900, border: 'none', cursor: 'pointer' }}
+                              >+ 일정 등록</button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        // 단일 마커 팝업
+                        <div style={{ padding: '8px 10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                            <div style={{ width: '8px', height: '8px', borderRadius: '3px', background: point.categoryColor || '#2563EB', flexShrink: 0 }} />
+                            <span style={{ fontSize: '9px', fontWeight: 900, color: point.categoryColor || '#2563EB' }}>{point.categoryLabel || '내장소'}</span>
+                          </div>
+                          <div style={{ fontSize: '12px', fontWeight: 900, color: '#1E293B', marginBottom: '3px', wordBreak: 'break-all' }}>{point.label}</div>
+                          {point.address && <div style={{ fontSize: '9px', color: '#94A3B8', marginBottom: '6px', wordBreak: 'break-all' }}>{point.address}</div>}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); if (typeof onLibraryMarkerAddClick === 'function') onLibraryMarkerAddClick({ id: point.id, label: point.label }); if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(null); }}
+                            style={{ width: '100%', padding: '5px 8px', borderRadius: '8px', background: '#3182F6', color: '#fff', fontSize: '11px', fontWeight: 900, border: 'none', cursor: 'pointer' }}
+                          >+ 일정 등록</button>
+                        </div>
+                      )}
+                    </div>
+                  </Popup>
+                )}
+              </Marker>
             );
           });
           })()}
@@ -5641,10 +5716,11 @@ const App = () => {
         let segment = !forceRefresh ? routePreviewSegmentCacheRef.current[cacheKey] : null;
         if (segment && (!Array.isArray(segment.path) || (!segment.path.length && !Number.isFinite(Number(segment.distance))))) segment = null;
         if (!segment) {
-          // 같은 페리 아이템의 ship-start → ship-end 구간은 해상 이동 → 직선 경로로 처리
-          const isShipSegment = fromPoint.pointKind === 'ship-start'
-            && toPoint.pointKind === 'ship-end'
-            && fromPoint.itemId && fromPoint.itemId === toPoint.itemId;
+          // 페리 관련 구간은 모두 직선 경로로 처리 (육로 API 사용 금지)
+          // ship-start→ship-end (해상이동), *→ship-start (항구 접근), ship-end→* (항구 출발)
+          const isShipSegment = (fromPoint.pointKind === 'ship-start' && toPoint.pointKind === 'ship-end' && fromPoint.itemId && fromPoint.itemId === toPoint.itemId)
+            || fromPoint.pointKind === 'ship-end'
+            || toPoint.pointKind === 'ship-start';
           if (isShipSegment) {
             const R = 6371;
             const dLat = (toPoint.lat - fromPoint.lat) * Math.PI / 180;

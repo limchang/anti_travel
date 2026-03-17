@@ -1,6 +1,21 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.251",
+      "timestamp": "2026-03-17T16:59:16+09:00",
+      "message": "build: 자동 빌드 타임스탬프 갱신"
+    },
+    {
+      "version": "1.3.250",
+      "timestamp": "2026-03-17T16:58:01+09:00",
+      "message": "build: 자동 빌드 타임스탬프 갱신"
+    },
+    {
+      "version": "1.3.249",
+      "timestamp": "2026-03-17T16:53:18+09:00",
+      "message": "build: 자동 빌드 타임스탬프 갱신"
+    },
+    {
       "version": "1.3.248",
       "timestamp": "2026-03-17T16:53:09+09:00",
       "message": "build: 자동 빌드 타임스탬프 갱신"
@@ -134,21 +149,6 @@
       "version": "1.3.218",
       "timestamp": "2026-03-15T08:24:00+09:00",
       "message": "fix: 꼬불꼬불한 실제 카카오 길찾기 경로가 지도에 반영되도록 개선 및 신규 업데이트 모달 추가"
-    },
-    {
-      "version": "1.3.217",
-      "timestamp": "2026-03-15T01:14:21+09:00",
-      "message": "fix: lock desktop 3-column layout and add mobile panel swipe"
-    },
-    {
-      "version": "1.3.216",
-      "timestamp": "2026-03-15T00:57:52+09:00",
-      "message": "fix: split move chip insert anchor and relax buffer transfer"
-    },
-    {
-      "version": "1.3.215",
-      "timestamp": "2026-03-15T00:37:32+09:00",
-      "message": "fix: resolve route preview fallback init order"
     }
   ]
 }

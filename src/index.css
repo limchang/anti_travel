@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 내장소 마커 팝업 스타일 오버라이드 */
+.library-marker-popup .leaflet-popup-content-wrapper {
+  padding: 0;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px -8px rgba(15, 23, 42, 0.28);
+  border: 1px solid #E2E8F0;
+  overflow: hidden;
+}
+.library-marker-popup .leaflet-popup-content {
+  margin: 0;
+  line-height: 1.4;
+}
+.library-marker-popup .leaflet-popup-tip-container {
+  display: none;
+}

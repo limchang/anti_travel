@@ -3558,6 +3558,7 @@ const App = () => {
   const [planOptionBudget, setPlanOptionBudget] = useState('0');
   // 초기 상태 안전하게 설정
   const [itinerary, setItinerary] = useState({ days: [], places: [], placeTrash: [] });
+  itineraryRef.current = itinerary; // 매 렌더마다 최신 itinerary 동기 반영
   const customPlaceCategories = useMemo(() => {
     const collected = new Set();
     (itinerary.places || []).forEach((place) => {
@@ -3591,6 +3592,7 @@ const App = () => {
   const timeControllerAutoCloseTimerRef = useRef(null);
   const saveQueueRef = useRef({ inFlight: false, pending: null });
   const latestSaveJobRef = useRef(null);
+  const itineraryRef = useRef(null); // 항상 최신 itinerary를 참조
   const clearTimeControllerAutoClose = useCallback(() => {
     if (timeControllerAutoCloseTimerRef.current) {
       clearTimeout(timeControllerAutoCloseTimerRef.current);
@@ -9718,13 +9720,25 @@ const App = () => {
   }, [itinerary, loading, user, currentPlanId, tripRegion, tripStartDate, tripEndDate, isSharedReadOnly, shareSettings]);
 
   const saveItineraryManually = async () => {
-    const job = latestSaveJobRef.current;
-    if (!job) return;
+    if (!user || user.isGuest || isSharedReadOnly) return;
+    const currentItinerary = itineraryRef.current;
+    if (!currentItinerary || !currentItinerary.days || currentItinerary.days.length === 0) return;
+    const planId = currentPlanId || 'main';
+    const payload = {
+      ...currentItinerary,
+      routeFlowMeta: buildRouteFlowMeta(currentItinerary.days || []),
+      tripRegion,
+      tripStartDate,
+      tripEndDate,
+      planTitle: currentItinerary.planTitle || `${tripRegion || '여행'} 일정`,
+      planCode: currentItinerary.planCode || makePlanCode(tripRegion || '여행', tripStartDate || ''),
+      share: normalizeShare(currentItinerary.share || shareSettings),
+      updatedAt: Date.now(),
+    };
     setLastAction('저장 중...');
-    await enqueueItinerarySave(job.planId, job.payload);
+    await enqueueItinerarySave(planId, payload);
     setIsDirty(false);
     setLastAction('저장 완료 ✓');
-
   };
 
 

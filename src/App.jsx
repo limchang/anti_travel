@@ -7994,39 +7994,58 @@ const App = () => {
         item._manualBufferTimeOverride = `${nextMinutes}분`;
         item._isBufferCoordinated = false;
       } else {
-        // 보정시간 늘리기 → 무조건 가능하게
-        const prevEntry = getPreviousMainPlanEntryByIndex(nextData.days, dayIdx, pIdx);
-        const prevItem = prevEntry?.item;
-        const travelMins = parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
-
-        if (prevItem && !prevItem.types?.includes('ship')) {
-          const prevEnd = getAbsoluteTimelineItemEndMinutes(prevItem, prevEntry.dayIdx);
-          const currentStart = (dayIdx * 1440) + timeToMinutes(item.time || '00:00');
-          const newStart = currentStart + delta;
-          const gap = newStart - prevEnd - travelMins; // 이동 후 남는 여백
-
-          if (gap >= 0) {
-            // 여유 있음: 시작시간 뒤로 밀기
-            item.time = minutesToTime(newStart % 1440);
-            item.isTimeFixed = true;
-            item.bufferTimeOverride = `${gap}분`;
-            item._manualBufferTimeOverride = `${gap}분`;
-            item._isBufferCoordinated = gap > 0;
-          } else {
-            // 여유 없음: 시작시간 밀고 앞 일정 보정시간 초과분 표시 (강제 진행)
-            item.time = minutesToTime(newStart % 1440);
-            item.isTimeFixed = true;
-            item.bufferTimeOverride = '0분';
-            item._manualBufferTimeOverride = '0분';
-            item._isBufferCoordinated = false;
-            // 앞 일정에 자동보정 플래그 표시
-            prevItem._isAutoBufferAdjusted = true;
+        // 보정시간 늘리기
+        if (item.isTimeFixed) {
+          // 시간 잠금 상태: 이전 일정 소요시간을 줄여서 여백 확보 (시작시간 불변)
+          let remaining = delta;
+          // 1단계~2단계: 이전 일정들을 역순으로 순회하며 소요시간 감소
+          const dayPlan = nextData.days[dayIdx].plan;
+          for (let i = pIdx - 1; i >= 0 && remaining > 0; i--) {
+            const candidate = dayPlan[i];
+            if (!candidate || candidate.types?.includes('ship') || candidate.types?.includes('lodge')) continue;
+            const candidateDur = Math.max(0, Number(candidate.duration) || 0);
+            const reducible = Math.max(0, candidateDur - 5); // 최소 5분 남김
+            if (reducible <= 0) continue;
+            const absorb = Math.min(reducible, remaining);
+            candidate.duration = candidateDur - absorb;
+            syncBaseDuration(candidate, candidate.duration);
+            remaining -= absorb;
           }
-        } else {
-          // 이전 일정 없음: 단순 보정시간 증가
+          // 보정시간 자체는 그대로 유지 (시작시간 고정이므로 재계산이 처리)
           item.bufferTimeOverride = `${nextMinutes}분`;
           item._manualBufferTimeOverride = `${nextMinutes}분`;
           item._isBufferCoordinated = false;
+        } else {
+          // 시간 잠금 없음: 시작시간 뒤로 밀기 (기존 로직)
+          const prevEntry = getPreviousMainPlanEntryByIndex(nextData.days, dayIdx, pIdx);
+          const prevItem = prevEntry?.item;
+          const travelMins = parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
+
+          if (prevItem && !prevItem.types?.includes('ship')) {
+            const prevEnd = getAbsoluteTimelineItemEndMinutes(prevItem, prevEntry.dayIdx);
+            const currentStart = (dayIdx * 1440) + timeToMinutes(item.time || '00:00');
+            const newStart = currentStart + delta;
+            const gap = newStart - prevEnd - travelMins;
+
+            if (gap >= 0) {
+              item.time = minutesToTime(newStart % 1440);
+              item.isTimeFixed = true;
+              item.bufferTimeOverride = `${gap}분`;
+              item._manualBufferTimeOverride = `${gap}분`;
+              item._isBufferCoordinated = gap > 0;
+            } else {
+              item.time = minutesToTime(newStart % 1440);
+              item.isTimeFixed = true;
+              item.bufferTimeOverride = '0분';
+              item._manualBufferTimeOverride = '0분';
+              item._isBufferCoordinated = false;
+              if (prevItem) prevItem._isAutoBufferAdjusted = true;
+            }
+          } else {
+            item.bufferTimeOverride = `${nextMinutes}분`;
+            item._manualBufferTimeOverride = `${nextMinutes}분`;
+            item._isBufferCoordinated = false;
+          }
         }
       }
 

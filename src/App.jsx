@@ -2641,9 +2641,10 @@ const RoutePreviewCanvas = ({
             positions,
             color: day.color,
             isFallbackLine,
+            isShipRoute: !!segment.isShipRoute,
             isFocused,
             midPos,
-            arrowPoints,
+            arrowPoints: segment.isShipRoute ? [] : arrowPoints,
             durationMins: Number.isFinite(Number(segment.durationMins)) ? Number(segment.durationMins) : null,
             distance: Number.isFinite(Number(segment.distance)) ? Number(segment.distance) : null,
           };
@@ -2837,9 +2838,9 @@ const RoutePreviewCanvas = ({
                   bubblingMouseEvents={false}
                   pathOptions={{
                     color: segment.color,
-                    weight,
-                    opacity,
-                    dashArray: segment.isFallbackLine ? '6 8' : undefined,
+                    weight: segment.isShipRoute ? Math.max(3, weight - 2) : weight,
+                    opacity: segment.isShipRoute ? opacity * 0.75 : opacity,
+                    dashArray: segment.isShipRoute ? '4 8' : segment.isFallbackLine ? '6 8' : undefined,
                     lineCap: 'round',
                     lineJoin: 'round',
                   }}
@@ -5593,41 +5594,67 @@ const App = () => {
         let segment = !forceRefresh ? routePreviewSegmentCacheRef.current[cacheKey] : null;
         if (segment && (!Array.isArray(segment.path) || (!segment.path.length && !Number.isFinite(Number(segment.distance))))) segment = null;
         if (!segment) {
-          try {
-            const route = await fetchKakaoVerifiedRoute({
-              fromAddress: fromPoint.address,
-              toAddress: toPoint.address,
-              fromLat: fromPoint.lat,
-              fromLon: fromPoint.lon,
-              toLat: toPoint.lat,
-              toLon: toPoint.lon,
-            });
+          // 같은 페리 아이템의 ship-start → ship-end 구간은 해상 이동 → 직선 경로로 처리
+          const isShipSegment = fromPoint.pointKind === 'ship-start'
+            && toPoint.pointKind === 'ship-end'
+            && fromPoint.itemId && fromPoint.itemId === toPoint.itemId;
+          if (isShipSegment) {
+            const R = 6371;
+            const dLat = (toPoint.lat - fromPoint.lat) * Math.PI / 180;
+            const dLon = (toPoint.lon - fromPoint.lon) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(fromPoint.lat*Math.PI/180)*Math.cos(toPoint.lat*Math.PI/180)*Math.sin(dLon/2)**2;
+            const distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             segment = {
               id: cacheKey,
               fromId: fromPoint.id,
               toId: toPoint.id,
               fromPoint: { lat: Number(fromPoint.lat), lon: Number(fromPoint.lon) },
               toPoint: { lat: Number(toPoint.lat), lon: Number(toPoint.lon) },
-              distance: route.distance,
-              durationMins: route.durationMins,
-              path: Array.isArray(route.path) ? route.path.filter((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon))) : [],
-            };
-            if (segment.path.length > 0 || Number.isFinite(Number(segment.distance))) {
-              routePreviewSegmentCacheRef.current[cacheKey] = segment;
-            }
-
-          } catch (error) {
-            console.warn('route preview segment failed:', fromPoint.address, toPoint.address, error);
-            segment = {
-              id: cacheKey,
-              fromId: fromPoint.id,
-              toId: toPoint.id,
-              fromPoint: { lat: Number(fromPoint.lat), lon: Number(fromPoint.lon) },
-              toPoint: { lat: Number(toPoint.lat), lon: Number(toPoint.lon) },
-              distance: null,
+              distance: Math.round(distKm * 1000),
               durationMins: null,
-              path: [],
+              path: [
+                { lat: fromPoint.lat, lon: fromPoint.lon },
+                { lat: toPoint.lat, lon: toPoint.lon },
+              ],
+              isShipRoute: true,
             };
+            routePreviewSegmentCacheRef.current[cacheKey] = segment;
+          } else {
+            try {
+              const route = await fetchKakaoVerifiedRoute({
+                fromAddress: fromPoint.address,
+                toAddress: toPoint.address,
+                fromLat: fromPoint.lat,
+                fromLon: fromPoint.lon,
+                toLat: toPoint.lat,
+                toLon: toPoint.lon,
+              });
+              segment = {
+                id: cacheKey,
+                fromId: fromPoint.id,
+                toId: toPoint.id,
+                fromPoint: { lat: Number(fromPoint.lat), lon: Number(fromPoint.lon) },
+                toPoint: { lat: Number(toPoint.lat), lon: Number(toPoint.lon) },
+                distance: route.distance,
+                durationMins: route.durationMins,
+                path: Array.isArray(route.path) ? route.path.filter((point) => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon))) : [],
+              };
+              if (segment.path.length > 0 || Number.isFinite(Number(segment.distance))) {
+                routePreviewSegmentCacheRef.current[cacheKey] = segment;
+              }
+            } catch (error) {
+              console.warn('route preview segment failed:', fromPoint.address, toPoint.address, error);
+              segment = {
+                id: cacheKey,
+                fromId: fromPoint.id,
+                toId: toPoint.id,
+                fromPoint: { lat: Number(fromPoint.lat), lon: Number(fromPoint.lon) },
+                toPoint: { lat: Number(toPoint.lat), lon: Number(toPoint.lon) },
+                distance: null,
+                durationMins: null,
+                path: [],
+              };
+            }
           }
         }
         segments.push(segment);

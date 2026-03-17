@@ -2292,7 +2292,6 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd
     const c2 = clusterColors[0] || categoryColor || '#1E40AF'; // 맨 앞
     const offset = isFocused ? 5 : 4;
     const shortLabel = String(categoryLabel || '장소').trim().slice(0, 2);
-    const badgeSz = isFocused ? 16 : 14;
     const totalW = csz + offset * 2;
     const totalH = csz + offset * 2;
     return L.divIcon({
@@ -2304,13 +2303,6 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd
           <div style="position:absolute;left:0;top:0;width:${csz}px;height:${csz}px;border-radius:${radius};background:${c2};border:2px solid rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;">
             <span style="font-size:${isFocused?'12px':'10px'};font-weight:900;color:#fff;line-height:1;">${shortLabel}</span>
           </div>
-          <div style="
-            position:absolute;top:-4px;right:-4px;
-            width:${badgeSz}px;height:${badgeSz}px;border-radius:999px;
-            background:#EF4444;border:1.5px solid #fff;
-            display:flex;align-items:center;justify-content:center;
-            font-size:${isFocused?'9px':'8px'};font-weight:900;color:#fff;line-height:1;
-          ">${clusterCount}</div>
         </div>
       `,
       iconSize: [totalW, totalH],

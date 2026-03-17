@@ -3,10 +3,13 @@
 @tailwind utilities;
 
 /* 내장소 마커 팝업 스타일 오버라이드 */
+.library-marker-popup {
+  z-index: 9999 !important;
+}
 .library-marker-popup .leaflet-popup-content-wrapper {
   padding: 0;
   border-radius: 12px;
-  box-shadow: 0 8px 24px -8px rgba(15, 23, 42, 0.28);
+  box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.38);
   border: 1px solid #E2E8F0;
   overflow: hidden;
 }

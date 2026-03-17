@@ -5941,11 +5941,9 @@ const App = () => {
         let segment = !forceRefresh ? routePreviewSegmentCacheRef.current[cacheKey] : null;
         if (segment && (!Array.isArray(segment.path) || (!segment.path.length && !Number.isFinite(Number(segment.distance))))) segment = null;
         if (!segment) {
-          // 페리 관련 구간 중 직선 경로로 처리할 것:
-          // ship-start→ship-end (해상이동), *→ship-start (항구 접근)
-          // ship-end→* (항구 출발 후 육로)는 일반 경로 API 사용
-          const isShipSegment = (fromPoint.pointKind === 'ship-start' && toPoint.pointKind === 'ship-end' && fromPoint.itemId && fromPoint.itemId === toPoint.itemId)
-            || toPoint.pointKind === 'ship-start';
+          // 실제 해상 이동 구간만 직선 처리 (ship-start→ship-end 동일 아이템)
+          // 항구 접근(*→ship-start), 항구 출발(ship-end→*)은 육로이므로 카카오 API 사용
+          const isShipSegment = fromPoint.pointKind === 'ship-start' && toPoint.pointKind === 'ship-end' && fromPoint.itemId && fromPoint.itemId === toPoint.itemId;
           if (isShipSegment) {
             const R = 6371;
             const dLat = (toPoint.lat - fromPoint.lat) * Math.PI / 180;

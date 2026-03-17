@@ -3138,8 +3138,10 @@ const RoutePreviewCanvas = ({
           <button
             className="w-full px-3 py-2 text-left text-[11px] font-black text-slate-700 hover:bg-slate-50 flex items-center gap-2"
             onClick={() => {
-              const query = contextMenuInfo.locationName ? `${contextMenuInfo.locationName} 가볼만한 곳` : '가볼만한 곳';
-              window.open(`https://search.naver.com/search.naver?query=${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
+              const { lat, lng, zoom, locationName } = contextMenuInfo;
+              const query = locationName ? `${locationName} 가볼만한 곳` : '가볼만한 곳';
+              const zoomLevel = Math.max(14, zoom);
+              window.open(`https://map.naver.com/p/search/${encodeURIComponent(query)}?searchType=place&c=${lng},${lat},${zoomLevel},0,0,0,dh`, '_blank', 'noopener,noreferrer');
               setContextMenuInfo(null);
             }}
           >

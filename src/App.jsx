@@ -2558,7 +2558,7 @@ const LeafletMapContextMenuHandler = ({ onContextMenu }) => {
   return null;
 };
 
-const POPUP_TAG_OPTIONS = TAG_OPTIONS.filter(t => !['new','revisit'].includes(t.value)).concat([{label:'퀵등록',value:'quick'}]);
+const POPUP_TAG_OPTIONS = TAG_OPTIONS.filter(t => !['new','revisit'].includes(t.value));
 
 // LibraryMarkerTypePopover 제거 — 팝업 칩 클릭 시 App 레벨 모달로 대체
 
@@ -11304,34 +11304,59 @@ const App = () => {
                           }}
                           className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${placeFilterTags.length === 0 ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
                         >전체</button>
-                        {filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0).map(t => {
-                          const excluded = placeFilterTags.includes(t.value);
-                          const activeColor = {
-                            food: 'bg-rose-500 border-rose-500 text-white',
-                            cafe: 'bg-amber-500 border-amber-500 text-white',
-                            tour: 'bg-purple-500 border-purple-500 text-white',
-                            lodge: 'bg-indigo-500 border-indigo-500 text-white',
-                            stay: 'bg-violet-500 border-violet-500 text-white',
-                            rest: 'bg-cyan-500 border-cyan-500 text-white',
-                            ship: 'bg-blue-500 border-blue-500 text-white',
-                            openrun: 'bg-red-500 border-red-500 text-white',
-                            view: 'bg-sky-500 border-sky-500 text-white',
-                            experience: 'bg-emerald-500 border-emerald-500 text-white',
-                            souvenir: 'bg-teal-500 border-teal-500 text-white',
-                            pickup: 'bg-orange-500 border-orange-500 text-white',
-                            quick: 'bg-yellow-500 border-yellow-500 text-white',
-                          }[t.value] || 'bg-[#3182F6] border-[#3182F6] text-white';
-                          return (
-                            <button
-                              key={t.value}
-                              onClick={() => setPlaceFilterTags(prev => excluded ? prev.filter(v => v !== t.value) : [...prev, t.value])}
-                              className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${excluded ? 'bg-slate-100 text-slate-300 border-slate-200 line-through' : activeColor}`}
-                            >
-                              {t.label}
-                              <span className={`ml-1 px-0.5 rounded text-[8px] font-black ${excluded ? 'text-slate-300' : 'text-white/80'}`}>{categoryCounts[t.value]}</span>
-                            </button>
-                          );
-                        })}
+                        {(() => {
+                          const filterLongPressRef = { current: null, _fired: false };
+                          return filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0).map(t => {
+                            const excluded = placeFilterTags.includes(t.value);
+                            const activeColor = {
+                              food: 'bg-rose-500 border-rose-500 text-white',
+                              cafe: 'bg-amber-500 border-amber-500 text-white',
+                              tour: 'bg-purple-500 border-purple-500 text-white',
+                              lodge: 'bg-indigo-500 border-indigo-500 text-white',
+                              stay: 'bg-violet-500 border-violet-500 text-white',
+                              rest: 'bg-cyan-500 border-cyan-500 text-white',
+                              ship: 'bg-blue-500 border-blue-500 text-white',
+                              openrun: 'bg-red-500 border-red-500 text-white',
+                              view: 'bg-sky-500 border-sky-500 text-white',
+                              experience: 'bg-emerald-500 border-emerald-500 text-white',
+                              souvenir: 'bg-teal-500 border-teal-500 text-white',
+                              pickup: 'bg-orange-500 border-orange-500 text-white',
+                              quick: 'bg-yellow-500 border-yellow-500 text-white',
+                            }[t.value] || 'bg-[#3182F6] border-[#3182F6] text-white';
+                            const allActive = filterTagOptions.filter(x => (categoryCounts[x.value] || 0) > 0);
+                            return (
+                              <button
+                                key={t.value}
+                                onMouseDown={() => {
+                                  filterLongPressRef._fired = false;
+                                  filterLongPressRef.current = setTimeout(() => {
+                                    filterLongPressRef._fired = true;
+                                    // 단독 선택: 이 카테고리만 제외 해제, 나머지 모두 제외
+                                    setPlaceFilterTags(allActive.filter(x => x.value !== t.value).map(x => x.value));
+                                  }, 500);
+                                }}
+                                onMouseUp={() => clearTimeout(filterLongPressRef.current)}
+                                onMouseLeave={() => clearTimeout(filterLongPressRef.current)}
+                                onTouchStart={() => {
+                                  filterLongPressRef._fired = false;
+                                  filterLongPressRef.current = setTimeout(() => {
+                                    filterLongPressRef._fired = true;
+                                    setPlaceFilterTags(allActive.filter(x => x.value !== t.value).map(x => x.value));
+                                  }, 500);
+                                }}
+                                onTouchEnd={() => clearTimeout(filterLongPressRef.current)}
+                                onClick={() => {
+                                  if (filterLongPressRef._fired) return;
+                                  setPlaceFilterTags(prev => excluded ? prev.filter(v => v !== t.value) : [...prev, t.value]);
+                                }}
+                                className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${excluded ? 'bg-slate-100 text-slate-300 border-slate-200 line-through' : activeColor}`}
+                              >
+                                {t.label}
+                                <span className={`ml-1 px-0.5 rounded text-[8px] font-black ${excluded ? 'text-slate-300' : 'text-white/80'}`}>{categoryCounts[t.value]}</span>
+                              </button>
+                            );
+                          });
+                        })()}
                       </div>
                       <button
                         type="button"
@@ -11406,7 +11431,7 @@ const App = () => {
                       const isTypePopoverOpen = placeTypesPopoverId === place.id;
                       const currentTypes = place.types?.length ? place.types : ['place'];
                       const typePopoverLongPressRef = { current: null, _fired: false };
-                      const POPOVER_TAG_OPTIONS = TAG_OPTIONS.filter(t => !['new','revisit'].includes(t.value)).concat([{label:'퀵등록',value:'quick'}]);
+                      const POPOVER_TAG_OPTIONS = TAG_OPTIONS.filter(t => !['new','revisit'].includes(t.value));
                       const chips = (
                         <div className="relative" data-no-drag="true" onClick={(e) => e.stopPropagation()}>
                           <button

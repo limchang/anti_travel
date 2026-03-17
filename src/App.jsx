@@ -2229,167 +2229,91 @@ const getMapCategoryLabel = (type = 'place') => {
 };
 
 const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#FFFFFF', categoryLabel = '', isFirst = false, isLast = false, extraTailH = 0) => {
-  const shortCategoryLabel = String(categoryLabel || '').trim().slice(0, 3);
-  // 카드 크기
-  const cardW = isFocused ? 46 : 38;
-  const cardH = isFocused ? 38 : 32;
-  const tailW = isFocused ? 7 : 6;
-  const tailH = (isFocused ? 8 : 6) + extraTailH;
-  const radius = isFocused ? 8 : 6;
-  const borderColor = isFocused ? dayColor : 'rgba(15,23,42,0.12)';
-  const borderW = isFocused ? 2.5 : 1.5;
-  // 시작/마감 표시
+  // 일정 마커: 단색 배경 + 흰 번호 — 선명하고 진하게
+  const sz = isFocused ? 36 : 28;
+  const tailW = isFocused ? 6 : 5;
+  const tailH = (isFocused ? 7 : 6) + extraTailH;
+  const radius = isFocused ? 10 : 8;
   const badgeText = isFirst ? 'START' : (isLast ? 'END' : '');
   const badgeColor = isFirst ? '#10B981' : '#EF4444';
-  const badgeH = badgeText ? 15 : 0;
-  const totalH = badgeH + (badgeH ? 3 : 0) + cardH + tailH;
+  const badgeH = badgeText ? 14 : 0;
+  const totalH = badgeH + (badgeH ? 2 : 0) + sz + tailH;
+  const shadow = isFocused
+    ? 'drop-shadow(0 5px 14px rgba(15,23,42,0.45))'
+    : 'drop-shadow(0 3px 8px rgba(15,23,42,0.32))';
   return L.divIcon({
     className: '',
     html: `
-      <div style="
-        display:flex;
-        flex-direction:column;
-        align-items:center;
-        cursor:pointer;
-        filter:drop-shadow(0 4px 10px rgba(15,23,42,0.28));
-      ">
+      <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
         ${badgeText ? `<div style="
-          margin-bottom:3px;
-          padding:0 6px;
-          height:${badgeH}px;
-          border-radius:999px;
-          background:${badgeColor};
-          color:#fff;
-          font-size:7px;
-          font-weight:900;
-          line-height:${badgeH}px;
-          white-space:nowrap;
-          letter-spacing:0.05em;
+          margin-bottom:2px;padding:0 5px;height:${badgeH}px;border-radius:999px;
+          background:${badgeColor};color:#fff;font-size:7px;font-weight:900;
+          line-height:${badgeH}px;white-space:nowrap;letter-spacing:0.06em;
         ">${badgeText}</div>` : ''}
         <div style="
-          width:${cardW}px;
-          height:${cardH}px;
-          border-radius:${radius}px;
-          border:${borderW}px solid ${borderColor};
-          background:#fff;
-          overflow:hidden;
-          display:flex;
-          flex-direction:column;
+          width:${sz}px;height:${sz}px;border-radius:${radius}px;
+          background:${dayColor};
+          border:${isFocused ? '2.5px' : '0px'} solid rgba(255,255,255,0.6);
+          display:flex;align-items:center;justify-content:center;
         ">
-          <!-- 상단 컬러 바 (카테고리색) -->
-          <div style="
-            height:${isFocused ? 10 : 8}px;
-            background:${categoryColor};
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            flex-shrink:0;
-          ">
-            <span style="
-              font-size:${isFocused ? '6px' : '5.5px'};
-              font-weight:900;
-              color:rgba(255,255,255,0.92);
-              letter-spacing:0.03em;
-              white-space:nowrap;
-            ">${shortCategoryLabel}</span>
-          </div>
-          <!-- 하단: 번호 -->
-          <div style="
-            flex:1;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-          ">
-            <span style="
-              font-size:${isFocused ? '15px' : '13px'};
-              font-weight:900;
-              color:${dayColor};
-              line-height:1;
-              letter-spacing:-0.5px;
-            ">${label}</span>
-          </div>
+          <span style="
+            font-size:${isFocused ? '16px' : '13px'};font-weight:900;
+            color:#fff;line-height:1;letter-spacing:-0.5px;
+            text-shadow:0 1px 3px rgba(0,0,0,0.25);
+          ">${label}</span>
         </div>
-        <!-- 꼬리 -->
         ${extraTailH > 0 ? `<div style="display:flex;flex-direction:column;align-items:center;margin-top:-1px;">
-          <div style="width:${tailW - 2}px;height:${extraTailH}px;background:${dayColor};opacity:0.85;"></div>
-          <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${isFocused ? 8 : 6}px solid ${dayColor};"></div>
-        </div>` : `<div style="
-          width:0;height:0;
-          border-left:${tailW}px solid transparent;
-          border-right:${tailW}px solid transparent;
-          border-top:${tailH}px solid ${dayColor};
-          margin-top:-1px;
-        "></div>`}
+          <div style="width:${tailW-1}px;height:${extraTailH}px;background:${dayColor};"></div>
+          <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${isFocused?7:6}px solid ${dayColor};"></div>
+        </div>` : `<div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${dayColor};margin-top:-1px;"></div>`}
       </div>
     `,
-    iconSize: [cardW, totalH],
-    iconAnchor: [cardW / 2, totalH],
+    iconSize: [sz, totalH],
+    iconAnchor: [sz / 2, totalH],
   });
 };
 
 const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd = false, extraTailH = 0) => {
-  const shortLabel = String(categoryLabel || '').trim().slice(0, 2) || '장소';
-  // canAdd이면 라벨에 + 통합 표시, 배경색도 파란색으로
-  const displayLabel = canAdd ? `+${shortLabel}` : shortLabel;
+  // 내장소 마커: 작고 반투명 — 일정 마커보다 눈에 덜 띄게
+  const shortLabel = String(categoryLabel || '장소').trim().slice(0, 2);
   const bgColor = canAdd ? '#3182F6' : categoryColor;
-  const borderColor = canAdd ? '#1D4ED8' : (isFocused ? '#0F172A' : 'rgba(255,255,255,0.95)');
-  const sz = isFocused ? 28 : 24;
-  const tailW = isFocused ? 5 : 4;
-  const tailH = (isFocused ? 8 : 6) + extraTailH;
-  const labelH = isFocused ? 15 : 13;
+  const opacity = canAdd ? 1 : (isFocused ? 0.88 : 0.55);
+  const sz = canAdd ? (isFocused ? 26 : 22) : (isFocused ? 22 : 18);
+  const tailW = isFocused ? 4 : 3;
+  const tailH = (isFocused ? 6 : 5) + extraTailH;
+  const totalH = sz + tailH;
+  const borderStyle = canAdd
+    ? `2px solid rgba(255,255,255,0.7)`
+    : isFocused
+      ? `2px solid rgba(255,255,255,0.8)`
+      : `1.5px solid rgba(255,255,255,0.5)`;
+  const shadow = canAdd
+    ? 'drop-shadow(0 4px 10px rgba(49,130,246,0.5))'
+    : isFocused
+      ? 'drop-shadow(0 3px 8px rgba(15,23,42,0.3))'
+      : 'drop-shadow(0 1px 3px rgba(15,23,42,0.18))';
   return L.divIcon({
     className: '',
     html: `
-      <div style="
-        display:flex;
-        flex-direction:column;
-        align-items:center;
-        cursor:pointer;
-        position:relative;
-      ">
-        <span style="
-          margin-bottom:2px;
-          padding:0 6px;
-          height:${labelH}px;
-          border-radius:999px;
-          background:${bgColor};
-          color:#fff;
-          font-size:${isFocused ? '8px' : '7px'};
-          font-weight:900;
-          line-height:${labelH}px;
-          text-align:center;
-          white-space:nowrap;
-          box-shadow:0 4px 8px -4px rgba(15,23,42,0.4);
-          letter-spacing:${canAdd ? '-0.3px' : '0'};
-        ">${displayLabel}</span>
+      <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};opacity:${opacity};">
         <div style="
-          width:${sz}px;
-          height:${sz}px;
-          border-radius:999px;
-          border:${isFocused ? '3px' : '2px'} solid ${borderColor};
-          background:${bgColor};
-          color:#fff;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          font-size:${canAdd ? (isFocused ? '14px' : '13px') : (isFocused ? '10px' : '9px')};
-          font-weight:900;
-          line-height:1;
-          box-shadow:0 6px 18px -8px rgba(15,23,42,0.55)${isFocused ? ',0 0 0 3px rgba(15,23,42,0.12)' : ''};
-        ">${canAdd ? '+' : shortLabel}</div>
-        <div style="
-          width:0;
-          height:0;
-          border-left:${tailW}px solid transparent;
-          border-right:${tailW}px solid transparent;
-          border-top:${tailH}px solid ${bgColor};
-          filter:drop-shadow(0 2px 3px rgba(15,23,42,0.25));
-          margin-top:-1px;
-        "></div>
+          width:${sz}px;height:${sz}px;border-radius:999px;
+          background:${bgColor};border:${borderStyle};
+          display:flex;align-items:center;justify-content:center;
+        ">
+          <span style="
+            font-size:${canAdd ? (isFocused?'13px':'11px') : (isFocused?'8px':'7px')};
+            font-weight:900;color:#fff;line-height:1;
+          ">${canAdd ? '+' : shortLabel}</span>
+        </div>
+        ${extraTailH > 0 ? `<div style="display:flex;flex-direction:column;align-items:center;margin-top:-1px;">
+          <div style="width:${tailW-1}px;height:${extraTailH}px;background:${bgColor};opacity:0.7;"></div>
+          <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${isFocused?6:5}px solid ${bgColor};opacity:0.7;"></div>
+        </div>` : `<div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${bgColor};opacity:0.7;margin-top:-1px;"></div>`}
       </div>
     `,
-    iconSize: [sz, labelH + 2 + sz + tailH],
-    iconAnchor: [sz / 2, labelH + 2 + sz + tailH],
+    iconSize: [sz, totalH],
+    iconAnchor: [sz / 2, totalH],
   });
 };
 
@@ -3865,7 +3789,7 @@ const App = () => {
     }));
   }, [itinerary.days, itinerary.places]);
   const isMobileLayout = viewportWidth < 1100;
-  const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 310;
+  const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 440;
   const leftExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 220;
   const leftCollapsedWidth = 0;
   const rightCollapsedWidth = 0;
@@ -10914,81 +10838,16 @@ const App = () => {
                         />
                       </div>
                     </div>
-                    {/* 카테고리 필터 태그 */}
-                    <div className="sticky top-0 z-[10] bg-white border-b border-slate-100/80 pb-1.5 pt-1.5 shadow-[0_6px_12px_-8px_rgba(15,23,42,0.12)]">
-                      <div className="flex items-start gap-1">
-                        <div className="flex flex-1 flex-wrap gap-1">
-                          {filterTagOptions.map(t => {
-                            const active = placeFilterTags.includes(t.value);
-                            return (
-                              <button
-                                key={t.value}
-                                onClick={() => setPlaceFilterTags(prev => active ? prev.filter(v => v !== t.value) : [...prev, t.value])}
-                                className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${active ? 'bg-[#3182F6] text-white border-[#3182F6] shadow-sm' : t.isCustom ? 'bg-slate-50 text-slate-600 border-slate-300 hover:border-slate-400' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
-                              >
-                                <span>{t.label}</span>
-                                <span className={`ml-1 px-1 rounded text-[8px] font-black ${active ? 'bg-white/30 text-white' : t.isCustom ? 'bg-white text-slate-500 border border-slate-200' : 'bg-slate-100 text-slate-500'}`}>
-                                  {categoryCounts[t.value] || 0}
-                                </span>
-                              </button>
-                            );
-                          })}
-                          {placeFilterTags.length > 0 && (
-                            <button
-                              onClick={() => setPlaceFilterTags([])}
-                              className="px-2 py-0.5 rounded-lg text-[9px] font-black bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200 transition-all"
-                            >
-                              초기화 ✕
-                            </button>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setShowPlaceCategoryManager((prev) => !prev)}
-                          className={`shrink-0 w-6 h-6 flex items-center justify-center rounded-lg border transition-colors ${showPlaceCategoryManager ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600'}`}
-                          title="카테고리 관리"
-                        >
-                          <SlidersHorizontal size={11} />
-                        </button>
+                    {basePlanRef?.id && (
+                      <div
+                        onClick={() => { setBasePlanRef(null); setLastAction("거리순 정렬을 해제하고 이름순으로 정렬했습니다."); }}
+                        className="mb-1.5 px-2.5 py-1.5 rounded-[12px] border border-blue-100 bg-blue-50/50 text-[10px] font-black text-[#3182F6] flex items-center gap-1.5 cursor-pointer hover:bg-blue-100 transition-colors"
+                      >
+                        <MapPin size={10} className="text-blue-400 shrink-0" />
+                        <span className="truncate flex-1"><span className="text-blue-700">{basePlanRef.name}</span> 기준 거리순</span>
+                        <span className="text-[9px] text-blue-300">✕</span>
                       </div>
-                      {showPlaceCategoryManager && (
-                        <div className="mt-1.5 rounded-[12px] border border-slate-200 bg-white px-2.5 py-2 shadow-sm">
-                          <p className="text-[10px] font-black text-slate-600">카테고리 관리</p>
-                          <p className="mt-0.5 text-[9px] font-bold text-slate-400">직접 추가한 카테고리를 전체 데이터에서 제거합니다.</p>
-                          {customPlaceCategories.length === 0 ? (
-                            <p className="mt-2 text-[10px] font-bold text-slate-400">삭제 가능한 사용자 카테고리가 없습니다.</p>
-                          ) : (
-                            <div className="mt-2 flex flex-wrap gap-1.5">
-                              {customPlaceCategories.map((tag) => (
-                                <button
-                                  key={`manager-${tag}`}
-                                  type="button"
-                                  onClick={() => removeCustomCategoryEverywhere(tag)}
-                                  className="flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-500 transition-colors"
-                                  title={`'${tag}' 카테고리 삭제`}
-                                >
-                                  <span>{getCustomTagLabel(tag)}</span>
-                                  <Trash2 size={10} />
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {basePlanRef?.id && (
-                        <div
-                          onClick={() => {
-                            setBasePlanRef(null);
-                            setLastAction("거리순 정렬을 해제하고 이름순으로 정렬했습니다.");
-                          }}
-                          className="w-full mt-1 px-2.5 py-1.5 rounded-[12px] border border-blue-100 bg-blue-50/50 text-[10px] font-black text-[#3182F6] flex items-center gap-1.5 cursor-pointer hover:bg-blue-100 transition-colors"
-                        >
-                          <MapPin size={10} className="text-blue-400 shrink-0" />
-                          <span className="truncate flex-1"><span className="text-blue-700">{basePlanRef.name}</span> 기준 거리순</span>
-                          <span className="text-[9px] text-blue-300">✕</span>
-                        </div>
-                      )}
-                    </div>
+                    )}
                     {visiblePlaces.length === 0 && !isAddingPlace && (
                       <p className="text-[10px] text-slate-400 text-center py-6 font-semibold leading-relaxed">
                         + 버튼으로 장소를 추가하고<br />타임라인으로 드래그하세요

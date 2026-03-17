@@ -7509,6 +7509,10 @@ const App = () => {
         const prevEntry = getPreviousMainPlanEntryByIndex(days, dayIdx, pIdx);
         if (!prevEntry?.item) continue;
 
+        // 사용자가 직접 보정시간을 설정한 경우 자동 흡수하지 않음
+        if (item._manualBufferTimeOverride != null) continue;
+        if (item.isTimeFixed) continue;
+
         const bufferState = getBufferDisplayState(days, dayIdx, pIdx);
         const transfer = Math.max(0, bufferState.mins - DEFAULT_BUFFER_MINS);
         if (transfer <= 0) continue;
@@ -7521,12 +7525,9 @@ const App = () => {
           changed = true;
         }
 
-        if (!item.isTimeFixed) {
-          item.bufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
-          item._manualBufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
-          item._isBufferCoordinated = false;
-          changed = true;
-        }
+        item.bufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
+        item._isBufferCoordinated = false;
+        changed = true;
       }
     }
     return changed;

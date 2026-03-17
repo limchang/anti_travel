@@ -10343,7 +10343,10 @@ const App = () => {
                                   >
                                     {isLastLodge ? (
                                       <div className="grid w-full min-w-0 grid-cols-[2.45rem_1fr_auto] items-center gap-1.5">
-                                        <span className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6]' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}>{p.time || '--:--'}</span>
+                                        <span
+                                          className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}
+                                          onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
+                                        >{p.time || '--:--'}</span>
                                         <div className="min-w-0 flex items-center gap-1.5 overflow-hidden">
                                           <div className={`shrink-0 scale-[0.88] origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-70'}`}>{getCategoryBadge(navPrimaryType)}</div>
                                           <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-600' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-500'}`}>{p.activity}</span>
@@ -10379,7 +10382,10 @@ const App = () => {
                                       </div>
                                     ) : (
                                       <>
-                                        <span className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6]' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}>{p.time || '--:--'}</span>
+                                        <span
+                                          className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}
+                                          onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
+                                        >{p.time || '--:--'}</span>
                                         <div className="min-w-0 flex items-center gap-1.5 overflow-hidden">
                                           <div className={`shrink-0 scale-[0.88] origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-70'}`}>{getCategoryBadge(navPrimaryType)}</div>
                                           <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-600' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-500'}`}>{p.activity}</span>
@@ -12499,7 +12505,15 @@ const App = () => {
                     <div
                       data-plan-card-shell="true"
                       data-dropitem={`${dIdx}-${pIdx}`}
-                      onClickCapture={() => focusTimelineOnMap(p, d.day)}
+                      onClickCapture={(e) => {
+                        const targetEl = e.target instanceof Element ? e.target : null;
+                        const isInteractive = !!targetEl?.closest('button,input,textarea,a,[contenteditable],[data-no-map-clear="true"]');
+                        if (isMapFocusedTimeline && !isInteractive) {
+                          clearOverviewMapFocus();
+                          return;
+                        }
+                        focusTimelineOnMap(p, d.day);
+                      }}
                       draggable={isEditMode}
                       onTouchStart={(e) => {
                         if (!isEditMode) {

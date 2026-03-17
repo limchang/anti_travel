@@ -10973,6 +10973,14 @@ const App = () => {
                               <Anchor size={9} /><span>{action.id.endsWith('ship-start') ? '출발' : '도착'}</span>
                             </button>
                           ))}
+                          <button
+                            type="button"
+                            onClick={refreshRoutePreviewMap}
+                            disabled={routePreviewManualRefreshing}
+                            className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[9px] font-black transition-all ${routePreviewManualRefreshing ? 'border-blue-200 bg-blue-50 text-blue-300' : 'border-slate-200 bg-white text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+                          >
+                            <RotateCcw size={9} className={routePreviewManualRefreshing ? 'animate-spin' : ''} />
+                          </button>
                         </div>
                       </div>
                       {/* 지도 본체 - 1:1 비율 */}

@@ -2280,7 +2280,7 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
   const shortLabel = String(categoryLabel || '장소').trim().slice(0, 2);
   const bgColor = canAdd ? '#3182F6' : categoryColor;
   const opacity = 1;
-  const sz = canAdd ? (isFocused ? 26 : 22) : (isFocused ? 22 : 18);
+  const sz = canAdd ? (isFocused ? 26 : 22) : (isFocused ? 36 : 28);
   const shadow = canAdd
     ? 'drop-shadow(0 4px 10px rgba(49,130,246,0.5))'
     : isFocused
@@ -2309,7 +2309,7 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
 
   // 내장소: 네모 모양, anchor 중앙 (일정 마커가 위에 있을 때 아래에 표시되도록)
   const borderStyle = isFocused ? `2px solid rgba(255,255,255,0.95)` : `2px solid rgba(255,255,255,0.85)`;
-  const radius = isFocused ? '5px' : '4px';
+  const radius = isFocused ? '10px' : '8px';
   return L.divIcon({
     className: '',
     html: `
@@ -2320,7 +2320,7 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
           display:flex;align-items:center;justify-content:center;
         ">
           <span style="
-            font-size:${isFocused?'8px':'7px'};
+            font-size:${isFocused?'13px':'11px'};
             font-weight:900;color:#fff;line-height:1;
           ">${shortLabel}</span>
         </div>
@@ -6213,8 +6213,8 @@ const App = () => {
       return;
     }
     if (target.kind === 'place') {
-      const place = (itinerary.places || []).find((entry) => entry?.id === target.id);
-      if (place) focusLibraryOnMap(place, { scroll: true });
+      // 내장소 마커 클릭: focusedMapTarget(timeline)을 유지하고 스크롤만
+      document.getElementById(`library-place-${target.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
     if (target.kind === 'recommendation') {
@@ -6223,10 +6223,12 @@ const App = () => {
   }, [findPlanItemContextById, focusLibraryOnMap, focusRecommendationOnMap, focusTimelineOnMap, itinerary.places, getRouteAddress, setBasePlanRef]);
 
   const handleOverviewMapLibraryAddClick = ({ id: placeId }) => {
-    if (!placeId || focusedMapTarget?.kind !== 'timeline') return;
+    if (!placeId) return;
     const place = (itinerary.places || []).find((entry) => entry?.id === placeId);
     if (!place) return;
-    const found = findPlanItemContextById(focusedMapTarget.id);
+    const targetId = focusedMapTarget?.kind === 'timeline' ? focusedMapTarget.id : activeItemId;
+    if (!targetId) return;
+    const found = findPlanItemContextById(targetId);
     if (!found) return;
     // undo 시 place 복원이 되도록: place 제거 전 상태를 snapshot에 저장
     saveHistory();
@@ -10984,11 +10986,6 @@ const App = () => {
                           onLibraryMarkerAddClick={handleOverviewMapLibraryAddClick}
                           onLibraryMarkerFocus={(placeId) => {
                             setFocusedLibraryMarkerId(placeId);
-                            if (placeId) {
-                              setTimeout(() => {
-                                document.getElementById(`library-place-${placeId}`)?.scrollIntoView({ behavior: 'start', block: 'start' });
-                              }, 50);
-                            }
                           }}
                           focusedLibraryMarkerId={focusedLibraryMarkerId}
                           onBackgroundClick={clearOverviewMapFocus}

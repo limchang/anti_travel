@@ -5772,6 +5772,8 @@ const App = () => {
       return undefined;
     }
     routePreviewBuildKeyRef.current = routePreviewBuildSignature;
+    // 이전 결과 초기화 → routePreviewStoredDays(geo 기반 즉시 계산)로 즉시 표시
+    setRoutePreviewDays([]);
 
     const buildRoutePreview = async () => {
       if (!routePreviewPointSource.length) {

@@ -2273,11 +2273,12 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
   });
 };
 
-const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd = false, extraTailH = 0) => {
+const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd = false, extraTailH = 0, timelineFocused = false) => {
   // 내장소 마커: 작고 반투명 — 일정 마커보다 눈에 덜 띄게
+  // timelineFocused=true(경로 포커스 중)일 때는 오히려 더 잘 보이게 opacity 유지
   const shortLabel = String(categoryLabel || '장소').trim().slice(0, 2);
   const bgColor = canAdd ? '#3182F6' : categoryColor;
-  const opacity = canAdd ? 1 : (isFocused ? 0.88 : 0.55);
+  const opacity = canAdd ? 1 : (isFocused ? 0.92 : (timelineFocused ? 0.82 : 0.55));
   const sz = canAdd ? (isFocused ? 26 : 22) : (isFocused ? 22 : 18);
   const tailW = isFocused ? 4 : 3;
   const tailH = (isFocused ? 6 : 5) + extraTailH;
@@ -2877,7 +2878,9 @@ const RoutePreviewCanvas = ({
           ))}
         </Pane>
         <Pane name="overlay-points" style={{ zIndex: 620 }}>
-          {visibleOverlayEntries.map((point) => {
+          {(() => {
+            const timelineFocusActive = focusedTarget?.kind === 'timeline' && focusedTimelinePointIds.length > 0;
+            return visibleOverlayEntries.map((point) => {
             // 두 단계 클릭: place 마커를 누르면 먼저 + 모드로 전환, 다시 누르면 일정 추가
             const isFocusedLibrary = point.kind === 'place' && focusedLibraryMarkerId === point.id;
             const canAdd = interactive && point.kind === 'place' && isFocusedLibrary && typeof onLibraryMarkerAddClick === 'function';
@@ -2887,7 +2890,7 @@ const RoutePreviewCanvas = ({
                 position={point.position}
                 bubblingMouseEvents={false}
                 icon={point.kind === 'place'
-                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', point.isFocused, canAdd)
+                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', point.isFocused, canAdd, 0, timelineFocusActive)
                   : buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
                 eventHandlers={interactive ? {
                   click: () => {
@@ -2909,7 +2912,8 @@ const RoutePreviewCanvas = ({
                 } : undefined}
               />
             );
-          })}
+          });
+          })()}
         </Pane>
       </MapContainer>
       {tileStatus === 'loading' && (

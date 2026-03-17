@@ -2546,31 +2546,77 @@ const LeafletMapBackgroundClickHandler = ({ onBackgroundClick }) => {
   return null;
 };
 
-const LeafletMapContextMenuHandler = () => {
+const LeafletMapContextMenuHandler = ({ onContextMenu }) => {
   useMapEvents({
-    contextmenu: async (e) => {
-      const { lat, lng } = e.latlng;
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`,
-          { headers: { 'Accept-Language': 'ko' } }
-        );
-        const data = await res.json();
-        const addr = data.address || {};
-        // 시/군/구 + 읍/면/동/리 조합
-        const city = addr.city || addr.county || addr.municipality || addr.state || '';
-        const district = addr.borough || addr.suburb || addr.quarter || addr.neighbourhood || addr.town || addr.village || addr.hamlet || addr['ISO3166-2-lvl8'] || '';
-        const locationName = [city, district].filter(Boolean).join(' ');
-        const query = locationName ? `${locationName} 가볼만한 곳` : '가볼만한 곳';
-        window.open(`https://search.naver.com/search.naver?query=${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
-      } catch {
-        // 역지오코딩 실패 시 좌표 기반 네이버 지도로 폴백
-        const zoom = Math.max(14, e.target.getZoom());
-        window.open(`https://map.naver.com/p/entry/coords/${lat},${lng}?c=${lng},${lat},${zoom},0,0,0,dh`, '_blank', 'noopener,noreferrer');
-      }
+    contextmenu: (e) => {
+      const map = e.target;
+      const containerPoint = e.containerPoint;
+      onContextMenu?.({ lat: e.latlng.lat, lng: e.latlng.lng, x: containerPoint.x, y: containerPoint.y, zoom: map.getZoom() });
     },
+    click: () => onContextMenu?.(null),
   });
   return null;
+};
+
+const POPUP_TAG_OPTIONS = TAG_OPTIONS.filter(t => !['new','revisit'].includes(t.value)).concat([{label:'퀵등록',value:'quick'}]);
+
+const LibraryMarkerTypePopover = ({ point, onTypeChange }) => {
+  const [open, setOpen] = React.useState(false);
+  const longPressRef = React.useRef(null);
+  const currentTypes = point.types?.length ? point.types : ['place'];
+  return (
+    <div style={{ display: 'inline-block', marginLeft: '4px', position: 'relative', verticalAlign: 'middle' }}>
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(v => !v); }}
+        style={{ fontSize: '8px', fontWeight: 900, padding: '1px 5px', borderRadius: '4px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', cursor: 'pointer', lineHeight: 1.4 }}
+      >변경</button>
+      {open && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{ position: 'absolute', left: 0, top: '100%', marginTop: '4px', zIndex: 99999, background: '#fff', border: '1px solid #E2E8F0', borderRadius: '10px', boxShadow: '0 8px 24px -8px rgba(15,23,42,0.18)', padding: '6px', display: 'flex', flexWrap: 'wrap', gap: '4px', width: '160px' }}
+        >
+          {POPUP_TAG_OPTIONS.map(t => {
+            const active = currentTypes.includes(t.value);
+            return (
+              <button
+                key={t.value}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  longPressRef._fired = false;
+                  longPressRef.current = setTimeout(() => {
+                    longPressRef._fired = true;
+                    onTypeChange([t.value]);
+                    setOpen(false);
+                  }, 500);
+                }}
+                onMouseUp={() => clearTimeout(longPressRef.current)}
+                onMouseLeave={() => clearTimeout(longPressRef.current)}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                  longPressRef._fired = false;
+                  longPressRef.current = setTimeout(() => {
+                    longPressRef._fired = true;
+                    onTypeChange([t.value]);
+                    setOpen(false);
+                  }, 500);
+                }}
+                onTouchEnd={() => clearTimeout(longPressRef.current)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (longPressRef._fired) return;
+                  const removed = currentTypes.filter(v => v !== t.value);
+                  const next = active ? (removed.length ? removed : currentTypes) : [...currentTypes.filter(v => v !== 'place'), t.value];
+                  onTypeChange(next);
+                }}
+                style={{ padding: '2px 6px', borderRadius: '5px', fontSize: '9px', fontWeight: 900, border: `1px solid ${active ? '#3182F6' : '#E2E8F0'}`, background: active ? '#3182F6' : '#F8FAFC', color: active ? '#fff' : '#64748B', cursor: 'pointer' }}
+              >{t.label}</button>
+            );
+          })}
+          <p style={{ width: '100%', fontSize: '7px', color: '#CBD5E1', fontWeight: 700, marginTop: '2px' }}>길게 누르면 단독 선택</p>
+        </div>
+      )}
+    </div>
+  );
 };
 
 const RoutePreviewCanvas = ({
@@ -2583,6 +2629,7 @@ const RoutePreviewCanvas = ({
   onMarkerClick = null,
   onLibraryMarkerAddClick = null,
   onLibraryMarkerFocus = null,
+  onLibraryMarkerTypeChange = null,
   onBackgroundClick = null,
   interactive = true,
   showTimelineMarkers = true,
@@ -2739,6 +2786,7 @@ const RoutePreviewCanvas = ({
 
   const [tileProviderIndex, setTileProviderIndex] = useState(0);
   const [mapZoom, setMapZoom] = useState(10);
+  const [contextMenuInfo, setContextMenuInfo] = useState(null); // { lat, lng, x, y, zoom, locationName }
 
   // 클러스터 + 방사형 분산 처리 (줌 레벨 기반)
   const [visibleTimelineEntries, visibleOverlayEntries] = useMemo(() => {
@@ -2918,7 +2966,20 @@ const RoutePreviewCanvas = ({
           scopeKey={scopeKey || routeOnlyBoundsSignature}
         />
         <LeafletMapBackgroundClickHandler onBackgroundClick={onBackgroundClick} />
-        <LeafletMapContextMenuHandler />
+        <LeafletMapContextMenuHandler onContextMenu={async (info) => {
+          if (!info) { setContextMenuInfo(null); return; }
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${info.lat}&lon=${info.lng}&format=json&accept-language=ko`, { headers: { 'Accept-Language': 'ko' } });
+            const data = await res.json();
+            const addr = data.address || {};
+            const city = addr.city || addr.county || addr.municipality || addr.state || '';
+            const district = addr.borough || addr.suburb || addr.quarter || addr.neighbourhood || addr.town || addr.village || addr.hamlet || '';
+            const locationName = [city, district].filter(Boolean).join(' ');
+            setContextMenuInfo({ ...info, locationName });
+          } catch {
+            setContextMenuInfo({ ...info, locationName: '' });
+          }
+        }} />
         {(() => {
           const ZoomTracker = () => {
             useMapEvents({ zoomend: (e) => setMapZoom(e.target.getZoom()) });
@@ -3070,9 +3131,22 @@ const RoutePreviewCanvas = ({
                       ) : (
                         // 단일 마커 팝업
                         <div style={{ padding: '8px 10px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                            <div style={{ width: '8px', height: '8px', borderRadius: '3px', background: point.categoryColor || '#2563EB', flexShrink: 0 }} />
-                            <span style={{ fontSize: '9px', fontWeight: 900, color: point.categoryColor || '#2563EB' }}>{point.categoryLabel || '내장소'}</span>
+                          {/* 카테고리 칩 — 클릭 시 팝오버 */}
+                          <div style={{ position: 'relative', marginBottom: '4px' }}>
+                            <div
+                              style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                              onClick={(e) => { e.stopPropagation(); }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '3px', background: point.categoryColor || '#2563EB', flexShrink: 0 }} />
+                              <span style={{ fontSize: '9px', fontWeight: 900, color: point.categoryColor || '#2563EB' }}>{point.categoryLabel || '내장소'}</span>
+                            </div>
+                            {/* 카테고리 변경 팝오버 — onLibraryMarkerTypeChange 있을 때만 */}
+                            {typeof onLibraryMarkerTypeChange === 'function' && (
+                              <LibraryMarkerTypePopover
+                                point={point}
+                                onTypeChange={(nextTypes) => onLibraryMarkerTypeChange(point.id, nextTypes)}
+                              />
+                            )}
                           </div>
                           <div style={{ fontSize: '12px', fontWeight: 900, color: '#1E293B', marginBottom: '3px', wordBreak: 'break-all' }}>{point.label}</div>
                           {point.address && <div style={{ fontSize: '9px', color: '#94A3B8', marginBottom: '6px', wordBreak: 'break-all' }}>{point.address}</div>}
@@ -3104,6 +3178,38 @@ const RoutePreviewCanvas = ({
       <div className="pointer-events-none absolute bottom-2 right-2 rounded-md border border-white/70 bg-white/80 px-1.5 py-0.5 text-[9px] font-black text-slate-500 shadow-sm backdrop-blur-sm">
         z{mapZoom}
       </div>
+      {/* 우클릭 컨텍스트 메뉴 */}
+      {contextMenuInfo && (
+        <div
+          style={{ position: 'absolute', left: contextMenuInfo.x, top: contextMenuInfo.y, zIndex: 99999, pointerEvents: 'auto' }}
+          className="bg-white border border-slate-200 rounded-[12px] shadow-[0_8px_24px_-8px_rgba(15,23,42,0.22)] overflow-hidden min-w-[160px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {contextMenuInfo.locationName && (
+            <div className="px-3 py-1.5 border-b border-slate-100 text-[9px] font-black text-slate-400">{contextMenuInfo.locationName}</div>
+          )}
+          <button
+            className="w-full px-3 py-2 text-left text-[11px] font-black text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+            onClick={() => {
+              const { lat, lng, zoom } = contextMenuInfo;
+              window.open(`https://map.naver.com/p/entry/coords/${lat},${lng}?c=${lng},${lat},${Math.max(14, zoom)},0,0,0,dh`, '_blank', 'noopener,noreferrer');
+              setContextMenuInfo(null);
+            }}
+          >
+            <MapIcon size={11} className="text-[#3182F6] shrink-0" /> 네이버 지도로 열기
+          </button>
+          <button
+            className="w-full px-3 py-2 text-left text-[11px] font-black text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+            onClick={() => {
+              const query = contextMenuInfo.locationName ? `${contextMenuInfo.locationName} 가볼만한 곳` : '가볼만한 곳';
+              window.open(`https://search.naver.com/search.naver?query=${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
+              setContextMenuInfo(null);
+            }}
+          >
+            <Navigation size={11} className="text-emerald-500 shrink-0" /> {contextMenuInfo.locationName ? `${contextMenuInfo.locationName} 가볼만한 곳` : '가볼만한 곳'} 검색
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -6267,6 +6373,7 @@ const App = () => {
           lat: Number(geo.lat),
           lon: Number(geo.lon),
           primaryType,
+          types: place.types || ['place'],
           categoryColor: getMapCategoryColor(primaryType),
           categoryLabel: getMapCategoryLabel(primaryType),
         };
@@ -11171,9 +11278,9 @@ const App = () => {
                     {/* ── 고정 영역: 지도 + 카테고리 필터 ── */}
                     <div className="shrink-0 px-5 pt-0 flex flex-col gap-1.5">
                     {/* 지도 뷰 - 목록 위 고정 */}
-                    <div id="right-panel-map-overview" className="shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-hidden shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2">
+                    <div id="right-panel-map-overview" className="shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-visible shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2">
                       {/* 지도 본체 + 오버레이 버튼 */}
-                      <div style={{ aspectRatio: '1 / 1' }} className="relative">
+                      <div style={{ aspectRatio: '1 / 1' }} className="relative overflow-visible">
                         <RoutePreviewCanvas
                           routePreviewMap={overviewFilteredRoutePreviewMap}
                           libraryPoints={libraryMapPoints}
@@ -11183,6 +11290,10 @@ const App = () => {
                           onLibraryMarkerAddClick={handleOverviewMapLibraryAddClick}
                           onLibraryMarkerFocus={(placeId) => {
                             setFocusedLibraryMarkerId(placeId);
+                          }}
+                          onLibraryMarkerTypeChange={(placeId, nextTypes) => {
+                            const place = (itinerary.places || []).find(p => p?.id === placeId);
+                            if (place) updatePlace(placeId, { ...place, types: nextTypes });
                           }}
                           focusedLibraryMarkerId={focusedLibraryMarkerId}
                           onBackgroundClick={clearOverviewMapFocus}

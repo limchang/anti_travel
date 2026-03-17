@@ -4171,6 +4171,9 @@ const App = () => {
   const [col1Collapsed, setCol1Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
   const [col2Collapsed, setCol2Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));
+  const [leftPanelW, setLeftPanelW] = useState(() => { try { return Number(localStorage.getItem('leftPanelW')) || 280; } catch { return 280; } });
+  const [rightPanelW, setRightPanelW] = useState(() => { try { return Number(localStorage.getItem('rightPanelW')) || 440; } catch { return 440; } });
+  const panelResizingRef = React.useRef(null); // { side: 'left'|'right', startX, startW }
   const [tagEditorTarget, setTagEditorTarget] = useState(null); // {dayIdx, pIdx}
   const [businessEditorTarget, setBusinessEditorTarget] = useState(null); // {dayIdx, pIdx}
   const [viewingPlanIdx, setViewingPlanIdx] = useState({}); // {[itemId]: altIdx} — -1 = main plan A
@@ -4294,8 +4297,8 @@ const App = () => {
     }));
   }, [itinerary.days, itinerary.places]);
   const isMobileLayout = viewportWidth < 1100;
-  const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 440;
-  const leftExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 280;
+  const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : rightPanelW;
+  const leftExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : leftPanelW;
   const leftCollapsedWidth = 0;
   const rightCollapsedWidth = 0;
   const leftSidebarWidth = isMobileLayout ? (col1Collapsed ? leftCollapsedWidth : leftExpandedWidth) : leftExpandedWidth;
@@ -4330,6 +4333,36 @@ const App = () => {
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // 패널 너비 드래그 리사이즈
+  useEffect(() => {
+    const onMove = (e) => {
+      const state = panelResizingRef.current;
+      if (!state) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const delta = clientX - state.startX;
+      if (state.side === 'left') {
+        const next = Math.min(520, Math.max(200, state.startW + delta));
+        setLeftPanelW(next);
+        try { localStorage.setItem('leftPanelW', String(next)); } catch { /* noop */ }
+      } else {
+        const next = Math.min(640, Math.max(280, state.startW - delta));
+        setRightPanelW(next);
+        try { localStorage.setItem('rightPanelW', String(next)); } catch { /* noop */ }
+      }
+    };
+    const onUp = () => { panelResizingRef.current = null; document.body.style.cursor = ''; document.body.style.userSelect = ''; };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: true });
+    window.addEventListener('touchend', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+    };
   }, []);
 
   useEffect(() => {
@@ -10827,9 +10860,18 @@ const App = () => {
 
       {/* ── Col1: 예산 + 일정 네비게이션 ── */}
       <div
-        className="flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] z-[220] shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-visible"
-        style={{ width: leftSidebarWidth }}
+        className="flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] z-[220] shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-visible"
+        style={{ width: leftSidebarWidth, transition: panelResizingRef.current?.side === 'left' ? 'none' : 'width 0.3s' }}
       >
+        {/* 좌측 패널 너비 조절 핸들 */}
+        {!isMobileLayout && (
+          <div
+            className="absolute top-0 right-0 w-1 h-full cursor-col-resize z-10 group"
+            onMouseDown={(e) => { e.preventDefault(); panelResizingRef.current = { side: 'left', startX: e.clientX, startW: leftPanelW }; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none'; }}
+          >
+            <div className="absolute inset-y-0 right-0 w-1 bg-transparent group-hover:bg-[#3182F6]/30 transition-colors" />
+          </div>
+        )}
         {isMobileLayout && col1Collapsed ? (
           <div className="flex-1 flex items-center justify-center">
             <MapIcon size={14} className="text-slate-300" />
@@ -11333,9 +11375,18 @@ const App = () => {
       </div>
 
       <div
-        className="flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[220] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-visible"
-        style={{ right: 0, width: rightSidebarWidth }}
+        className="flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[220] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] overflow-visible"
+        style={{ right: 0, width: rightSidebarWidth, transition: panelResizingRef.current?.side === 'right' ? 'none' : 'width 0.3s' }}
       >
+        {/* 우측 패널 너비 조절 핸들 */}
+        {!isMobileLayout && (
+          <div
+            className="absolute top-0 left-0 w-1 h-full cursor-col-resize z-10 group"
+            onMouseDown={(e) => { e.preventDefault(); panelResizingRef.current = { side: 'right', startX: e.clientX, startW: rightPanelW }; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none'; }}
+          >
+            <div className="absolute inset-y-0 left-0 w-1 bg-transparent group-hover:bg-[#3182F6]/30 transition-colors" />
+          </div>
+        )}
         {isMobileLayout && col2Collapsed ? (
           <div className="flex-1 flex flex-col items-center justify-center">
             <Package size={14} className="text-slate-300" />

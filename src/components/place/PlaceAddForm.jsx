@@ -45,6 +45,7 @@ export const PlaceAddForm = ({
   parseNaverMapText,
   isAiSmartFillSource,
   getSmartFillErrorMessage,
+  autoRunSuperFill = false,
 }) => {
   const [draft, setDraft] = React.useState(() => createPlaceEditorDraft({
     name: newPlaceName,
@@ -54,6 +55,7 @@ export const PlaceAddForm = ({
   }));
   const [addressSearchNote, setAddressSearchNote] = React.useState('');
   const lastScrapedUrlRef = React.useRef('');
+  const superFillCalledRef = React.useRef(false);
 
   React.useEffect(() => {
     setDraft((current) => createPlaceEditorDraft({
@@ -62,6 +64,46 @@ export const PlaceAddForm = ({
       types: Array.isArray(newPlaceTypes) && newPlaceTypes.length ? newPlaceTypes : current.types,
     }));
   }, [newPlaceName, newPlaceTypes, createPlaceEditorDraft]);
+
+  const runSuperFill = React.useCallback(async (currentDraft) => {
+    try {
+      const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled, aiSettings });
+      const parsed = result?.parsed;
+      if (parsed) {
+        const nextName = parsed.name || currentDraft.name;
+        let nextAddress = parsed.address || currentDraft.address;
+        if (!nextAddress && nextName) {
+          const searchRes = await searchAddressFromPlaceName(nextName, regionHint);
+          if (searchRes?.address) nextAddress = searchRes.address;
+        }
+        setDraft((current) => createPlaceEditorDraft(current, {
+          name: nextName,
+          address: nextAddress,
+          business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
+          receipt: {
+            ...current.receipt,
+            items: parsed.menus?.length ? buildSmartFillMenuItems(parsed.menus) : current.receipt.items,
+          },
+        }));
+        if (nextName) setNewPlaceName(nextName);
+        onNotify?.(isAiSmartFillSource(result?.source)
+          ? `AI가${result?.usedImage ? ' 이미지와 ' : ' '}모든 정보를 분석해 입력했습니다.`
+          : '모든 정보를 스마트 입력했습니다.');
+        setAiLearningCapture?.({ itemId: 'new', rawSource: result?.rawPayload?.text || '', aiResult: parsed, inputType: result?.usedImage ? 'image' : 'text' });
+      } else {
+        onNotify?.(aiEnabled ? 'AI가 정보를 찾지 못했습니다.' : '정보를 찾지 못했습니다.');
+      }
+    } catch (error) {
+      onNotify?.(getSmartFillErrorMessage(error, aiEnabled));
+    }
+  }, [aiEnabled, aiSettings, analyzeClipboardSmartFill, createPlaceEditorDraft, getSmartFillErrorMessage, isAiSmartFillSource, normalizeBusiness, onNotify, regionHint, searchAddressFromPlaceName, setAiLearningCapture, setNewPlaceName]);
+
+  React.useEffect(() => {
+    if (autoRunSuperFill && !superFillCalledRef.current) {
+      superFillCalledRef.current = true;
+      void runSuperFill(draft);
+    }
+  }, [autoRunSuperFill]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAdd = () => {
     const safeDraft = createPlaceEditorDraft(draft);
@@ -266,49 +308,7 @@ export const PlaceAddForm = ({
             }
           }
         }}
-        onSuperSmartPaste={async () => {
-          try {
-            const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled, aiSettings });
-            const parsed = result?.parsed;
-            if (parsed) {
-              const nextName = parsed.name || draft.name;
-              let nextAddress = parsed.address || draft.address;
-
-              if (!nextAddress && nextName) {
-                const searchRes = await searchAddressFromPlaceName(nextName, regionHint);
-                if (searchRes?.address) nextAddress = searchRes.address;
-              }
-
-              setDraft((current) => createPlaceEditorDraft(current, {
-                name: nextName,
-                address: nextAddress,
-                business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
-                receipt: {
-                  ...current.receipt,
-                  items: parsed.menus?.length
-                    ? buildSmartFillMenuItems(parsed.menus)
-                    : current.receipt.items,
-                },
-              }));
-              if (nextName) setNewPlaceName(nextName);
-
-              onNotify?.(isAiSmartFillSource(result?.source)
-                ? `AI가${result?.usedImage ? ' 이미지와 ' : ' '}모든 정보를 분석해 입력했습니다.`
-                : '모든 정보를 스마트 입력했습니다.');
-
-              setAiLearningCapture?.({
-                itemId: 'new',
-                rawSource: result?.rawPayload?.text || (result?.usedImage ? '[Image Data]' : ''),
-                aiResult: parsed,
-                inputType: result?.usedImage ? 'image' : 'text',
-              });
-            } else {
-              onNotify?.(aiEnabled ? 'AI가 정보를 찾지 못했습니다.' : '정보를 찾지 못했습니다.');
-            }
-          } catch (error) {
-            onNotify?.(getSmartFillErrorMessage(error, aiEnabled));
-          }
-        }}
+        onSuperSmartPaste={() => runSuperFill(draft)}
         onSmartPasteAddress={async () => {
           try {
             const result = await analyzeClipboardSmartFill({ mode: 'address', aiEnabled, aiSettings });

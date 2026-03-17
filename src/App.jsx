@@ -2713,40 +2713,51 @@ const RoutePreviewCanvas = ({
   const visibleSegmentEntries = showRouteLines ? segmentEntries : [];
   const rawVisibleOverlayEntries = showOverlayMarkers ? overlayEntries : [];
 
-  // 클러스터 + 방사형 분산 처리
+  const [tileProviderIndex, setTileProviderIndex] = useState(0);
+  const [mapZoom, setMapZoom] = useState(10);
+
+  // 클러스터 + 방사형 분산 처리 (줌 레벨 기반)
   const [visibleTimelineEntries, visibleOverlayEntries] = useMemo(() => {
     const OFFSET_DEG = 0.00018; // 약 20m
-    const CLUSTER_DEG = 0.00012; // 클러스터 묶음 반경 (~13m)
     const posKey = (pos) => `${Number(pos[0]).toFixed(5)}:${Number(pos[1]).toFixed(5)}`;
 
-    // 1) 내장소(place) 마커끼리 근접 클러스터링 (같은 posKey 기준)
-    const placeGroups = new Map();
-    rawVisibleOverlayEntries.forEach((e) => {
-      if (e.kind !== 'place') return;
-      const k = posKey(e.position);
-      if (!placeGroups.has(k)) placeGroups.set(k, []);
-      placeGroups.get(k).push(e);
-    });
+    // 줌 레벨에 따른 클러스터 반경 계산 (픽셀 40px 기준 → 도 단위 변환)
+    // 위도 1도 ≈ 111km, 줌 z에서 1픽셀 ≈ 156543 * cos(lat) / 2^z 미터
+    const metersPerPixel = 156543 / Math.pow(2, mapZoom);
+    const clusterRadiusDeg = (metersPerPixel * 40) / 111320; // 40px 반경
 
-    // 클러스터 마커 목록 (3개 이상이면 하나로 묶음, 2개는 방사형으로)
-    const clusteredOverlayEntries = [];
+    // 1) 내장소(place) 마커끼리 근접 클러스터링 (줌 기반 반경)
+    const placeEntries = rawVisibleOverlayEntries.filter((e) => e.kind === 'place');
     const clusteredPlaceIds = new Set();
-    placeGroups.forEach((entries) => {
-      if (entries.length >= 3) {
-        // 클러스터: 대표 마커 하나로 합치기
-        const rep = entries[0];
+    const clusteredOverlayEntries = [];
+
+    for (let i = 0; i < placeEntries.length; i++) {
+      if (clusteredPlaceIds.has(placeEntries[i].id)) continue;
+      const group = [placeEntries[i]];
+      for (let j = i + 1; j < placeEntries.length; j++) {
+        if (clusteredPlaceIds.has(placeEntries[j].id)) continue;
+        const dLat = placeEntries[i].position[0] - placeEntries[j].position[0];
+        const dLon = placeEntries[i].position[1] - placeEntries[j].position[1];
+        const dist = Math.sqrt(dLat * dLat + dLon * dLon);
+        if (dist <= clusterRadiusDeg) group.push(placeEntries[j]);
+      }
+      if (group.length >= 2) {
+        // 중심점 계산
+        const avgLat = group.reduce((s, e) => s + e.position[0], 0) / group.length;
+        const avgLon = group.reduce((s, e) => s + e.position[1], 0) / group.length;
+        const rep = group[0];
         clusteredOverlayEntries.push({
           ...rep,
-          _clusterCount: entries.length,
-          _clusterIds: entries.map((e) => e.id),
-          _clusterItems: entries,
+          position: [avgLat, avgLon],
+          _clusterCount: group.length,
+          _clusterIds: group.map((e) => e.id),
+          _clusterItems: group,
         });
-        entries.forEach((e) => clusteredPlaceIds.add(e.id));
+        group.forEach((e) => clusteredPlaceIds.add(e.id));
       }
-      // 2개 이하는 그대로 통과 (방사형 처리)
-    });
+    }
 
-    // 클러스터에 포함되지 않은 overlay 엔트리
+    // 클러스터에 포함되지 않은 overlay 엔트리 (단독 내장소 + 추천 등)
     const remainingOverlay = rawVisibleOverlayEntries.filter((e) => !clusteredPlaceIds.has(e.id));
     const processedOverlay = [...remainingOverlay, ...clusteredOverlayEntries];
 
@@ -2782,7 +2793,7 @@ const RoutePreviewCanvas = ({
     const tl = applyOffset(rawVisibleTimelineEntries.map((e) => ({ ...e, _layer: 'timeline' })), 'timeline');
     const ov = applyOffset(processedOverlay.map((e) => ({ ...e, _layer: 'overlay' })), 'overlay');
     return [tl, ov];
-  }, [rawVisibleTimelineEntries, rawVisibleOverlayEntries]);
+  }, [rawVisibleTimelineEntries, rawVisibleOverlayEntries, mapZoom]);
   const renderableTimelinePointCount = visibleTimelineEntries.length;
   const renderableSegmentCount = visibleSegmentEntries.length;
   const renderableOverlayCount = visibleOverlayEntries.length;
@@ -2799,8 +2810,6 @@ const RoutePreviewCanvas = ({
     ];
     return pts.map((p) => `${p[0].toFixed(5)}:${p[1].toFixed(5)}`).join('|');
   }, [segmentEntries, showRouteLines, showTimelineMarkers, timelineEntries]);
-  const [tileProviderIndex, setTileProviderIndex] = useState(0);
-  const [mapZoom, setMapZoom] = useState(10);
   const [tileStatus, setTileStatus] = useState(() => (hasRenderableData ? 'loading' : 'idle'));
   const tileFailureCountRef = useRef(0);
 
@@ -3443,12 +3452,15 @@ const App = () => {
   const desktopDragRef = useRef(null);
   const ctrlHeldRef = useRef(false);
   const [isAddingPlace, setIsAddingPlace] = useState(false);
+  const [isAddingPlaceAutoFill, setIsAddingPlaceAutoFill] = useState(false);
+  const addPlaceLongPressTimerRef = React.useRef(null);
   const [newPlaceName, setNewPlaceName] = useState('');
   const [newPlaceTypes, setNewPlaceTypes] = useState(['food']);
   const resetNewPlaceDraft = useCallback(() => {
     setNewPlaceName('');
     setNewPlaceTypes(['food']);
     setIsAddingPlace(false);
+    setIsAddingPlaceAutoFill(false);
   }, []);
   const [editingPlaceId, setEditingPlaceId] = useState(null);
   const [editPlaceDraft, setEditPlaceDraft] = useState(null);
@@ -10327,7 +10339,7 @@ const App = () => {
       {isAddingPlace && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={resetNewPlaceDraft}>
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-          <div className="relative px-3" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full flex justify-center px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceAddForm
               newPlaceName={newPlaceName}
               setNewPlaceName={setNewPlaceName}
@@ -10360,6 +10372,7 @@ const App = () => {
               parseNaverMapText={parseNaverMapText}
               isAiSmartFillSource={isAiSmartFillSource}
               getSmartFillErrorMessage={getSmartFillErrorMessage}
+              autoRunSuperFill={isAddingPlaceAutoFill}
             />
           </div>
         </div>
@@ -10970,9 +10983,25 @@ const App = () => {
                 <button
                   onClick={() => {
                     if (isAddingPlace) resetNewPlaceDraft();
-                    else setIsAddingPlace(true);
+                    else { setIsAddingPlaceAutoFill(false); setIsAddingPlace(true); }
                   }}
+                  onMouseDown={() => {
+                    addPlaceLongPressTimerRef.current = setTimeout(() => {
+                      setIsAddingPlaceAutoFill(true);
+                      setIsAddingPlace(true);
+                    }, 500);
+                  }}
+                  onMouseUp={() => clearTimeout(addPlaceLongPressTimerRef.current)}
+                  onMouseLeave={() => clearTimeout(addPlaceLongPressTimerRef.current)}
+                  onTouchStart={() => {
+                    addPlaceLongPressTimerRef.current = setTimeout(() => {
+                      setIsAddingPlaceAutoFill(true);
+                      setIsAddingPlace(true);
+                    }, 500);
+                  }}
+                  onTouchEnd={() => clearTimeout(addPlaceLongPressTimerRef.current)}
                   className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] transition-colors shrink-0"
+                  title="길게 누르면 ⚡ 슈퍼 자동채우기"
                 >
                   <Plus size={11} />
                 </button>

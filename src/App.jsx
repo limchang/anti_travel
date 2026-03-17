@@ -5853,7 +5853,7 @@ const App = () => {
         .filter((place) => {
           if (!placeFilterTags.length) return true;
           const placeTags = Array.isArray(place?.types) ? place.types : [];
-          return placeFilterTags.some((tag) => placeTags.includes(tag));
+          return !placeFilterTags.some((tag) => placeTags.includes(tag));
         })
         .map((place) => ({
           id: String(place?.id || '').trim(),
@@ -6030,7 +6030,7 @@ const App = () => {
         if (isLodgeStay(place?.types) && lodgesWithActiveSegments.has(String(place?.id || ''))) return false;
         if (!placeFilterTags.length) return true;
         const placeTags = Array.isArray(place?.types) ? place.types : [];
-        return placeFilterTags.some((tag) => placeTags.includes(tag));
+        return !placeFilterTags.some((tag) => placeTags.includes(tag));
       })
       .map((place) => {
         const address = String(place?.address || place?.receipt?.address || '').trim();
@@ -10775,7 +10775,7 @@ const App = () => {
                 if (placeFilterTags.length > 0) {
                   visiblePlaces = visiblePlaces.filter(p => {
                     const pTags = p.types || [];
-                    return placeFilterTags.some(ft => pTags.includes(ft));
+                    return !placeFilterTags.some(ft => pTags.includes(ft));
                   });
                 }
                 const categoryCounts = (distanceSortedPlaces || []).reduce((acc, place) => {
@@ -10911,15 +10911,15 @@ const App = () => {
                           className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${placeFilterTags.length === 0 ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
                         >전체</button>
                         {filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0).map(t => {
-                          const active = placeFilterTags.includes(t.value);
+                          const excluded = placeFilterTags.includes(t.value);
                           return (
                             <button
                               key={t.value}
-                              onClick={() => setPlaceFilterTags(prev => active ? prev.filter(v => v !== t.value) : [...prev, t.value])}
-                              className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${active ? 'bg-[#3182F6] text-white border-[#3182F6]' : t.isCustom ? 'bg-slate-50 text-slate-600 border-slate-300' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
+                              onClick={() => setPlaceFilterTags(prev => excluded ? prev.filter(v => v !== t.value) : [...prev, t.value])}
+                              className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${excluded ? 'bg-slate-100 text-slate-300 border-slate-200 line-through' : t.isCustom ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-[#3182F6] text-white border-[#3182F6]'}`}
                             >
                               {t.label}
-                              <span className={`ml-1 px-0.5 rounded text-[8px] font-black ${active ? 'text-white/80' : 'text-slate-400'}`}>{categoryCounts[t.value]}</span>
+                              <span className={`ml-1 px-0.5 rounded text-[8px] font-black ${excluded ? 'text-slate-300' : 'text-white/80'}`}>{categoryCounts[t.value]}</span>
                             </button>
                           );
                         })}
@@ -12272,7 +12272,7 @@ const App = () => {
                       const isAll = opt.value === null;
                       const isActive = isAll
                         ? (showOverviewLibraryPoints && placeFilterTags.length === 0)
-                        : (showOverviewLibraryPoints && placeFilterTags.includes(opt.value));
+                        : (showOverviewLibraryPoints && !placeFilterTags.includes(opt.value));
                       return (
                         <button
                           key={opt.value ?? 'all'}

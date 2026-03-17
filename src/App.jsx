@@ -1893,10 +1893,15 @@ const TimeWheelColumn = ({
     const targetTop = currentIndex * TIME_WHEEL_ITEM_HEIGHT;
     if (Math.abs(list.scrollTop - targetTop) < 2) return;
     isProgrammaticRef.current = true;
+    // settle 타이머가 있으면 취소 — 프로그래매틱 스크롤 후 onChange 오발 방지
+    if (settleTimerRef.current) {
+      clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = null;
+    }
     list.scrollTop = targetTop;
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       isProgrammaticRef.current = false;
-    });
+    }, 150);
   }, [cyclic, value, values]);
 
   React.useEffect(() => () => {
@@ -7590,9 +7595,10 @@ const App = () => {
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
       item.time = normalized;
-      item.isTimeFixed = true;
+      // keepLockState: TimeWheel 자동 settle 시 잠금 상태를 강제 변경하지 않음
+      if (!options?.keepLockState) item.isTimeFixed = true;
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
-      syncBufferWithFixedStart(nextData.days, dayIdx, pIdx);
+      if (item.isTimeFixed) syncBufferWithFixedStart(nextData.days, dayIdx, pIdx);
       recalculateLodgeDurations(nextData.days);
       return nextData;
     });
@@ -13192,7 +13198,7 @@ const App = () => {
                                                   values={Array.from({ length: 24 }, (_, idx) => idx)}
                                                   onInteract={bumpTimeControllerAutoClose}
                                                   onDragStateChange={setIsTimeWheelDragging}
-                                                  onChange={(nextHour) => setStartTimeValue(dIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentStartMinute)), { skipHistory: true })}
+                                                  onChange={(nextHour) => setStartTimeValue(dIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentStartMinute)), { skipHistory: true, keepLockState: true })}
                                                   accentClass="text-slate-800"
                                                 />
                                                 <TimeWheelColumn
@@ -13205,7 +13211,7 @@ const App = () => {
                                                   onDragStateChange={setIsTimeWheelDragging}
                                                   onChange={(nextMinute) => {
                                                     const wrapped = buildWrappedTotalMinutes(currentStartHour, currentStartMinute, nextMinute);
-                                                    setStartTimeValue(dIdx, pIdx, minutesToTime(normalizeDayMinute(wrapped)), { skipHistory: true });
+                                                    setStartTimeValue(dIdx, pIdx, minutesToTime(normalizeDayMinute(wrapped)), { skipHistory: true, keepLockState: true });
                                                   }}
                                                   accentClass="text-slate-800"
                                                 />

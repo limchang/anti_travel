@@ -15,7 +15,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw, AlignLeft
+  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw, AlignLeft, Zap
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -144,6 +144,7 @@ const TAG_OPTIONS = [
   { label: '체험', value: 'experience' },
   { label: '기념품샵', value: 'souvenir' },
   { label: '장소', value: 'place' },
+  { label: '퀵등록', value: 'quick' },
   { label: '신규', value: 'new' },
   { label: '재방문', value: 'revisit' },
 ];
@@ -777,7 +778,7 @@ const normalizeSmartFillResult = (raw = {}) => {
       .filter((item) => item.name)
     : [];
 
-  const VALID_TYPES = new Set(['food','cafe','tour','lodge','stay','ship','rest','pickup','openrun','view','experience','souvenir','place']);
+  const VALID_TYPES = new Set(['food','cafe','tour','lodge','stay','ship','rest','pickup','openrun','view','experience','souvenir','place','quick']);
   const types = Array.isArray(raw?.types)
     ? raw.types.map((t) => String(t || '').trim().toLowerCase()).filter((t) => VALID_TYPES.has(t))
     : [];
@@ -3474,6 +3475,7 @@ const App = () => {
   const [isAddingPlace, setIsAddingPlace] = useState(false);
   const [isAddingPlaceAutoFill, setIsAddingPlaceAutoFill] = useState(false);
   const addPlaceLongPressTimerRef = React.useRef(null);
+  const [placeTypesPopoverId, setPlaceTypesPopoverId] = useState(null); // 카테고리 팝오버 열린 place id
   const [newPlaceName, setNewPlaceName] = useState('');
   const [newPlaceTypes, setNewPlaceTypes] = useState(['food']);
   const resetNewPlaceDraft = useCallback(() => {
@@ -8832,6 +8834,7 @@ const App = () => {
       case 'experience': return <div key={type} className={`${style} text-emerald-600 bg-emerald-50 border-emerald-100`}><Star size={10} /> 체험</div>;
       case 'souvenir': return <div key={type} className={`${style} text-teal-600 bg-teal-50 border-teal-100`}><Gift size={10} /> 기념품샵</div>;
       case 'pickup': return <div key={type} className={`${style} text-orange-500 bg-orange-50 border-orange-100`}><Package size={10} /> 픽업</div>;
+      case 'quick': return <div key={type} className={`${style} text-yellow-600 bg-yellow-50 border-yellow-200`}><Zap size={10} /> 퀵등록</div>;
       case 'new': return <span key="new" className={style + ' text-emerald-600 bg-emerald-50 border-emerald-200'}>신규</span>;
       case 'revisit': return <span key="revisit" className={style + ' text-blue-600 bg-blue-50 border-blue-200'}>재방문</span>;
       case 'place': return <div key={type} className={`${style} text-slate-500 bg-slate-100 border-slate-200`}><MapIcon size={10} /> 장소</div>;
@@ -11024,7 +11027,7 @@ const App = () => {
                           }
                           addPlace({
                             name: parsed.name,
-                            types: parsed.types?.length ? parsed.types : ['place'],
+                            types: ['quick', ...(parsed.types?.length ? parsed.types.filter(t => t !== 'place') : [])],
                             menus: parsed.menus?.length ? parsed.menus : [],
                             address,
                             memo: '',
@@ -11061,7 +11064,7 @@ const App = () => {
                           }
                           addPlace({
                             name: parsed.name,
-                            types: parsed.types?.length ? parsed.types : ['place'],
+                            types: ['quick', ...(parsed.types?.length ? parsed.types.filter(t => t !== 'place') : [])],
                             menus: parsed.menus?.length ? parsed.menus : [],
                             address,
                             memo: '',
@@ -11156,6 +11159,7 @@ const App = () => {
                         return;
                       }
                       clearOverviewMapFocus();
+                      setPlaceTypesPopoverId(null);
                     }}
                   >
                     {/* ── 고정 영역: 지도 + 카테고리 필터 ── */}
@@ -11261,6 +11265,7 @@ const App = () => {
                             experience: 'bg-emerald-500 border-emerald-500 text-white',
                             souvenir: 'bg-teal-500 border-teal-500 text-white',
                             pickup: 'bg-orange-500 border-orange-500 text-white',
+                            quick: 'bg-yellow-500 border-yellow-500 text-white',
                           }[t.value] || 'bg-[#3182F6] border-[#3182F6] text-white';
                           return (
                             <button
@@ -11344,7 +11349,41 @@ const App = () => {
                     )}
                     <div className="grid grid-cols-2 gap-2.5">
                     {visiblePlaces.filter(place => place && (place.id || place.name)).map(place => {
-                      const chips = place.types ? place.types.map(t => getCategoryBadge(t)) : [getCategoryBadge('place')];
+                      const isTypePopoverOpen = placeTypesPopoverId === place.id;
+                      const currentTypes = place.types?.length ? place.types : ['place'];
+                      const chips = (
+                        <div className="relative" data-no-drag="true" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            className="flex items-center gap-1 flex-wrap"
+                            onClick={(e) => { e.stopPropagation(); setPlaceTypesPopoverId(isTypePopoverOpen ? null : place.id); }}
+                            title="카테고리 변경"
+                          >
+                            {currentTypes.map(t => getCategoryBadge(t))}
+                          </button>
+                          {isTypePopoverOpen && (
+                            <div className="absolute left-0 top-full mt-1 z-[9999] bg-white border border-slate-200 rounded-[14px] shadow-[0_8px_24px_-8px_rgba(15,23,42,0.2)] p-2 flex flex-wrap gap-1 w-48">
+                              {TAG_OPTIONS.filter(t => !['new','revisit'].includes(t.value)).concat([{label:'퀵등록',value:'quick'}]).map(t => {
+                                const active = currentTypes.includes(t.value);
+                                return (
+                                  <button
+                                    key={t.value}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const next = active
+                                        ? currentTypes.filter(v => v !== t.value).length ? currentTypes.filter(v => v !== t.value) : currentTypes
+                                        : [...currentTypes.filter(v => v !== 'place'), t.value];
+                                      updatePlace(place.id, { ...place, types: next });
+                                    }}
+                                    className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${active ? 'bg-[#3182F6] border-[#3182F6] text-white' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+                                  >{t.label}</button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
                       const isPlaceExpanded = expandedPlaceId === place.id;
                       const isMobilePlaceSelected = isMobileLayout && mobileSelectedLibraryPlace?.id === place.id;
                       const isMapFocusedPlace = focusedMapTarget?.kind === 'place' && focusedMapTarget.id === place.id;

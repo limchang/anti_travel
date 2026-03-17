@@ -76,9 +76,11 @@ export const PlaceAddForm = ({
           const searchRes = await searchAddressFromPlaceName(nextName, regionHint);
           if (searchRes?.address) nextAddress = searchRes.address;
         }
+        const nextTypes = parsed.types?.length ? parsed.types : null;
         setDraft((current) => createPlaceEditorDraft(current, {
           name: nextName,
           address: nextAddress,
+          types: nextTypes || current.types,
           business: parsed.business ? normalizeBusiness(parsed.business) : current.business,
           receipt: {
             ...current.receipt,
@@ -86,6 +88,7 @@ export const PlaceAddForm = ({
           },
         }));
         if (nextName) setNewPlaceName(nextName);
+        if (nextTypes) setNewPlaceTypes(nextTypes);
         onNotify?.(isAiSmartFillSource(result?.source)
           ? `AI가${result?.usedImage ? ' 이미지와 ' : ' '}모든 정보를 분석해 입력했습니다.`
           : '모든 정보를 스마트 입력했습니다.');
@@ -96,7 +99,7 @@ export const PlaceAddForm = ({
     } catch (error) {
       onNotify?.(getSmartFillErrorMessage(error, aiEnabled));
     }
-  }, [aiEnabled, aiSettings, analyzeClipboardSmartFill, createPlaceEditorDraft, getSmartFillErrorMessage, isAiSmartFillSource, normalizeBusiness, onNotify, regionHint, searchAddressFromPlaceName, setAiLearningCapture, setNewPlaceName]);
+  }, [aiEnabled, aiSettings, analyzeClipboardSmartFill, createPlaceEditorDraft, getSmartFillErrorMessage, isAiSmartFillSource, normalizeBusiness, onNotify, regionHint, searchAddressFromPlaceName, setAiLearningCapture, setNewPlaceName, setNewPlaceTypes]);
 
   React.useEffect(() => {
     if (autoRunSuperFill && !superFillCalledRef.current) {

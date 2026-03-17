@@ -777,11 +777,17 @@ const normalizeSmartFillResult = (raw = {}) => {
       .filter((item) => item.name)
     : [];
 
+  const VALID_TYPES = new Set(['food','cafe','tour','lodge','stay','ship','rest','pickup','openrun','view','experience','souvenir','place']);
+  const types = Array.isArray(raw?.types)
+    ? raw.types.map((t) => String(t || '').trim().toLowerCase()).filter((t) => VALID_TYPES.has(t))
+    : [];
+
   return {
     name: String(raw?.name || '').trim(),
     address: String(raw?.address || '').trim(),
     business: raw?.business ? normalizeBusiness(raw.business) : null,
     menus,
+    types,
   };
 };
 
@@ -1120,7 +1126,8 @@ const runGroqSmartFill = async ({
         'You extract Korean place information for a travel planner.',
         'Return strict JSON only.',
         `Current extraction mode: ${mode}.`,
-        'Schema: {"name":"","address":"","business":{"open":"","close":"","breakStart":"","breakEnd":"","lastOrder":"","entryClose":"","closedDays":[]},"menus":[{"name":"","price":0}]}',
+        'Schema: {"name":"","address":"","types":[],"business":{"open":"","close":"","breakStart":"","breakEnd":"","lastOrder":"","entryClose":"","closedDays":[]},"menus":[{"name":"","price":0}]}',
+        'For the "types" field, infer the category from context and use one or more of these values: food, cafe, tour, lodge, stay, ship, rest, pickup, openrun, view, experience, souvenir, place. Examples: restaurant→["food"], coffee shop→["cafe"], attraction→["tour"], hotel→["lodge","stay"], scenic viewpoint→["tour","view"].',
         'For menu extraction, if OCR or copied text shows "0원", do not assume the menu is free.',
         'When a menu name appears right before "0원", keep that menu in the result and infer the most plausible non-zero price from nearby context when possible.',
         'If the exact non-zero price cannot be recovered, still keep the menu name with price 0 instead of dropping the menu.',

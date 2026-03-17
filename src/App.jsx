@@ -1849,6 +1849,75 @@ const formatPushTimestampLabel = (timestamp) => {
 };
 const ROUTE_PREVIEW_ENABLED = true;
 const ROUTE_PREVIEW_COLORS = ['#34C759', '#FF8A3D', '#8B5CF6', '#3182F6', '#EF4444', '#14B8A6'];
+
+// 국내 주요 카페리 항로 waypoint 정의 (출발/도착 도시 키워드 → 경유 좌표 목록)
+// 각 항로는 양방향 지원 (from/to 순서 무관하게 매칭)
+const FERRY_ROUTES = [
+  {
+    keywords: [['목포', 'mokpo'], ['제주', 'jeju']],
+    // 목포항 → 제주항 서해안 항로
+    waypoints: [
+      { lat: 34.7879, lon: 126.3816 }, // 목포항
+      { lat: 34.4200, lon: 126.3200 }, // 목포 남서방
+      { lat: 34.0500, lon: 126.1800 }, // 서해 중간
+      { lat: 33.7500, lon: 126.3000 }, // 제주 북서
+      { lat: 33.5179, lon: 126.5269 }, // 제주항
+    ],
+  },
+  {
+    keywords: [['완도', 'wando'], ['제주', 'jeju']],
+    waypoints: [
+      { lat: 34.3100, lon: 126.7550 }, // 완도항
+      { lat: 34.0500, lon: 126.7000 },
+      { lat: 33.7000, lon: 126.6500 },
+      { lat: 33.5179, lon: 126.5269 }, // 제주항
+    ],
+  },
+  {
+    keywords: [['녹동', '고흥'], ['제주', 'jeju']],
+    waypoints: [
+      { lat: 34.4600, lon: 127.1400 }, // 녹동항
+      { lat: 34.1000, lon: 127.0000 },
+      { lat: 33.7000, lon: 126.8000 },
+      { lat: 33.5179, lon: 126.5269 }, // 제주항
+    ],
+  },
+  {
+    keywords: [['부산', 'busan'], ['제주', 'jeju']],
+    waypoints: [
+      { lat: 35.0950, lon: 129.0400 }, // 부산항
+      { lat: 34.6000, lon: 128.8000 },
+      { lat: 34.0000, lon: 127.8000 },
+      { lat: 33.5179, lon: 126.5269 }, // 제주항
+    ],
+  },
+  {
+    keywords: [['인천', 'incheon'], ['제주', 'jeju']],
+    waypoints: [
+      { lat: 37.4563, lon: 126.7052 }, // 인천항
+      { lat: 36.5000, lon: 126.3000 },
+      { lat: 35.5000, lon: 126.2000 },
+      { lat: 34.5000, lon: 126.1000 },
+      { lat: 33.5179, lon: 126.5269 }, // 제주항
+    ],
+  },
+];
+
+// 주소 문자열에서 도시 키워드가 포함되는지 확인
+const matchesFerryKeyword = (address, keywords) =>
+  keywords.some((kw) => String(address || '').toLowerCase().includes(kw.toLowerCase()));
+
+// 출발/도착 주소로 미리 정의된 항로 waypoint 반환 (없으면 null)
+const getFerryRouteWaypoints = (fromAddress, toAddress) => {
+  for (const route of FERRY_ROUTES) {
+    const [groupA, groupB] = route.keywords;
+    const aToB = matchesFerryKeyword(fromAddress, groupA) && matchesFerryKeyword(toAddress, groupB);
+    const bToA = matchesFerryKeyword(fromAddress, groupB) && matchesFerryKeyword(toAddress, groupA);
+    if (aToB) return route.waypoints;
+    if (bToA) return [...route.waypoints].reverse();
+  }
+  return null;
+};
 const TIME_WHEEL_ITEM_HEIGHT = 28;
 
 const TimeWheelColumn = ({
@@ -5941,15 +6010,24 @@ const App = () => {
         let segment = !forceRefresh ? routePreviewSegmentCacheRef.current[cacheKey] : null;
         if (segment && (!Array.isArray(segment.path) || (!segment.path.length && !Number.isFinite(Number(segment.distance))))) segment = null;
         if (!segment) {
-          // 실제 해상 이동 구간만 직선 처리 (ship-start→ship-end 동일 아이템)
+          // 실제 해상 이동 구간 (ship-start→ship-end 동일 아이템): 항로 waypoint 또는 직선 처리
           // 항구 접근(*→ship-start), 항구 출발(ship-end→*)은 육로이므로 카카오 API 사용
           const isShipSegment = fromPoint.pointKind === 'ship-start' && toPoint.pointKind === 'ship-end' && fromPoint.itemId && fromPoint.itemId === toPoint.itemId;
           if (isShipSegment) {
-            const R = 6371;
-            const dLat = (toPoint.lat - fromPoint.lat) * Math.PI / 180;
-            const dLon = (toPoint.lon - fromPoint.lon) * Math.PI / 180;
-            const a = Math.sin(dLat/2)**2 + Math.cos(fromPoint.lat*Math.PI/180)*Math.cos(toPoint.lat*Math.PI/180)*Math.sin(dLon/2)**2;
-            const distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            // 미리 정의된 항로가 있으면 사용, 없으면 두 항구 직선
+            const ferryWaypoints = getFerryRouteWaypoints(fromPoint.address, toPoint.address);
+            const path = ferryWaypoints
+              ? ferryWaypoints
+              : [{ lat: fromPoint.lat, lon: fromPoint.lon }, { lat: toPoint.lat, lon: toPoint.lon }];
+            // 항로 총 거리 계산 (waypoint 구간 합산)
+            let distKm = 0;
+            for (let wi = 1; wi < path.length; wi++) {
+              const R = 6371;
+              const dLat = (path[wi].lat - path[wi-1].lat) * Math.PI / 180;
+              const dLon = (path[wi].lon - path[wi-1].lon) * Math.PI / 180;
+              const a = Math.sin(dLat/2)**2 + Math.cos(path[wi-1].lat*Math.PI/180)*Math.cos(path[wi].lat*Math.PI/180)*Math.sin(dLon/2)**2;
+              distKm += R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            }
             segment = {
               id: cacheKey,
               fromId: fromPoint.id,
@@ -5958,10 +6036,7 @@ const App = () => {
               toPoint: { lat: Number(toPoint.lat), lon: Number(toPoint.lon) },
               distance: Math.round(distKm * 1000),
               durationMins: null,
-              path: [
-                { lat: fromPoint.lat, lon: fromPoint.lon },
-                { lat: toPoint.lat, lon: toPoint.lon },
-              ],
+              path,
               isShipRoute: true,
             };
             routePreviewSegmentCacheRef.current[cacheKey] = segment;

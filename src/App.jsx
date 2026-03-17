@@ -10371,6 +10371,27 @@ const App = () => {
                           return (
                             <>
                               {renderNavInsertTarget(dNavIdx, -1, `nav-insert-empty-${d.day}`)}
+                              {/* 일정 없는 날: 빈 드래그 영역 */}
+                              <div
+                                data-droptarget={`${dNavIdx}|-1`}
+                                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDropTarget({ dayIdx: dNavIdx, insertAfterPIdx: -1 }); setDropOnItem(null); }}
+                                onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null); }}
+                                onDrop={(e) => {
+                                  e.preventDefault(); e.stopPropagation();
+                                  const changed = draggingFromLibrary
+                                    ? applyInsertAtDropTarget(dNavIdx, -1, { kind: 'library', place: draggingFromLibrary, isCopy: isDragCopy })
+                                    : applyInsertAtDropTarget(dNavIdx, -1, { kind: 'timeline', payload: draggingFromTimeline, isCopy: isDragCopy });
+                                  if (changed) triggerUndoToast();
+                                  setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false);
+                                }}
+                                className={`flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-[14px] border border-dashed px-2 py-1.5 transition-all ${dropTarget?.dayIdx === dNavIdx && dropTarget?.insertAfterPIdx === -1 && !expectedNightSlot
+                                  ? 'border-[#3182F6] bg-blue-50/80 text-[#3182F6]'
+                                  : 'border-slate-200 bg-slate-50/60 text-slate-300'}`}
+                              >
+                                <span className="text-[9px] font-black">
+                                  {dropTarget?.dayIdx === dNavIdx && dropTarget?.insertAfterPIdx === -1 && !expectedNightSlot ? '여기에 배치' : '일정 없음'}
+                                </span>
+                              </div>
                               {expectedNightSlot && (
                                 <div
                                   data-droptarget={`${dNavIdx}|-1`}

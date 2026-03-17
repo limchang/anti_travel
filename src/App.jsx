@@ -2542,11 +2542,26 @@ const LeafletMapBackgroundClickHandler = ({ onBackgroundClick }) => {
 
 const LeafletMapContextMenuHandler = () => {
   useMapEvents({
-    contextmenu: (e) => {
+    contextmenu: async (e) => {
       const { lat, lng } = e.latlng;
-      const zoom = Math.max(14, e.target.getZoom());
-      const url = `https://map.naver.com/p/entry/coords/${lat},${lng}?c=${lng},${lat},${zoom},0,0,0,dh`;
-      window.open(url, '_blank', 'noopener,noreferrer');
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`,
+          { headers: { 'Accept-Language': 'ko' } }
+        );
+        const data = await res.json();
+        const addr = data.address || {};
+        // 시/구 + 동/읍/면 조합
+        const city = addr.city || addr.county || addr.state || '';
+        const district = addr.borough || addr.suburb || addr.neighbourhood || addr.quarter || addr.village || addr.town || '';
+        const locationName = [city, district].filter(Boolean).join(' ');
+        const query = locationName ? `${locationName} 가볼만한 곳` : '가볼만한 곳';
+        window.open(`https://search.naver.com/search.naver?query=${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
+      } catch {
+        // 역지오코딩 실패 시 좌표 기반 네이버 지도로 폴백
+        const zoom = Math.max(14, e.target.getZoom());
+        window.open(`https://map.naver.com/p/entry/coords/${lat},${lng}?c=${lng},${lat},${zoom},0,0,0,dh`, '_blank', 'noopener,noreferrer');
+      }
     },
   });
   return null;
@@ -11172,11 +11187,25 @@ const App = () => {
                         >전체</button>
                         {filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0).map(t => {
                           const excluded = placeFilterTags.includes(t.value);
+                          const activeColor = {
+                            food: 'bg-rose-500 border-rose-500 text-white',
+                            cafe: 'bg-amber-500 border-amber-500 text-white',
+                            tour: 'bg-purple-500 border-purple-500 text-white',
+                            lodge: 'bg-indigo-500 border-indigo-500 text-white',
+                            stay: 'bg-violet-500 border-violet-500 text-white',
+                            rest: 'bg-cyan-500 border-cyan-500 text-white',
+                            ship: 'bg-blue-500 border-blue-500 text-white',
+                            openrun: 'bg-red-500 border-red-500 text-white',
+                            view: 'bg-sky-500 border-sky-500 text-white',
+                            experience: 'bg-emerald-500 border-emerald-500 text-white',
+                            souvenir: 'bg-teal-500 border-teal-500 text-white',
+                            pickup: 'bg-orange-500 border-orange-500 text-white',
+                          }[t.value] || 'bg-[#3182F6] border-[#3182F6] text-white';
                           return (
                             <button
                               key={t.value}
                               onClick={() => setPlaceFilterTags(prev => excluded ? prev.filter(v => v !== t.value) : [...prev, t.value])}
-                              className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${excluded ? 'bg-slate-100 text-slate-300 border-slate-200 line-through' : t.isCustom ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-[#3182F6] text-white border-[#3182F6]'}`}
+                              className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${excluded ? 'bg-slate-100 text-slate-300 border-slate-200 line-through' : activeColor}`}
                             >
                               {t.label}
                               <span className={`ml-1 px-0.5 rounded text-[8px] font-black ${excluded ? 'text-slate-300' : 'text-white/80'}`}>{categoryCounts[t.value]}</span>
@@ -11219,7 +11248,7 @@ const App = () => {
                     )}
                     </div>{/* 고정 영역 닫기 */}
                     {/* ── 스크롤 영역: 카드 목록 ── */}
-                    <div className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-5 pb-2 flex flex-col">
+                    <div className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-5 pt-2 pb-4 flex flex-col gap-1">
                     {draggingFromTimeline && (
                       <div
                         className={`w-full mb-2 rounded-[20px] border-2 border-dashed px-4 py-4 flex items-center justify-center gap-3 text-center transition-all ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6] shadow-[0_12px_26px_-18px_rgba(49,130,246,0.45)]' : 'border-slate-200 bg-white/90 text-slate-500'}`}
@@ -11252,7 +11281,7 @@ const App = () => {
                         + 버튼으로 장소를 추가하고<br />타임라인으로 드래그하세요
                       </p>
                     )}
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-2 gap-2.5">
                     {visiblePlaces.filter(place => place && (place.id || place.name)).map(place => {
                       const chips = place.types ? place.types.map(t => getCategoryBadge(t)) : [getCategoryBadge('place')];
                       const isPlaceExpanded = expandedPlaceId === place.id;

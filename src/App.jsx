@@ -2306,6 +2306,54 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
   });
 };
 
+// 같은 위치 타임라인 마커 그룹 (예: 6 | 7)
+const buildGroupedTimelineMarkerIcon = (items, isFocused) => {
+  const n = items.length;
+  const cellW = isFocused ? 32 : 26;
+  const h = isFocused ? 36 : 28;
+  const dividerW = 1;
+  const totalW = cellW * n + dividerW * (n - 1);
+  const radius = isFocused ? 10 : 8;
+  const tailH = isFocused ? 7 : 6;
+  const totalH = h + tailH;
+  const shadow = isFocused
+    ? 'drop-shadow(0 5px 14px rgba(15,23,42,0.45))'
+    : 'drop-shadow(0 3px 8px rgba(15,23,42,0.32))';
+
+  const cells = items.map((item, i) => {
+    const isFirst = i === 0;
+    const isLast = i === n - 1;
+    const br = `border-radius:${isFirst ? `${radius}px 0 0 ${radius}px` : isLast ? `0 ${radius}px ${radius}px 0` : '0'};`;
+    return `
+      <div data-group-idx="${i}" style="
+        width:${cellW}px;height:${h}px;${br}
+        background:${item.color};
+        display:flex;align-items:center;justify-content:center;
+        cursor:pointer;
+        ${i > 0 ? `border-left:${dividerW}px solid rgba(255,255,255,0.5);` : ''}
+      ">
+        <span style="font-size:${isFocused?'15px':'12px'};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${item.order}</span>
+      </div>`;
+  }).join('');
+
+  // 꼬리는 중앙에
+  const tailColor = items[Math.floor(n / 2)]?.color || items[0].color;
+
+  return L.divIcon({
+    className: '',
+    html: `
+      <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
+        <div style="display:flex;border-radius:${radius}px;border:${isFocused?'2.5px':'2px'} solid rgba(255,255,255,0.9);overflow:hidden;box-shadow:0 0 0 1.5px ${tailColor};">
+          ${cells}
+        </div>
+        <div style="width:0;height:0;border-left:${isFocused?6:5}px solid transparent;border-right:${isFocused?6:5}px solid transparent;border-top:${tailH}px solid ${tailColor};margin-top:-1px;"></div>
+      </div>
+    `,
+    iconSize: [totalW, totalH],
+    iconAnchor: [totalW / 2, totalH],
+  });
+};
+
 const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0, clusterColors = [], categoryType = '') => {
   const isCluster = clusterCount > 1;
   const sz = isFocused ? 36 : 28;
@@ -2793,10 +2841,33 @@ const RoutePreviewCanvas = ({
     const remainingOverlay = rawVisibleOverlayEntries.filter((e) => !clusteredPlaceIds.has(e.id));
     const processedOverlay = [...remainingOverlay, ...clusteredOverlayEntries];
 
-    // 2) timeline + 남은 overlay 방사형 분산
+    // 2) 같은 위치 타임라인 마커 → 그룹 마커로 병합
+    const tlPosGroups = new Map();
+    rawVisibleTimelineEntries.forEach((e) => {
+      const k = posKey(e.position);
+      if (!tlPosGroups.has(k)) tlPosGroups.set(k, []);
+      tlPosGroups.get(k).push(e);
+    });
+    const groupedTlIds = new Set();
+    const groupedTlEntries = []; // 그룹 마커 (2개 이상)
+    tlPosGroups.forEach((entries) => {
+      if (entries.length >= 2) {
+        const rep = entries[0];
+        groupedTlEntries.push({
+          ...rep,
+          _isGrouped: true,
+          _groupItems: entries, // 각 항목의 order, color, id 포함
+        });
+        entries.forEach((e) => groupedTlIds.add(e.pointId || e.id));
+      }
+    });
+    const singleTlEntries = rawVisibleTimelineEntries.filter((e) => !groupedTlIds.has(e.pointId || e.id));
+    const processedTl = [...singleTlEntries, ...groupedTlEntries];
+
+    // 3) timeline + overlay 방사형 분산 (timeline-overlay 겹침 처리)
     const groups = new Map();
     const allEntries = [
-      ...rawVisibleTimelineEntries.map((e) => ({ ...e, _layer: 'timeline' })),
+      ...processedTl.map((e) => ({ ...e, _layer: 'timeline' })),
       ...processedOverlay.map((e) => ({ ...e, _layer: 'overlay' })),
     ];
     allEntries.forEach((e) => {
@@ -2818,11 +2889,11 @@ const RoutePreviewCanvas = ({
       });
     });
     const applyOffset = (entries, layer) => entries.map((e) => {
-      const match = allEntries.find((a) => a._layer === layer && a.id === e.id && a.pointId === e.pointId);
+      const match = allEntries.find((a) => a._layer === layer && (a.id === e.id) && (a.pointId === e.pointId || a._isGrouped === e._isGrouped));
       const off = match ? offsetMap.get(match) : null;
       return off ? { ...e, position: off } : e;
     });
-    const tl = applyOffset(rawVisibleTimelineEntries.map((e) => ({ ...e, _layer: 'timeline' })), 'timeline');
+    const tl = applyOffset(processedTl.map((e) => ({ ...e, _layer: 'timeline' })), 'timeline');
     const ov = applyOffset(processedOverlay.map((e) => ({ ...e, _layer: 'overlay' })), 'overlay');
     return [tl, ov];
   }, [rawVisibleTimelineEntries, rawVisibleOverlayEntries, mapZoom]);
@@ -3015,7 +3086,32 @@ const RoutePreviewCanvas = ({
           })}
         </Pane>
         <Pane name="timeline-points" style={{ zIndex: 520 }}>
-          {visibleTimelineEntries.map((point) => (
+          {visibleTimelineEntries.map((point) => {
+            if (point._isGrouped && point._groupItems?.length >= 2) {
+              const isFocused = point._groupItems.some(gi => gi.isFocused);
+              return (
+                <Marker
+                  key={`timeline-group-${point._groupItems.map(gi => gi.pointId).join('-')}`}
+                  position={point.position}
+                  bubblingMouseEvents={false}
+                  icon={buildGroupedTimelineMarkerIcon(point._groupItems, isFocused)}
+                  eventHandlers={interactive && typeof onMarkerClick === 'function' ? {
+                    click: (e) => {
+                      // 클릭된 x 위치로 어떤 셀인지 판단
+                      const items = point._groupItems;
+                      const n = items.length;
+                      const cellW = isFocused ? 32 : 26;
+                      const totalW = cellW * n + (n - 1);
+                      const offsetX = e.originalEvent?.offsetX ?? (totalW / 2);
+                      const idx = Math.min(n - 1, Math.floor(offsetX / (totalW / n)));
+                      const target = items[Math.max(0, idx)] || items[0];
+                      onMarkerClick({ kind: 'timeline', id: target.id, pointId: target.pointId, day: target.day, label: target.label, address: target.address });
+                    },
+                  } : undefined}
+                />
+              );
+            }
+            return (
             <Marker
               key={`timeline-point-${point.pointId}`}
               position={point.position}
@@ -3032,7 +3128,8 @@ const RoutePreviewCanvas = ({
                 }),
               } : undefined}
             />
-          ))}
+            );
+          })}
         </Pane>
         <Pane name="overlay-points" style={{ zIndex: 480 }}>
           {(() => {

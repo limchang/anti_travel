@@ -12105,203 +12105,68 @@ const App = () => {
                           </div>
                         </div>
 
-                        {/* 내 장소 카테고리 모달 (fixed - 지도 위 묻힘 방지) */}
-                        {showLibraryCategoryModal && (() => {
-                          const mapCategoryOptions = [
-                            { label: '전체', value: null, color: '#64748B' },
-                            { label: '식당', value: 'food', color: '#F43F5E' },
-                            { label: '카페', value: 'cafe', color: '#D97706' },
-                            { label: '관광', value: 'tour', color: '#8B5CF6' },
-                            { label: '숙소', value: 'lodge', color: '#4F46E5' },
-                            { label: '체험', value: 'experience', color: '#10B981' },
-                            { label: '기념품', value: 'souvenir', color: '#0D9488' },
-                            { label: '뷰맛집', value: 'view', color: '#0EA5E9' },
-                            { label: '픽업', value: 'pickup', color: '#F97316' },
-                            { label: '장소', value: 'place', color: '#94A3B8' },
-                          ];
-                          return (
-                            <>
-                              <div className="fixed inset-0 z-[498]" onClick={() => setShowLibraryCategoryModal(false)} />
-                              <div className="fixed right-4 top-[200px] z-[499] w-52 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.3)]">
-                                <div className="mb-2 flex items-center justify-between">
-                                  <span className="text-[10px] font-black text-slate-700">내 장소 카테고리</span>
-                                  <button type="button" onClick={() => setShowLibraryCategoryModal(false)} className="rounded-lg p-0.5 text-slate-400 hover:text-slate-600"><X size={12} /></button>
-                                </div>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {mapCategoryOptions.map((opt) => {
-                                    const isAll = opt.value === null;
-                                    const isActive = isAll
-                                      ? (showOverviewLibraryPoints && placeFilterTags.length === 0)
-                                      : (showOverviewLibraryPoints && placeFilterTags.includes(opt.value));
-                                    return (
-                                      <button
-                                        key={opt.value ?? 'all'}
-                                        type="button"
-                                        onClick={() => {
-                                          if (isAll) {
-                                            setPlaceFilterTags([]);
-                                            setShowOverviewLibraryPoints(true);
-                                          } else if (isActive) {
-                                            const next = placeFilterTags.filter((t) => t !== opt.value);
-                                            setPlaceFilterTags(next);
-                                            if (next.length === 0) setShowOverviewLibraryPoints(false);
-                                          } else {
-                                            setPlaceFilterTags((prev) => [...prev.filter((t) => t !== opt.value), opt.value]);
-                                            setShowOverviewLibraryPoints(true);
-                                          }
-                                          setShowLibraryCategoryModal(false);
-                                        }}
-                                        className="flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-black transition-all"
-                                        style={isActive ? { background: opt.color, borderColor: opt.color, color: '#fff' } : { background: '#F8FAFC', borderColor: '#E2E8F0', color: '#64748B' }}
-                                      >
-                                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: opt.color, display: 'inline-block', flexShrink: 0 }} />
-                                        {opt.label}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                                {showOverviewLibraryPoints && (
-                                  <button
-                                    type="button"
-                                    onClick={() => { setShowOverviewLibraryPoints(false); setPlaceFilterTags([]); setShowLibraryCategoryModal(false); }}
-                                    className="mt-2 w-full rounded-xl border border-slate-200 py-1 text-[9px] font-black text-slate-500 hover:bg-slate-50"
-                                  >지도에서 숨기기</button>
-                                )}
-                              </div>
-                            </>
-                          );
-                        })()}
                         {/* 🌟 2. 여행 한눈에 보기 */}
                         <div className="flex flex-col gap-3 px-3 transition-all duration-300 sm:px-0">
-                          {/* 지도 / 일정 뷰 탭 */}
-                          <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 p-0.5 self-start shadow-sm">
-                            <button
-                              type="button"
-                              onClick={() => setHeroViewMode('map')}
-                              className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-black transition-all ${heroViewMode === 'map' ? 'bg-[#3182F6] text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                              <MapIcon size={10} /><span>지도</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setHeroViewMode('schedule')}
-                              className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-black transition-all ${heroViewMode === 'schedule' ? 'bg-[#3182F6] text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                              <AlignLeft size={10} /><span>일정</span>
-                            </button>
+                          {/* 지도 / 일정 뷰 탭 + 개요 카드 */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 p-0.5 self-start shadow-sm">
+                              <button
+                                type="button"
+                                onClick={() => setHeroViewMode('map')}
+                                className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-black transition-all ${heroViewMode === 'map' ? 'bg-[#3182F6] text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                              >
+                                <MapIcon size={10} /><span>지도</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setHeroViewMode('schedule')}
+                                className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-black transition-all ${heroViewMode === 'schedule' ? 'bg-[#3182F6] text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                              >
+                                <AlignLeft size={10} /><span>일정</span>
+                              </button>
+                            </div>
                           </div>
-                          {heroViewMode === 'map' && !overviewMapHidden && (
-                            <div className="relative mt-1 w-full rounded-[24px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 sm:px-6 sm:py-6">
-                              <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
-                              <div className="mb-4 rounded-[24px] border border-slate-200 bg-white/88 p-3 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)]">
-                                <div className="flex items-center justify-between gap-2 px-1">
-                                  <div className="flex gap-1 overflow-x-auto no-scrollbar py-0.5 flex-1 min-w-0">
-                                    <button
-                                      type="button"
-                                      onClick={() => { setOverviewMapScope('all'); setOverviewMapDayFilter(null); }}
-                                      className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${overviewMapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                                    >전체</button>
-                                    {mapDayOptions.map((option) => {
-                                      const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
-                                      return (
-                                        <button
-                                          key={`hero-map-day-${option.day}`}
-                                          type="button"
-                                          onClick={() => { setOverviewMapScope('day'); setOverviewMapDayFilter(option.day); }}
-                                          className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                                        >{option.label}</button>
-                                      );
-                                    })}
-                                  </div>
-                                  <div className="flex shrink-0 items-center gap-1.5">
-                                    <button
-                                      type="button"
-                                      onClick={() => setShowLibraryCategoryModal((prev) => !prev)}
-                                      className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${showOverviewLibraryPoints ? 'border-purple-200 bg-purple-50 text-purple-600' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                                    >
-                                      <MapPin size={10} /><span>내 장소{showOverviewLibraryPoints ? ' ✓' : ''}</span>
-                                    </button>
-                                    {routePreviewEndpointActions.map((action) => (
-                                      <button
-                                        key={action.id}
-                                        type="button"
-                                        onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
-                                        className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${action.hidden ? 'border-orange-200 bg-orange-50 text-orange-500' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                                        title={action.label}
-                                      >
-                                        <Anchor size={10} /><span>{action.id.endsWith('ship-start') ? '출발지' : '도착지'}</span>
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                                <div className="mt-3 overflow-hidden rounded-[20px] border border-slate-200 bg-white/92">
-                                  {overviewRouteMapHasRenderableData ? (
-                                    <RoutePreviewCanvas
-                                      routePreviewMap={overviewFilteredRoutePreviewMap}
-                                      libraryPoints={showOverviewLibraryPoints ? libraryMapPoints : []}
-                                      recommendationPoints={[]}
-                                      focusedTarget={focusedMapTarget?.kind === 'timeline' ? focusedMapTarget : null}
-                                      onMarkerClick={handleOverviewMapMarkerClick}
-                                      onLibraryMarkerAddClick={handleOverviewMapLibraryAddClick}
-                                      onBackgroundClick={clearOverviewMapFocus}
-                                      interactive
-                                      height={isMobileLayout ? 188 : 220}
-                                      showTimelineMarkers
-                                      showRouteLines
-                                      showOverlayMarkers={showOverviewLibraryPoints}
-                                      scopeKey={`${overviewMapScope}:${overviewMapDayFilter ?? 'all'}`}
-                                    />
-                                  ) : (
-                                    <div className="flex flex-col items-center justify-center gap-2 px-4 text-center" style={{ height: isMobileLayout ? 188 : 220 }}>
-                                      <MapIcon size={18} className="text-slate-300" />
-                                      <p className="text-[10px] font-bold text-slate-400">전체 일정의 경로 좌표를 아직 충분히 확인하지 못했습니다.</p>
-                                    </div>
-                                  )}
+                          {/* 개요 3개 카드 - 지도/일정 탭 아래, 항상 표시 */}
+                          {!heroCompactActive && (
+                            <div className="grid grid-cols-3 gap-3 sm:gap-3">
+                              <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
+                                <div className="flex h-full flex-col items-center justify-center text-center">
+                                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
+                                  <p className="mt-2 text-[22px] leading-none font-black text-[#3182F6] tabular-nums sm:text-[31px]">{usedPct}%</p>
+                                  <p className="mt-2 text-[10px] font-bold text-slate-500 tabular-nums sm:text-[11px]">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
                                 </div>
                               </div>
-                              {!heroCompactActive && (
-                                <div className="grid grid-cols-3 gap-3 sm:gap-3">
-                                  <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
-                                    <div className="flex h-full flex-col items-center justify-center text-center">
-                                      <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
-                                      <p className="mt-2 text-[22px] leading-none font-black text-[#3182F6] tabular-nums sm:text-[31px]">{usedPct}%</p>
-                                      <p className="mt-2 text-[10px] font-bold text-slate-500 tabular-nums sm:text-[11px]">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
-                                    </div>
+                              <div className="relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] px-3 py-4 sm:px-4">
+                                <div className="flex h-full flex-col items-center justify-center text-center">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowTravelIntensityInfo((prev) => !prev); }} className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition-colors hover:border-[#3182F6]/40 hover:text-[#3182F6]" title="여행 강도 계산식 보기">
+                                      <Info size={10} />
+                                    </button>
                                   </div>
-                                  <div className={`relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroCompactActive ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
-                                    <div className="flex h-full flex-col items-center justify-center text-center">
-                                      <div className="flex items-center justify-center gap-1.5">
-                                        <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
-                                        <button type="button" onClick={(e) => { e.stopPropagation(); setShowTravelIntensityInfo((prev) => !prev); }} className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition-colors hover:border-[#3182F6]/40 hover:text-[#3182F6]" title="여행 강도 계산식 보기">
-                                          <Info size={10} />
-                                        </button>
-                                      </div>
-                                      <p className={`text-center leading-none font-black text-slate-800 transition-all duration-300 ${heroCompactActive ? 'mt-1.5 text-[17px] sm:text-[21px]' : 'mt-2 text-[21px] sm:text-[27px]'}`}>{travelIntensity.label}</p>
-                                      <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroCompactActive ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>{travelIntensity.note}</p>
-                                    </div>
-                                    {showTravelIntensityInfo && (
-                                      <div className="absolute left-1/2 top-[calc(100%-8px)] z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
-                                        <p className="mt-2 text-[11px] font-bold text-slate-600">시간당 방문 수: {visitPerHour.toFixed(2)}개</p>
-                                        <p className="mt-1 text-[11px] font-bold text-slate-600">하루 활동 시간: 평균 {averageSpanHours.toFixed(1)}시간</p>
-                                        <p className="mt-1 text-[11px] font-bold text-slate-600">하루 이동 시간: 평균 {averageTravelHoursLabel}</p>
-                                        <p className="mt-1 text-[11px] font-bold text-slate-600">숙소 고정 제약: {lodgingConstraintCount}개</p>
-                                        <p className="mt-2 text-[10px] font-bold text-slate-400">방문 수는 `숙소/휴식/페리`를 제외한 일정만 세며, 숙소의 고정 체크인/체크아웃도 강도 점수에 반영합니다.</p>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className={`rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] transition-all duration-300 ${heroCompactActive ? 'px-2 py-2.5 sm:px-3 sm:py-3' : 'px-3 py-4 sm:px-4'}`}>
-                                    <div className="flex h-full flex-col items-center justify-center text-center">
-                                      <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
-                                      <p className={`text-center leading-none font-black text-slate-800 tabular-nums transition-all duration-300 ${heroCompactActive ? 'mt-1.5 text-[18px] sm:text-[22px]' : 'mt-2 text-[22px] sm:text-[31px]'}`}>{visitPerHour.toFixed(1)}개/h</p>
-                                      <p className={`text-center font-bold text-slate-500 transition-all duration-300 ${heroCompactActive ? 'mt-1 text-[9px] sm:text-[10px]' : 'mt-2 text-[10px] sm:text-[11px]'}`}>방문 일정 {visitPlanCount}개 기준</p>
-                                    </div>
-                                  </div>
+                                  <p className="mt-2 text-[21px] text-center leading-none font-black text-slate-800 sm:text-[27px]">{travelIntensity.label}</p>
+                                  <p className="mt-2 text-[10px] text-center font-bold text-slate-500 sm:text-[11px]">{travelIntensity.note}</p>
                                 </div>
-                              )}
+                                {showTravelIntensityInfo && (
+                                  <div className="absolute left-1/2 top-[calc(100%-8px)] z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
+                                    <p className="mt-2 text-[11px] font-bold text-slate-600">시간당 방문 수: {visitPerHour.toFixed(2)}개</p>
+                                    <p className="mt-1 text-[11px] font-bold text-slate-600">하루 활동 시간: 평균 {averageSpanHours.toFixed(1)}시간</p>
+                                    <p className="mt-1 text-[11px] font-bold text-slate-600">하루 이동 시간: 평균 {averageTravelHoursLabel}</p>
+                                    <p className="mt-1 text-[11px] font-bold text-slate-600">숙소 고정 제약: {lodgingConstraintCount}개</p>
+                                    <p className="mt-2 text-[10px] font-bold text-slate-400">방문 수는 `숙소/휴식/페리`를 제외한 일정만 세며, 숙소의 고정 체크인/체크아웃도 강도 점수에 반영합니다.</p>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] px-3 py-4 sm:px-4">
+                                <div className="flex h-full flex-col items-center justify-center text-center">
+                                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
+                                  <p className="mt-2 text-[22px] text-center leading-none font-black text-slate-800 tabular-nums sm:text-[31px]">{visitPerHour.toFixed(1)}개/h</p>
+                                  <p className="mt-2 text-[10px] text-center font-bold text-slate-500 sm:text-[11px]">방문 일정 {visitPlanCount}개 기준</p>
+                                </div>
+                              </div>
                             </div>
                           )}
-                          {/* 지도 접기 버튼 제거 - 뷰 탭으로 대체 */}
                         </div>
                         {showHeroSummaryModal && (
                           <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/36 px-4 py-6 backdrop-blur-sm" onClick={() => setShowHeroSummaryModal(false)}>
@@ -12392,6 +12257,204 @@ const App = () => {
               >
                 {isEditMode ? <Unlock size={18} /> : <Lock size={18} />}
               </button>
+            </div>
+          )}
+          {/* 내 장소 카테고리 모달 - 지도 밖 fixed (지도에 가려지지 않음) */}
+          {showLibraryCategoryModal && (() => {
+            const mapCategoryOptions = [
+              { label: '전체', value: null, color: '#64748B' },
+              { label: '식당', value: 'food', color: '#F43F5E' },
+              { label: '카페', value: 'cafe', color: '#D97706' },
+              { label: '관광', value: 'tour', color: '#8B5CF6' },
+              { label: '숙소', value: 'lodge', color: '#4F46E5' },
+              { label: '체험', value: 'experience', color: '#10B981' },
+              { label: '기념품', value: 'souvenir', color: '#0D9488' },
+              { label: '뷰맛집', value: 'view', color: '#0EA5E9' },
+              { label: '픽업', value: 'pickup', color: '#F97316' },
+              { label: '장소', value: 'place', color: '#94A3B8' },
+            ];
+            return (
+              <>
+                <div className="fixed inset-0 z-[598]" onClick={() => setShowLibraryCategoryModal(false)} />
+                <div className="fixed right-4 top-[200px] z-[599] w-52 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.3)]">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-[10px] font-black text-slate-700">내 장소 카테고리</span>
+                    <button type="button" onClick={() => setShowLibraryCategoryModal(false)} className="rounded-lg p-0.5 text-slate-400 hover:text-slate-600"><X size={12} /></button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {mapCategoryOptions.map((opt) => {
+                      const isAll = opt.value === null;
+                      const isActive = isAll
+                        ? (showOverviewLibraryPoints && placeFilterTags.length === 0)
+                        : (showOverviewLibraryPoints && placeFilterTags.includes(opt.value));
+                      return (
+                        <button
+                          key={opt.value ?? 'all'}
+                          type="button"
+                          onClick={() => {
+                            if (isAll) {
+                              setPlaceFilterTags([]);
+                              setShowOverviewLibraryPoints(true);
+                            } else if (isActive) {
+                              const next = placeFilterTags.filter((t) => t !== opt.value);
+                              setPlaceFilterTags(next);
+                              if (next.length === 0) setShowOverviewLibraryPoints(false);
+                            } else {
+                              setPlaceFilterTags((prev) => [...prev.filter((t) => t !== opt.value), opt.value]);
+                              setShowOverviewLibraryPoints(true);
+                            }
+                            setShowLibraryCategoryModal(false);
+                          }}
+                          className="flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-black transition-all"
+                          style={isActive ? { background: opt.color, borderColor: opt.color, color: '#fff' } : { background: '#F8FAFC', borderColor: '#E2E8F0', color: '#64748B' }}
+                        >
+                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: opt.color, display: 'inline-block', flexShrink: 0 }} />
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {showOverviewLibraryPoints && (
+                    <button
+                      type="button"
+                      onClick={() => { setShowOverviewLibraryPoints(false); setPlaceFilterTags([]); setShowLibraryCategoryModal(false); }}
+                      className="mt-2 w-full rounded-xl border border-slate-200 py-1 text-[9px] font-black text-slate-500 hover:bg-slate-50"
+                    >지도에서 숨기기</button>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+          {/* 지도 뷰 - heroViewMode === 'map'일 때 일정 카드 영역에 표시 */}
+          {heroViewMode === 'map' && !overviewMapHidden && (
+            <div className={`w-full mx-auto flex flex-col ${timelineMaxClass}`}>
+              <div className="rounded-[24px] border border-slate-200 bg-white shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)]">
+                {/* 지도 필터 바 */}
+                <div className="flex items-center justify-between gap-2 px-3 pt-3">
+                  <div className="flex gap-1 overflow-x-auto no-scrollbar py-0.5 flex-1 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => { setOverviewMapScope('all'); setOverviewMapDayFilter(null); }}
+                      className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${overviewMapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                    >전체</button>
+                    {mapDayOptions.map((option) => {
+                      const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
+                      return (
+                        <button
+                          key={`hero-map-day-${option.day}`}
+                          type="button"
+                          onClick={() => { setOverviewMapScope('day'); setOverviewMapDayFilter(option.day); }}
+                          className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                        >{option.label}</button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5 pb-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowLibraryCategoryModal((prev) => !prev)}
+                      className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${showOverviewLibraryPoints ? 'border-purple-200 bg-purple-50 text-purple-600' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                    >
+                      <MapPin size={10} /><span>내 장소{showOverviewLibraryPoints ? ' ✓' : ''}</span>
+                    </button>
+                    {routePreviewEndpointActions.map((action) => (
+                      <button
+                        key={action.id}
+                        type="button"
+                        onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
+                        className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${action.hidden ? 'border-orange-200 bg-orange-50 text-orange-500' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                        title={action.label}
+                      >
+                        <Anchor size={10} /><span>{action.id.endsWith('ship-start') ? '출발지' : '도착지'}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* 지도 - 1:1 비율 */}
+                <div className="mt-3 overflow-hidden rounded-b-[24px]" style={{ aspectRatio: '1 / 1' }}>
+                  {overviewRouteMapHasRenderableData ? (
+                    <RoutePreviewCanvas
+                      routePreviewMap={overviewFilteredRoutePreviewMap}
+                      libraryPoints={showOverviewLibraryPoints ? libraryMapPoints : []}
+                      recommendationPoints={[]}
+                      focusedTarget={focusedMapTarget?.kind === 'timeline' ? focusedMapTarget : null}
+                      onMarkerClick={handleOverviewMapMarkerClick}
+                      onLibraryMarkerAddClick={handleOverviewMapLibraryAddClick}
+                      onBackgroundClick={clearOverviewMapFocus}
+                      interactive
+                      height="100%"
+                      showTimelineMarkers
+                      showRouteLines
+                      showOverlayMarkers={showOverviewLibraryPoints}
+                      scopeKey={`${overviewMapScope}:${overviewMapDayFilter ?? 'all'}`}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-2 px-4 text-center h-full">
+                      <MapIcon size={18} className="text-slate-300" />
+                      <p className="text-[10px] font-bold text-slate-400">전체 일정의 경로 좌표를 아직 충분히 확인하지 못했습니다.</p>
+                    </div>
+                  )}
+                </div>
+                {/* 미니 네비게이션 - 경로 타임라인 */}
+                {overviewRouteMapHasRenderableData && (() => {
+                  const allPoints = overviewFilteredRoutePreviewMap.flatMap((day) =>
+                    (day.points || [])
+                      .filter((p) => Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lon)))
+                      .map((p) => ({ ...p, day: day.day, dayColor: day.color }))
+                  );
+                  if (allPoints.length < 2) return null;
+                  const CATEGORY_COLORS = {
+                    food: '#F43F5E', cafe: '#D97706', tour: '#8B5CF6',
+                    lodge: '#4F46E5', experience: '#10B981', souvenir: '#0D9488',
+                    view: '#0EA5E9', pickup: '#F97316', place: '#94A3B8',
+                  };
+                  return (
+                    <div className="px-3 py-3 border-t border-slate-100">
+                      <div className="relative flex items-center w-full overflow-x-auto no-scrollbar" style={{ minHeight: 48 }}>
+                        {/* 연결선 */}
+                        <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-200 -translate-y-1/2 mx-4" />
+                        <div className="relative flex items-center gap-0 w-full justify-between px-1">
+                          {allPoints.map((point, idx) => {
+                            const isFirst = idx === 0;
+                            const isLast = idx === allPoints.length - 1;
+                            const catColor = CATEGORY_COLORS[point.category] ?? '#94A3B8';
+                            return (
+                              <div key={`mini-nav-${point.id ?? idx}`} className="relative flex flex-col items-center" style={{ flex: '1 1 0', minWidth: 0 }}>
+                                {/* 연결점 */}
+                                <div
+                                  className="relative z-10 flex items-center justify-center rounded-full border-2 border-white shadow-sm"
+                                  style={{
+                                    width: isFirst || isLast ? 20 : 12,
+                                    height: isFirst || isLast ? 20 : 12,
+                                    background: isFirst ? '#10B981' : isLast ? '#F43F5E' : catColor,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {isFirst && <span style={{ fontSize: 7, color: '#fff', fontWeight: 900, lineHeight: 1 }}>S</span>}
+                                  {isLast && <span style={{ fontSize: 7, color: '#fff', fontWeight: 900, lineHeight: 1 }}>E</span>}
+                                </div>
+                                {/* 라벨 */}
+                                <span
+                                  className="mt-1 text-center text-slate-600 font-bold leading-tight"
+                                  style={{
+                                    fontSize: 8,
+                                    maxWidth: 40,
+                                    overflow: 'hidden',
+                                    whiteSpace: 'nowrap',
+                                    textOverflow: 'ellipsis',
+                                    display: 'block',
+                                  }}
+                                  title={point.label}
+                                >{point.label}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           )}
           <div className={`w-full mx-auto flex flex-col relative z-0 ${timelineMaxClass} gap-0 ${heroViewMode === 'map' ? 'hidden' : ''}`}>

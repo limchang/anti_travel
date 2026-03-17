@@ -2230,19 +2230,19 @@ const getMapCategoryLabel = (type = 'place') => {
 
 const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#FFFFFF', categoryLabel = '', isFirst = false, isLast = false) => {
   const shortCategoryLabel = String(categoryLabel || '').trim().slice(0, 2);
-  const sz = isFocused ? 34 : 30;
-  const borderW = isFocused ? 3 : 2;
-  const tailW = isFocused ? 7 : 6;
-  const tailH = isFocused ? 10 : 8;
-  // 카테고리 태그 항상 표시
-  const tagH = shortCategoryLabel ? (isFocused ? 16 : 14) : 0;
-  const tagGap = (tagH > 0) ? 3 : 0;
+  const sz = isFocused ? 34 : 28;
+  const tailW = isFocused ? 6 : 5;
+  const tailH = isFocused ? 9 : 7;
   // 시작/마감 뱃지
   const badgeText = isFirst ? 'START' : (isLast ? 'END' : '');
   const badgeColor = isFirst ? '#10B981' : '#EF4444';
   const badgeH = badgeText ? 14 : 0;
   const badgeGap = badgeH > 0 ? 2 : 0;
-  const totalTopH = tagH + tagGap + badgeH + badgeGap;
+  const totalTopH = badgeH + badgeGap;
+  // 마커 스타일: 흰 배경 + dayColor 테두리 + 숫자, 카테고리 라벨은 상단 pill
+  const circleStyle = isFocused
+    ? `border:3px solid ${dayColor}; background:#fff; color:${dayColor};`
+    : `border:2.5px solid ${dayColor}; background:#fff; color:${dayColor};`;
   return L.divIcon({
     className: '',
     html: `
@@ -2251,7 +2251,6 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
         display:flex;
         flex-direction:column;
         align-items:center;
-        width:${sz}px;
         cursor:pointer;
       ">
         ${badgeText ? `<span style="
@@ -2264,151 +2263,114 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
           font-size:7px;
           font-weight:900;
           line-height:${badgeH}px;
-          text-align:center;
           white-space:nowrap;
           box-shadow:0 3px 8px -3px rgba(15,23,42,0.45);
           letter-spacing:0.04em;
         ">${badgeText}</span>` : ''}
         ${shortCategoryLabel ? `<span style="
-          margin-bottom:${tagGap}px;
-          min-width:${isFocused ? '30px' : '26px'};
-          height:${tagH}px;
+          margin-bottom:2px;
           padding:0 5px;
+          height:${isFocused ? 14 : 12}px;
           border-radius:999px;
           background:${categoryColor};
           color:#fff;
-          font-size:${isFocused ? '9px' : '8px'};
+          font-size:${isFocused ? '8px' : '7px'};
           font-weight:900;
-          line-height:${tagH}px;
-          text-align:center;
+          line-height:${isFocused ? '14px' : '12px'};
           white-space:nowrap;
-          box-shadow:0 4px 10px -4px rgba(15,23,42,0.45);
-          letter-spacing:0.02em;
+          box-shadow:0 2px 6px -2px rgba(15,23,42,0.35);
         ">${shortCategoryLabel}</span>` : ''}
         <div style="
-          position:relative;
           width:${sz}px;
           height:${sz}px;
           border-radius:999px;
-          border:${borderW}px solid ${isFocused ? '#0F172A' : 'rgba(255,255,255,0.95)'};
-          background:${dayColor};
-          color:#fff;
+          ${circleStyle}
           display:flex;
           align-items:center;
           justify-content:center;
-          font-size:${isFocused ? '12px' : '11px'};
+          font-size:${isFocused ? '13px' : '11px'};
           font-weight:900;
-          box-shadow:0 6px 20px -8px rgba(15,23,42,0.6)${isFocused ? ',0 0 0 3px rgba(15,23,42,0.15)' : ''};
+          box-shadow:0 4px 12px -6px rgba(15,23,42,0.5)${isFocused ? `,0 0 0 3px ${dayColor}33` : ''};
           letter-spacing:-0.5px;
-        ">
-          ${label}
-          ${shortCategoryLabel ? `<span style="
-            position:absolute;
-            right:-2px;
-            bottom:-2px;
-            width:${isFocused ? 13 : 11}px;
-            height:${isFocused ? 13 : 11}px;
-            border-radius:999px;
-            border:2px solid #fff;
-            background:${categoryColor};
-            box-shadow:0 2px 6px -2px rgba(15,23,42,0.5);
-          "></span>` : ''}
-        </div>
+        ">${label}</div>
         <div style="
           width:0;
           height:0;
           border-left:${tailW}px solid transparent;
           border-right:${tailW}px solid transparent;
           border-top:${tailH}px solid ${dayColor};
-          filter:drop-shadow(0 3px 4px rgba(15,23,42,0.3));
           margin-top:-1px;
         "></div>
       </div>
     `,
-    iconSize: [sz, totalTopH + sz + tailH],
-    iconAnchor: [sz / 2, totalTopH + sz + tailH],
+    iconSize: [sz, totalTopH + (shortCategoryLabel ? (isFocused ? 16 : 14) : 0) + sz + tailH],
+    iconAnchor: [sz / 2, totalTopH + (shortCategoryLabel ? (isFocused ? 16 : 14) : 0) + sz + tailH],
   });
 };
 
 const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd = false) => {
   const shortLabel = String(categoryLabel || '').trim().slice(0, 2) || '장소';
+  // canAdd이면 라벨에 + 통합 표시, 배경색도 파란색으로
+  const displayLabel = canAdd ? `+${shortLabel}` : shortLabel;
+  const bgColor = canAdd ? '#3182F6' : categoryColor;
+  const borderColor = canAdd ? '#1D4ED8' : (isFocused ? '#0F172A' : 'rgba(255,255,255,0.95)');
   const sz = isFocused ? 28 : 24;
   const tailW = isFocused ? 5 : 4;
   const tailH = isFocused ? 8 : 6;
-  const uid = `lb${Math.random().toString(36).slice(2,7)}`;
+  const labelH = isFocused ? 15 : 13;
   return L.divIcon({
     className: '',
     html: `
-      <div id="${uid}" style="
+      <div style="
         display:flex;
         flex-direction:column;
         align-items:center;
-        width:${sz}px;
         cursor:pointer;
         position:relative;
       ">
         <span style="
           margin-bottom:2px;
-          min-width:${isFocused ? '28px' : '24px'};
-          height:${isFocused ? 15 : 13}px;
-          padding:0 5px;
+          padding:0 6px;
+          height:${labelH}px;
           border-radius:999px;
-          background:${categoryColor};
+          background:${bgColor};
           color:#fff;
           font-size:${isFocused ? '8px' : '7px'};
           font-weight:900;
-          line-height:${isFocused ? '15px' : '13px'};
+          line-height:${labelH}px;
           text-align:center;
           white-space:nowrap;
           box-shadow:0 4px 8px -4px rgba(15,23,42,0.4);
-        ">${shortLabel}</span>
+          letter-spacing:${canAdd ? '-0.3px' : '0'};
+        ">${displayLabel}</span>
         <div style="
-          position:relative;
           width:${sz}px;
           height:${sz}px;
           border-radius:999px;
-          border:${isFocused ? '3px' : '2px'} solid ${isFocused ? '#0F172A' : 'rgba(255,255,255,0.95)'};
-          background:${categoryColor};
+          border:${isFocused ? '3px' : '2px'} solid ${borderColor};
+          background:${bgColor};
           color:#fff;
           display:flex;
           align-items:center;
           justify-content:center;
-          font-size:${isFocused ? '10px' : '9px'};
+          font-size:${canAdd ? (isFocused ? '14px' : '13px') : (isFocused ? '10px' : '9px')};
           font-weight:900;
           line-height:1;
           box-shadow:0 6px 18px -8px rgba(15,23,42,0.55)${isFocused ? ',0 0 0 3px rgba(15,23,42,0.12)' : ''};
-          white-space:nowrap;
-        ">${shortLabel}</div>
+        ">${canAdd ? '+' : shortLabel}</div>
         <div style="
           width:0;
           height:0;
           border-left:${tailW}px solid transparent;
           border-right:${tailW}px solid transparent;
-          border-top:${tailH}px solid ${categoryColor};
+          border-top:${tailH}px solid ${bgColor};
           filter:drop-shadow(0 2px 3px rgba(15,23,42,0.25));
           margin-top:-1px;
         "></div>
-        ${canAdd ? `<div class="lb-add" style="
-          position:absolute;
-          top:-6px;
-          right:-6px;
-          width:18px;
-          height:18px;
-          border-radius:999px;
-          background:#3182F6;
-          color:#fff;
-          font-size:13px;
-          font-weight:900;
-          line-height:18px;
-          text-align:center;
-          box-shadow:0 3px 8px -3px rgba(49,130,246,0.6);
-          border:2px solid #fff;
-          z-index:9;
-        ">+</div>` : ''}
       </div>
     `,
-    iconSize: [sz, (isFocused ? 17 : 0) + sz + tailH],
-    iconAnchor: [sz / 2, (isFocused ? 17 : 0) + sz + tailH],
+    iconSize: [sz, labelH + 2 + sz + tailH],
+    iconAnchor: [sz / 2, labelH + 2 + sz + tailH],
   });
 };
 
@@ -3750,6 +3712,7 @@ const App = () => {
   const [routePreviewLoading, setRoutePreviewLoading] = useState(false);
   const [routePreviewManualRefreshing, setRoutePreviewManualRefreshing] = useState(false);
   const [showOverviewLibraryPoints, setShowOverviewLibraryPoints] = useState(false);
+  const [showLibraryCategoryModal, setShowLibraryCategoryModal] = useState(false);
   const [overviewMapHidden, setOverviewMapHidden] = useState(false);
   const routePreviewSegmentCacheRef = useRef({});
   useEffect(() => {
@@ -12167,13 +12130,77 @@ const App = () => {
                                     })}
                                   </div>
                                   <div className="flex shrink-0 items-center gap-1.5">
-                                    <button
-                                      type="button"
-                                      onClick={() => setShowOverviewLibraryPoints((prev) => !prev)}
-                                      className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${showOverviewLibraryPoints ? 'border-purple-200 bg-purple-50 text-purple-600' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                                    >
-                                      <MapPin size={10} /><span>내 장소</span>
-                                    </button>
+                                    <div className="relative">
+                                      <button
+                                        type="button"
+                                        onClick={() => setShowLibraryCategoryModal((prev) => !prev)}
+                                        className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${showOverviewLibraryPoints ? 'border-purple-200 bg-purple-50 text-purple-600' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                                      >
+                                        <MapPin size={10} /><span>내 장소{showOverviewLibraryPoints ? ' ✓' : ''}</span>
+                                      </button>
+                                      {showLibraryCategoryModal && (() => {
+                                        const mapCategoryOptions = [
+                                          { label: '전체', value: null, color: '#64748B' },
+                                          { label: '식당', value: 'food', color: '#F43F5E' },
+                                          { label: '카페', value: 'cafe', color: '#D97706' },
+                                          { label: '관광', value: 'tour', color: '#8B5CF6' },
+                                          { label: '숙소', value: 'lodge', color: '#4F46E5' },
+                                          { label: '체험', value: 'experience', color: '#10B981' },
+                                          { label: '기념품', value: 'souvenir', color: '#0D9488' },
+                                          { label: '뷰맛집', value: 'view', color: '#0EA5E9' },
+                                          { label: '픽업', value: 'pickup', color: '#F97316' },
+                                          { label: '장소', value: 'place', color: '#94A3B8' },
+                                        ];
+                                        return (
+                                          <div className="absolute right-0 top-full z-[300] mt-1.5 w-52 rounded-2xl border border-slate-200 bg-white/98 p-3 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.25)] backdrop-blur-sm">
+                                            <div className="mb-2 flex items-center justify-between">
+                                              <span className="text-[10px] font-black text-slate-700">내 장소 카테고리</span>
+                                              <button type="button" onClick={() => setShowLibraryCategoryModal(false)} className="rounded-lg p-0.5 text-slate-400 hover:text-slate-600"><X size={12} /></button>
+                                            </div>
+                                            <div className="flex flex-wrap gap-1.5">
+                                              {mapCategoryOptions.map((opt) => {
+                                                const isAll = opt.value === null;
+                                                const isActive = isAll
+                                                  ? (showOverviewLibraryPoints && placeFilterTags.length === 0)
+                                                  : (showOverviewLibraryPoints && placeFilterTags.includes(opt.value));
+                                                return (
+                                                  <button
+                                                    key={opt.value ?? 'all'}
+                                                    type="button"
+                                                    onClick={() => {
+                                                      if (isAll) {
+                                                        setPlaceFilterTags([]);
+                                                        setShowOverviewLibraryPoints(true);
+                                                      } else if (isActive) {
+                                                        const next = placeFilterTags.filter((t) => t !== opt.value);
+                                                        setPlaceFilterTags(next);
+                                                        if (next.length === 0) setShowOverviewLibraryPoints(false);
+                                                      } else {
+                                                        setPlaceFilterTags((prev) => [...prev.filter((t) => t !== opt.value), opt.value]);
+                                                        setShowOverviewLibraryPoints(true);
+                                                      }
+                                                      setShowLibraryCategoryModal(false);
+                                                    }}
+                                                    className="flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-black transition-all"
+                                                    style={isActive ? { background: opt.color, borderColor: opt.color, color: '#fff' } : { background: '#F8FAFC', borderColor: '#E2E8F0', color: '#64748B' }}
+                                                  >
+                                                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: opt.color, display: 'inline-block', flexShrink: 0 }} />
+                                                    {opt.label}
+                                                  </button>
+                                                );
+                                              })}
+                                            </div>
+                                            {showOverviewLibraryPoints && (
+                                              <button
+                                                type="button"
+                                                onClick={() => { setShowOverviewLibraryPoints(false); setPlaceFilterTags([]); setShowLibraryCategoryModal(false); }}
+                                                className="mt-2 w-full rounded-xl border border-slate-200 py-1 text-[9px] font-black text-slate-500 hover:bg-slate-50"
+                                              >지도에서 숨기기</button>
+                                            )}
+                                          </div>
+                                        );
+                                      })()}
+                                    </div>
                                     {routePreviewEndpointActions.map((action) => (
                                       <button
                                         key={action.id}

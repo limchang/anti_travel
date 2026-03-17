@@ -7737,7 +7737,7 @@ const App = () => {
         item.isTimeFixed = true;
       }
 
-      nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      recalculateScheduleAcrossDays(nextData.days);
       syncBufferWithFixedStart(nextData.days, dayIdx, pIdx);
       recalculateLodgeDurations(nextData.days);
       return nextData;
@@ -7773,7 +7773,7 @@ const App = () => {
       item.time = normalized;
       // keepLockState: TimeWheel 자동 settle 시 잠금 상태를 강제 변경하지 않음
       if (!options?.keepLockState) item.isTimeFixed = true;
-      nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      recalculateScheduleAcrossDays(nextData.days);
       if (item.isTimeFixed) syncBufferWithFixedStart(nextData.days, dayIdx, pIdx);
       recalculateLodgeDurations(nextData.days);
       return nextData;

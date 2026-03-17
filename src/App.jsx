@@ -2279,7 +2279,7 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
   // canAdd 모드는 원형 유지
   const shortLabel = String(categoryLabel || '장소').trim().slice(0, 2);
   const bgColor = canAdd ? '#3182F6' : categoryColor;
-  const opacity = canAdd ? 1 : (isFocused ? 0.95 : (timelineFocused ? 0.88 : 0.85));
+  const opacity = 1;
   const sz = canAdd ? (isFocused ? 26 : 22) : (isFocused ? 22 : 18);
   const shadow = canAdd
     ? 'drop-shadow(0 4px 10px rgba(49,130,246,0.5))'

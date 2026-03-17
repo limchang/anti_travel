@@ -2753,65 +2753,6 @@ const RoutePreviewCanvas = ({
       .filter((point) => point.isFocused)
       .map((point) => point.position);
   }, [focusedTarget?.kind, overlayEntries, segmentEntries, showOverlayMarkers, showRouteLines, showTimelineMarkers, timelineEntries]);
-  // 겹치는 마커 분산: 같은 좌표 그룹을 찾아 원형으로 이동시키고 꼬리를 늘림
-  const spreadMarkers = useCallback((entries, spreadRadiusPx = 36, tailBase = 7) => {
-    // 줌 레벨 기반 1픽셀당 위도 변화량 (Web Mercator 근사)
-    const metersPerPx = 156543.03392 * Math.cos(0) / Math.pow(2, mapZoom);
-    const degPerPx = metersPerPx / 111320;
-    const THRESHOLD = degPerPx * 20; // 20px 이내면 겹침으로 간주
-    const posKey = (pos) => `${Number(pos[0]).toFixed(5)}:${Number(pos[1]).toFixed(5)}`;
-    // 그룹화
-    const groups = new Map();
-    entries.forEach((entry) => {
-      const key = posKey(entry.position);
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(entry);
-    });
-    // 유사 좌표도 같은 그룹으로 병합
-    const result = new Map();
-    entries.forEach((entry) => {
-      const [lat, lng] = entry.position;
-      let assigned = null;
-      for (const [gk, gList] of result.entries()) {
-        const [glat, glng] = gk.split(':').map(Number);
-        if (Math.abs(lat - glat) < THRESHOLD && Math.abs(lng - glng) < THRESHOLD) {
-          assigned = gk;
-          break;
-        }
-      }
-      if (!assigned) {
-        assigned = posKey(entry.position);
-        result.set(assigned, []);
-      }
-      result.get(assigned).push(entry);
-    });
-    return entries.map((entry) => {
-      const [lat, lng] = entry.position;
-      let groupKey = null;
-      for (const [gk, gList] of result.entries()) {
-        if (gList.includes(entry)) { groupKey = gk; break; }
-      }
-      const group = result.get(groupKey) || [entry];
-      if (group.length <= 1) return { ...entry, spreadPosition: entry.position, extraTailH: 0 };
-      const idx = group.indexOf(entry);
-      const total = group.length;
-      // 부채꼴: 위쪽 반원 (180도 범위), 가운데 마커부터 좌우로 펼침
-      const angleStep = Math.PI / Math.max(total - 1, 1);
-      const startAngle = Math.PI; // 왼쪽부터 시작
-      const angle = total === 1 ? -Math.PI / 2 : startAngle + idx * (Math.PI / Math.max(total - 1, 1)) - Math.PI / 2;
-      // 위로 분산 (angle=-π/2가 정상, 좌우로 펼침)
-      const spreadAngle = (idx - (total - 1) / 2) * (Math.PI / Math.max(total, 2));
-      const rx = Math.sin(spreadAngle) * spreadRadiusPx * degPerPx;
-      const ry = Math.abs(Math.cos(spreadAngle)) * spreadRadiusPx * degPerPx;
-      const spreadPosition = [lat + ry, lng + rx];
-      // 꼬리 길이: 원래 위치까지의 픽셀 거리
-      const dxPx = Math.abs(rx / degPerPx);
-      const dyPx = Math.abs(ry / degPerPx);
-      const distPx = Math.sqrt(dxPx * dxPx + dyPx * dyPx);
-      const extraTailH = Math.max(0, Math.round(distPx - tailBase));
-      return { ...entry, spreadPosition, extraTailH };
-    });
-  }, [mapZoom]);
   const visibleTimelineEntries = showTimelineMarkers ? timelineEntries : [];
   const visibleSegmentEntries = showRouteLines ? segmentEntries : [];
   const visibleOverlayEntries = showOverlayMarkers ? overlayEntries : [];
@@ -3831,7 +3772,6 @@ const App = () => {
   const [showLibraryCategoryModal, setShowLibraryCategoryModal] = useState(false);
   const [focusedLibraryMarkerId, setFocusedLibraryMarkerId] = useState(null); // 내장소 마커 두 단계 클릭: 첫 클릭 = + 모드
   const [libraryCategoryModalPos, setLibraryCategoryModalPos] = useState({ top: 200, right: 16 });
-  const [heroViewMode, setHeroViewMode] = useState('map'); // 'map' | 'schedule'
   const [overviewMapHidden, setOverviewMapHidden] = useState(false);
   const routePreviewSegmentCacheRef = useRef({});
   useEffect(() => {
@@ -10875,7 +10815,6 @@ const App = () => {
                   ...TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map((tag) => ({ ...tag, isCustom: false })),
                   ...customPlaceCategories.map((tag) => ({ value: tag, label: getCustomTagLabel(tag), isCustom: true })),
                 ];
-                const rightPanelMapHeight = isMobileLayout ? (mapExpanded ? 196 : 94) : 220;
                 return (
                   <div
                     className="w-full flex flex-col gap-1.5 items-stretch"

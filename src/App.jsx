@@ -7758,17 +7758,33 @@ const App = () => {
       item.duration = newDuration;
       syncBaseDuration(item, newDuration);
 
-      // 종료시각 고정 상태에서 소요시간 감소 → 시작시간을 앞당겨 앞 일정 연쇄 당기기
-      if (item.isEndTimeFixed && item._fixedEndMinutes != null && delta < 0) {
-        const newStart = item._fixedEndMinutes - newDuration;
-        item.time = minutesToTime(Math.max(0, newStart) % 1440);
-        item.isTimeFixed = true;
-        // 앞 일정들도 연쇄: isTimeFixed 해제해서 재계산이 당길 수 있게
-        for (let i = pIdx - 1; i >= 0; i--) {
-          const prev2 = dayPlan[i];
-          if (!prev2 || prev2.types?.includes('ship') || prev2.types?.includes('lodge')) break;
-          if (prev2.isTimeFixed) break; // 또 다른 잠금이 있으면 멈춤
-          prev2.isTimeFixed = false;
+      if (delta < 0) {
+        const freed = Math.abs(delta); // 소요시간 감소로 확보된 시간
+
+        if (item.isEndTimeFixed && item._fixedEndMinutes != null) {
+          // 종료시각 고정: 시작시간 앞당기고 앞 일정 연쇄
+          const newStart = item._fixedEndMinutes - newDuration;
+          item.time = minutesToTime(Math.max(0, newStart) % 1440);
+          item.isTimeFixed = true;
+          for (let i = pIdx - 1; i >= 0; i--) {
+            const prev2 = dayPlan[i];
+            if (!prev2 || prev2.types?.includes('ship') || prev2.types?.includes('lodge')) break;
+            if (prev2.isTimeFixed) break;
+            prev2.isTimeFixed = false;
+          }
+        } else {
+          // 일반: 확보된 시간을 다음 일정(들)의 보정시간에서 차감
+          let remaining = freed;
+          for (let i = pIdx + 1; i < dayPlan.length && remaining > 0; i++) {
+            const next = dayPlan[i];
+            if (!next || next.type === 'backup' || next.types?.includes('ship') || next.types?.includes('lodge')) break;
+            const curBuffer = parseMinsLabel(next.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+            if (curBuffer <= 0) continue;
+            const absorb = Math.min(curBuffer, remaining);
+            next.bufferTimeOverride = `${curBuffer - absorb}분`;
+            next._manualBufferTimeOverride = next.bufferTimeOverride;
+            remaining -= absorb;
+          }
         }
       }
 

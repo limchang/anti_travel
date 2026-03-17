@@ -15,7 +15,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw
+  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw, AlignLeft
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -3713,6 +3713,7 @@ const App = () => {
   const [routePreviewManualRefreshing, setRoutePreviewManualRefreshing] = useState(false);
   const [showOverviewLibraryPoints, setShowOverviewLibraryPoints] = useState(false);
   const [showLibraryCategoryModal, setShowLibraryCategoryModal] = useState(false);
+  const [heroViewMode, setHeroViewMode] = useState('map'); // 'map' | 'schedule'
   const [overviewMapHidden, setOverviewMapHidden] = useState(false);
   const routePreviewSegmentCacheRef = useRef({});
   useEffect(() => {
@@ -12104,9 +12105,92 @@ const App = () => {
                           </div>
                         </div>
 
+                        {/* 내 장소 카테고리 모달 (fixed - 지도 위 묻힘 방지) */}
+                        {showLibraryCategoryModal && (() => {
+                          const mapCategoryOptions = [
+                            { label: '전체', value: null, color: '#64748B' },
+                            { label: '식당', value: 'food', color: '#F43F5E' },
+                            { label: '카페', value: 'cafe', color: '#D97706' },
+                            { label: '관광', value: 'tour', color: '#8B5CF6' },
+                            { label: '숙소', value: 'lodge', color: '#4F46E5' },
+                            { label: '체험', value: 'experience', color: '#10B981' },
+                            { label: '기념품', value: 'souvenir', color: '#0D9488' },
+                            { label: '뷰맛집', value: 'view', color: '#0EA5E9' },
+                            { label: '픽업', value: 'pickup', color: '#F97316' },
+                            { label: '장소', value: 'place', color: '#94A3B8' },
+                          ];
+                          return (
+                            <>
+                              <div className="fixed inset-0 z-[498]" onClick={() => setShowLibraryCategoryModal(false)} />
+                              <div className="fixed right-4 top-[200px] z-[499] w-52 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.3)]">
+                                <div className="mb-2 flex items-center justify-between">
+                                  <span className="text-[10px] font-black text-slate-700">내 장소 카테고리</span>
+                                  <button type="button" onClick={() => setShowLibraryCategoryModal(false)} className="rounded-lg p-0.5 text-slate-400 hover:text-slate-600"><X size={12} /></button>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {mapCategoryOptions.map((opt) => {
+                                    const isAll = opt.value === null;
+                                    const isActive = isAll
+                                      ? (showOverviewLibraryPoints && placeFilterTags.length === 0)
+                                      : (showOverviewLibraryPoints && placeFilterTags.includes(opt.value));
+                                    return (
+                                      <button
+                                        key={opt.value ?? 'all'}
+                                        type="button"
+                                        onClick={() => {
+                                          if (isAll) {
+                                            setPlaceFilterTags([]);
+                                            setShowOverviewLibraryPoints(true);
+                                          } else if (isActive) {
+                                            const next = placeFilterTags.filter((t) => t !== opt.value);
+                                            setPlaceFilterTags(next);
+                                            if (next.length === 0) setShowOverviewLibraryPoints(false);
+                                          } else {
+                                            setPlaceFilterTags((prev) => [...prev.filter((t) => t !== opt.value), opt.value]);
+                                            setShowOverviewLibraryPoints(true);
+                                          }
+                                          setShowLibraryCategoryModal(false);
+                                        }}
+                                        className="flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-black transition-all"
+                                        style={isActive ? { background: opt.color, borderColor: opt.color, color: '#fff' } : { background: '#F8FAFC', borderColor: '#E2E8F0', color: '#64748B' }}
+                                      >
+                                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: opt.color, display: 'inline-block', flexShrink: 0 }} />
+                                        {opt.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                {showOverviewLibraryPoints && (
+                                  <button
+                                    type="button"
+                                    onClick={() => { setShowOverviewLibraryPoints(false); setPlaceFilterTags([]); setShowLibraryCategoryModal(false); }}
+                                    className="mt-2 w-full rounded-xl border border-slate-200 py-1 text-[9px] font-black text-slate-500 hover:bg-slate-50"
+                                  >지도에서 숨기기</button>
+                                )}
+                              </div>
+                            </>
+                          );
+                        })()}
                         {/* 🌟 2. 여행 한눈에 보기 */}
                         <div className="flex flex-col gap-3 px-3 transition-all duration-300 sm:px-0">
-                          {!overviewMapHidden && (
+                          {/* 지도 / 일정 뷰 탭 */}
+                          <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 p-0.5 self-start shadow-sm">
+                            <button
+                              type="button"
+                              onClick={() => setHeroViewMode('map')}
+                              className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-black transition-all ${heroViewMode === 'map' ? 'bg-[#3182F6] text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                              <MapIcon size={10} /><span>지도</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setHeroViewMode('schedule')}
+                              className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-black transition-all ${heroViewMode === 'schedule' ? 'bg-[#3182F6] text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                              <AlignLeft size={10} /><span>일정</span>
+                            </button>
+                          </div>
+                          {heroViewMode === 'map' && !overviewMapHidden && (
                             <div className="relative mt-1 w-full rounded-[24px] border border-white/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(248,250,252,0.96)_100%)] px-4 py-4 shadow-[0_28px_60px_-34px_rgba(15,23,42,0.42)] backdrop-blur-xl transition-all duration-300 sm:px-6 sm:py-6">
                               <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-white/80" />
                               <div className="mb-4 rounded-[24px] border border-slate-200 bg-white/88 p-3 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.28)]">
@@ -12130,77 +12214,13 @@ const App = () => {
                                     })}
                                   </div>
                                   <div className="flex shrink-0 items-center gap-1.5">
-                                    <div className="relative">
-                                      <button
-                                        type="button"
-                                        onClick={() => setShowLibraryCategoryModal((prev) => !prev)}
-                                        className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${showOverviewLibraryPoints ? 'border-purple-200 bg-purple-50 text-purple-600' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                                      >
-                                        <MapPin size={10} /><span>내 장소{showOverviewLibraryPoints ? ' ✓' : ''}</span>
-                                      </button>
-                                      {showLibraryCategoryModal && (() => {
-                                        const mapCategoryOptions = [
-                                          { label: '전체', value: null, color: '#64748B' },
-                                          { label: '식당', value: 'food', color: '#F43F5E' },
-                                          { label: '카페', value: 'cafe', color: '#D97706' },
-                                          { label: '관광', value: 'tour', color: '#8B5CF6' },
-                                          { label: '숙소', value: 'lodge', color: '#4F46E5' },
-                                          { label: '체험', value: 'experience', color: '#10B981' },
-                                          { label: '기념품', value: 'souvenir', color: '#0D9488' },
-                                          { label: '뷰맛집', value: 'view', color: '#0EA5E9' },
-                                          { label: '픽업', value: 'pickup', color: '#F97316' },
-                                          { label: '장소', value: 'place', color: '#94A3B8' },
-                                        ];
-                                        return (
-                                          <div className="absolute right-0 top-full z-[300] mt-1.5 w-52 rounded-2xl border border-slate-200 bg-white/98 p-3 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.25)] backdrop-blur-sm">
-                                            <div className="mb-2 flex items-center justify-between">
-                                              <span className="text-[10px] font-black text-slate-700">내 장소 카테고리</span>
-                                              <button type="button" onClick={() => setShowLibraryCategoryModal(false)} className="rounded-lg p-0.5 text-slate-400 hover:text-slate-600"><X size={12} /></button>
-                                            </div>
-                                            <div className="flex flex-wrap gap-1.5">
-                                              {mapCategoryOptions.map((opt) => {
-                                                const isAll = opt.value === null;
-                                                const isActive = isAll
-                                                  ? (showOverviewLibraryPoints && placeFilterTags.length === 0)
-                                                  : (showOverviewLibraryPoints && placeFilterTags.includes(opt.value));
-                                                return (
-                                                  <button
-                                                    key={opt.value ?? 'all'}
-                                                    type="button"
-                                                    onClick={() => {
-                                                      if (isAll) {
-                                                        setPlaceFilterTags([]);
-                                                        setShowOverviewLibraryPoints(true);
-                                                      } else if (isActive) {
-                                                        const next = placeFilterTags.filter((t) => t !== opt.value);
-                                                        setPlaceFilterTags(next);
-                                                        if (next.length === 0) setShowOverviewLibraryPoints(false);
-                                                      } else {
-                                                        setPlaceFilterTags((prev) => [...prev.filter((t) => t !== opt.value), opt.value]);
-                                                        setShowOverviewLibraryPoints(true);
-                                                      }
-                                                      setShowLibraryCategoryModal(false);
-                                                    }}
-                                                    className="flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-black transition-all"
-                                                    style={isActive ? { background: opt.color, borderColor: opt.color, color: '#fff' } : { background: '#F8FAFC', borderColor: '#E2E8F0', color: '#64748B' }}
-                                                  >
-                                                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: opt.color, display: 'inline-block', flexShrink: 0 }} />
-                                                    {opt.label}
-                                                  </button>
-                                                );
-                                              })}
-                                            </div>
-                                            {showOverviewLibraryPoints && (
-                                              <button
-                                                type="button"
-                                                onClick={() => { setShowOverviewLibraryPoints(false); setPlaceFilterTags([]); setShowLibraryCategoryModal(false); }}
-                                                className="mt-2 w-full rounded-xl border border-slate-200 py-1 text-[9px] font-black text-slate-500 hover:bg-slate-50"
-                                              >지도에서 숨기기</button>
-                                            )}
-                                          </div>
-                                        );
-                                      })()}
-                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowLibraryCategoryModal((prev) => !prev)}
+                                      className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${showOverviewLibraryPoints ? 'border-purple-200 bg-purple-50 text-purple-600' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                                    >
+                                      <MapPin size={10} /><span>내 장소{showOverviewLibraryPoints ? ' ✓' : ''}</span>
+                                    </button>
                                     {routePreviewEndpointActions.map((action) => (
                                       <button
                                         key={action.id}
@@ -12281,17 +12301,7 @@ const App = () => {
                               )}
                             </div>
                           )}
-                          {!heroCompactActive && (
-                            <div className="flex justify-center py-1">
-                              <button
-                                type="button"
-                                onClick={() => setOverviewMapHidden((prev) => !prev)}
-                                className="flex items-center gap-1 px-3 py-1 rounded-full border border-slate-200 bg-white/80 text-[10px] font-black text-slate-400 hover:border-slate-300 hover:text-slate-600 transition-all shadow-sm"
-                              >
-                                {overviewMapHidden ? <><ChevronDown size={11} /><span>지도 열기</span></> : <><ChevronUp size={11} /><span>지도 접기</span></>}
-                              </button>
-                            </div>
-                          )}
+                          {/* 지도 접기 버튼 제거 - 뷰 탭으로 대체 */}
                         </div>
                         {showHeroSummaryModal && (
                           <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/36 px-4 py-6 backdrop-blur-sm" onClick={() => setShowHeroSummaryModal(false)}>
@@ -12384,7 +12394,7 @@ const App = () => {
               </button>
             </div>
           )}
-          <div className={`w-full mx-auto flex flex-col relative z-0 ${timelineMaxClass} gap-0`}>
+          <div className={`w-full mx-auto flex flex-col relative z-0 ${timelineMaxClass} gap-0 ${heroViewMode === 'map' ? 'hidden' : ''}`}>
             {totalTimelineItems === 0 && (
               <div
                 data-droptarget="empty-timeline"

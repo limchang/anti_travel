@@ -2560,64 +2560,7 @@ const LeafletMapContextMenuHandler = ({ onContextMenu }) => {
 
 const POPUP_TAG_OPTIONS = TAG_OPTIONS.filter(t => !['new','revisit'].includes(t.value)).concat([{label:'퀵등록',value:'quick'}]);
 
-const LibraryMarkerTypePopover = ({ point, onTypeChange }) => {
-  const [open, setOpen] = React.useState(false);
-  const longPressRef = React.useRef(null);
-  const currentTypes = point.types?.length ? point.types : ['place'];
-  return (
-    <div style={{ display: 'inline-block', marginLeft: '4px', position: 'relative', verticalAlign: 'middle' }}>
-      <button
-        onClick={(e) => { e.stopPropagation(); setOpen(v => !v); }}
-        style={{ fontSize: '8px', fontWeight: 900, padding: '1px 5px', borderRadius: '4px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', cursor: 'pointer', lineHeight: 1.4 }}
-      >변경</button>
-      {open && (
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{ position: 'absolute', left: 0, top: '100%', marginTop: '4px', zIndex: 99999, background: '#fff', border: '1px solid #E2E8F0', borderRadius: '10px', boxShadow: '0 8px 24px -8px rgba(15,23,42,0.18)', padding: '6px', display: 'flex', flexWrap: 'wrap', gap: '4px', width: '160px' }}
-        >
-          {POPUP_TAG_OPTIONS.map(t => {
-            const active = currentTypes.includes(t.value);
-            return (
-              <button
-                key={t.value}
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  longPressRef._fired = false;
-                  longPressRef.current = setTimeout(() => {
-                    longPressRef._fired = true;
-                    onTypeChange([t.value]);
-                    setOpen(false);
-                  }, 500);
-                }}
-                onMouseUp={() => clearTimeout(longPressRef.current)}
-                onMouseLeave={() => clearTimeout(longPressRef.current)}
-                onTouchStart={(e) => {
-                  e.stopPropagation();
-                  longPressRef._fired = false;
-                  longPressRef.current = setTimeout(() => {
-                    longPressRef._fired = true;
-                    onTypeChange([t.value]);
-                    setOpen(false);
-                  }, 500);
-                }}
-                onTouchEnd={() => clearTimeout(longPressRef.current)}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (longPressRef._fired) return;
-                  const removed = currentTypes.filter(v => v !== t.value);
-                  const next = active ? (removed.length ? removed : currentTypes) : [...currentTypes.filter(v => v !== 'place'), t.value];
-                  onTypeChange(next);
-                }}
-                style={{ padding: '2px 6px', borderRadius: '5px', fontSize: '9px', fontWeight: 900, border: `1px solid ${active ? '#3182F6' : '#E2E8F0'}`, background: active ? '#3182F6' : '#F8FAFC', color: active ? '#fff' : '#64748B', cursor: 'pointer' }}
-              >{t.label}</button>
-            );
-          })}
-          <p style={{ width: '100%', fontSize: '7px', color: '#CBD5E1', fontWeight: 700, marginTop: '2px' }}>길게 누르면 단독 선택</p>
-        </div>
-      )}
-    </div>
-  );
-};
+// LibraryMarkerTypePopover 제거 — 팝업 칩 클릭 시 App 레벨 모달로 대체
 
 const RoutePreviewCanvas = ({
   routePreviewMap = [],
@@ -2630,6 +2573,7 @@ const RoutePreviewCanvas = ({
   onLibraryMarkerAddClick = null,
   onLibraryMarkerFocus = null,
   onLibraryMarkerTypeChange = null,
+  onLibraryMarkerTypeEdit = null,
   onBackgroundClick = null,
   interactive = true,
   showTimelineMarkers = true,
@@ -3131,22 +3075,15 @@ const RoutePreviewCanvas = ({
                       ) : (
                         // 단일 마커 팝업
                         <div style={{ padding: '8px 10px' }}>
-                          {/* 카테고리 칩 — 클릭 시 팝오버 */}
-                          <div style={{ position: 'relative', marginBottom: '4px' }}>
-                            <div
-                              style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
-                              onClick={(e) => { e.stopPropagation(); }}
+                          {/* 카테고리 칩 — 클릭 시 App 레벨 모달 */}
+                          <div style={{ marginBottom: '4px' }}>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); if (typeof onLibraryMarkerTypeEdit === 'function') onLibraryMarkerTypeEdit(point.id, point.types || []); }}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', padding: 0, cursor: typeof onLibraryMarkerTypeEdit === 'function' ? 'pointer' : 'default' }}
                             >
                               <div style={{ width: '8px', height: '8px', borderRadius: '3px', background: point.categoryColor || '#2563EB', flexShrink: 0 }} />
                               <span style={{ fontSize: '9px', fontWeight: 900, color: point.categoryColor || '#2563EB' }}>{point.categoryLabel || '내장소'}</span>
-                            </div>
-                            {/* 카테고리 변경 팝오버 — onLibraryMarkerTypeChange 있을 때만 */}
-                            {typeof onLibraryMarkerTypeChange === 'function' && (
-                              <LibraryMarkerTypePopover
-                                point={point}
-                                onTypeChange={(nextTypes) => onLibraryMarkerTypeChange(point.id, nextTypes)}
-                              />
-                            )}
+                            </button>
                           </div>
                           <div style={{ fontSize: '12px', fontWeight: 900, color: '#1E293B', marginBottom: '3px', wordBreak: 'break-all' }}>{point.label}</div>
                           {point.address && <div style={{ fontSize: '9px', color: '#94A3B8', marginBottom: '6px', wordBreak: 'break-all' }}>{point.address}</div>}
@@ -3987,6 +3924,7 @@ const App = () => {
   const [showOverviewLibraryPoints, setShowOverviewLibraryPoints] = useState(false);
   const [showLibraryCategoryModal, setShowLibraryCategoryModal] = useState(false);
   const [focusedLibraryMarkerId, setFocusedLibraryMarkerId] = useState(null); // 내장소 마커 두 단계 클릭: 첫 클릭 = + 모드
+  const [libraryTypeModal, setLibraryTypeModal] = useState(null); // { placeId, types: [] }
   const [libraryCategoryModalPos, setLibraryCategoryModalPos] = useState({ top: 200, right: 16 });
   const routePreviewSegmentCacheRef = useRef({});
   useEffect(() => {
@@ -11291,9 +11229,8 @@ const App = () => {
                           onLibraryMarkerFocus={(placeId) => {
                             setFocusedLibraryMarkerId(placeId);
                           }}
-                          onLibraryMarkerTypeChange={(placeId, nextTypes) => {
-                            const place = (itinerary.places || []).find(p => p?.id === placeId);
-                            if (place) updatePlace(placeId, { ...place, types: nextTypes });
+                          onLibraryMarkerTypeEdit={(placeId, currentTypes) => {
+                            setLibraryTypeModal({ placeId, types: currentTypes?.length ? [...currentTypes] : ['place'] });
                           }}
                           focusedLibraryMarkerId={focusedLibraryMarkerId}
                           onBackgroundClick={clearOverviewMapFocus}
@@ -14666,6 +14603,82 @@ const App = () => {
           margin: 0; 
         }
       `}</style>
+
+      {/* 내장소 마커 카테고리 변경 모달 */}
+      {libraryTypeModal && (() => {
+        const longPressRef = { current: null, _fired: false };
+        const selectedTypes = libraryTypeModal.types;
+        return (
+          <div
+            className="fixed inset-0 z-[99999] flex items-end justify-center"
+            style={{ background: 'rgba(15,23,42,0.45)' }}
+            onClick={() => setLibraryTypeModal(null)}
+          >
+            <div
+              className="w-full max-w-sm rounded-t-[24px] bg-white px-5 pt-5 pb-8 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <span className="text-[13px] font-black text-slate-800">카테고리 선택</span>
+                <button
+                  onClick={() => setLibraryTypeModal(null)}
+                  className="rounded-full p-1 text-slate-400 hover:bg-slate-100"
+                ><X size={14} /></button>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-5">
+                {POPUP_TAG_OPTIONS.map(t => {
+                  const active = selectedTypes.includes(t.value);
+                  return (
+                    <button
+                      key={t.value}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        longPressRef._fired = false;
+                        longPressRef.current = setTimeout(() => {
+                          longPressRef._fired = true;
+                          setLibraryTypeModal(prev => ({ ...prev, types: [t.value] }));
+                        }, 500);
+                      }}
+                      onMouseUp={() => clearTimeout(longPressRef.current)}
+                      onMouseLeave={() => clearTimeout(longPressRef.current)}
+                      onTouchStart={(e) => {
+                        e.stopPropagation();
+                        longPressRef._fired = false;
+                        longPressRef.current = setTimeout(() => {
+                          longPressRef._fired = true;
+                          setLibraryTypeModal(prev => ({ ...prev, types: [t.value] }));
+                        }, 500);
+                      }}
+                      onTouchEnd={() => clearTimeout(longPressRef.current)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (longPressRef._fired) return;
+                        setLibraryTypeModal(prev => {
+                          const cur = prev.types;
+                          const removed = cur.filter(v => v !== t.value);
+                          const next = active ? (removed.length ? removed : cur) : [...cur.filter(v => v !== 'place'), t.value];
+                          return { ...prev, types: next };
+                        });
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-[11px] font-black border transition-all ${active ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
+                    >{t.label}</button>
+                  );
+                })}
+              </div>
+              <p className="text-[9px] text-slate-400 font-bold mb-4 text-center">길게 누르면 단독 선택</p>
+              <button
+                onClick={() => {
+                  const place = (itinerary.places || []).find(p => p?.id === libraryTypeModal.placeId);
+                  if (place) updatePlace(libraryTypeModal.placeId, { ...place, types: libraryTypeModal.types });
+                  setLibraryTypeModal(null);
+                }}
+                className="w-full rounded-2xl bg-[#3182F6] py-3 text-[13px] font-black text-white"
+              >완료</button>
+            </div>
+          </div>
+        );
+      })()}
+
       </div >
     </div >
   );

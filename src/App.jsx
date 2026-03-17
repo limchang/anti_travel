@@ -13211,12 +13211,12 @@ const App = () => {
                           </div>
                         )}
                         {/* planVariantPicker 팝업은 overflow-hidden 카드 밖 루트 레벨에서 렌더링 */}
-                        <div className="relative flex items-stretch border-b border-slate-100 border-dashed">
+                        <div className="relative flex flex-col border-b border-slate-100 border-dashed">
 
                           {!isShip && !isLodge && (
                             <div
                               data-no-drag="true"
-                              className={`flex flex-col group/tower transition-[width] duration-300 ease-out ${isTimeCellExpanded ? 'w-full overflow-visible z-20 border-r-0 py-2 px-2 sm:px-2.5' : 'shrink-0 border-r border-slate-100 flex-none overflow-hidden'} ${!isTimeCellExpanded && isCompactTimeline ? 'w-[30%] items-center justify-center py-1.5' : ''} ${!isTimeCellExpanded && !isCompactTimeline ? 'w-[30%] items-center justify-center py-2 px-2 sm:px-2.5' : ''} bg-transparent`}
+                              className={`flex flex-col group/tower transition-all duration-300 ease-out ${isTimeCellExpanded ? 'overflow-visible z-20 py-2 px-2 sm:px-2.5' : 'w-full border-b border-slate-100 overflow-hidden'} ${!isTimeCellExpanded ? 'py-1.5 px-2 sm:px-2.5' : ''} bg-transparent`}
                             >
                               {(() => {
                                 const startMinutes = timeToMinutes(p.time || '00:00');
@@ -13272,40 +13272,58 @@ const App = () => {
                                     {!isTimeCellExpanded && (
                                       <div
                                         data-time-trigger="true"
-                                        className="relative z-10 w-full rounded-2xl px-1 py-1 select-none transition-all group-hover/tower:bg-slate-100/30"
+                                        className="relative z-10 w-full select-none"
                                       >
-                                        <div className="flex w-full flex-col items-center gap-1 px-1 py-0.5">
+                                        <div className="flex w-full items-stretch gap-1.5 px-1 py-1.5">
+                                          {/* 시작 시간 */}
                                           <button
                                             type="button"
                                             onClick={toggleInline}
-                                            className={`flex h-[44px] w-full items-center justify-center rounded-[12px] border px-2 py-1 transition-all ${p.isTimeFixed ? 'border-[#3182F6]/60 bg-blue-50 shadow-[0_0_0_2px_rgba(49,130,246,0.12)]' : 'border-slate-200 bg-white/92 hover:border-slate-300'}`}
+                                            className={`flex flex-1 h-[40px] items-center justify-center rounded-[12px] border px-2 transition-all ${p.isTimeFixed ? 'border-[#3182F6]/60 bg-blue-50 shadow-[0_0_0_2px_rgba(49,130,246,0.12)]' : 'border-slate-200 bg-white/92 hover:border-slate-300'}`}
                                           >
-                                            <span className={`text-[30px] font-black tabular-nums tracking-[-0.06em] leading-none ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-900'}`}>
+                                            <span className={`text-[22px] font-black tabular-nums tracking-[-0.06em] leading-none ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-900'}`}>
                                               {hh}<span className="mx-[1px] opacity-70">:</span>{mm}
                                             </span>
                                           </button>
 
-                                          <button
-                                            type="button"
-                                            onClick={toggleInline}
-                                            className={`relative z-10 flex h-[30px] w-full items-center justify-center gap-2 rounded-[12px] border px-2 py-0.5 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all hover:scale-[1.02] active:scale-[0.98] ${isAutoLocked
+                                          {/* 소요 시간 */}
+                                          <div className={`relative z-10 flex flex-1 h-[40px] items-center justify-center rounded-[12px] border shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all overflow-hidden ${isAutoLocked
                                               ? 'border-red-400 bg-red-500 text-white'
                                               : isDurationLocked
                                                 ? 'border-[#ff8a1a] bg-[#ff8a1a] text-white'
-                                                : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                                : 'border-slate-200 bg-white text-slate-700'
                                               }`}
                                           >
-                                            <ChevronLeft size={10} />
-                                            <span className="font-black tabular-nums text-[12px] tracking-[0.08em] whitespace-nowrap">{fmtDurCompact(p.duration)}</span>
-                                            <ChevronRight size={10} />
-                                          </button>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, -1); }}
+                                              className="flex items-center justify-center px-1.5 h-full hover:bg-black/10 active:bg-black/20 transition-colors"
+                                            >
+                                              <ChevronLeft size={10} />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={toggleInline}
+                                              className="flex-1 flex items-center justify-center h-full"
+                                            >
+                                              <span className="font-black tabular-nums text-[11px] tracking-[0.04em] whitespace-nowrap">{fmtDurCompact(p.duration)}</span>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, 1); }}
+                                              className="flex items-center justify-center px-1.5 h-full hover:bg-black/10 active:bg-black/20 transition-colors"
+                                            >
+                                              <ChevronRight size={10} />
+                                            </button>
+                                          </div>
 
+                                          {/* 종료 시간 */}
                                           <button
                                             type="button"
                                             onClick={toggleInline}
-                                            className={`flex h-[40px] w-full items-center justify-center rounded-[12px] border px-2 py-1 transition-all ${isEndTimeFixed ? 'border-violet-400/60 bg-violet-50 shadow-[0_0_0_2px_rgba(139,92,246,0.12)]' : 'border-slate-200 bg-slate-50/95 hover:border-slate-300'}`}
+                                            className={`flex flex-1 h-[40px] items-center justify-center rounded-[12px] border px-2 transition-all ${isEndTimeFixed ? 'border-violet-400/60 bg-violet-50 shadow-[0_0_0_2px_rgba(139,92,246,0.12)]' : 'border-slate-200 bg-slate-50/95 hover:border-slate-300'}`}
                                           >
-                                            <span className={`text-[26px] font-black tabular-nums tracking-[-0.06em] leading-none ${isEndTimeFixed ? 'text-violet-500' : 'text-slate-400'}`}>
+                                            <span className={`text-[22px] font-black tabular-nums tracking-[-0.06em] leading-none ${isEndTimeFixed ? 'text-violet-500' : 'text-slate-400'}`}>
                                               {ehh}<span className="mx-[1px] opacity-65">:</span>{emm}
                                             </span>
                                           </button>
@@ -13457,8 +13475,8 @@ const App = () => {
                             </div>
                           )}
 
-                          {/* 🟢 우측 정보 영역 */}
-                          <div className={`${isTimeCellExpanded && !isShip && !isLodge ? 'hidden' : ''} ${(isShip || isLodge) ? 'flex-1' : 'w-[70%] flex-none'} min-w-0 flex flex-col justify-start transition-all duration-500 overflow-hidden ${isTimelineDragActive ? 'gap-1.5 p-2.5 sm:p-3' : isCompactTimeline ? 'gap-2 p-2.5 sm:p-3' : 'gap-2 p-3 sm:p-4'}`}>
+                          {/* 🟢 내용 영역 */}
+                          <div className={`${isTimeCellExpanded && !isShip && !isLodge ? 'hidden' : ''} w-full min-w-0 flex flex-col justify-start transition-all duration-500 overflow-hidden ${isTimelineDragActive ? 'gap-1.5 p-2.5 sm:p-3' : isCompactTimeline ? 'gap-2 p-2.5 sm:p-3' : 'gap-2 p-3 sm:p-4'}`}>
                             {isShip ? (
                               <div className="flex flex-col gap-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                                 {(() => {

@@ -13390,6 +13390,10 @@ const App = () => {
                                     {!isTimeCellExpanded && (
                                       <div
                                         data-time-trigger="true"
+                                        data-no-drag="true"
+                                        onTouchStart={(e) => e.stopPropagation()}
+                                        onPointerDown={(e) => e.stopPropagation()}
+                                        onDragStart={(e) => e.preventDefault()}
                                         className="relative z-10 w-full select-none"
                                       >
                                         <div className="flex w-full items-stretch gap-1.5 px-1 py-1.5">
@@ -13452,12 +13456,14 @@ const App = () => {
                                     {isTimeCellExpanded && (
                                       <div
                                         data-time-modal="true"
+                                        data-no-drag="true"
                                         onClick={(e) => e.stopPropagation()}
-                                        onPointerDown={bumpTimeControllerAutoClose}
-                                        onPointerMove={bumpTimeControllerAutoClose}
-                                        onTouchStart={bumpTimeControllerAutoClose}
-                                        onTouchMove={bumpTimeControllerAutoClose}
+                                        onPointerDown={(e) => { e.stopPropagation(); bumpTimeControllerAutoClose(e); }}
+                                        onPointerMove={(e) => { e.stopPropagation(); bumpTimeControllerAutoClose(e); }}
+                                        onTouchStart={(e) => { e.stopPropagation(); bumpTimeControllerAutoClose(e); }}
+                                        onTouchMove={(e) => { e.stopPropagation(); bumpTimeControllerAutoClose(e); }}
                                         onWheel={bumpTimeControllerAutoClose}
+                                        onDragStart={(e) => e.preventDefault()}
                                         className="mt-1 w-full z-30"
                                       >
                                         <div className="grid h-full grid-cols-3 gap-2 items-stretch p-1">

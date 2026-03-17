@@ -2279,7 +2279,7 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
   // timelineFocused=true(경로 포커스 중)일 때는 오히려 더 잘 보이게 opacity 유지
   const shortLabel = String(categoryLabel || '장소').trim().slice(0, 2);
   const bgColor = canAdd ? '#3182F6' : categoryColor;
-  const opacity = canAdd ? 1 : (isFocused ? 0.92 : (timelineFocused ? 0.82 : 0.55));
+  const opacity = canAdd ? 1 : (isFocused ? 0.95 : (timelineFocused ? 0.88 : 0.85));
   const sz = canAdd ? (isFocused ? 26 : 22) : (isFocused ? 22 : 18);
   const tailW = isFocused ? 4 : 3;
   const tailH = (isFocused ? 6 : 5) + extraTailH;
@@ -2352,7 +2352,7 @@ const buildSegmentLabelIcon = (color, label, isFocused) => {
         align-items:center;
         justify-content:center;
         height:${h}px;
-        padding:0 7px;
+        padding:0 4px;
         border-radius:999px;
         background:${color};
         color:#fff;
@@ -2515,6 +2515,17 @@ const LeafletMapBackgroundClickHandler = ({ onBackgroundClick }) => {
   useMapEvents({
     click: () => {
       onBackgroundClick?.();
+    },
+  });
+  return null;
+};
+
+const LeafletMapContextMenuHandler = () => {
+  useMapEvents({
+    contextmenu: (e) => {
+      const { lat, lng } = e.latlng;
+      const url = `https://map.naver.com/p/entry/coords/${lng},${lat}?c=${lng},${lat},15,0,0,0,dh`;
+      window.open(url, '_blank', 'noopener,noreferrer');
     },
   });
   return null;
@@ -2784,6 +2795,7 @@ const RoutePreviewCanvas = ({
           scopeKey={scopeKey || routeOnlyBoundsSignature}
         />
         <LeafletMapBackgroundClickHandler onBackgroundClick={onBackgroundClick} />
+        <LeafletMapContextMenuHandler />
         {(() => {
           const ZoomTracker = () => {
             useMapEvents({ zoomend: (e) => setMapZoom(e.target.getZoom()) });

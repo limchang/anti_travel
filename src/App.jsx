@@ -2872,7 +2872,7 @@ const RoutePreviewCanvas = ({
           {visibleSegmentEntries.map((segment) => {
             if (!segment.midPos || segment.isFallbackLine) return null;
             const mins = segment.durationMins;
-            if (!mins) return null;
+            if (!mins || mins < 5) return null;
             const label = mins >= 60
               ? `${Math.floor(mins / 60)}시간${mins % 60 > 0 ? ` ${mins % 60}분` : ''}`
               : `${mins}분`;

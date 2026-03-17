@@ -12983,7 +12983,12 @@ const App = () => {
                 else if (p.isTimeFixed) stateStyles = 'bg-white border-[#3182F6]/40 shadow-[0_10px_30px_-8px_rgba(49,130,246,0.12)] ring-1 ring-[#3182F6]/15';
                 else stateStyles = 'bg-white border-slate-200 shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)] hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)] hover:border-slate-300';
 
-                const chips = p.types ? p.types.map(t => getCategoryBadge(t)) : (p.type ? [getCategoryBadge(p.type)] : []);
+                const allTypes = p.types || (p.type ? [p.type] : []);
+                const mainTypes = allTypes.filter(t => !MODIFIER_TAGS.has(t));
+                const subTypes = allTypes.filter(t => MODIFIER_TAGS.has(t));
+                const mainChips = mainTypes.map(t => getCategoryBadge(t));
+                const subChips = subTypes.map(t => getCategoryBadge(t));
+                const chips = mainChips; // 하위 호환 (지도 등 기존 사용처)
                 const businessWarning = !isShip ? getBusinessWarning(p, dIdx) : '';
                 // 스마트 락(숙소 자동 계산) 여부 확인
                 const isAutoLocked = p.isAutoDuration;
@@ -13863,19 +13868,30 @@ const App = () => {
                                   placeholder="일정 이름 입력 후 Enter"
                                   onContainerClick={(e) => e.stopPropagation()}
                                   prefixContent={
-                                    <div
-                                      className={`flex items-center gap-0.5 flex-nowrap shrink-0 cursor-pointer rounded px-0.5 py-0.5 -ml-0.5 transition-colors ${tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx ? 'bg-blue-50 ring-1 ring-[#3182F6]/30' : 'hover:bg-slate-100/60'}`}
-                                      title="클릭하여 태그 편집"
-                                      onClick={(e) => { e.stopPropagation(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx }); }}
-                                    >
-                                      {chips}
-                                      {hasPlanB && (
-                                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-200 leading-none shadow-sm">PLAN B</span>
-                                      )}
-                                    </div>
+                                    mainChips.length > 0 ? (
+                                      <div
+                                        className={`flex items-center gap-0.5 flex-nowrap shrink-0 cursor-pointer rounded px-0.5 py-0.5 -ml-0.5 transition-colors ${tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx ? 'bg-blue-50 ring-1 ring-[#3182F6]/30' : 'hover:bg-slate-100/60'}`}
+                                        title="클릭하여 태그 편집"
+                                        onClick={(e) => { e.stopPropagation(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx }); }}
+                                      >
+                                        {mainChips}
+                                      </div>
+                                    ) : null
                                   }
                                   actionButton={
                                     <div className="flex items-center gap-1">
+                                      {(subChips.length > 0 || hasPlanB) && (
+                                        <div
+                                          className={`flex items-center gap-0.5 flex-nowrap shrink-0 cursor-pointer rounded px-0.5 py-0.5 transition-colors ${tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx ? 'bg-blue-50 ring-1 ring-[#3182F6]/30' : 'hover:bg-slate-100/60'}`}
+                                          title="클릭하여 태그 편집"
+                                          onClick={(e) => { e.stopPropagation(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx }); }}
+                                        >
+                                          {subChips}
+                                          {hasPlanB && (
+                                            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-200 leading-none shadow-sm">PLAN B</span>
+                                          )}
+                                        </div>
+                                      )}
                                       <button
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}

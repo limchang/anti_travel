@@ -416,7 +416,7 @@ const SharedMemoRow = ({ value, onChange, placeholder = '메모를 입력하세�
 
   if (hasList && !editing) {
     return (
-      <div onClick={onContainerClick} className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-1.5">
+      <div onClick={onContainerClick} onDoubleClick={!readOnly ? (e) => { e.stopPropagation(); setEditing(true); } : undefined} className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-1.5" title={!readOnly ? '더블클릭으로 텍스트 편집' : undefined}>
         <div className="flex flex-col gap-0.5">
           {lines.map((line) =>
             line.isCheckItem ? (
@@ -440,9 +440,6 @@ const SharedMemoRow = ({ value, onChange, placeholder = '메모를 입력하세�
             )
           )}
         </div>
-        {!readOnly && (
-          <button onClick={(e) => { e.stopPropagation(); setEditing(true); }} className="mt-1 text-[9px] font-bold text-slate-300 hover:text-slate-400 transition-colors">편집</button>
-        )}
       </div>
     );
   }

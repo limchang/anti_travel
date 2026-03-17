@@ -8443,13 +8443,10 @@ const App = () => {
         const nextStart = timeToMinutes(nextItem.time || '00:00');
         const anchoredStart = Math.max(0, nextStart - nextTravel - nextBuffer - Math.max(0, Number(insertedItem.duration) || 0));
         insertedItem.time = minutesToTime(anchoredStart);
-        insertedItem.isTimeFixed = true;
         nextItem.travelTimeOverride = `${DEFAULT_TRAVEL_MINS}분`;
         nextItem.bufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
         nextItem._manualBufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
         nextItem._isBufferCoordinated = false;
-      } else {
-        insertedItem.isTimeFixed = true;
       }
 
       targetDayPlan.splice(insertAfterPIdx + 1, 0, insertedItem);
@@ -8520,7 +8517,6 @@ const App = () => {
         const nextStart = timeToMinutes(nextItem.time || '00:00');
         const anchoredStart = Math.max(0, nextStart - nextTravel - nextBuffer - Math.max(0, Number(itemToMove.duration) || 0));
         itemToMove.time = minutesToTime(anchoredStart);
-        itemToMove.isTimeFixed = true;
         // 이후 기준 삽입 시 nextItem의 이동/버퍼 시간 초기화 (새 경로 기준)
         nextItem.travelTimeOverride = `${DEFAULT_TRAVEL_MINS}분`;
         nextItem.bufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
@@ -8528,7 +8524,6 @@ const App = () => {
         nextItem._isBufferCoordinated = false;
       } else if (prevItem && !itemToMove.types?.includes('ship')) {
         itemToMove.time = minutesToTime(getTimelineItemEndMinutes(prevItem) + DEFAULT_TRAVEL_MINS + DEFAULT_BUFFER_MINS);
-        itemToMove.isTimeFixed = true;
       }
       targetDayPlan.splice(insertAfterPIdx + 1, 0, itemToMove);
       nextData.days[targetDayIdx].plan = recalculateSchedule(targetDayPlan);
@@ -9158,14 +9153,12 @@ const App = () => {
         const nextStart = timeToMinutes(nextItem.time || '00:00');
         const anchoredStart = Math.max(0, nextStart - nextTravel - nextBuffer - Math.max(0, Number(insertedItem.duration) || 0));
         insertedItem.time = minutesToTime(anchoredStart);
-        insertedItem.isTimeFixed = true;
         nextItem.travelTimeOverride = `${DEFAULT_TRAVEL_MINS}분`;
         nextItem.bufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
         nextItem._manualBufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
         nextItem._isBufferCoordinated = false;
       } else if (prevItem) {
         insertedItem.time = minutesToTime(getTimelineItemEndMinutes(prevItem) + DEFAULT_TRAVEL_MINS + DEFAULT_BUFFER_MINS);
-        insertedItem.isTimeFixed = true;
       }
       dayPlan.splice(insertIndex + 1, 0, insertedItem);
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);

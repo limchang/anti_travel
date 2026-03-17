@@ -2253,7 +2253,8 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
         <div style="
           width:${sz}px;height:${sz}px;border-radius:${radius}px;
           background:${dayColor};
-          border:${isFocused ? '2.5px' : '0px'} solid rgba(255,255,255,0.6);
+          border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);
+          box-shadow:0 0 0 1.5px ${dayColor};
           display:flex;align-items:center;justify-content:center;
         ">
           <span style="
@@ -2284,10 +2285,10 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
   const tailH = (isFocused ? 6 : 5) + extraTailH;
   const totalH = sz + tailH;
   const borderStyle = canAdd
-    ? `2px solid rgba(255,255,255,0.7)`
+    ? `2px solid rgba(255,255,255,0.9)`
     : isFocused
-      ? `2px solid rgba(255,255,255,0.8)`
-      : `1.5px solid rgba(255,255,255,0.5)`;
+      ? `2px solid rgba(255,255,255,0.95)`
+      : `2px solid rgba(255,255,255,0.85)`;
   const shadow = canAdd
     ? 'drop-shadow(0 4px 10px rgba(49,130,246,0.5))'
     : isFocused
@@ -5349,7 +5350,26 @@ const App = () => {
     const lastShip = allShips[allShips.length - 1]?.item || null;
 
     return (itinerary.days || []).map((day, index) => {
-      const points = (day.plan || [])
+      // 전날 마지막 숙박을 이 날의 출발점(order 0)으로 포함
+      const prevDay = index > 0 ? itinerary.days[index - 1] : null;
+      const prevLodge = prevDay
+        ? [...(prevDay.plan || [])].reverse().find(item => item && item.type !== 'backup' && (isFullLodgeStayItem(item) || item.types?.includes('lodge') || item.types?.includes('stay')))
+        : null;
+      const prevLodgeAddress = prevLodge ? String(getRouteAddress(prevLodge, 'to') || '').trim() : '';
+      const prevLodgePoint = (prevLodge && prevLodgeAddress) ? [{
+        id: `${prevLodge.id}:prev-lodge`,
+        itemId: prevLodge.id,
+        pointKind: 'prev-lodge',
+        label: prevLodge.activity || prevLodge.name || '숙박',
+        primaryType: 'lodge',
+        categoryLabel: '숙박',
+        address: prevLodgeAddress,
+        geo: normalizeGeoPoint(prevLodge.geo, prevLodgeAddress),
+        isEndpointToggle: false,
+        endpointLabel: '',
+      }] : [];
+
+      const points = [...prevLodgePoint, ...(day.plan || [])
         .filter((item) => item && item.type !== 'backup')
         .flatMap((item) => {
           if (item.types?.includes('ship')) {
@@ -5399,7 +5419,7 @@ const App = () => {
             isEndpointToggle: false,
             endpointLabel: '',
           }];
-        });
+        })];
 
       return {
         day: day.day || index + 1,
@@ -10842,6 +10862,49 @@ const App = () => {
                         />
                       </div>
                     </div>
+                    {/* 카테고리 필터 + 카테고리 관리 */}
+                    <div className="flex items-start gap-1 mb-1">
+                      <div className="flex flex-1 flex-wrap gap-1 min-w-0">
+                        {filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0).map(t => {
+                          const active = placeFilterTags.includes(t.value);
+                          return (
+                            <button
+                              key={t.value}
+                              onClick={() => setPlaceFilterTags(prev => active ? prev.filter(v => v !== t.value) : [...prev, t.value])}
+                              className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${active ? 'bg-[#3182F6] text-white border-[#3182F6]' : t.isCustom ? 'bg-slate-50 text-slate-600 border-slate-300' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
+                            >
+                              {t.label}
+                              <span className={`ml-1 px-0.5 rounded text-[8px] font-black ${active ? 'text-white/80' : 'text-slate-400'}`}>{categoryCounts[t.value]}</span>
+                            </button>
+                          );
+                        })}
+                        {placeFilterTags.length > 0 && (
+                          <button onClick={() => setPlaceFilterTags([])} className="px-2 py-0.5 rounded-lg text-[9px] font-black bg-slate-100 text-slate-400 border border-slate-200">✕</button>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowPlaceCategoryManager(prev => !prev)}
+                        className={`shrink-0 w-6 h-6 flex items-center justify-center rounded-lg border transition-colors ${showPlaceCategoryManager ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300'}`}
+                      ><SlidersHorizontal size={11} /></button>
+                    </div>
+                    {showPlaceCategoryManager && (
+                      <div className="mb-1.5 rounded-[12px] border border-slate-200 bg-white px-2.5 py-2 shadow-sm">
+                        <p className="text-[10px] font-black text-slate-600">카테고리 관리</p>
+                        {customPlaceCategories.length === 0 ? (
+                          <p className="mt-1 text-[9px] font-bold text-slate-400">삭제 가능한 사용자 카테고리가 없습니다.</p>
+                        ) : (
+                          <div className="mt-1.5 flex flex-wrap gap-1.5">
+                            {customPlaceCategories.map(tag => (
+                              <button key={`manager-${tag}`} type="button" onClick={() => removeCustomCategoryEverywhere(tag)}
+                                className="flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-500 transition-colors">
+                                {getCustomTagLabel(tag)}<Trash2 size={10} />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {basePlanRef?.id && (
                       <div
                         onClick={() => { setBasePlanRef(null); setLastAction("거리순 정렬을 해제하고 이름순으로 정렬했습니다."); }}
@@ -10857,6 +10920,7 @@ const App = () => {
                         + 버튼으로 장소를 추가하고<br />타임라인으로 드래그하세요
                       </p>
                     )}
+                    <div className="grid grid-cols-2 gap-1.5">
                     {visiblePlaces.filter(place => place && (place.id || place.name)).map(place => {
                       const chips = place.types ? place.types.map(t => getCategoryBadge(t)) : [getCategoryBadge('place')];
                       const isPlaceExpanded = expandedPlaceId === place.id;
@@ -11039,6 +11103,7 @@ const App = () => {
                         />
                       );
                     })}
+                    </div>{/* grid-cols-2 닫기 */}
                   </div>
                 );
               })()}

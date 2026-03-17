@@ -7750,9 +7750,27 @@ const App = () => {
       const dayPlan = nextData.days[dayIdx].plan;
       const item = dayPlan[pIdx];
       const maxDuration = isOvernightLodgeTimelineItem(item) ? 1440 : 1439;
-      item.duration = Math.max(0, Math.min(maxDuration, (item.duration || 0) + delta));
-      syncBaseDuration(item, item.duration);
+      const newDuration = Math.max(0, Math.min(maxDuration, (item.duration || 0) + delta));
+      item.duration = newDuration;
+      syncBaseDuration(item, newDuration);
+
+      // 종료시각 고정 상태에서 소요시간 감소 → 시작시간을 앞당겨 앞 일정 연쇄 당기기
+      if (item.isEndTimeFixed && item._fixedEndMinutes != null && delta < 0) {
+        const newStart = item._fixedEndMinutes - newDuration;
+        item.time = minutesToTime(Math.max(0, newStart) % 1440);
+        item.isTimeFixed = true;
+        // 앞 일정들도 연쇄: isTimeFixed 해제해서 재계산이 당길 수 있게
+        for (let i = pIdx - 1; i >= 0; i--) {
+          const prev2 = dayPlan[i];
+          if (!prev2 || prev2.types?.includes('ship') || prev2.types?.includes('lodge')) break;
+          if (prev2.isTimeFixed) break; // 또 다른 잠금이 있으면 멈춤
+          prev2.isTimeFixed = false;
+        }
+      }
+
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
+      recalculateScheduleAcrossDays(nextData.days);
+      recalculateLodgeDurations(nextData.days);
       return nextData;
     });
     setLastAction("소요 시간을 변경했습니다.");

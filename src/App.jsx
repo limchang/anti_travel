@@ -15,7 +15,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw, AlignLeft, Maximize2, Minimize2
+  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw, AlignLeft
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -3772,7 +3772,6 @@ const App = () => {
   const [showLibraryCategoryModal, setShowLibraryCategoryModal] = useState(false);
   const [focusedLibraryMarkerId, setFocusedLibraryMarkerId] = useState(null); // 내장소 마커 두 단계 클릭: 첫 클릭 = + 모드
   const [libraryCategoryModalPos, setLibraryCategoryModalPos] = useState({ top: 200, right: 16 });
-  const [overviewMapExpanded, setOverviewMapExpanded] = useState(false);
   const routePreviewSegmentCacheRef = useRef({});
   useEffect(() => {
     try {
@@ -3866,7 +3865,7 @@ const App = () => {
     }));
   }, [itinerary.days, itinerary.places]);
   const isMobileLayout = viewportWidth < 1100;
-  const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 310;
+  const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 465;
   const leftExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : rightExpandedWidth;
   const leftCollapsedWidth = 0;
   const rightCollapsedWidth = 0;
@@ -10765,7 +10764,7 @@ const App = () => {
 
             {/* ── 스크롤 컨텐츠 ── */}
             <div
-              className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-5 pt-0 pb-2 flex flex-col"
+              className="flex-1 overflow-hidden flex flex-row"
               data-library-dropzone="true"
               onDragOver={(e) => { if (draggingFromTimeline) e.preventDefault(); }}
               onDrop={(e) => {
@@ -10781,6 +10780,70 @@ const App = () => {
                 }
               }}
             >
+              {/* ── 좌측: 지도 컬럼 (sticky) ── */}
+              {!isMobileLayout && (
+                <div className="w-[200px] shrink-0 border-r border-slate-100 flex flex-col overflow-hidden">
+                  {/* 지도 뷰 */}
+                  <div id="right-panel-map-overview" className="flex flex-col flex-1 overflow-hidden">
+                    {/* Day 필터 */}
+                    <div className="flex gap-1 overflow-x-auto no-scrollbar px-2 pt-2 pb-1.5 border-b border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => { setOverviewMapScope('all'); setOverviewMapDayFilter(null); }}
+                        className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${overviewMapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
+                      >전체</button>
+                      {mapDayOptions.map((option) => {
+                        const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
+                        return (
+                          <button
+                            key={`lib-map-day-${option.day}`}
+                            type="button"
+                            onClick={() => { setOverviewMapScope('day'); setOverviewMapDayFilter(option.day); }}
+                            className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
+                          >{option.label}</button>
+                        );
+                      })}
+                    </div>
+                    {/* 지도 본체 - flex-1로 남은 높이 채움 */}
+                    <div className="flex-1 min-h-0">
+                      <RoutePreviewCanvas
+                        routePreviewMap={overviewFilteredRoutePreviewMap}
+                        libraryPoints={libraryMapPoints}
+                        recommendationPoints={recommendationMapPoints}
+                        focusedTarget={focusedMapTarget}
+                        onMarkerClick={handleOverviewMapMarkerClick}
+                        onLibraryMarkerAddClick={handleOverviewMapLibraryAddClick}
+                        onLibraryMarkerFocus={setFocusedLibraryMarkerId}
+                        focusedLibraryMarkerId={focusedLibraryMarkerId}
+                        onBackgroundClick={clearOverviewMapFocus}
+                        interactive
+                        height="100%"
+                        showTimelineMarkers
+                        showRouteLines
+                        showOverlayMarkers
+                        scopeKey={`lib:${overviewMapScope}:${overviewMapDayFilter ?? 'all'}`}
+                      />
+                    </div>
+                    {/* 출발/도착 토글 */}
+                    {routePreviewEndpointActions.length > 0 && (
+                      <div className="flex gap-1 px-2 py-1.5 border-t border-slate-100 bg-white">
+                        {routePreviewEndpointActions.map((action) => (
+                          <button
+                            key={action.id}
+                            type="button"
+                            onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
+                            className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[9px] font-black transition-all ${action.hidden ? 'border-orange-200 bg-orange-50 text-orange-500' : 'border-slate-200 bg-white text-slate-500'}`}
+                          >
+                            <Anchor size={9} /><span>{action.id.endsWith('ship-start') ? '출발' : '도착'}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {/* ── 우측: 장소 목록 컬럼 ── */}
+              <div className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-3 pt-0 pb-2 flex flex-col min-w-0">
               {/* 장소 목록 */}
               {(() => {
                 // 활성 일정의 시간 기준으로 영업 여부 판단
@@ -10859,225 +10922,80 @@ const App = () => {
                         </div>
                       </div>
                     )}
-                    <div className="sticky top-0 z-[10] -mx-5 -mt-px mb-1 w-auto border-b border-slate-100/80 bg-white px-5 pb-2 pt-1.5 shadow-[0_10px_18px_-18px_rgba(15,23,42,0.22)]">
-                      {/* 지도 뷰 - 내 장소 탭 상단 (일정 경로 + 내 장소 마커 통합) */}
-                      <div id="right-panel-map-overview" className="rounded-[20px] border border-slate-200 bg-white overflow-hidden shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)]">
-                        {/* 필터 바 */}
-                        <div className="flex items-center justify-between gap-1.5 px-2.5 pt-2 pb-1.5">
-                          <div className="flex gap-1 overflow-x-auto no-scrollbar flex-1 min-w-0">
-                            <button
-                              type="button"
-                              onClick={() => { setOverviewMapScope('all'); setOverviewMapDayFilter(null); }}
-                              className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${overviewMapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
-                            >전체</button>
-                            {mapDayOptions.map((option) => {
-                              const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
-                              return (
-                                <button
-                                  key={`lib-map-day-${option.day}`}
-                                  type="button"
-                                  onClick={() => { setOverviewMapScope('day'); setOverviewMapDayFilter(option.day); }}
-                                  className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
-                                >{option.label}</button>
-                              );
-                            })}
-                          </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            {routePreviewEndpointActions.map((action) => (
+                    {/* 카테고리 필터 태그 */}
+                    <div className="sticky top-0 z-[10] bg-white border-b border-slate-100/80 pb-1.5 pt-1.5 shadow-[0_6px_12px_-8px_rgba(15,23,42,0.12)]">
+                      <div className="flex items-start gap-1">
+                        <div className="flex flex-1 flex-wrap gap-1">
+                          {filterTagOptions.map(t => {
+                            const active = placeFilterTags.includes(t.value);
+                            return (
                               <button
-                                key={action.id}
-                                type="button"
-                                onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
-                                className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[9px] font-black transition-all ${action.hidden ? 'border-orange-200 bg-orange-50 text-orange-500' : 'border-slate-200 bg-white text-slate-500'}`}
+                                key={t.value}
+                                onClick={() => setPlaceFilterTags(prev => active ? prev.filter(v => v !== t.value) : [...prev, t.value])}
+                                className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${active ? 'bg-[#3182F6] text-white border-[#3182F6] shadow-sm' : t.isCustom ? 'bg-slate-50 text-slate-600 border-slate-300 hover:border-slate-400' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
                               >
-                                <Anchor size={9} /><span>{action.id.endsWith('ship-start') ? '출발' : '도착'}</span>
+                                <span>{t.label}</span>
+                                <span className={`ml-1 px-1 rounded text-[8px] font-black ${active ? 'bg-white/30 text-white' : t.isCustom ? 'bg-white text-slate-500 border border-slate-200' : 'bg-slate-100 text-slate-500'}`}>
+                                  {categoryCounts[t.value] || 0}
+                                </span>
                               </button>
-                            ))}
+                            );
+                          })}
+                          {placeFilterTags.length > 0 && (
                             <button
-                              type="button"
-                              onClick={() => setOverviewMapExpanded(v => !v)}
-                              className="flex items-center justify-center w-5 h-5 rounded-full border border-slate-200 bg-white text-slate-400 hover:text-slate-600 hover:border-slate-300 transition-all"
-                              title={overviewMapExpanded ? '지도 축소' : '지도 확대'}
+                              onClick={() => setPlaceFilterTags([])}
+                              className="px-2 py-0.5 rounded-lg text-[9px] font-black bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200 transition-all"
                             >
-                              {overviewMapExpanded
-                                ? <Minimize2 size={10} />
-                                : <Maximize2 size={10} />
-                              }
+                              초기화 ✕
                             </button>
-                          </div>
+                          )}
                         </div>
-                        {/* 지도 - 1:1 비율 */}
-                        <div style={{ aspectRatio: '1 / 1' }}>
-                          <RoutePreviewCanvas
-                            routePreviewMap={overviewFilteredRoutePreviewMap}
-                            libraryPoints={libraryMapPoints}
-                            recommendationPoints={recommendationMapPoints}
-                            focusedTarget={focusedMapTarget}
-                            onMarkerClick={handleOverviewMapMarkerClick}
-                            onLibraryMarkerAddClick={handleOverviewMapLibraryAddClick}
-                            onLibraryMarkerFocus={setFocusedLibraryMarkerId}
-                            focusedLibraryMarkerId={focusedLibraryMarkerId}
-                            onBackgroundClick={clearOverviewMapFocus}
-                            interactive
-                            height="100%"
-                            showTimelineMarkers
-                            showRouteLines
-                            showOverlayMarkers
-                            scopeKey={`lib:${overviewMapScope}:${overviewMapDayFilter ?? 'all'}`}
-                          />
-                        </div>
-                      </div>
-                      {/* 확장 지도 오버레이 */}
-                      {overviewMapExpanded && (
-                        <div
-                          className="fixed z-[600] inset-0 bg-black/30 backdrop-blur-[2px]"
-                          onClick={() => setOverviewMapExpanded(false)}
-                        />
-                      )}
-                      {overviewMapExpanded && (
-                        <div
-                          id="right-panel-map-overview-expanded"
-                          className="fixed z-[601] rounded-[24px] border border-slate-200 bg-white overflow-hidden shadow-[0_20px_60px_-12px_rgba(15,23,42,0.4)]"
-                          style={{ top: '50%', right: 16, transform: 'translateY(-50%)', width: 'min(460px, calc(100vw - 32px))', aspectRatio: '1 / 1' }}
+                        <button
+                          type="button"
+                          onClick={() => setShowPlaceCategoryManager((prev) => !prev)}
+                          className={`shrink-0 w-6 h-6 flex items-center justify-center rounded-lg border transition-colors ${showPlaceCategoryManager ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600'}`}
+                          title="카테고리 관리"
                         >
-                          {/* 확장 모드 필터 바 */}
-                          <div className="flex items-center justify-between gap-1.5 px-3 pt-2.5 pb-2 border-b border-slate-100">
-                            <div className="flex gap-1 overflow-x-auto no-scrollbar flex-1 min-w-0">
-                              <button
-                                type="button"
-                                onClick={() => { setOverviewMapScope('all'); setOverviewMapDayFilter(null); }}
-                                className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${overviewMapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
-                              >전체</button>
-                              {mapDayOptions.map((option) => {
-                                const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
-                                return (
-                                  <button
-                                    key={`lib-map-day-expanded-${option.day}`}
-                                    type="button"
-                                    onClick={() => { setOverviewMapScope('day'); setOverviewMapDayFilter(option.day); }}
-                                    className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
-                                  >{option.label}</button>
-                                );
-                              })}
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              {routePreviewEndpointActions.map((action) => (
+                          <SlidersHorizontal size={11} />
+                        </button>
+                      </div>
+                      {showPlaceCategoryManager && (
+                        <div className="mt-1.5 rounded-[12px] border border-slate-200 bg-white px-2.5 py-2 shadow-sm">
+                          <p className="text-[10px] font-black text-slate-600">카테고리 관리</p>
+                          <p className="mt-0.5 text-[9px] font-bold text-slate-400">직접 추가한 카테고리를 전체 데이터에서 제거합니다.</p>
+                          {customPlaceCategories.length === 0 ? (
+                            <p className="mt-2 text-[10px] font-bold text-slate-400">삭제 가능한 사용자 카테고리가 없습니다.</p>
+                          ) : (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {customPlaceCategories.map((tag) => (
                                 <button
-                                  key={action.id}
+                                  key={`manager-${tag}`}
                                   type="button"
-                                  onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
-                                  className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[9px] font-black transition-all ${action.hidden ? 'border-orange-200 bg-orange-50 text-orange-500' : 'border-slate-200 bg-white text-slate-500'}`}
+                                  onClick={() => removeCustomCategoryEverywhere(tag)}
+                                  className="flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-500 transition-colors"
+                                  title={`'${tag}' 카테고리 삭제`}
                                 >
-                                  <Anchor size={9} /><span>{action.id.endsWith('ship-start') ? '출발' : '도착'}</span>
+                                  <span>{getCustomTagLabel(tag)}</span>
+                                  <Trash2 size={10} />
                                 </button>
                               ))}
-                              <button
-                                type="button"
-                                onClick={() => setOverviewMapExpanded(false)}
-                                className="flex items-center justify-center w-6 h-6 rounded-full border border-slate-200 bg-white text-slate-400 hover:text-slate-600 hover:border-slate-300 transition-all"
-                              >
-                                <Minimize2 size={12} />
-                              </button>
                             </div>
-                          </div>
-                          {/* 확장 지도 본체 */}
-                          <div style={{ height: 'calc(100% - 44px)' }}>
-                            <RoutePreviewCanvas
-                              routePreviewMap={overviewFilteredRoutePreviewMap}
-                              libraryPoints={libraryMapPoints}
-                              recommendationPoints={recommendationMapPoints}
-                              focusedTarget={focusedMapTarget}
-                              onMarkerClick={handleOverviewMapMarkerClick}
-                              onLibraryMarkerAddClick={handleOverviewMapLibraryAddClick}
-                              onLibraryMarkerFocus={setFocusedLibraryMarkerId}
-                              focusedLibraryMarkerId={focusedLibraryMarkerId}
-                              onBackgroundClick={clearOverviewMapFocus}
-                              interactive
-                              height="100%"
-                              showTimelineMarkers
-                              showRouteLines
-                              showOverlayMarkers
-                              scopeKey={`lib:${overviewMapScope}:${overviewMapDayFilter ?? 'all'}:expanded`}
-                            />
-                          </div>
+                          )}
                         </div>
                       )}
-                      <div className="mt-2 w-full flex flex-col gap-1">
-                        <div className="flex items-start gap-1 px-1">
-                          <div className="flex flex-1 flex-wrap gap-1">
-                            {filterTagOptions.map(t => {
-                              const active = placeFilterTags.includes(t.value);
-                              return (
-                                <button
-                                  key={t.value}
-                                  onClick={() => setPlaceFilterTags(prev => active ? prev.filter(v => v !== t.value) : [...prev, t.value])}
-                                  className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${active ? 'bg-[#3182F6] text-white border-[#3182F6] shadow-sm' : t.isCustom ? 'bg-slate-50 text-slate-600 border-slate-300 hover:border-slate-400' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
-                                >
-                                  <span>{t.label}</span>
-                                  <span className={`ml-1 px-1 rounded text-[8px] font-black ${active ? 'bg-white/30 text-white' : t.isCustom ? 'bg-white text-slate-500 border border-slate-200' : 'bg-slate-100 text-slate-500'}`}>
-                                    {categoryCounts[t.value] || 0}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                            {placeFilterTags.length > 0 && (
-                              <button
-                                onClick={() => setPlaceFilterTags([])}
-                                className="px-2 py-0.5 rounded-lg text-[9px] font-black bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200 transition-all"
-                              >
-                                초기화 ✕
-                              </button>
-                            )}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setShowPlaceCategoryManager((prev) => !prev)}
-                            className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-lg border transition-colors ${showPlaceCategoryManager ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600'}`}
-                            title="카테고리 관리"
-                          >
-                            <SlidersHorizontal size={12} />
-                          </button>
+                      {basePlanRef?.id && (
+                        <div
+                          onClick={() => {
+                            setBasePlanRef(null);
+                            setLastAction("거리순 정렬을 해제하고 이름순으로 정렬했습니다.");
+                          }}
+                          className="w-full mt-1 px-2.5 py-1.5 rounded-[12px] border border-blue-100 bg-blue-50/50 text-[10px] font-black text-[#3182F6] flex items-center gap-1.5 cursor-pointer hover:bg-blue-100 transition-colors"
+                        >
+                          <MapPin size={10} className="text-blue-400 shrink-0" />
+                          <span className="truncate flex-1"><span className="text-blue-700">{basePlanRef.name}</span> 기준 거리순</span>
+                          <span className="text-[9px] text-blue-300">✕</span>
                         </div>
-
-                        {showPlaceCategoryManager && (
-                          <div className="mx-1 rounded-[14px] border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-                            <p className="text-[10px] font-black text-slate-600">카테고리 관리</p>
-                            <p className="mt-0.5 text-[9px] font-bold text-slate-400">직접 추가한 카테고리를 전체 데이터에서 제거합니다.</p>
-                            {customPlaceCategories.length === 0 ? (
-                              <p className="mt-2 text-[10px] font-bold text-slate-400">삭제 가능한 사용자 카테고리가 없습니다.</p>
-                            ) : (
-                              <div className="mt-2 flex flex-wrap gap-1.5">
-                                {customPlaceCategories.map((tag) => (
-                                  <button
-                                    key={`manager-${tag}`}
-                                    type="button"
-                                    onClick={() => removeCustomCategoryEverywhere(tag)}
-                                    className="flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-500 transition-colors"
-                                    title={`'${tag}' 카테고리 삭제`}
-                                  >
-                                    <span>{getCustomTagLabel(tag)}</span>
-                                    <Trash2 size={10} />
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {basePlanRef?.id && (
-                          <div
-                            onClick={() => {
-                              setBasePlanRef(null);
-                              setLastAction("거리순 정렬을 해제하고 이름순으로 정렬했습니다.");
-                            }}
-                            className="w-full px-3 py-2 rounded-[14px] border border-blue-100 bg-blue-50/50 text-[11px] font-black text-[#3182F6] flex items-center gap-1.5 shadow-[0_2px_8px_-2px_rgba(49,130,246,0.08)] cursor-pointer hover:bg-blue-100 transition-colors mt-1"
-                          >
-                            <MapPin size={12} className="text-blue-400" />
-                            <span className="truncate flex-1"><span className="text-blue-700">{basePlanRef.name}</span> 기준 거리순 정렬</span>
-                            <span className="text-[9px] text-blue-300">✕</span>
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
                     {visiblePlaces.length === 0 && !isAddingPlace && (
                       <p className="text-[10px] text-slate-400 text-center py-6 font-semibold leading-relaxed">
@@ -11269,7 +11187,8 @@ const App = () => {
                   </div>
                 );
               })()}
-            </div>
+              </div>{/* ── 우측 장소 목록 컬럼 닫기 ── */}
+            </div>{/* ── flex-row 스크롤 컨텐츠 닫기 ── */}
           </>
         )
         }

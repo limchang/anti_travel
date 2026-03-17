@@ -10565,7 +10565,11 @@ const App = () => {
     <div className="min-h-screen bg-[#F2F4F6] text-[#191F28] font-sans flex overflow-x-hidden font-bold flex-row relative">
       {/* ── 장소 수정 모달 ── */}
       {editingPlaceId && editPlaceDraft && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }}>
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center"
+          style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }}
+          onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }}
+        >
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
           <div className="relative px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceEditorCard
@@ -10690,7 +10694,11 @@ const App = () => {
         </div>
       )}
       {editingPlanTarget && editPlanDraft && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => { setEditingPlanTarget(null); setEditPlanDraft(null); }}>
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center"
+          style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }}
+          onClick={() => { setEditingPlanTarget(null); setEditPlanDraft(null); }}
+        >
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
           <div className="relative px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceEditorCard
@@ -10807,7 +10815,11 @@ const App = () => {
         </div>
       )}
       {isAddingPlace && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={resetNewPlaceDraft}>
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center"
+          style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }}
+          onClick={resetNewPlaceDraft}
+        >
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
           <div className="relative flex justify-center px-3" style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }} onClick={(e) => e.stopPropagation()}>
             <PlaceAddForm

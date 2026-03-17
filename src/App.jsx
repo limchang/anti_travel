@@ -300,8 +300,10 @@ const SharedNameRow = ({
   actionButton = null,
   readOnly = false,
   onContainerClick,
+  prefixContent = null,
 }) => (
-  <div className="w-full flex items-center gap-2 text-slate-500 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm transition-all focus-within:border-[#3182F6]/50" onClick={onContainerClick}>
+  <div className="w-full flex items-center gap-1.5 text-slate-500 bg-white px-2 py-1.5 rounded-lg border border-slate-200 shadow-sm transition-all focus-within:border-[#3182F6]/50" onClick={onContainerClick}>
+    {prefixContent}
     <input
       value={value}
       onChange={onChange}
@@ -13834,22 +13836,8 @@ const App = () => {
                               </div>
                             ) : (
                               <>
-                                {/* 1행: 카테고리 칩 (클릭 → 태그 편집) + NEW + 재방문 */}
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <div
-                                    className={`flex items-center gap-1 flex-wrap cursor-grab active:cursor-grabbing rounded-lg px-1 py-0.5 -ml-1 transition-colors ${tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx ? 'bg-blue-50 ring-1 ring-[#3182F6]/30' : 'hover:bg-slate-100/60'}`}
-                                    title="클릭하여 태그 편집"
-                                    onClick={(e) => { e.stopPropagation(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx }); }}
-                                  >
-                                    {chips}
-                                  </div>
-                                  {hasPlanB && (
-                                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-200 leading-none shadow-sm animate-in fade-in zoom-in duration-300">PLAN B {isPlanBActive ? 'ACTIVE' : ''}</span>
-                                  )}
-                                </div>
-
                                 {tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx && (
-                                  <div className="-mt-1 mb-0.5" onClick={(e) => e.stopPropagation()}>
+                                  <div className="mb-0.5" onClick={(e) => e.stopPropagation()}>
                                     <OrderedTagPicker
                                       title="태그"
                                       value={p.types || ['place']}
@@ -13858,7 +13846,7 @@ const App = () => {
                                   </div>
                                 )}
 
-                                {/* 2행: 이름 (수정 가능한 Input) */}
+                                {/* 1행: 카테고리 칩 + 이름 */}
                                 <SharedNameRow
                                   value={p.activity}
                                   onChange={(e) => updateActivityName(dIdx, pIdx, e.target.value)}
@@ -13874,6 +13862,18 @@ const App = () => {
                                   }}
                                   placeholder="일정 이름 입력 후 Enter"
                                   onContainerClick={(e) => e.stopPropagation()}
+                                  prefixContent={
+                                    <div
+                                      className={`flex items-center gap-0.5 flex-nowrap shrink-0 cursor-pointer rounded px-0.5 py-0.5 -ml-0.5 transition-colors ${tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx ? 'bg-blue-50 ring-1 ring-[#3182F6]/30' : 'hover:bg-slate-100/60'}`}
+                                      title="클릭하여 태그 편집"
+                                      onClick={(e) => { e.stopPropagation(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx }); }}
+                                    >
+                                      {chips}
+                                      {hasPlanB && (
+                                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-200 leading-none shadow-sm">PLAN B</span>
+                                      )}
+                                    </div>
+                                  }
                                   actionButton={
                                     <div className="flex items-center gap-1">
                                       <button

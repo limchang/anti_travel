@@ -3097,14 +3097,25 @@ const RoutePreviewCanvas = ({
                   icon={buildGroupedTimelineMarkerIcon(point._groupItems, isFocused)}
                   eventHandlers={interactive && typeof onMarkerClick === 'function' ? {
                     click: (e) => {
-                      // 클릭된 x 위치로 어떤 셀인지 판단
                       const items = point._groupItems;
-                      const n = items.length;
-                      const cellW = isFocused ? 32 : 26;
-                      const totalW = cellW * n + (n - 1);
-                      const offsetX = e.originalEvent?.offsetX ?? (totalW / 2);
-                      const idx = Math.min(n - 1, Math.floor(offsetX / (totalW / n)));
-                      const target = items[Math.max(0, idx)] || items[0];
+                      // data-group-idx 속성으로 정확히 어느 셀인지 판단
+                      const orig = e.originalEvent;
+                      const cellEl = orig?.target instanceof Element
+                        ? orig.target.closest('[data-group-idx]')
+                        : null;
+                      const idxAttr = cellEl?.getAttribute('data-group-idx');
+                      const idx = idxAttr != null
+                        ? Math.min(items.length - 1, Math.max(0, Number(idxAttr)))
+                        : (() => {
+                            // fallback: clientX 기반 계산
+                            const rect = orig?.target instanceof Element
+                              ? orig.target.closest('[data-group-idx]')?.parentElement?.getBoundingClientRect()
+                              : null;
+                            if (!rect) return 0;
+                            const relX = orig.clientX - rect.left;
+                            return Math.min(items.length - 1, Math.max(0, Math.floor(relX / (rect.width / items.length))));
+                          })();
+                      const target = items[idx] || items[0];
                       onMarkerClick({ kind: 'timeline', id: target.id, pointId: target.pointId, day: target.day, label: target.label, address: target.address });
                     },
                   } : undefined}

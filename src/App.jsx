@@ -3865,8 +3865,8 @@ const App = () => {
     }));
   }, [itinerary.days, itinerary.places]);
   const isMobileLayout = viewportWidth < 1100;
-  const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 465;
-  const leftExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : rightExpandedWidth;
+  const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 310;
+  const leftExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 220;
   const leftCollapsedWidth = 0;
   const rightCollapsedWidth = 0;
   const leftSidebarWidth = isMobileLayout ? (col1Collapsed ? leftCollapsedWidth : leftExpandedWidth) : leftExpandedWidth;
@@ -10764,7 +10764,7 @@ const App = () => {
 
             {/* ── 스크롤 컨텐츠 ── */}
             <div
-              className="flex-1 overflow-hidden flex flex-row"
+              className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-5 pt-0 pb-2 flex flex-col"
               data-library-dropzone="true"
               onDragOver={(e) => { if (draggingFromTimeline) e.preventDefault(); }}
               onDrop={(e) => {
@@ -10780,70 +10780,6 @@ const App = () => {
                 }
               }}
             >
-              {/* ── 좌측: 지도 컬럼 (sticky) ── */}
-              {!isMobileLayout && (
-                <div className="w-[200px] shrink-0 border-r border-slate-100 flex flex-col overflow-hidden">
-                  {/* 지도 뷰 */}
-                  <div id="right-panel-map-overview" className="flex flex-col flex-1 overflow-hidden">
-                    {/* Day 필터 */}
-                    <div className="flex gap-1 overflow-x-auto no-scrollbar px-2 pt-2 pb-1.5 border-b border-slate-100">
-                      <button
-                        type="button"
-                        onClick={() => { setOverviewMapScope('all'); setOverviewMapDayFilter(null); }}
-                        className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${overviewMapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
-                      >전체</button>
-                      {mapDayOptions.map((option) => {
-                        const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
-                        return (
-                          <button
-                            key={`lib-map-day-${option.day}`}
-                            type="button"
-                            onClick={() => { setOverviewMapScope('day'); setOverviewMapDayFilter(option.day); }}
-                            className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
-                          >{option.label}</button>
-                        );
-                      })}
-                    </div>
-                    {/* 지도 본체 - flex-1로 남은 높이 채움 */}
-                    <div className="flex-1 min-h-0">
-                      <RoutePreviewCanvas
-                        routePreviewMap={overviewFilteredRoutePreviewMap}
-                        libraryPoints={libraryMapPoints}
-                        recommendationPoints={recommendationMapPoints}
-                        focusedTarget={focusedMapTarget}
-                        onMarkerClick={handleOverviewMapMarkerClick}
-                        onLibraryMarkerAddClick={handleOverviewMapLibraryAddClick}
-                        onLibraryMarkerFocus={setFocusedLibraryMarkerId}
-                        focusedLibraryMarkerId={focusedLibraryMarkerId}
-                        onBackgroundClick={clearOverviewMapFocus}
-                        interactive
-                        height="100%"
-                        showTimelineMarkers
-                        showRouteLines
-                        showOverlayMarkers
-                        scopeKey={`lib:${overviewMapScope}:${overviewMapDayFilter ?? 'all'}`}
-                      />
-                    </div>
-                    {/* 출발/도착 토글 */}
-                    {routePreviewEndpointActions.length > 0 && (
-                      <div className="flex gap-1 px-2 py-1.5 border-t border-slate-100 bg-white">
-                        {routePreviewEndpointActions.map((action) => (
-                          <button
-                            key={action.id}
-                            type="button"
-                            onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
-                            className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[9px] font-black transition-all ${action.hidden ? 'border-orange-200 bg-orange-50 text-orange-500' : 'border-slate-200 bg-white text-slate-500'}`}
-                          >
-                            <Anchor size={9} /><span>{action.id.endsWith('ship-start') ? '출발' : '도착'}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              {/* ── 우측: 장소 목록 컬럼 ── */}
-              <div className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-3 pt-0 pb-2 flex flex-col min-w-0">
               {/* 장소 목록 */}
               {(() => {
                 // 활성 일정의 시간 기준으로 영업 여부 판단
@@ -10922,6 +10858,62 @@ const App = () => {
                         </div>
                       </div>
                     )}
+                    {/* 지도 뷰 - 목록 위 고정 */}
+                    <div id="right-panel-map-overview" className="shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-hidden shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2">
+                      {/* Day 필터 + 출발/도착 토글 */}
+                      <div className="flex items-center justify-between gap-1 px-2.5 pt-2 pb-1.5 border-b border-slate-100">
+                        <div className="flex gap-1 overflow-x-auto no-scrollbar flex-1 min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => { setOverviewMapScope('all'); setOverviewMapDayFilter(null); }}
+                            className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${overviewMapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
+                          >전체</button>
+                          {mapDayOptions.map((option) => {
+                            const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
+                            return (
+                              <button
+                                key={`lib-map-day-${option.day}`}
+                                type="button"
+                                onClick={() => { setOverviewMapScope('day'); setOverviewMapDayFilter(option.day); }}
+                                className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
+                              >{option.label}</button>
+                            );
+                          })}
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          {routePreviewEndpointActions.map((action) => (
+                            <button
+                              key={action.id}
+                              type="button"
+                              onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
+                              className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[9px] font-black transition-all ${action.hidden ? 'border-orange-200 bg-orange-50 text-orange-500' : 'border-slate-200 bg-white text-slate-500'}`}
+                            >
+                              <Anchor size={9} /><span>{action.id.endsWith('ship-start') ? '출발' : '도착'}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* 지도 본체 - 1:1 비율 */}
+                      <div style={{ aspectRatio: '1 / 1' }}>
+                        <RoutePreviewCanvas
+                          routePreviewMap={overviewFilteredRoutePreviewMap}
+                          libraryPoints={libraryMapPoints}
+                          recommendationPoints={recommendationMapPoints}
+                          focusedTarget={focusedMapTarget}
+                          onMarkerClick={handleOverviewMapMarkerClick}
+                          onLibraryMarkerAddClick={handleOverviewMapLibraryAddClick}
+                          onLibraryMarkerFocus={setFocusedLibraryMarkerId}
+                          focusedLibraryMarkerId={focusedLibraryMarkerId}
+                          onBackgroundClick={clearOverviewMapFocus}
+                          interactive
+                          height="100%"
+                          showTimelineMarkers
+                          showRouteLines
+                          showOverlayMarkers
+                          scopeKey={`lib:${overviewMapScope}:${overviewMapDayFilter ?? 'all'}`}
+                        />
+                      </div>
+                    </div>
                     {/* 카테고리 필터 태그 */}
                     <div className="sticky top-0 z-[10] bg-white border-b border-slate-100/80 pb-1.5 pt-1.5 shadow-[0_6px_12px_-8px_rgba(15,23,42,0.12)]">
                       <div className="flex items-start gap-1">
@@ -11187,8 +11179,7 @@ const App = () => {
                   </div>
                 );
               })()}
-              </div>{/* ── 우측 장소 목록 컬럼 닫기 ── */}
-            </div>{/* ── flex-row 스크롤 컨텐츠 닫기 ── */}
+            </div>
           </>
         )
         }

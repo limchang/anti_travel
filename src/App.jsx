@@ -2274,34 +2274,38 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
   });
 };
 
-const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0) => {
-  // 내장소 마커: 네모 모양 — 일정(원형) 마커와 시각적으로 구분
+const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0, clusterColors = []) => {
   const isCluster = clusterCount > 1;
-  const bgColor = isCluster ? '#1E40AF' : categoryColor;
   const sz = isFocused ? 36 : 28;
   const shadow = isFocused
-    ? 'drop-shadow(0 3px 8px rgba(15,23,42,0.3))'
-    : 'drop-shadow(0 1px 3px rgba(15,23,42,0.18))';
+    ? 'drop-shadow(0 4px 10px rgba(15,23,42,0.35))'
+    : 'drop-shadow(0 2px 5px rgba(15,23,42,0.22))';
   const borderStyle = isFocused ? `2px solid rgba(255,255,255,0.95)` : `2px solid rgba(255,255,255,0.85)`;
   const radius = isFocused ? '10px' : '8px';
 
   if (isCluster) {
-    // 클러스터 마커: 원형 + 갯수 배지
+    // 카드 3장 스택 디자인: 뒤 → 앞 순서로 겹쳐 쌓기
     const csz = isFocused ? 38 : 30;
+    const stackN = Math.min(clusterColors.length || 0, 3);
+    const c0 = clusterColors[2] || '#94A3B8'; // 가장 뒤
+    const c1 = clusterColors[1] || '#64748B'; // 중간
+    const c2 = clusterColors[0] || categoryColor || '#1E40AF'; // 맨 앞
+    const offset = isFocused ? 5 : 4;
+    const shortLabel = String(categoryLabel || '장소').trim().slice(0, 2);
     const badgeSz = isFocused ? 16 : 14;
+    const totalW = csz + offset * 2;
+    const totalH = csz + offset * 2;
     return L.divIcon({
       className: '',
       html: `
-        <div style="position:relative;width:${csz}px;height:${csz}px;cursor:pointer;filter:${shadow};">
-          <div style="
-            width:${csz}px;height:${csz}px;border-radius:${radius};
-            background:${bgColor};border:${borderStyle};
-            display:flex;align-items:center;justify-content:center;
-          ">
-            <span style="font-size:${isFocused?'12px':'10px'};font-weight:900;color:#fff;line-height:1;">내장소</span>
+        <div style="position:relative;width:${totalW}px;height:${totalH}px;cursor:pointer;filter:${shadow};">
+          ${stackN >= 3 ? `<div style="position:absolute;left:${offset*2}px;top:${offset*2}px;width:${csz}px;height:${csz}px;border-radius:${radius};background:${c0};border:2px solid rgba(255,255,255,0.7);"></div>` : ''}
+          ${stackN >= 2 ? `<div style="position:absolute;left:${offset}px;top:${offset}px;width:${csz}px;height:${csz}px;border-radius:${radius};background:${c1};border:2px solid rgba(255,255,255,0.8);"></div>` : ''}
+          <div style="position:absolute;left:0;top:0;width:${csz}px;height:${csz}px;border-radius:${radius};background:${c2};border:2px solid rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:${isFocused?'12px':'10px'};font-weight:900;color:#fff;line-height:1;">${shortLabel}</span>
           </div>
           <div style="
-            position:absolute;top:-5px;right:-5px;
+            position:absolute;top:-4px;right:-4px;
             width:${badgeSz}px;height:${badgeSz}px;border-radius:999px;
             background:#EF4444;border:1.5px solid #fff;
             display:flex;align-items:center;justify-content:center;
@@ -2309,8 +2313,8 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd
           ">${clusterCount}</div>
         </div>
       `,
-      iconSize: [csz, csz],
-      iconAnchor: [csz / 2, csz / 2],
+      iconSize: [totalW, totalH],
+      iconAnchor: [totalW / 2, totalH / 2],
     });
   }
 
@@ -2321,7 +2325,7 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd
       <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
         <div style="
           width:${sz}px;height:${sz}px;border-radius:${radius};
-          background:${bgColor};border:${borderStyle};
+          background:${categoryColor};border:${borderStyle};
           display:flex;align-items:center;justify-content:center;
         ">
           <span style="
@@ -2995,6 +2999,7 @@ const RoutePreviewCanvas = ({
             return visibleOverlayEntries.map((point) => {
             const isCluster = !!(point._clusterCount && point._clusterCount > 1);
             const clusterCount = isCluster ? point._clusterCount : 0;
+            const clusterColors = isCluster ? (point._clusterItems || []).map((e) => e.categoryColor || '#2563EB') : [];
             const isFocusedLibrary = point.kind === 'place' && focusedLibraryMarkerId === point.id;
             // 클러스터 팝업에 표시할 아이템들
             const clusterItems = isCluster ? (point._clusterItems || []) : [];
@@ -3004,11 +3009,12 @@ const RoutePreviewCanvas = ({
                 position={point.position}
                 bubblingMouseEvents={false}
                 icon={point.kind === 'place'
-                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount)
+                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors)
                   : buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
                 eventHandlers={interactive ? {
                   click: () => {
                     if (point.kind === 'place') {
+                      // 한 번 클릭에 바로 팝업 (두 단계 제거)
                       if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(point.id);
                     } else if (typeof onMarkerClick === 'function') {
                       onMarkerClick({ kind: point.kind, id: point.id, label: point.label, address: point.address });
@@ -3016,7 +3022,7 @@ const RoutePreviewCanvas = ({
                   },
                 } : undefined}
               >
-                {interactive && point.kind === 'place' && isFocusedLibrary && (
+                {interactive && point.kind === 'place' && (
                   <Popup
                     offset={[0, -14]}
                     closeButton={false}

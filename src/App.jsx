@@ -5230,7 +5230,16 @@ const App = () => {
   const shouldAutoCalculateRoute = (dayIdx, targetIdx) => {
     const routeEntry = getRouteFlowEntry(itinerary.days || [], dayIdx, targetIdx);
     const targetItem = routeEntry.targetItem;
-    if (!routeEntry.prevItem || !targetItem || targetItem.types?.includes('ship')) return false;
+    if (!targetItem) return false;
+    // 페리 아이템: geoStart/geoEnd 좌표가 있고 거리 미입력이면 해상 거리 계산 대상 (prevItem 불필요)
+    if (targetItem.types?.includes('ship')) {
+      const geoStart = targetItem.geoStart;
+      const geoEnd = targetItem.geoEnd;
+      if (!hasGeoCoords(geoStart) || !hasGeoCoords(geoEnd)) return false;
+      const hasDistance = Number.isFinite(Number(targetItem.distance)) && Number(targetItem.distance) > 0;
+      return !hasDistance;
+    }
+    if (!routeEntry.prevItem) return false;
     const fromAddress = routeEntry.fromAddress;
     const toAddress = routeEntry.toAddress;
     if (!fromAddress || !toAddress || fromAddress.includes('없음') || toAddress.includes('없음')) return false;
@@ -6197,6 +6206,9 @@ const App = () => {
       const found = findPlanItemContextById(target.id);
       if (found?.item) {
         focusTimelineOnMap(found.item, found.dayNum, { scroll: true });
+        // 내장소 탭 지도에서 일정 마커 클릭 시 거리순 정렬 기준 자동 설정
+        const addr = getRouteAddress(found.item, 'to');
+        setBasePlanRef({ id: found.item.id, name: found.item.activity || found.item.name || '', address: addr || '' });
       }
       return;
     }
@@ -6208,7 +6220,7 @@ const App = () => {
     if (target.kind === 'recommendation') {
       focusRecommendationOnMap(target.id, { scroll: true });
     }
-  }, [findPlanItemContextById, focusLibraryOnMap, focusRecommendationOnMap, focusTimelineOnMap, itinerary.places]);
+  }, [findPlanItemContextById, focusLibraryOnMap, focusRecommendationOnMap, focusTimelineOnMap, itinerary.places, getRouteAddress, setBasePlanRef]);
 
   const handleOverviewMapLibraryAddClick = ({ id: placeId }) => {
     if (!placeId || focusedMapTarget?.kind !== 'timeline') return;
@@ -9209,18 +9221,33 @@ const App = () => {
     const routeEntry = getRouteFlowEntry(itinerary.days || [], dayIdx, targetIdx);
     const addr1 = routeEntry.fromAddress;
     const addr2 = routeEntry.toAddress;
+    const isShipTarget = !!routeEntry.targetItem?.types?.includes('ship');
 
-    if (!addr1 || !addr2 || addr1.includes('없음') || addr2.includes('없음')) {
+    if (!isShipTarget && (!addr1 || !addr2 || addr1.includes('없음') || addr2.includes('없음'))) {
       if (!silent) setLastAction("두 장소의 올바른 주소가 필요합니다.");
       return;
     }
 
-    const key = getRouteCacheKey(addr1, addr2);
+    const key = isShipTarget
+      ? `sea:${routeEntry.targetItem.id}`
+      : getRouteCacheKey(addr1, addr2);
     const cachedRoute = routeCache[key];
     const failedRecently = cachedRoute?.failedAt && (Date.now() - cachedRoute.failedAt < routeRetryCooldownMs);
     if (!forceRefresh && cachedRoute && !cachedRoute.failed) {
       const cached = routeCache[key];
       const cachedDistance = Math.max(0, Number(cached.distance) || 0);
+      if (isShipTarget) {
+        saveHistory();
+        setItinerary(prev => {
+          const nextData = JSON.parse(JSON.stringify(prev));
+          const p = nextData.days?.[dayIdx]?.plan?.[targetIdx];
+          if (!p) return prev;
+          p.distance = cachedDistance;
+          nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
+          return nextData;
+        });
+        return;
+      }
       const verifiedCachedDuration = verifyRouteDurationMins({
         distanceKm: cachedDistance,
         straightKm: cachedDistance,
@@ -9242,6 +9269,31 @@ const App = () => {
     if (!silent) setLastAction("경로와 거리를 자동 계산 중입니다...");
 
     try {
+      // 페리 아이템: 출발항→도착항 해상 직선 거리(haversine)로 계산
+      if (routeEntry.targetItem?.types?.includes('ship')) {
+        const geoStart = routeEntry.targetItem.geoStart;
+        const geoEnd = routeEntry.targetItem.geoEnd;
+        if (!hasGeoCoords(geoStart) || !hasGeoCoords(geoEnd)) {
+          if (!silent) setLastAction('페리 출발/도착 좌표가 없어 해상 거리를 계산할 수 없습니다.');
+          return;
+        }
+        const seaDistKm = haversineKm(Number(geoStart.lat), Number(geoStart.lon), Number(geoEnd.lat), Number(geoEnd.lon));
+        const shipRoute = { distance: +seaDistKm.toFixed(1), durationMins: null, provider: 'sea-haversine' };
+        setRouteCache(prev => ({ ...prev, [key]: shipRoute }));
+        // 페리는 이동시간 자동 설정하지 않음 (사용자가 직접 입력한 boardTime/승선 시간 우선)
+        saveHistory();
+        setItinerary(prev => {
+          const nextData = JSON.parse(JSON.stringify(prev));
+          const p = nextData.days?.[dayIdx]?.plan?.[targetIdx];
+          if (!p) return prev;
+          p.distance = shipRoute.distance;
+          nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
+          return nextData;
+        });
+        if (!silent) setLastAction(`페리 해상 거리: 약 ${seaDistKm.toFixed(0)}km (직선)`);
+        return;
+      }
+
       const kakaoRoute = await fetchKakaoVerifiedRoute({
         fromAddress: addr1,
         toAddress: addr2,
@@ -10930,7 +10982,14 @@ const App = () => {
                           focusedTarget={focusedMapTarget}
                           onMarkerClick={handleOverviewMapMarkerClick}
                           onLibraryMarkerAddClick={handleOverviewMapLibraryAddClick}
-                          onLibraryMarkerFocus={setFocusedLibraryMarkerId}
+                          onLibraryMarkerFocus={(placeId) => {
+                            setFocusedLibraryMarkerId(placeId);
+                            if (placeId) {
+                              setTimeout(() => {
+                                document.getElementById(`library-place-${placeId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                              }, 50);
+                            }
+                          }}
                           focusedLibraryMarkerId={focusedLibraryMarkerId}
                           onBackgroundClick={clearOverviewMapFocus}
                           interactive
@@ -10946,7 +11005,13 @@ const App = () => {
                     <div className="flex items-start gap-1 mb-1">
                       <div className="flex flex-1 flex-wrap gap-1 min-w-0">
                         <button
-                          onClick={() => setPlaceFilterTags([])}
+                          onClick={() => {
+                            if (placeFilterTags.length === 0) {
+                              setPlaceFilterTags(filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0).map(t => t.value));
+                            } else {
+                              setPlaceFilterTags([]);
+                            }
+                          }}
                           className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${placeFilterTags.length === 0 ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
                         >전체</button>
                         {filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0).map(t => {

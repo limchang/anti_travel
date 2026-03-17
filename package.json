@@ -1,11 +1,12 @@
 {
   "name": "anti_planer",
   "private": true,
-  "version": "1.3.231",
+  "version": "1.3.232",
   "type": "module",
   "homepage": "https://limchang.github.io/anti_travel",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/bump-build-time.mjs",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",

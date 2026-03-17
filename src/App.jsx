@@ -2478,15 +2478,15 @@ const LeafletMapViewportController = ({
       if (boundsPoints.length) {
         const bounds = L.latLngBounds(boundsPoints);
         if (bounds.isValid()) {
-          map.fitBounds(bounds.pad(0.18), { animate: false, padding: [24, 24] });
+          map.fitBounds(bounds.pad(0.18), { animate: true, padding: [28, 28] });
           return;
         }
       }
       map.setView(ROUTE_PREVIEW_DEFAULT_CENTER, 10, { animate: false });
-    }, 40);
+    }, 60);
     return () => window.clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scopeKey]);
+  }, [scopeKey, boundsSignature]);
 
   // focusedPoints가 바뀔 때 포커스 이동 (줌 강제 변경 없음 - 사용자 줌 유지)
   useEffect(() => {
@@ -3731,6 +3731,7 @@ const App = () => {
   const [hiddenRoutePreviewEndpoints, setHiddenRoutePreviewEndpoints] = useState({});
   const [overviewMapScope, setOverviewMapScope] = useState('all');
   const [overviewMapDayFilter, setOverviewMapDayFilter] = useState(null);
+  const [overviewMapRouteVisible, setOverviewMapRouteVisible] = useState(true);
   const [panelMapScope, setPanelMapScope] = useState('all');
   const [panelMapDayFilter, setPanelMapDayFilter] = useState(null);
   const [mapExpanded, setMapExpanded] = useState(() => (typeof window === 'undefined' ? true : window.innerWidth >= 1100));
@@ -10825,8 +10826,18 @@ const App = () => {
                         <div className="flex gap-1 overflow-x-auto no-scrollbar flex-1 min-w-0">
                           <button
                             type="button"
-                            onClick={() => { setOverviewMapScope('all'); setOverviewMapDayFilter(null); }}
-                            className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${overviewMapScope === 'all' ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
+                            onClick={() => {
+                              if (overviewMapScope === 'all') {
+                                // 이미 전체 선택 중 → 일정 표시 토글
+                                setOverviewMapRouteVisible((v) => !v);
+                              } else {
+                                // Day 선택 중 → 전체로 전환 + 일정 표시 켜기
+                                setOverviewMapScope('all');
+                                setOverviewMapDayFilter(null);
+                                setOverviewMapRouteVisible(true);
+                              }
+                            }}
+                            className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${overviewMapScope === 'all' && overviewMapRouteVisible ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : overviewMapScope === 'all' && !overviewMapRouteVisible ? 'border-slate-300 bg-slate-100 text-slate-400 line-through' : 'border-slate-200 bg-white text-slate-500'}`}
                           >전체</button>
                           {mapDayOptions.map((option) => {
                             const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
@@ -10834,7 +10845,11 @@ const App = () => {
                               <button
                                 key={`lib-map-day-${option.day}`}
                                 type="button"
-                                onClick={() => { setOverviewMapScope('day'); setOverviewMapDayFilter(option.day); }}
+                                onClick={() => {
+                                  setOverviewMapScope('day');
+                                  setOverviewMapDayFilter(option.day);
+                                  setOverviewMapRouteVisible(true);
+                                }}
                                 className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black transition-colors ${active ? 'border-[#3182F6]/20 bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
                               >{option.label}</button>
                             );
@@ -10867,10 +10882,10 @@ const App = () => {
                           onBackgroundClick={clearOverviewMapFocus}
                           interactive
                           height="100%"
-                          showTimelineMarkers
-                          showRouteLines
+                          showTimelineMarkers={overviewMapRouteVisible}
+                          showRouteLines={overviewMapRouteVisible}
                           showOverlayMarkers
-                          scopeKey={`lib:${overviewMapScope}:${overviewMapDayFilter ?? 'all'}`}
+                          scopeKey={`lib:${overviewMapScope}:${overviewMapDayFilter ?? 'all'}:${overviewMapRouteVisible ? 'r' : 'nr'}`}
                         />
                       </div>
                     </div>

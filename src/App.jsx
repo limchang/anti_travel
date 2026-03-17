@@ -7949,8 +7949,16 @@ const App = () => {
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
       const maxDuration = isOvernightLodgeTimelineItem(item) ? 1440 : 1439;
-      const targetHour = Math.max(0, Math.min(isOvernightLodgeTimelineItem(item) ? 24 : 23, Number(nextHour) || 0));
-      item.duration = Math.max(0, Math.min(maxDuration, targetHour * 60));
+      const currentTotal = Math.max(0, Number(item.duration) || 0);
+      const currentMinute = currentTotal % 60;
+      const currentHour = Math.floor(currentTotal / 60);
+      // 휠 wrap 처리: ±30 이상 변화 시 반대 방향으로 1시간 이동
+      let targetHour = Number(nextHour) || 0;
+      const delta = targetHour - currentHour;
+      if (delta > 12) targetHour = currentHour - 1;
+      else if (delta < -12) targetHour = currentHour + 1;
+      targetHour = Math.max(0, Math.min(isOvernightLodgeTimelineItem(item) ? 24 : 23, targetHour));
+      item.duration = Math.max(0, Math.min(maxDuration, targetHour * 60 + currentMinute));
       syncBaseDuration(item, item.duration);
       nextData.days[dayIdx].plan = recalculateSchedule(dayPlan);
       return nextData;

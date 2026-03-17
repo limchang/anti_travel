@@ -14016,16 +14016,13 @@ const App = () => {
                                   }
                                   actionButton={
                                     <div className="flex items-center gap-1">
-                                      {(subChips.length > 0 || hasPlanB) && (
+                                      {subChips.length > 0 && (
                                         <div
                                           className={`flex items-center gap-0.5 flex-nowrap shrink-0 cursor-pointer rounded px-0.5 py-0.5 transition-colors ${tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx ? 'bg-blue-50 ring-1 ring-[#3182F6]/30' : 'hover:bg-slate-100/60'}`}
                                           title="클릭하여 태그 편집"
                                           onClick={(e) => { e.stopPropagation(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx }); }}
                                         >
                                           {subChips}
-                                          {hasPlanB && (
-                                            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-200 leading-none shadow-sm">PLAN B</span>
-                                          )}
                                         </div>
                                       )}
                                       <button

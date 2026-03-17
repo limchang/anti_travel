@@ -12663,9 +12663,9 @@ const App = () => {
                                           <button
                                             type="button"
                                             onClick={toggleInline}
-                                            className={`flex h-[44px] w-full items-center justify-center rounded-[12px] border px-2 py-1 transition-all ${p.isTimeFixed ? 'border-slate-300 bg-white' : 'border-slate-200 bg-white/92 hover:border-slate-300'}`}
+                                            className={`flex h-[44px] w-full items-center justify-center rounded-[12px] border px-2 py-1 transition-all ${p.isTimeFixed ? 'border-[#3182F6]/60 bg-blue-50 shadow-[0_0_0_2px_rgba(49,130,246,0.12)]' : 'border-slate-200 bg-white/92 hover:border-slate-300'}`}
                                           >
-                                            <span className="text-[30px] font-black tabular-nums tracking-[-0.06em] leading-none text-slate-900">
+                                            <span className={`text-[30px] font-black tabular-nums tracking-[-0.06em] leading-none ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-900'}`}>
                                               {hh}<span className="mx-[1px] opacity-70">:</span>{mm}
                                             </span>
                                           </button>
@@ -12688,9 +12688,9 @@ const App = () => {
                                           <button
                                             type="button"
                                             onClick={toggleInline}
-                                            className="flex h-[40px] w-full items-center justify-center rounded-[12px] border border-slate-200 bg-slate-50/95 px-2 py-1 transition-all hover:border-slate-300"
+                                            className={`flex h-[40px] w-full items-center justify-center rounded-[12px] border px-2 py-1 transition-all ${isEndTimeFixed ? 'border-violet-400/60 bg-violet-50 shadow-[0_0_0_2px_rgba(139,92,246,0.12)]' : 'border-slate-200 bg-slate-50/95 hover:border-slate-300'}`}
                                           >
-                                            <span className="text-[26px] font-black tabular-nums tracking-[-0.06em] leading-none text-slate-400">
+                                            <span className={`text-[26px] font-black tabular-nums tracking-[-0.06em] leading-none ${isEndTimeFixed ? 'text-violet-500' : 'text-slate-400'}`}>
                                               {ehh}<span className="mx-[1px] opacity-65">:</span>{emm}
                                             </span>
                                           </button>
@@ -12715,7 +12715,7 @@ const App = () => {
                                               <button
                                                 type="button"
                                                 onClick={() => toggleTimeFix(dIdx, pIdx, { skipHistory: true })}
-                                                className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${p.isTimeFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
+                                                className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${p.isTimeFixed ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-300 bg-white text-slate-700'}`}
                                               >
                                                 시작시간 잠금
                                               </button>
@@ -12788,7 +12788,7 @@ const App = () => {
                                                 type="button"
                                                 onClick={() => { if (!isAutoLocked) toggleEndTimeFix(dIdx, pIdx, { skipHistory: true }); }}
                                                 disabled={isAutoLocked}
-                                                className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors disabled:opacity-50 ${isEndTimeFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
+                                                className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors disabled:opacity-50 ${isEndTimeFixed ? 'border-violet-500 bg-violet-500 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
                                               >
                                                 종료시간 잠금
                                               </button>
@@ -14000,7 +14000,7 @@ const App = () => {
                       <button
                         type="button"
                         onClick={() => toggleTimeFix(dayIdx, pIdx, { skipHistory: true })}
-                        className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${item.isTimeFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
+                        className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${item.isTimeFixed ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-300 bg-white text-slate-700'}`}
                       >
                         시작시간 잠금
                       </button>
@@ -14073,7 +14073,7 @@ const App = () => {
                         type="button"
                         onClick={() => { if (!isAutoLocked) toggleEndTimeFix(dayIdx, pIdx, { skipHistory: true }); }}
                         disabled={isAutoLocked}
-                        className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors disabled:opacity-50 ${isEndTimeFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
+                        className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors disabled:opacity-50 ${isEndTimeFixed ? 'border-violet-500 bg-violet-500 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
                       >
                         종료시간 잠금
                       </button>

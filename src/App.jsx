@@ -2603,12 +2603,14 @@ const RoutePreviewCanvas = ({
   focusedTarget = null,
   onMarkerClick = null,
   onLibraryMarkerAddClick = null,
+  onLibraryMarkerFocus = null,
   onBackgroundClick = null,
   interactive = true,
   showTimelineMarkers = true,
   showRouteLines = true,
   showOverlayMarkers = true,
   scopeKey = '',
+  focusedLibraryMarkerId = null,
 }) => {
   const tileProviders = useMemo(() => ([
     {
@@ -2655,8 +2657,8 @@ const RoutePreviewCanvas = ({
       });
     })
   ), [focusedTarget?.kind, focusedTimelinePointIds, routePreviewMap]);
-  const segmentEntries = useMemo(() => (
-    routePreviewMap.flatMap((day) => (
+  const segmentEntries = useMemo(() => {
+    const allSegments = routePreviewMap.flatMap((day) => (
       ((Array.isArray(day.segments) && day.segments.length)
         ? day.segments
         : ((day.points || []).slice(1).map((point, index) => ({
@@ -2679,13 +2681,13 @@ const RoutePreviewCanvas = ({
               || focusedTimelinePointIds.includes(segment?.toId)
             );
           const isFallbackLine = !(Array.isArray(segment.path) && segment.path.length);
-          // 중간점 (소요시간 라벨용)
           const midIdx = Math.floor(positions.length / 2);
           const midPos = positions[midIdx] || positions[0];
-          // 화살표 샘플링 (실제 경로만)
           const arrowPoints = isFallbackLine ? [] : sampleRouteArrows(positions, 150);
           return {
             id: segment.id || `segment-${day.day}-${index}`,
+            fromId: segment.fromId,
+            toId: segment.toId,
             positions,
             color: day.color,
             isFallbackLine,
@@ -2697,8 +2699,18 @@ const RoutePreviewCanvas = ({
           };
         })
         .filter(Boolean)
-    ))
-  ), [focusedTarget?.kind, focusedTimelinePointIds, routePreviewMap]);
+    ));
+    // 포커스된 세그먼트와 연결된(이전/이후) 세그먼트에 isNearFocus 표시
+    if (focusedTarget?.kind === 'timeline' && focusedTimelinePointIds.length > 0) {
+      const focusedSet = new Set(allSegments.filter((s) => s.isFocused).flatMap((s) => [s.fromId, s.toId].filter(Boolean)));
+      allSegments.forEach((s) => {
+        if (!s.isFocused && (focusedSet.has(s.fromId) || focusedSet.has(s.toId))) {
+          s.isNearFocus = true;
+        }
+      });
+    }
+    return allSegments;
+  }, [focusedTarget?.kind, focusedTimelinePointIds, routePreviewMap]);
   const overlayEntries = useMemo(() => (
     [
       ...(Array.isArray(libraryPoints) ? libraryPoints : []),
@@ -2913,21 +2925,36 @@ const RoutePreviewCanvas = ({
           return <ZoomTracker />;
         })()}
         <Pane name="route-lines" style={{ zIndex: 420 }}>
-          {visibleSegmentEntries.map((segment) => (
-            <Polyline
-              key={segment.id}
-              positions={segment.positions}
-              bubblingMouseEvents={false}
-              pathOptions={{
-                color: segment.color,
-                weight: segment.isFocused ? 10 : (segment.isFallbackLine ? 4 : 8),
-                opacity: segment.isFocused ? 0.98 : (segment.isFallbackLine ? 0.45 : 0.9),
-                dashArray: segment.isFallbackLine ? '6 8' : undefined,
-                lineCap: 'round',
-                lineJoin: 'round',
-              }}
-            />
-          ))}
+          {(() => {
+            const hasFocus = focusedTarget?.kind === 'timeline' && focusedTimelinePointIds.length > 0;
+            return visibleSegmentEntries.map((segment) => {
+              let weight, opacity;
+              if (segment.isFocused) {
+                weight = 11; opacity = 1;
+              } else if (segment.isNearFocus) {
+                weight = 9; opacity = 0.85;
+              } else if (hasFocus) {
+                weight = segment.isFallbackLine ? 3 : 5; opacity = segment.isFallbackLine ? 0.2 : 0.28;
+              } else {
+                weight = segment.isFallbackLine ? 4 : 8; opacity = segment.isFallbackLine ? 0.45 : 0.9;
+              }
+              return (
+                <Polyline
+                  key={segment.id}
+                  positions={segment.positions}
+                  bubblingMouseEvents={false}
+                  pathOptions={{
+                    color: segment.color,
+                    weight,
+                    opacity,
+                    dashArray: segment.isFallbackLine ? '6 8' : undefined,
+                    lineCap: 'round',
+                    lineJoin: 'round',
+                  }}
+                />
+              );
+            });
+          })()}
         </Pane>
         <Pane name="route-arrows" style={{ zIndex: 460 }}>
           {(() => {
@@ -2986,7 +3013,9 @@ const RoutePreviewCanvas = ({
         </Pane>
         <Pane name="overlay-points" style={{ zIndex: 620 }}>
           {visibleOverlayEntries.map((point) => {
-            const canAdd = interactive && point.kind === 'place' && focusedTarget?.kind === 'timeline' && typeof onLibraryMarkerAddClick === 'function';
+            // 두 단계 클릭: place 마커를 누르면 먼저 + 모드로 전환, 다시 누르면 일정 추가
+            const isFocusedLibrary = point.kind === 'place' && focusedLibraryMarkerId === point.id;
+            const canAdd = interactive && point.kind === 'place' && isFocusedLibrary && typeof onLibraryMarkerAddClick === 'function';
             return (
               <Marker
                 key={`overlay-point-${point.kind}-${point.id}`}
@@ -2997,8 +3026,17 @@ const RoutePreviewCanvas = ({
                   : buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
                 eventHandlers={interactive ? {
                   click: () => {
-                    if (canAdd) {
-                      onLibraryMarkerAddClick({ id: point.id, label: point.label });
+                    if (point.kind === 'place') {
+                      if (isFocusedLibrary) {
+                        // 두 번째 클릭: 일정 추가
+                        if (typeof onLibraryMarkerAddClick === 'function') {
+                          onLibraryMarkerAddClick({ id: point.id, label: point.label });
+                        }
+                        if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(null);
+                      } else {
+                        // 첫 번째 클릭: + 모드로 전환
+                        if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(point.id);
+                      }
                     } else if (typeof onMarkerClick === 'function') {
                       onMarkerClick({ kind: point.kind, id: point.id, label: point.label, address: point.address });
                     }
@@ -3791,6 +3829,7 @@ const App = () => {
   const [routePreviewManualRefreshing, setRoutePreviewManualRefreshing] = useState(false);
   const [showOverviewLibraryPoints, setShowOverviewLibraryPoints] = useState(false);
   const [showLibraryCategoryModal, setShowLibraryCategoryModal] = useState(false);
+  const [focusedLibraryMarkerId, setFocusedLibraryMarkerId] = useState(null); // 내장소 마커 두 단계 클릭: 첫 클릭 = + 모드
   const [libraryCategoryModalPos, setLibraryCategoryModalPos] = useState({ top: 200, right: 16 });
   const [heroViewMode, setHeroViewMode] = useState('map'); // 'map' | 'schedule'
   const [overviewMapHidden, setOverviewMapHidden] = useState(false);
@@ -6205,6 +6244,7 @@ const App = () => {
   const clearOverviewMapFocus = useCallback(() => {
     setFocusedMapTarget(null);
     setMobileSelectedLibraryPlace(null);
+    setFocusedLibraryMarkerId(null);
   }, []);
   const handleOverviewMapMarkerClick = useCallback((target) => {
     if (!target) return;
@@ -6231,7 +6271,9 @@ const App = () => {
     if (!place) return;
     const found = findPlanItemContextById(focusedMapTarget.id);
     if (!found) return;
-    addNewItem(found.dayIdx, found.pIdx, place.types || ['place'], place, { anchor: 'next' });
+    // undo 시 place 복원이 되도록: place 제거 전 상태를 snapshot에 저장
+    saveHistory();
+    addNewItem(found.dayIdx, found.pIdx, place.types || ['place'], place, { anchor: 'next', skipHistory: true });
     // 드래그로 일정에 넣는 것과 동일하게 내장소에서 제거 (중복 방지)
     setItinerary((prev) => {
       const existingTrash = Array.isArray(prev.placeTrash) ? prev.placeTrash : [];
@@ -9077,7 +9119,7 @@ const App = () => {
   };
 
   const addNewItem = (dayIdx, insertIndex, types = ['place'], placeData = null, options = {}) => {
-    saveHistory();
+    if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
       const nextData = JSON.parse(JSON.stringify(prev));
       const dayPlan = nextData.days[dayIdx].plan;
@@ -12429,6 +12471,8 @@ const App = () => {
                       focusedTarget={focusedMapTarget?.kind === 'timeline' ? focusedMapTarget : null}
                       onMarkerClick={handleOverviewMapMarkerClick}
                       onLibraryMarkerAddClick={handleOverviewMapLibraryAddClick}
+                      onLibraryMarkerFocus={setFocusedLibraryMarkerId}
+                      focusedLibraryMarkerId={focusedLibraryMarkerId}
                       onBackgroundClick={clearOverviewMapFocus}
                       interactive
                       height="100%"

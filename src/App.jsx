@@ -12126,47 +12126,6 @@ const App = () => {
                               </button>
                             </div>
                           </div>
-                          {/* 개요 3개 카드 - 지도/일정 탭 아래, 항상 표시 */}
-                          {!heroCompactActive && (
-                            <div className="grid grid-cols-3 gap-3 sm:gap-3">
-                              <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
-                                <div className="flex h-full flex-col items-center justify-center text-center">
-                                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
-                                  <p className="mt-2 text-[22px] leading-none font-black text-[#3182F6] tabular-nums sm:text-[31px]">{usedPct}%</p>
-                                  <p className="mt-2 text-[10px] font-bold text-slate-500 tabular-nums sm:text-[11px]">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
-                                </div>
-                              </div>
-                              <div className="relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] px-3 py-4 sm:px-4">
-                                <div className="flex h-full flex-col items-center justify-center text-center">
-                                  <div className="flex items-center justify-center gap-1.5">
-                                    <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
-                                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowTravelIntensityInfo((prev) => !prev); }} className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition-colors hover:border-[#3182F6]/40 hover:text-[#3182F6]" title="여행 강도 계산식 보기">
-                                      <Info size={10} />
-                                    </button>
-                                  </div>
-                                  <p className="mt-2 text-[21px] text-center leading-none font-black text-slate-800 sm:text-[27px]">{travelIntensity.label}</p>
-                                  <p className="mt-2 text-[10px] text-center font-bold text-slate-500 sm:text-[11px]">{travelIntensity.note}</p>
-                                </div>
-                                {showTravelIntensityInfo && (
-                                  <div className="absolute left-1/2 top-[calc(100%-8px)] z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
-                                    <p className="mt-2 text-[11px] font-bold text-slate-600">시간당 방문 수: {visitPerHour.toFixed(2)}개</p>
-                                    <p className="mt-1 text-[11px] font-bold text-slate-600">하루 활동 시간: 평균 {averageSpanHours.toFixed(1)}시간</p>
-                                    <p className="mt-1 text-[11px] font-bold text-slate-600">하루 이동 시간: 평균 {averageTravelHoursLabel}</p>
-                                    <p className="mt-1 text-[11px] font-bold text-slate-600">숙소 고정 제약: {lodgingConstraintCount}개</p>
-                                    <p className="mt-2 text-[10px] font-bold text-slate-400">방문 수는 `숙소/휴식/페리`를 제외한 일정만 세며, 숙소의 고정 체크인/체크아웃도 강도 점수에 반영합니다.</p>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] px-3 py-4 sm:px-4">
-                                <div className="flex h-full flex-col items-center justify-center text-center">
-                                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
-                                  <p className="mt-2 text-[22px] text-center leading-none font-black text-slate-800 tabular-nums sm:text-[31px]">{visitPerHour.toFixed(1)}개/h</p>
-                                  <p className="mt-2 text-[10px] text-center font-bold text-slate-500 sm:text-[11px]">방문 일정 {visitPlanCount}개 기준</p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
                         </div>
                         {showHeroSummaryModal && (
                           <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/36 px-4 py-6 backdrop-blur-sm" onClick={() => setShowHeroSummaryModal(false)}>
@@ -12395,65 +12354,6 @@ const App = () => {
                     </div>
                   )}
                 </div>
-                {/* 미니 네비게이션 - 경로 타임라인 */}
-                {overviewRouteMapHasRenderableData && (() => {
-                  const allPoints = overviewFilteredRoutePreviewMap.flatMap((day) =>
-                    (day.points || [])
-                      .filter((p) => Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lon)))
-                      .map((p) => ({ ...p, day: day.day, dayColor: day.color }))
-                  );
-                  if (allPoints.length < 2) return null;
-                  const CATEGORY_COLORS = {
-                    food: '#F43F5E', cafe: '#D97706', tour: '#8B5CF6',
-                    lodge: '#4F46E5', experience: '#10B981', souvenir: '#0D9488',
-                    view: '#0EA5E9', pickup: '#F97316', place: '#94A3B8',
-                  };
-                  return (
-                    <div className="px-3 py-3 border-t border-slate-100">
-                      <div className="relative flex items-center w-full overflow-x-auto no-scrollbar" style={{ minHeight: 48 }}>
-                        {/* 연결선 */}
-                        <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-200 -translate-y-1/2 mx-4" />
-                        <div className="relative flex items-center gap-0 w-full justify-between px-1">
-                          {allPoints.map((point, idx) => {
-                            const isFirst = idx === 0;
-                            const isLast = idx === allPoints.length - 1;
-                            const catColor = CATEGORY_COLORS[point.category] ?? '#94A3B8';
-                            return (
-                              <div key={`mini-nav-${point.id ?? idx}`} className="relative flex flex-col items-center" style={{ flex: '1 1 0', minWidth: 0 }}>
-                                {/* 연결점 */}
-                                <div
-                                  className="relative z-10 flex items-center justify-center rounded-full border-2 border-white shadow-sm"
-                                  style={{
-                                    width: isFirst || isLast ? 20 : 12,
-                                    height: isFirst || isLast ? 20 : 12,
-                                    background: isFirst ? '#10B981' : isLast ? '#F43F5E' : catColor,
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {isFirst && <span style={{ fontSize: 7, color: '#fff', fontWeight: 900, lineHeight: 1 }}>S</span>}
-                                  {isLast && <span style={{ fontSize: 7, color: '#fff', fontWeight: 900, lineHeight: 1 }}>E</span>}
-                                </div>
-                                {/* 라벨 */}
-                                <span
-                                  className="mt-1 text-center text-slate-600 font-bold leading-tight"
-                                  style={{
-                                    fontSize: 8,
-                                    maxWidth: 40,
-                                    overflow: 'hidden',
-                                    whiteSpace: 'nowrap',
-                                    textOverflow: 'ellipsis',
-                                    display: 'block',
-                                  }}
-                                  title={point.label}
-                                >{point.label}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
               </div>
             </div>
           )}

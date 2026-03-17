@@ -2478,7 +2478,7 @@ const LeafletMapViewportController = ({
       if (boundsPoints.length) {
         const bounds = L.latLngBounds(boundsPoints);
         if (bounds.isValid()) {
-          map.fitBounds(bounds.pad(0.18), { animate: true, padding: [28, 28] });
+          map.fitBounds(bounds.pad(0.08), { animate: true, padding: [20, 20] });
           return;
         }
       }
@@ -2524,7 +2524,8 @@ const LeafletMapContextMenuHandler = () => {
   useMapEvents({
     contextmenu: (e) => {
       const { lat, lng } = e.latlng;
-      const url = `https://map.naver.com/p/entry/coords/${lng},${lat}?c=${lng},${lat},15,0,0,0,dh`;
+      const zoom = Math.max(14, e.target.getZoom());
+      const url = `https://map.naver.com/p/entry/coords/${lat},${lng}?c=${lng},${lat},${zoom},0,0,0,dh`;
       window.open(url, '_blank', 'noopener,noreferrer');
     },
   });
@@ -2939,6 +2940,9 @@ const RoutePreviewCanvas = ({
           지도 배경을 불러오지 못해 경로만 표시합니다.
         </div>
       )}
+      <div className="pointer-events-none absolute bottom-2 right-2 rounded-md border border-white/70 bg-white/80 px-1.5 py-0.5 text-[9px] font-black text-slate-500 shadow-sm backdrop-blur-sm">
+        z{mapZoom}
+      </div>
     </div>
   );
 };

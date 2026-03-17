@@ -10131,39 +10131,39 @@ const App = () => {
   };
 
   const renderTimelineInsertGuide = (isDropHere, warnText = '', anchor = 'prev') => {
-    const activeText = warnText || (anchor === 'next' ? '이후 일정 시간 기준으로 역산합니다.' : '이전 일정 시간 기준으로 배치합니다.');
-    const idleText = '이동칩 안으로 놓아 흐름에 연결';
+    const isNext = anchor === 'next';
+    const anchorLabel = isNext ? '이후 기준' : '이전 기준';
+    const anchorDesc = isNext ? '이후 일정 시간 기준 역산' : '이전 일정 시간 기준 배치';
+    const warnLabel = warnText ? warnText.replace(/\.$/, '') : '';
     return (
       <div className="z-10 flex w-full items-center justify-center">
         <div
-          className={`flex w-full items-center justify-center rounded-[18px] border px-4 py-2.5 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] transition-all duration-200 gap-2 ${isDropHere
+          className={`grid grid-cols-2 w-full rounded-[18px] border overflow-hidden shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] transition-all duration-200 ${isDropHere
             ? warnText
               ? 'border-orange-300 bg-orange-50/95 text-orange-600 ring-2 ring-orange-200/70 shadow-[0_18px_30px_-16px_rgba(251,146,60,0.5)] scale-[1.01]'
               : 'border-[#3182F6]/30 bg-blue-50/95 text-[#3182F6] ring-2 ring-blue-200/70 shadow-[0_18px_30px_-16px_rgba(49,130,246,0.4)] scale-[1.01]'
             : 'border-slate-200 bg-white/96 text-slate-400'
             }`}
-          title={isDropHere ? activeText : idleText}
         >
-          <div className="flex items-center gap-1.5 opacity-55">
-            <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-slate-100/90">
+          {/* 왼쪽 셀: DROP 액션 */}
+          <div className={`flex items-center justify-center gap-1.5 px-3 py-2.5 ${isDropHere ? 'bg-current/5' : ''}`}>
+            <span className={`flex h-5 w-5 items-center justify-center rounded-lg ${isDropHere ? 'bg-white/70' : 'bg-slate-100/90'}`}>
               <Minus size={10} />
             </span>
-            <span className="min-w-[3rem] text-center text-xs font-black tracking-tight">{isDropHere ? 'DROP' : 'MOVE'}</span>
-            <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-slate-100/90">
+            <span className="text-[11px] font-black tracking-tight">{isDropHere ? 'DROP' : 'MOVE'}</span>
+            <span className={`flex h-5 w-5 items-center justify-center rounded-lg ${isDropHere ? 'bg-white/70' : 'bg-slate-100/90'}`}>
               <Plus size={10} />
             </span>
           </div>
-          <div className={`h-4 w-px ${isDropHere ? 'bg-current/20' : 'bg-slate-200'}`} />
-          <div className="relative flex min-w-0 flex-1 items-center justify-center">
-            <span className={`absolute inset-x-1 top-1/2 h-px -translate-y-1/2 border-t border-dashed ${isDropHere ? 'border-current/20' : 'border-slate-200'}`} />
-            <span className="relative flex items-center justify-center rounded-full bg-white/92 px-3 py-1 text-[11px] font-black leading-none tracking-tight shadow-sm">
-              {isDropHere ? activeText : idleText}
+          {/* 오른쪽 셀: 기준 + 설명 */}
+          <div className={`flex flex-col items-center justify-center px-3 py-2 border-l gap-0.5 ${isDropHere ? 'border-current/15' : 'border-slate-200'}`}>
+            <span className={`text-[11px] font-black leading-none ${isDropHere ? '' : 'text-slate-500'}`}>
+              {isDropHere ? (warnLabel || anchorLabel) : anchorLabel}
+            </span>
+            <span className={`text-[9px] font-bold leading-none ${isDropHere ? 'opacity-60' : 'text-slate-400'}`}>
+              {anchorDesc}
             </span>
           </div>
-          <div className={`h-4 w-px ${isDropHere ? 'bg-current/20' : 'bg-slate-200'}`} />
-          <span className={`rounded-full px-2 py-1 text-[10px] font-black leading-none ${isDropHere ? 'bg-white/92 shadow-sm' : 'bg-slate-50 text-slate-400'}`}>
-            {anchor === 'next' ? '이후 기준' : '이전 기준'}
-          </span>
         </div>
       </div>
     );

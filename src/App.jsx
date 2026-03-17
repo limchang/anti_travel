@@ -2228,24 +2228,25 @@ const getMapCategoryLabel = (type = 'place') => {
   return found?.label || '장소';
 };
 
-const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#FFFFFF', categoryLabel = '') => {
+const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#FFFFFF', categoryLabel = '', isFirst = false, isLast = false) => {
   const shortCategoryLabel = String(categoryLabel || '').trim().slice(0, 2);
   const sz = isFocused ? 34 : 30;
   const borderW = isFocused ? 3 : 2;
   const tailW = isFocused ? 7 : 6;
   const tailH = isFocused ? 10 : 8;
-  // focused이면 항상 라벨 표시, 아니면 hover시만 표시
-  const tagH = isFocused ? (shortCategoryLabel ? 16 : 0) : (shortCategoryLabel ? 14 : 0);
+  // 카테고리 태그 항상 표시
+  const tagH = shortCategoryLabel ? (isFocused ? 16 : 14) : 0;
   const tagGap = (tagH > 0) ? 3 : 0;
-  const uid = `tm${Math.random().toString(36).slice(2,7)}`;
+  // 시작/마감 뱃지
+  const badgeText = isFirst ? 'START' : (isLast ? 'END' : '');
+  const badgeColor = isFirst ? '#10B981' : '#EF4444';
+  const badgeH = badgeText ? 14 : 0;
+  const badgeGap = badgeH > 0 ? 2 : 0;
+  const totalTopH = tagH + tagGap + badgeH + badgeGap;
   return L.divIcon({
     className: '',
     html: `
-      <style>
-        #${uid}:hover .tl-tag { opacity:1 !important; transform:translateY(0) !important; }
-        #${uid}:hover .tl-circle { box-shadow:0 6px 20px -6px rgba(15,23,42,0.7)${isFocused ? ',0 0 0 3px rgba(15,23,42,0.15)' : ''} !important; }
-      </style>
-      <div id="${uid}" style="
+      <div style="
         position:relative;
         display:flex;
         flex-direction:column;
@@ -2253,7 +2254,22 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
         width:${sz}px;
         cursor:pointer;
       ">
-        ${shortCategoryLabel ? `<span class="tl-tag" style="
+        ${badgeText ? `<span style="
+          margin-bottom:${badgeGap}px;
+          padding:0 5px;
+          height:${badgeH}px;
+          border-radius:999px;
+          background:${badgeColor};
+          color:#fff;
+          font-size:7px;
+          font-weight:900;
+          line-height:${badgeH}px;
+          text-align:center;
+          white-space:nowrap;
+          box-shadow:0 3px 8px -3px rgba(15,23,42,0.45);
+          letter-spacing:0.04em;
+        ">${badgeText}</span>` : ''}
+        ${shortCategoryLabel ? `<span style="
           margin-bottom:${tagGap}px;
           min-width:${isFocused ? '30px' : '26px'};
           height:${tagH}px;
@@ -2268,12 +2284,8 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
           white-space:nowrap;
           box-shadow:0 4px 10px -4px rgba(15,23,42,0.45);
           letter-spacing:0.02em;
-          opacity:${isFocused ? 1 : 0};
-          transform:${isFocused ? 'translateY(0)' : 'translateY(4px)'};
-          transition:opacity 0.15s,transform 0.15s;
-          pointer-events:none;
         ">${shortCategoryLabel}</span>` : ''}
-        <div class="tl-circle" style="
+        <div style="
           position:relative;
           width:${sz}px;
           height:${sz}px;
@@ -2288,7 +2300,6 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
           font-weight:900;
           box-shadow:0 6px 20px -8px rgba(15,23,42,0.6)${isFocused ? ',0 0 0 3px rgba(15,23,42,0.15)' : ''};
           letter-spacing:-0.5px;
-          transition:box-shadow 0.15s;
         ">
           ${label}
           ${shortCategoryLabel ? `<span style="
@@ -2314,8 +2325,8 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
         "></div>
       </div>
     `,
-    iconSize: [sz, (isFocused ? tagH + tagGap : 0) + sz + tailH],
-    iconAnchor: [sz / 2, (isFocused ? tagH + tagGap : 0) + sz + tailH],
+    iconSize: [sz, totalTopH + sz + tailH],
+    iconAnchor: [sz / 2, totalTopH + sz + tailH],
   });
 };
 
@@ -2328,10 +2339,6 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
   return L.divIcon({
     className: '',
     html: `
-      <style>
-        #${uid}:hover .lb-label { opacity:1 !important; transform:translateY(0) !important; }
-        #${uid}:hover .lb-circle { box-shadow:0 6px 18px -6px rgba(15,23,42,0.65) !important; }
-      </style>
       <div id="${uid}" style="
         display:flex;
         flex-direction:column;
@@ -2340,7 +2347,7 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
         cursor:pointer;
         position:relative;
       ">
-        <span class="lb-label" style="
+        <span style="
           margin-bottom:2px;
           min-width:${isFocused ? '28px' : '24px'};
           height:${isFocused ? 15 : 13}px;
@@ -2354,12 +2361,8 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
           text-align:center;
           white-space:nowrap;
           box-shadow:0 4px 8px -4px rgba(15,23,42,0.4);
-          opacity:${isFocused ? 1 : 0};
-          transform:${isFocused ? 'translateY(0)' : 'translateY(4px)'};
-          transition:opacity 0.15s,transform 0.15s;
-          pointer-events:none;
         ">${shortLabel}</span>
-        <div class="lb-circle" style="
+        <div style="
           position:relative;
           width:${sz}px;
           height:${sz}px;
@@ -2375,7 +2378,6 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
           line-height:1;
           box-shadow:0 6px 18px -8px rgba(15,23,42,0.55)${isFocused ? ',0 0 0 3px rgba(15,23,42,0.12)' : ''};
           white-space:nowrap;
-          transition:box-shadow 0.15s;
         ">${shortLabel}</div>
         <div style="
           width:0;
@@ -2641,30 +2643,36 @@ const RoutePreviewCanvas = ({
     : [];
   const focusedOverlayKey = focusedTarget?.kind && focusedTarget?.id ? `${focusedTarget.kind}:${focusedTarget.id}` : '';
   const timelineEntries = useMemo(() => (
-    routePreviewMap.flatMap((day) => (
-      (day.points || [])
+    routePreviewMap.flatMap((day) => {
+      const validPoints = (day.points || [])
         .map((point, index) => {
           const position = toLeafletLatLng(point);
           if (!position) return null;
-          const pointId = point.itemId || point.id;
-          const isFocused = focusedTarget?.kind === 'timeline'
-            && (focusedTimelinePointIds.includes(point?.id) || focusedTimelinePointIds.includes(pointId));
-          return {
-            id: pointId,
-            pointId: point.id,
-            day: day.day,
-            order: index + 1,
-            label: point.label,
-            address: point.address,
-            position,
-            color: day.color,
-            categoryColor: getMapCategoryColor(point.primaryType || 'place'),
-            categoryLabel: point.categoryLabel || getMapCategoryLabel(point.primaryType || 'place'),
-            isFocused,
-          };
+          return { point, index, position };
         })
-        .filter(Boolean)
-    ))
+        .filter(Boolean);
+      const lastIdx = validPoints.length - 1;
+      return validPoints.map(({ point, index, position }, validIndex) => {
+        const pointId = point.itemId || point.id;
+        const isFocused = focusedTarget?.kind === 'timeline'
+          && (focusedTimelinePointIds.includes(point?.id) || focusedTimelinePointIds.includes(pointId));
+        return {
+          id: pointId,
+          pointId: point.id,
+          day: day.day,
+          order: index + 1,
+          label: point.label,
+          address: point.address,
+          position,
+          color: day.color,
+          categoryColor: getMapCategoryColor(point.primaryType || 'place'),
+          categoryLabel: point.categoryLabel || getMapCategoryLabel(point.primaryType || 'place'),
+          isFocused,
+          isFirst: validIndex === 0,
+          isLast: validIndex === lastIdx,
+        };
+      });
+    })
   ), [focusedTarget?.kind, focusedTimelinePointIds, routePreviewMap]);
   const segmentEntries = useMemo(() => (
     routePreviewMap.flatMap((day) => (
@@ -2922,7 +2930,7 @@ const RoutePreviewCanvas = ({
               key={`timeline-point-${point.pointId}`}
               position={point.position}
               bubblingMouseEvents={false}
-              icon={buildTimelineMarkerIcon(point.color, String(point.order), point.isFocused, point.categoryColor, point.categoryLabel)}
+              icon={buildTimelineMarkerIcon(point.color, String(point.order), point.isFocused, point.categoryColor, point.categoryLabel, point.isFirst, point.isLast)}
               eventHandlers={interactive && typeof onMarkerClick === 'function' ? {
                 click: () => onMarkerClick({
                   kind: 'timeline',
@@ -2933,15 +2941,7 @@ const RoutePreviewCanvas = ({
                   address: point.address,
                 }),
               } : undefined}
-            >
-              <Tooltip direction="top" offset={[0, -14]} opacity={1} className="!rounded-xl !border !border-slate-200 !bg-white/95 !px-2 !py-1 !text-[10px] !font-black !text-slate-700 !shadow-sm">
-                <div className="max-w-[180px]">
-                  <div>{`Day ${point.day}-${point.order} · ${point.label || '일정'}`}</div>
-                  {point.categoryLabel ? <div className="mt-0.5 text-[9px] font-black" style={{ color: point.categoryColor || '#64748B' }}>{point.categoryLabel}</div> : null}
-                  {point.address ? <div className="mt-0.5 truncate text-[9px] font-bold text-slate-400">{point.address}</div> : null}
-                </div>
-              </Tooltip>
-            </Marker>
+            />
           ))}
         </Pane>
         <Pane name="overlay-points" style={{ zIndex: 620 }}>
@@ -2964,16 +2964,7 @@ const RoutePreviewCanvas = ({
                     }
                   },
                 } : undefined}
-              >
-                <Tooltip direction="top" offset={[0, -10]} opacity={1} className="!rounded-xl !border !border-slate-200 !bg-white/95 !px-2 !py-1 !text-[10px] !font-black !text-slate-700 !shadow-sm">
-                  <div className="max-w-[180px]">
-                    <div>{point.label || (point.kind === 'recommendation' ? '추천 장소' : '내 장소')}</div>
-                    {point.categoryLabel && point.kind === 'place' ? <div className="mt-0.5 text-[9px] font-black" style={{ color: point.categoryColor || '#64748B' }}>{point.categoryLabel}</div> : null}
-                    {point.address ? <div className="mt-0.5 truncate text-[9px] font-bold text-slate-400">{point.address}</div> : null}
-                    {canAdd ? <div className="mt-1 rounded-md bg-[#3182F6] px-2 py-0.5 text-center text-[9px] font-black text-white">+ 선택 일정 다음에 추가</div> : null}
-                  </div>
-                </Tooltip>
-              </Marker>
+              />
             );
           })}
         </Pane>

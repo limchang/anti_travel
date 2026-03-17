@@ -10166,7 +10166,7 @@ const App = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="text-[13px] font-black tracking-[0.18em] text-slate-800 uppercase leading-none">Anti Planer</h2>
-                  <p className="mt-1 text-[10px] font-bold text-slate-400 leading-none">v{APP_VERSION} · {pushTimeLabel}</p>
+                  <p className="mt-1 text-[10px] font-bold text-slate-400 leading-none">{pushTimeLabel}</p>
                 </div>
                 {user && !user.isGuest && (
                   <button

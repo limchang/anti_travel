@@ -386,17 +386,81 @@ const SharedBusinessRow = ({
     {expanded}
   </div>
 );
-const SharedMemoRow = ({ value, onChange, placeholder = '메모를 입력하세요...', onContainerClick, readOnly = false }) => (
-  <div onClick={onContainerClick}>
-    <input
-      value={value}
-      onChange={onChange}
-      readOnly={readOnly}
-      className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-1.5 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
-      placeholder={placeholder}
-    />
-  </div>
-);
+// 메모 텍스트에서 체크리스트 항목 파싱
+const parseChecklistLines = (text = '') => {
+  return String(text).split('\n').map((line, idx) => {
+    const checked = /^-\s*\[x\]\s*/i.test(line);
+    const unchecked = /^-\s*\[\s*\]\s*/.test(line);
+    if (checked || unchecked) {
+      return { idx, isCheckItem: true, checked, text: line.replace(/^-\s*\[[x\s]\]\s*/i, '') };
+    }
+    return { idx, isCheckItem: false, text: line };
+  });
+};
+const toggleChecklistLine = (memo, lineIdx) => {
+  const lines = String(memo).split('\n');
+  const line = lines[lineIdx] || '';
+  if (/^-\s*\[x\]/i.test(line)) {
+    lines[lineIdx] = line.replace(/^(-\s*)\[x\]/i, '$1[ ]');
+  } else if (/^-\s*\[\s*\]/.test(line)) {
+    lines[lineIdx] = line.replace(/^(-\s*)\[\s*\]/, '$1[x]');
+  }
+  return lines.join('\n');
+};
+const hasChecklistItems = (text = '') => /^-\s*\[[x\s]\]/im.test(String(text));
+
+const SharedMemoRow = ({ value, onChange, placeholder = '메모를 입력하세요...', onContainerClick, readOnly = false }) => {
+  const [editing, setEditing] = React.useState(false);
+  const lines = parseChecklistLines(value);
+  const hasList = hasChecklistItems(value);
+
+  if (hasList && !editing) {
+    return (
+      <div onClick={onContainerClick} className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-1.5">
+        <div className="flex flex-col gap-0.5">
+          {lines.map((line) =>
+            line.isCheckItem ? (
+              <label key={line.idx} className="flex items-center gap-1.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={line.checked}
+                  readOnly={readOnly}
+                  onChange={readOnly ? undefined : () => {
+                    const next = toggleChecklistLine(value, line.idx);
+                    onChange?.({ target: { value: next } });
+                  }}
+                  className="w-3 h-3 rounded accent-[#3182F6] shrink-0"
+                />
+                <span className={`text-[11px] font-medium leading-snug ${line.checked ? 'line-through text-slate-300' : 'text-slate-600'}`}>{line.text}</span>
+              </label>
+            ) : (
+              line.text.trim() ? (
+                <span key={line.idx} className="text-[11px] font-medium text-slate-500 leading-snug">{line.text}</span>
+              ) : null
+            )
+          )}
+        </div>
+        {!readOnly && (
+          <button onClick={(e) => { e.stopPropagation(); setEditing(true); }} className="mt-1 text-[9px] font-bold text-slate-300 hover:text-slate-400 transition-colors">편집</button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div onClick={onContainerClick}>
+      <input
+        value={value}
+        onChange={onChange}
+        readOnly={readOnly}
+        autoFocus={editing}
+        onBlur={() => setEditing(false)}
+        className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-1.5 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
+        placeholder={placeholder}
+      />
+    </div>
+  );
+};
 const MenuPriceInput = ({ value = 0, onCommit, className = '', onClick = null }) => {
   const normalizedValue = Number(value) || 0;
   const [isEditing, setIsEditing] = React.useState(false);
@@ -4160,6 +4224,7 @@ const App = () => {
   const [focusedMapTarget, setFocusedMapTarget] = useState(null);
   const [showOverviewMapModal, setShowOverviewMapModal] = useState(false);
   const [showPlaceMapModal, setShowPlaceMapModal] = useState(false);
+  const [showChecklistModal, setShowChecklistModal] = useState(false);
   const [placeLibraryViewMode, setPlaceLibraryViewMode] = useState('compact');
   const [libraryGeoMap, setLibraryGeoMap] = useState({});
   const [recommendationGeoMap, setRecommendationGeoMap] = useState({});
@@ -11197,6 +11262,14 @@ const App = () => {
                       </div>
                       <div className="h-px bg-slate-100 mx-4" />
                       <button
+                        onClick={() => { setShowChecklistModal(true); setShowNavMenu(false); }}
+                        className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors"
+                      >
+                        <CheckSquare size={13} className="text-slate-400" />
+                        체크리스트 확인
+                      </button>
+                      <div className="h-px bg-slate-100 mx-4" />
+                      <button
                         onClick={() => { setShowSmartFillGuide(true); setShowNavMenu(false); }}
                         className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors"
                       >
@@ -12653,6 +12726,100 @@ const App = () => {
             </div>
           )}
           {showSmartFillGuide && <SmartFillGuideModal onClose={() => setShowSmartFillGuide(false)} />}
+
+          {/* 체크리스트 일괄 확인 모달 */}
+          {showChecklistModal && (() => {
+            // 전체 일정에서 체크리스트 항목 수집
+            const checklistGroups = [];
+            (itinerary.days || []).forEach((day, dI) => {
+              (day.plan || []).forEach((item, pI) => {
+                if (!item || item.type === 'backup') return;
+                const memo = String(item.memo || '');
+                if (!hasChecklistItems(memo)) return;
+                const lines = parseChecklistLines(memo);
+                const items = lines.filter(l => l.isCheckItem);
+                checklistGroups.push({ dIdx: dI, pIdx: pI, day: day.day || dI + 1, activity: item.activity || '일정', items, memo });
+              });
+            });
+            const totalCount = checklistGroups.reduce((s, g) => s + g.items.length, 0);
+            const checkedCount = checklistGroups.reduce((s, g) => s + g.items.filter(i => i.checked).length, 0);
+            return (
+              <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/50 px-4 py-8 backdrop-blur-sm" onClick={() => setShowChecklistModal(false)}>
+                <div className="relative w-full max-w-md max-h-[80vh] flex flex-col rounded-[28px] border border-white/70 bg-white shadow-[0_30px_80px_-20px_rgba(15,23,42,0.4)]" onClick={e => e.stopPropagation()}>
+                  {/* 헤더 */}
+                  <div className="flex items-center gap-3 px-5 pt-5 pb-3 border-b border-slate-100">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[15px] font-black text-slate-900">체크리스트</p>
+                      <p className="text-[11px] font-bold text-slate-400 mt-0.5">{checkedCount}/{totalCount} 완료</p>
+                    </div>
+                    {/* 진행바 */}
+                    <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#3182F6] rounded-full transition-all" style={{ width: totalCount ? `${(checkedCount/totalCount)*100}%` : '0%' }} />
+                    </div>
+                    <button onClick={() => setShowChecklistModal(false)} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-slate-600 transition-colors"><X size={14} /></button>
+                  </div>
+                  {/* 리스트 */}
+                  <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+                    {checklistGroups.length === 0 ? (
+                      <div className="py-10 text-center text-[12px] font-bold text-slate-300">
+                        <p>체크리스트 항목이 없습니다.</p>
+                        <p className="mt-1 text-[10px] font-medium text-slate-200">메모에 <code className="bg-slate-100 px-1 rounded text-slate-400">- [ ] 항목명</code> 형식으로 추가하세요.</p>
+                      </div>
+                    ) : checklistGroups.map((group) => (
+                      <div key={`${group.dIdx}-${group.pIdx}`} className="rounded-[16px] border border-slate-100 bg-slate-50/60 px-3.5 py-3">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <span className="text-[9px] font-black text-slate-400 bg-slate-200/60 px-1.5 py-0.5 rounded-md">Day {group.day}</span>
+                          <span className="text-[12px] font-black text-slate-700 truncate">{group.activity}</span>
+                          <span className="ml-auto text-[9px] font-bold text-slate-300">{group.items.filter(i=>i.checked).length}/{group.items.length}</span>
+                        </div>
+                        <div className="space-y-1">
+                          {group.items.map((line) => (
+                            <label key={line.idx} className="flex items-center gap-2 cursor-pointer group">
+                              <input
+                                type="checkbox"
+                                checked={line.checked}
+                                onChange={() => {
+                                  const next = toggleChecklistLine(group.memo, line.idx);
+                                  updateMemo(group.dIdx, group.pIdx, next);
+                                }}
+                                className="w-3.5 h-3.5 rounded accent-[#3182F6] shrink-0"
+                              />
+                              <span className={`text-[12px] font-medium leading-snug transition-colors ${line.checked ? 'line-through text-slate-300' : 'text-slate-700'}`}>{line.text}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* 하단: 전체 완료/초기화 */}
+                  {checklistGroups.length > 0 && (
+                    <div className="flex gap-2 px-4 pb-4 pt-3 border-t border-slate-100">
+                      <button
+                        onClick={() => {
+                          checklistGroups.forEach(group => {
+                            const lines = String(group.memo).split('\n');
+                            const next = lines.map(l => /^-\s*\[\s*\]/.test(l) ? l.replace(/^(-\s*)\[\s*\]/, '$1[x]') : l).join('\n');
+                            if (next !== group.memo) updateMemo(group.dIdx, group.pIdx, next);
+                          });
+                        }}
+                        className="flex-1 py-2 rounded-[14px] bg-[#3182F6] text-white text-[12px] font-black hover:bg-blue-600 transition-colors"
+                      >전체 완료</button>
+                      <button
+                        onClick={() => {
+                          checklistGroups.forEach(group => {
+                            const lines = String(group.memo).split('\n');
+                            const next = lines.map(l => /^-\s*\[x\]/i.test(l) ? l.replace(/^(-\s*)\[x\]/i, '$1[ ]') : l).join('\n');
+                            if (next !== group.memo) updateMemo(group.dIdx, group.pIdx, next);
+                          });
+                        }}
+                        className="flex-1 py-2 rounded-[14px] border border-slate-200 text-slate-500 text-[12px] font-black hover:bg-slate-50 transition-colors"
+                      >전체 초기화</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {perplexityNearbyModal.open && (
             <>

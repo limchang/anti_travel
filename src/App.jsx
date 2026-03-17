@@ -2641,6 +2641,7 @@ const RoutePreviewCanvas = ({
   onLibraryMarkerTypeChange = null,
   onLibraryMarkerTypeEdit = null,
   onBackgroundClick = null,
+  onSegmentLabelClick = null,
   interactive = true,
   showTimelineMarkers = true,
   showRouteLines = true,
@@ -2712,10 +2713,7 @@ const RoutePreviewCanvas = ({
           const positions = rawPath.map(toLeafletLatLng).filter(Boolean);
           if (positions.length < 2) return null;
           const isFocused = focusedTarget?.kind === 'timeline'
-            && (
-              focusedTimelinePointIds.includes(segment?.fromId)
-              || focusedTimelinePointIds.includes(segment?.toId)
-            );
+            && focusedTimelinePointIds.includes(segment?.fromId);
           const isFallbackLine = !(Array.isArray(segment.path) && segment.path.length);
           const midIdx = Math.floor(positions.length / 2);
           const midPos = positions[midIdx] || positions[0];
@@ -2733,19 +2731,11 @@ const RoutePreviewCanvas = ({
             arrowPoints: segment.isShipRoute ? [] : arrowPoints,
             durationMins: Number.isFinite(Number(segment.durationMins)) ? Number(segment.durationMins) : null,
             distance: Number.isFinite(Number(segment.distance)) ? Number(segment.distance) : null,
+            toItemId: segment.toPoint?.itemId || segment.toId,
           };
         })
         .filter(Boolean)
     ));
-    // 포커스된 세그먼트와 연결된(이전/이후) 세그먼트에 isNearFocus 표시
-    if (focusedTarget?.kind === 'timeline' && focusedTimelinePointIds.length > 0) {
-      const focusedSet = new Set(allSegments.filter((s) => s.isFocused).flatMap((s) => [s.fromId, s.toId].filter(Boolean)));
-      allSegments.forEach((s) => {
-        if (!s.isFocused && (focusedSet.has(s.fromId) || focusedSet.has(s.toId))) {
-          s.isNearFocus = true;
-        }
-      });
-    }
     return allSegments;
   }, [focusedTarget?.kind, focusedTimelinePointIds, routePreviewMap]);
   const overlayEntries = useMemo(() => (
@@ -3035,10 +3025,8 @@ const RoutePreviewCanvas = ({
               let weight, opacity;
               if (segment.isFocused) {
                 weight = 11; opacity = 1;
-              } else if (segment.isNearFocus) {
-                weight = 9; opacity = 0.85;
               } else if (hasFocus) {
-                weight = segment.isFallbackLine ? 3 : 5; opacity = segment.isFallbackLine ? 0.2 : 0.28;
+                weight = segment.isFallbackLine ? 3 : 5; opacity = segment.isFallbackLine ? 0.25 : 0.5;
               } else {
                 weight = segment.isFallbackLine ? 4 : 8; opacity = segment.isFallbackLine ? 0.45 : 0.9;
               }
@@ -3091,6 +3079,9 @@ const RoutePreviewCanvas = ({
                 position={segment.midPos}
                 bubblingMouseEvents={false}
                 icon={buildSegmentLabelIcon(segment.color, label, segment.isFocused)}
+                eventHandlers={interactive && onSegmentLabelClick && segment.toItemId ? {
+                  click: () => onSegmentLabelClick(segment.toItemId),
+                } : undefined}
               />
             );
           })}
@@ -11464,6 +11455,18 @@ const App = () => {
                           }}
                           focusedLibraryMarkerId={focusedLibraryMarkerId}
                           onBackgroundClick={clearOverviewMapFocus}
+                          onSegmentLabelClick={(toItemId) => {
+                            let found = null;
+                            (itinerary.days || []).forEach((day, dI) => {
+                              (day.plan || []).forEach((item, pI) => {
+                                if (item?.id === toItemId) found = { dIdx: dI, pIdx: pI };
+                              });
+                            });
+                            if (found) {
+                              document.getElementById(`travel-chip-${found.dIdx}-${found.pIdx}`)
+                                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                          }}
                           interactive
                           height="100%"
                           showTimelineMarkers={overviewMapRouteVisible}
@@ -12495,6 +12498,18 @@ const App = () => {
                     focusedTarget={focusedMapTarget}
                     onMarkerClick={handleOverviewMapMarkerClick}
                     onBackgroundClick={clearOverviewMapFocus}
+                    onSegmentLabelClick={(toItemId) => {
+                      let found = null;
+                      (itinerary.days || []).forEach((day, dI) => {
+                        (day.plan || []).forEach((item, pI) => {
+                          if (item?.id === toItemId) found = { dIdx: dI, pIdx: pI };
+                        });
+                      });
+                      if (found) {
+                        document.getElementById(`travel-chip-${found.dIdx}-${found.pIdx}`)
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
+                    }}
                     interactive
                     height={isMobileLayout ? 460 : 620}
                     showTimelineMarkers
@@ -14369,9 +14384,9 @@ const App = () => {
                             const nextItem = nextMainItem;
                             if (!nextItem) return null;
 
-                            // 현재 아이템이 lodge/ship이면 이동칩 숨김 (드래그 드롭존은 유지)
-                            const curIsLodgeOrShip = p.types?.includes('lodge') || p.types?.includes('ship');
-                            if (curIsLodgeOrShip && !(draggingFromLibrary || draggingFromTimeline !== null)) return null;
+                            // 현재 아이템이 lodge이면 이동칩 숨김 (드래그 드롭존은 유지) - ship은 이동칩 표시
+                            const curIsLodge = p.types?.includes('lodge');
+                            if (curIsLodge && !(draggingFromLibrary || draggingFromTimeline !== null)) return null;
 
                             if (draggingFromLibrary || draggingFromTimeline !== null) {
                               const isDropHere = dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === pIdx;
@@ -14433,7 +14448,8 @@ const App = () => {
                                           >{nextItem.travelTimeOverride || '15분'}</span>
                                           <button onClick={(e) => { e.stopPropagation(); updateTravelTime(dIdx, pIdx + 1, TIME_UNIT); }} className="w-5 h-5 flex items-center justify-center bg-slate-100 rounded-lg hover:bg-blue-50 text-slate-500"><Plus size={10} /></button>
                                         </div>
-                                        {/* 거리 */}
+                                        {/* 거리 — 다음 아이템이 ship이면 출발항까지 거리만 (ship.distance는 해상거리라 숨김) */}
+                                        {!nextItem.types?.includes('ship') && (
                                         <button
                                           type="button"
                                           className={`flex items-center gap-1 text-xs font-bold transition-colors ${busy ? 'text-[#3182F6]' : 'text-slate-400 hover:text-[#3182F6]'}`}
@@ -14453,6 +14469,7 @@ const App = () => {
                                           {busy ? <LoaderCircle size={11} className="animate-spin" /> : <MapIcon size={11} />}
                                           <span>{busy ? '계산중' : getRouteDistanceStatus(routeEntry)}</span>
                                         </button>
+                                        )}
                                         {/* 자동경로 */}
                                         <button onClick={(e) => { e.stopPropagation(); autoCalculateRouteFor(dIdx, pIdx + 1, { forceRefresh: true }); }} disabled={!!calculatingRouteId} title={busy ? '계산 중' : '자동경로 계산'} className={`flex items-center justify-center w-6 h-6 transition-colors border rounded-lg text-[10px] font-black ${busy ? 'bg-[#3182F6]/10 text-[#3182F6] border-[#3182F6]/30' : 'bg-white hover:bg-[#3182F6] hover:text-white text-slate-400 border-slate-200 hover:border-[#3182F6]'}`}>
                                           {busy ? <LoaderCircle size={10} className="animate-spin" /> : <Sparkles size={10} />}

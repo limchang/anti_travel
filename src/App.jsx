@@ -8152,15 +8152,15 @@ const App = () => {
       const nextMinutes = Math.max(0, currentMinutes + delta);
 
       if (delta < 0) {
-        // 보정시간 줄이기 → 이전 일정 소요시간 증가 (기존 로직)
+        // 보정시간 줄이기 → 이전 일정 소요시간 증가
         const reducedMinutes = Math.max(0, currentMinutes - nextMinutes);
         if (reducedMinutes > 0) {
           const prevEntry = getPreviousMainPlanEntryByIndex(nextData.days, dayIdx, pIdx);
-          if (prevEntry?.item && !prevEntry.item.types?.includes('ship')) {
-            const previousItem = prevEntry.item;
-            const nextDuration = Math.max(0, Number(previousItem.duration) || 0) + reducedMinutes;
-            previousItem.duration = nextDuration;
-            syncBaseDuration(previousItem, nextDuration);
+          const prevItem = prevEntry?.item;
+          if (prevItem && !prevItem.types?.includes('ship')) {
+            const nextDuration = Math.max(0, Number(prevItem.duration) || 0) + reducedMinutes;
+            prevItem.duration = nextDuration;
+            syncBaseDuration(prevItem, nextDuration);
           }
         }
         item.bufferTimeOverride = `${nextMinutes}분`;
@@ -8189,12 +8189,19 @@ const App = () => {
           item._manualBufferTimeOverride = `${nextMinutes}분`;
           item._isBufferCoordinated = false;
         } else {
-          // 시간 잠금 없음: 시작시간 뒤로 밀기 (기존 로직)
+          // 시간 잠금 없음: 시작시간 뒤로 밀기
           const prevEntry = getPreviousMainPlanEntryByIndex(nextData.days, dayIdx, pIdx);
           const prevItem = prevEntry?.item;
           const travelMins = parseMinsLabel(item.travelTimeOverride, DEFAULT_TRAVEL_MINS);
 
-          if (prevItem && !prevItem.types?.includes('ship')) {
+          // 앞 일정이 숙박(overnight lodge)이면 숙박 duration을 늘려서 보정시간 확보
+          if (prevItem && isOvernightLodgeTimelineItem(prevItem)) {
+            prevItem.duration = Math.max(0, (Number(prevItem.duration) || 0) + delta);
+            syncBaseDuration(prevItem, prevItem.duration);
+            item.bufferTimeOverride = `${nextMinutes}분`;
+            item._manualBufferTimeOverride = `${nextMinutes}분`;
+            item._isBufferCoordinated = false;
+          } else if (prevItem && !prevItem.types?.includes('ship')) {
             const prevEnd = getAbsoluteTimelineItemEndMinutes(prevItem, prevEntry.dayIdx);
             const currentStart = (dayIdx * 1440) + timeToMinutes(item.time || '00:00');
             const newStart = currentStart + delta;

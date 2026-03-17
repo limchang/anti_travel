@@ -2704,9 +2704,47 @@ const RoutePreviewCanvas = ({
       .filter((point) => point.isFocused)
       .map((point) => point.position);
   }, [focusedTarget?.kind, overlayEntries, segmentEntries, showOverlayMarkers, showRouteLines, showTimelineMarkers, timelineEntries]);
-  const visibleTimelineEntries = showTimelineMarkers ? timelineEntries : [];
+  const rawVisibleTimelineEntries = showTimelineMarkers ? timelineEntries : [];
   const visibleSegmentEntries = showRouteLines ? segmentEntries : [];
-  const visibleOverlayEntries = showOverlayMarkers ? overlayEntries : [];
+  const rawVisibleOverlayEntries = showOverlayMarkers ? overlayEntries : [];
+
+  // 같은 좌표에 겹치는 마커들을 방사형으로 분산
+  const [visibleTimelineEntries, visibleOverlayEntries] = useMemo(() => {
+    const OFFSET_DEG = 0.00018; // 약 20m
+    const posKey = (pos) => `${Number(pos[0]).toFixed(5)}:${Number(pos[1]).toFixed(5)}`;
+    // 모든 마커 위치 수집 (timeline + overlay)
+    const groups = new Map();
+    const allEntries = [
+      ...rawVisibleTimelineEntries.map((e) => ({ ...e, _layer: 'timeline' })),
+      ...rawVisibleOverlayEntries.map((e) => ({ ...e, _layer: 'overlay' })),
+    ];
+    allEntries.forEach((e) => {
+      const k = posKey(e.position);
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(e);
+    });
+    // 2개 이상 겹치면 방사형 오프셋 적용
+    const offsetMap = new Map();
+    groups.forEach((entries) => {
+      if (entries.length < 2) return;
+      const n = entries.length;
+      entries.forEach((e, i) => {
+        const angle = (2 * Math.PI * i) / n - Math.PI / 2;
+        const r = n === 2 ? OFFSET_DEG * 0.8 : OFFSET_DEG;
+        offsetMap.set(e, [
+          e.position[0] + r * Math.cos(angle),
+          e.position[1] + r * Math.sin(angle) * 1.5,
+        ]);
+      });
+    });
+    const applyOffset = (entries) => entries.map((e) => {
+      const off = offsetMap.get(allEntries.find((a) => a._layer === e._layer && a.id === e.id && a.pointId === e.pointId));
+      return off ? { ...e, position: off } : e;
+    });
+    const tl = applyOffset(rawVisibleTimelineEntries.map((e) => ({ ...e, _layer: 'timeline' })));
+    const ov = applyOffset(rawVisibleOverlayEntries.map((e) => ({ ...e, _layer: 'overlay' })));
+    return [tl, ov];
+  }, [rawVisibleTimelineEntries, rawVisibleOverlayEntries]);
   const renderableTimelinePointCount = visibleTimelineEntries.length;
   const renderableSegmentCount = visibleSegmentEntries.length;
   const renderableOverlayCount = visibleOverlayEntries.length;

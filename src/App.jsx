@@ -2275,47 +2275,59 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
 };
 
 const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd = false, extraTailH = 0, timelineFocused = false) => {
-  // 내장소 마커: 작고 반투명 — 일정 마커보다 눈에 덜 띄게
-  // timelineFocused=true(경로 포커스 중)일 때는 오히려 더 잘 보이게 opacity 유지
+  // 내장소 마커: 네모 모양 — 일정(원형) 마커와 시각적으로 구분
+  // canAdd 모드는 원형 유지
   const shortLabel = String(categoryLabel || '장소').trim().slice(0, 2);
   const bgColor = canAdd ? '#3182F6' : categoryColor;
   const opacity = canAdd ? 1 : (isFocused ? 0.95 : (timelineFocused ? 0.88 : 0.85));
   const sz = canAdd ? (isFocused ? 26 : 22) : (isFocused ? 22 : 18);
-  const tailW = isFocused ? 4 : 3;
-  const tailH = (isFocused ? 6 : 5) + extraTailH;
-  const totalH = sz + tailH;
-  const borderStyle = canAdd
-    ? `2px solid rgba(255,255,255,0.9)`
-    : isFocused
-      ? `2px solid rgba(255,255,255,0.95)`
-      : `2px solid rgba(255,255,255,0.85)`;
   const shadow = canAdd
     ? 'drop-shadow(0 4px 10px rgba(49,130,246,0.5))'
     : isFocused
       ? 'drop-shadow(0 3px 8px rgba(15,23,42,0.3))'
       : 'drop-shadow(0 1px 3px rgba(15,23,42,0.18))';
+
+  if (canAdd) {
+    // canAdd: 원형 유지 (기존 스타일)
+    const tailW = isFocused ? 4 : 3;
+    const tailH = isFocused ? 6 : 5;
+    const totalH = sz + tailH;
+    return L.divIcon({
+      className: '',
+      html: `
+        <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};opacity:${opacity};">
+          <div style="width:${sz}px;height:${sz}px;border-radius:999px;background:${bgColor};border:2px solid rgba(255,255,255,0.9);display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:${isFocused?'13px':'11px'};font-weight:900;color:#fff;line-height:1;">+</span>
+          </div>
+          <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${bgColor};opacity:0.7;margin-top:-1px;"></div>
+        </div>
+      `,
+      iconSize: [sz, totalH],
+      iconAnchor: [sz / 2, totalH],
+    });
+  }
+
+  // 내장소: 네모 모양, anchor 중앙 (일정 마커가 위에 있을 때 아래에 표시되도록)
+  const borderStyle = isFocused ? `2px solid rgba(255,255,255,0.95)` : `2px solid rgba(255,255,255,0.85)`;
+  const radius = isFocused ? '5px' : '4px';
   return L.divIcon({
     className: '',
     html: `
       <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};opacity:${opacity};">
         <div style="
-          width:${sz}px;height:${sz}px;border-radius:999px;
+          width:${sz}px;height:${sz}px;border-radius:${radius};
           background:${bgColor};border:${borderStyle};
           display:flex;align-items:center;justify-content:center;
         ">
           <span style="
-            font-size:${canAdd ? (isFocused?'13px':'11px') : (isFocused?'8px':'7px')};
+            font-size:${isFocused?'8px':'7px'};
             font-weight:900;color:#fff;line-height:1;
-          ">${canAdd ? '+' : shortLabel}</span>
+          ">${shortLabel}</span>
         </div>
-        ${extraTailH > 0 ? `<div style="display:flex;flex-direction:column;align-items:center;margin-top:-1px;">
-          <div style="width:${tailW-1}px;height:${extraTailH}px;background:${bgColor};opacity:0.7;"></div>
-          <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${isFocused?6:5}px solid ${bgColor};opacity:0.7;"></div>
-        </div>` : `<div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${bgColor};opacity:0.7;margin-top:-1px;"></div>`}
       </div>
     `,
-    iconSize: [sz, totalH],
-    iconAnchor: [sz / 2, totalH],
+    iconSize: [sz, sz],
+    iconAnchor: [sz / 2, sz / 2],
   });
 };
 
@@ -2669,13 +2681,13 @@ const RoutePreviewCanvas = ({
       })
       .filter(Boolean)
   ), [focusedOverlayKey, libraryPoints, recommendationPoints]);
+  // boundsPoints: 일정(timeline+segment)만 기준 — 내장소(overlay) 제외하여 지도 범위가 내장소에 의해 축소되지 않도록
   const allBoundsPoints = useMemo(() => (
     [
       ...(showRouteLines ? segmentEntries.flatMap((segment) => segment.positions) : []),
       ...(showTimelineMarkers ? timelineEntries.map((point) => point.position) : []),
-      ...(showOverlayMarkers ? overlayEntries.map((point) => point.position) : []),
     ]
-  ), [overlayEntries, segmentEntries, showOverlayMarkers, showRouteLines, showTimelineMarkers, timelineEntries]);
+  ), [segmentEntries, showRouteLines, showTimelineMarkers, timelineEntries]);
   const focusedViewportPoints = useMemo(() => {
     if (focusedTarget?.kind === 'timeline') {
       const focusedTimelinePoints = (showTimelineMarkers ? timelineEntries : [])
@@ -2891,7 +2903,7 @@ const RoutePreviewCanvas = ({
             />
           ))}
         </Pane>
-        <Pane name="overlay-points" style={{ zIndex: 620 }}>
+        <Pane name="overlay-points" style={{ zIndex: 480 }}>
           {(() => {
             const timelineFocusActive = focusedTarget?.kind === 'timeline' && focusedTimelinePointIds.length > 0;
             return visibleOverlayEntries.map((point) => {

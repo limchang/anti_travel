@@ -5941,10 +5941,10 @@ const App = () => {
         let segment = !forceRefresh ? routePreviewSegmentCacheRef.current[cacheKey] : null;
         if (segment && (!Array.isArray(segment.path) || (!segment.path.length && !Number.isFinite(Number(segment.distance))))) segment = null;
         if (!segment) {
-          // 페리 관련 구간은 모두 직선 경로로 처리 (육로 API 사용 금지)
-          // ship-start→ship-end (해상이동), *→ship-start (항구 접근), ship-end→* (항구 출발)
+          // 페리 관련 구간 중 직선 경로로 처리할 것:
+          // ship-start→ship-end (해상이동), *→ship-start (항구 접근)
+          // ship-end→* (항구 출발 후 육로)는 일반 경로 API 사용
           const isShipSegment = (fromPoint.pointKind === 'ship-start' && toPoint.pointKind === 'ship-end' && fromPoint.itemId && fromPoint.itemId === toPoint.itemId)
-            || fromPoint.pointKind === 'ship-end'
             || toPoint.pointKind === 'ship-start';
           if (isShipSegment) {
             const R = 6371;

@@ -9180,7 +9180,7 @@ const App = () => {
     return getPreferredMapCategory(types, fallbackType);
   };
 
-  const addPlace = (formData) => {
+  const addPlace = (formData, { unselectedMenus = false } = {}) => {
     const { name = '', types = ['place'], menus = [], address = '', memo = '', revisit = false, business = EMPTY_BUSINESS } = formData || {};
     const resolvedName = String(name || newPlaceName || '').trim();
     if (!resolvedName) return;
@@ -9189,7 +9189,7 @@ const App = () => {
       name: String(menu?.name || '').trim(),
       price: Number(menu?.price) || 0,
       qty: Math.max(1, Number(menu?.qty) || 1),
-      selected: menu?.selected !== false,
+      selected: unselectedMenus ? false : menu?.selected !== false,
     }));
     const nextPlace = normalizeLibraryPlace({
       id: `place_${Date.now()}`,
@@ -11390,7 +11390,7 @@ const App = () => {
                             address,
                             memo: '',
                             business: parsed.business || {},
-                          });
+                          }, { unselectedMenus: true });
                           showInfoToast(`⚡ '${parsed.name}' 내 장소에 추가됐습니다!`, { durationMs: 2400 });
                         } else {
                           showInfoToast('정보를 찾지 못했습니다. 일반 추가로 전환합니다.');
@@ -11432,7 +11432,7 @@ const App = () => {
                             address,
                             memo: '',
                             business: parsed.business || {},
-                          });
+                          }, { unselectedMenus: true });
                           showInfoToast(`⚡ '${parsed.name}' 내 장소에 추가됐습니다!`, { durationMs: 2400 });
                         } else {
                           showInfoToast('정보를 찾지 못했습니다. 일반 추가로 전환합니다.');

@@ -2551,9 +2551,9 @@ const LeafletMapContextMenuHandler = () => {
         );
         const data = await res.json();
         const addr = data.address || {};
-        // 시/구 + 동/읍/면 조합
-        const city = addr.city || addr.county || addr.state || '';
-        const district = addr.borough || addr.suburb || addr.neighbourhood || addr.quarter || addr.village || addr.town || '';
+        // 시/군/구 + 읍/면/동/리 조합
+        const city = addr.city || addr.county || addr.municipality || addr.state || '';
+        const district = addr.borough || addr.suburb || addr.quarter || addr.neighbourhood || addr.town || addr.village || addr.hamlet || addr['ISO3166-2-lvl8'] || '';
         const locationName = [city, district].filter(Boolean).join(' ');
         const query = locationName ? `${locationName} 가볼만한 곳` : '가볼만한 곳';
         window.open(`https://search.naver.com/search.naver?query=${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
@@ -11006,17 +11006,71 @@ const App = () => {
                     else { setIsAddingPlaceAutoFill(false); setIsAddingPlace(true); }
                   }}
                   onMouseDown={() => {
-                    addPlaceLongPressTimerRef.current = setTimeout(() => {
-                      setIsAddingPlaceAutoFill(true);
-                      setIsAddingPlace(true);
+                    addPlaceLongPressTimerRef.current = setTimeout(async () => {
+                      showInfoToast('⚡ 클립보드에서 장소 정보를 분석 중…', { durationMs: 2000 });
+                      try {
+                        const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                        const parsed = result?.parsed;
+                        if (parsed?.name) {
+                          let address = parsed.address || '';
+                          if (!address && parsed.name) {
+                            const searchRes = await searchAddressFromPlaceName(parsed.name, tripRegion);
+                            if (searchRes?.address) address = searchRes.address;
+                          }
+                          addPlace({
+                            name: parsed.name,
+                            types: parsed.types?.length ? parsed.types : ['place'],
+                            menus: parsed.menus?.length ? parsed.menus : [],
+                            address,
+                            memo: '',
+                            business: parsed.business || {},
+                          });
+                          showInfoToast(`⚡ '${parsed.name}' 내 장소에 추가됐습니다!`, { durationMs: 2400 });
+                        } else {
+                          showInfoToast('정보를 찾지 못했습니다. 일반 추가로 전환합니다.');
+                          setIsAddingPlaceAutoFill(false);
+                          setIsAddingPlace(true);
+                        }
+                      } catch {
+                        showInfoToast('자동채우기 오류. 일반 추가로 전환합니다.');
+                        setIsAddingPlaceAutoFill(false);
+                        setIsAddingPlace(true);
+                      }
                     }, 500);
                   }}
                   onMouseUp={() => clearTimeout(addPlaceLongPressTimerRef.current)}
                   onMouseLeave={() => clearTimeout(addPlaceLongPressTimerRef.current)}
                   onTouchStart={() => {
-                    addPlaceLongPressTimerRef.current = setTimeout(() => {
-                      setIsAddingPlaceAutoFill(true);
-                      setIsAddingPlace(true);
+                    addPlaceLongPressTimerRef.current = setTimeout(async () => {
+                      showInfoToast('⚡ 클립보드에서 장소 정보를 분석 중…', { durationMs: 2000 });
+                      try {
+                        const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                        const parsed = result?.parsed;
+                        if (parsed?.name) {
+                          let address = parsed.address || '';
+                          if (!address && parsed.name) {
+                            const searchRes = await searchAddressFromPlaceName(parsed.name, tripRegion);
+                            if (searchRes?.address) address = searchRes.address;
+                          }
+                          addPlace({
+                            name: parsed.name,
+                            types: parsed.types?.length ? parsed.types : ['place'],
+                            menus: parsed.menus?.length ? parsed.menus : [],
+                            address,
+                            memo: '',
+                            business: parsed.business || {},
+                          });
+                          showInfoToast(`⚡ '${parsed.name}' 내 장소에 추가됐습니다!`, { durationMs: 2400 });
+                        } else {
+                          showInfoToast('정보를 찾지 못했습니다. 일반 추가로 전환합니다.');
+                          setIsAddingPlaceAutoFill(false);
+                          setIsAddingPlace(true);
+                        }
+                      } catch {
+                        showInfoToast('자동채우기 오류. 일반 추가로 전환합니다.');
+                        setIsAddingPlaceAutoFill(false);
+                        setIsAddingPlace(true);
+                      }
                     }, 500);
                   }}
                   onTouchEnd={() => clearTimeout(addPlaceLongPressTimerRef.current)}

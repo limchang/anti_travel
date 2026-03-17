@@ -14173,6 +14173,10 @@ const App = () => {
                             const nextItem = nextMainItem;
                             if (!nextItem) return null;
 
+                            // 현재 아이템이 lodge/ship이면 이동칩 숨김 (드래그 드롭존은 유지)
+                            const curIsLodgeOrShip = p.types?.includes('lodge') || p.types?.includes('ship');
+                            if (curIsLodgeOrShip && !(draggingFromLibrary || draggingFromTimeline !== null)) return null;
+
                             if (draggingFromLibrary || draggingFromTimeline !== null) {
                               const isDropHere = dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === pIdx;
                               const activeAnchor = isDropHere ? (dropTarget?.anchor === 'next' ? 'next' : 'prev') : 'prev';

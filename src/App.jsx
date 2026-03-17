@@ -7144,14 +7144,17 @@ const App = () => {
       timer: setTimeout(() => {
         mobileLibraryLongPressRef.current.triggered = true;
         setMobileSelectedLibraryPlace(place);
-        showInfoToast(`'${place.name || '선택한 장소'}' 선택됨 · 일정에서 +를 눌러 넣어주세요.`, { durationMs: 2600 });
+        const hint = isEditMode
+          ? `'${place.name || '선택한 장소'}' 선택됨 · 일정에서 +를 눌러 넣어주세요.`
+          : `'${place.name || '선택한 장소'}' 선택됨 · 이동칩을 눌러 해당 위치에 넣어주세요.`;
+        showInfoToast(hint, { durationMs: 2600 });
       }, 420),
       startX: touch.clientX,
       startY: touch.clientY,
       placeId: place.id,
       triggered: false,
     };
-  }, [clearMobileLibraryLongPress, isMobileLayout, showInfoToast]);
+  }, [clearMobileLibraryLongPress, isEditMode, isMobileLayout, showInfoToast]);
 
   const handleMobileLibraryTouchMove = useCallback((event) => {
     if (!isMobileLayout) return;
@@ -14305,27 +14308,19 @@ const App = () => {
                                   placeholder="일정 이름 입력 후 Enter"
                                   onContainerClick={(e) => e.stopPropagation()}
                                   prefixContent={
-                                    mainChips.length > 0 ? (
+                                    (mainChips.length > 0 || subChips.length > 0) ? (
                                       <div
                                         className={`flex items-center gap-0.5 flex-nowrap shrink-0 cursor-pointer rounded px-0.5 py-0.5 -ml-0.5 transition-colors ${tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx ? 'bg-blue-50 ring-1 ring-[#3182F6]/30' : 'hover:bg-slate-100/60'}`}
                                         title="클릭하여 태그 편집"
                                         onClick={(e) => { e.stopPropagation(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx }); }}
                                       >
-                                        {mainChips}
+                                        {mainChips}{subChips}
                                       </div>
                                     ) : null
                                   }
                                   actionButton={
                                     <div className="flex items-center gap-1">
-                                      {subChips.length > 0 && (
-                                        <div
-                                          className={`flex items-center gap-0.5 flex-nowrap shrink-0 cursor-pointer rounded px-0.5 py-0.5 transition-colors ${tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx ? 'bg-blue-50 ring-1 ring-[#3182F6]/30' : 'hover:bg-slate-100/60'}`}
-                                          title="클릭하여 태그 편집"
-                                          onClick={(e) => { e.stopPropagation(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx }); }}
-                                        >
-                                          {subChips}
-                                        </div>
-                                      )}
+                                      {/* subChips 앞으로 이동 */}
                                       <button
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}
@@ -14646,7 +14641,30 @@ const App = () => {
 
                             // 현재 아이템이 lodge이면 이동칩 숨김 (드래그 드롭존은 유지) - ship은 이동칩 표시
                             const curIsLodge = p.types?.includes('lodge');
-                            if (curIsLodge && !(draggingFromLibrary || draggingFromTimeline !== null)) return null;
+                            if (curIsLodge && !(draggingFromLibrary || draggingFromTimeline !== null || (mobileSelectedLibraryPlace && !isEditMode))) return null;
+
+                            // 잠금 상태에서 내장소 롱프레스 선택 시 이동칩을 삽입 버튼으로 표시
+                            if (mobileSelectedLibraryPlace && !isEditMode) {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    insertMobileSelectedPlaceAt(dIdx, pIdx);
+                                    setMobileSelectedLibraryPlace(null);
+                                  }}
+                                  className="flex w-full items-center justify-center gap-2 rounded-[18px] border-2 border-dashed border-[#3182F6]/40 bg-blue-50/70 px-4 py-2.5 transition-colors active:bg-blue-100"
+                                >
+                                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#3182F6] text-white shadow-sm shrink-0">
+                                    <Plus size={11} />
+                                  </div>
+                                  <div className="min-w-0 flex-1 text-left">
+                                    <div className="truncate text-[11px] font-black text-[#3182F6]">{mobileSelectedLibraryPlace.name || '선택한 장소'}</div>
+                                    <div className="text-[9px] font-bold text-slate-400">여기 다음에 끼워 넣기</div>
+                                  </div>
+                                </button>
+                              );
+                            }
 
                             if (draggingFromLibrary || draggingFromTimeline !== null) {
                               const isDropHere = dropTarget?.dayIdx === dIdx && dropTarget?.insertAfterPIdx === pIdx;

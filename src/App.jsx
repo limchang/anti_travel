@@ -13499,61 +13499,6 @@ const App = () => {
                                           />
                                         </div>
                                       </div>
-                                      <div className="grid gap-1.5 md:grid-cols-2">
-                                        <SharedAddressRow
-                                          value={shipStartAddress}
-                                          onChange={(e) => {
-                                            e.stopPropagation();
-                                            setItinerary((prev) => {
-                                              const next = JSON.parse(JSON.stringify(prev));
-                                              next.days[dIdx].plan[pIdx].receipt = {
-                                                ...(next.days[dIdx].plan[pIdx].receipt || {}),
-                                                address: e.target.value,
-                                              };
-                                              return next;
-                                            });
-                                          }}
-                                          placeholder="출발 항구 주소"
-                                          leading={<span className="shrink-0 rounded-md bg-blue-50 px-1.5 py-0.5 text-[9px] font-black text-blue-600">출발</span>}
-                                          actions={
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                openNaverPlaceSearch(p.startPoint || '출발 항구', shipStartAddress);
-                                              }}
-                                              className="rounded-md border border-slate-200 bg-white p-1 text-slate-400 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
-                                              title="출발지 지도 검색"
-                                            >
-                                              <MapPin size={9} />
-                                            </button>
-                                          }
-                                          onContainerClick={(e) => e.stopPropagation()}
-                                        />
-                                        <SharedAddressRow
-                                          value={shipEndAddress}
-                                          onChange={(e) => {
-                                            e.stopPropagation();
-                                            updateShipPoint(dIdx, pIdx, 'endAddress', e.target.value);
-                                          }}
-                                          placeholder="도착 항구 주소"
-                                          leading={<span className="shrink-0 rounded-md bg-cyan-50 px-1.5 py-0.5 text-[9px] font-black text-cyan-600">도착</span>}
-                                          actions={
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                openNaverPlaceSearch(p.endPoint || '도착 항구', shipEndAddress);
-                                              }}
-                                              className="rounded-md border border-slate-200 bg-white p-1 text-slate-400 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
-                                              title="도착지 지도 검색"
-                                            >
-                                              <MapPin size={9} />
-                                            </button>
-                                          }
-                                          onContainerClick={(e) => e.stopPropagation()}
-                                        />
-                                      </div>
                                       {/* 시간 정보 행 — 클릭 후 직접 입력 */}
                                       {(() => {
                                         const shipTimeline = getShipTimeline(p);

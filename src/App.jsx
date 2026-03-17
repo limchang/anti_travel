@@ -2228,34 +2228,34 @@ const getMapCategoryLabel = (type = 'place') => {
   return found?.label || '장소';
 };
 
-const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#FFFFFF', categoryLabel = '', isFirst = false, isLast = false) => {
-  const shortCategoryLabel = String(categoryLabel || '').trim().slice(0, 2);
-  const sz = isFocused ? 34 : 28;
-  const tailW = isFocused ? 6 : 5;
-  const tailH = isFocused ? 9 : 7;
-  // 시작/마감 뱃지
+const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#FFFFFF', categoryLabel = '', isFirst = false, isLast = false, extraTailH = 0) => {
+  const shortCategoryLabel = String(categoryLabel || '').trim().slice(0, 3);
+  // 카드 크기
+  const cardW = isFocused ? 46 : 38;
+  const cardH = isFocused ? 38 : 32;
+  const tailW = isFocused ? 7 : 6;
+  const tailH = (isFocused ? 8 : 6) + extraTailH;
+  const radius = isFocused ? 8 : 6;
+  const borderColor = isFocused ? dayColor : 'rgba(15,23,42,0.12)';
+  const borderW = isFocused ? 2.5 : 1.5;
+  // 시작/마감 표시
   const badgeText = isFirst ? 'START' : (isLast ? 'END' : '');
   const badgeColor = isFirst ? '#10B981' : '#EF4444';
-  const badgeH = badgeText ? 14 : 0;
-  const badgeGap = badgeH > 0 ? 2 : 0;
-  const totalTopH = badgeH + badgeGap;
-  // 마커 스타일: 흰 배경 + dayColor 테두리 + 숫자, 카테고리 라벨은 상단 pill
-  const circleStyle = isFocused
-    ? `border:3px solid ${dayColor}; background:#fff; color:${dayColor};`
-    : `border:2.5px solid ${dayColor}; background:#fff; color:${dayColor};`;
+  const badgeH = badgeText ? 15 : 0;
+  const totalH = badgeH + (badgeH ? 3 : 0) + cardH + tailH;
   return L.divIcon({
     className: '',
     html: `
       <div style="
-        position:relative;
         display:flex;
         flex-direction:column;
         align-items:center;
         cursor:pointer;
+        filter:drop-shadow(0 4px 10px rgba(15,23,42,0.28));
       ">
-        ${badgeText ? `<span style="
-          margin-bottom:${badgeGap}px;
-          padding:0 5px;
+        ${badgeText ? `<div style="
+          margin-bottom:3px;
+          padding:0 6px;
           height:${badgeH}px;
           border-radius:999px;
           background:${badgeColor};
@@ -2264,51 +2264,70 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
           font-weight:900;
           line-height:${badgeH}px;
           white-space:nowrap;
-          box-shadow:0 3px 8px -3px rgba(15,23,42,0.45);
-          letter-spacing:0.04em;
-        ">${badgeText}</span>` : ''}
-        ${shortCategoryLabel ? `<span style="
-          margin-bottom:2px;
-          padding:0 5px;
-          height:${isFocused ? 14 : 12}px;
-          border-radius:999px;
-          background:${categoryColor};
-          color:#fff;
-          font-size:${isFocused ? '8px' : '7px'};
-          font-weight:900;
-          line-height:${isFocused ? '14px' : '12px'};
-          white-space:nowrap;
-          box-shadow:0 2px 6px -2px rgba(15,23,42,0.35);
-        ">${shortCategoryLabel}</span>` : ''}
+          letter-spacing:0.05em;
+        ">${badgeText}</div>` : ''}
         <div style="
-          width:${sz}px;
-          height:${sz}px;
-          border-radius:999px;
-          ${circleStyle}
+          width:${cardW}px;
+          height:${cardH}px;
+          border-radius:${radius}px;
+          border:${borderW}px solid ${borderColor};
+          background:#fff;
+          overflow:hidden;
           display:flex;
-          align-items:center;
-          justify-content:center;
-          font-size:${isFocused ? '13px' : '11px'};
-          font-weight:900;
-          box-shadow:0 4px 12px -6px rgba(15,23,42,0.5)${isFocused ? `,0 0 0 3px ${dayColor}33` : ''};
-          letter-spacing:-0.5px;
-        ">${label}</div>
-        <div style="
-          width:0;
-          height:0;
+          flex-direction:column;
+        ">
+          <!-- 상단 컬러 바 (카테고리색) -->
+          <div style="
+            height:${isFocused ? 10 : 8}px;
+            background:${categoryColor};
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            flex-shrink:0;
+          ">
+            <span style="
+              font-size:${isFocused ? '6px' : '5.5px'};
+              font-weight:900;
+              color:rgba(255,255,255,0.92);
+              letter-spacing:0.03em;
+              white-space:nowrap;
+            ">${shortCategoryLabel}</span>
+          </div>
+          <!-- 하단: 번호 -->
+          <div style="
+            flex:1;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+          ">
+            <span style="
+              font-size:${isFocused ? '15px' : '13px'};
+              font-weight:900;
+              color:${dayColor};
+              line-height:1;
+              letter-spacing:-0.5px;
+            ">${label}</span>
+          </div>
+        </div>
+        <!-- 꼬리 -->
+        ${extraTailH > 0 ? `<div style="display:flex;flex-direction:column;align-items:center;margin-top:-1px;">
+          <div style="width:${tailW - 2}px;height:${extraTailH}px;background:${dayColor};opacity:0.85;"></div>
+          <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${isFocused ? 8 : 6}px solid ${dayColor};"></div>
+        </div>` : `<div style="
+          width:0;height:0;
           border-left:${tailW}px solid transparent;
           border-right:${tailW}px solid transparent;
           border-top:${tailH}px solid ${dayColor};
           margin-top:-1px;
-        "></div>
+        "></div>`}
       </div>
     `,
-    iconSize: [sz, totalTopH + (shortCategoryLabel ? (isFocused ? 16 : 14) : 0) + sz + tailH],
-    iconAnchor: [sz / 2, totalTopH + (shortCategoryLabel ? (isFocused ? 16 : 14) : 0) + sz + tailH],
+    iconSize: [cardW, totalH],
+    iconAnchor: [cardW / 2, totalH],
   });
 };
 
-const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd = false) => {
+const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd = false, extraTailH = 0) => {
   const shortLabel = String(categoryLabel || '').trim().slice(0, 2) || '장소';
   // canAdd이면 라벨에 + 통합 표시, 배경색도 파란색으로
   const displayLabel = canAdd ? `+${shortLabel}` : shortLabel;
@@ -2316,7 +2335,7 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, canAdd 
   const borderColor = canAdd ? '#1D4ED8' : (isFocused ? '#0F172A' : 'rgba(255,255,255,0.95)');
   const sz = isFocused ? 28 : 24;
   const tailW = isFocused ? 5 : 4;
-  const tailH = isFocused ? 8 : 6;
+  const tailH = (isFocused ? 8 : 6) + extraTailH;
   const labelH = isFocused ? 15 : 13;
   return L.divIcon({
     className: '',
@@ -2722,6 +2741,65 @@ const RoutePreviewCanvas = ({
       .filter((point) => point.isFocused)
       .map((point) => point.position);
   }, [focusedTarget?.kind, overlayEntries, segmentEntries, showOverlayMarkers, showRouteLines, showTimelineMarkers, timelineEntries]);
+  // 겹치는 마커 분산: 같은 좌표 그룹을 찾아 원형으로 이동시키고 꼬리를 늘림
+  const spreadMarkers = useCallback((entries, spreadRadiusPx = 36, tailBase = 7) => {
+    // 줌 레벨 기반 1픽셀당 위도 변화량 (Web Mercator 근사)
+    const metersPerPx = 156543.03392 * Math.cos(0) / Math.pow(2, mapZoom);
+    const degPerPx = metersPerPx / 111320;
+    const THRESHOLD = degPerPx * 20; // 20px 이내면 겹침으로 간주
+    const posKey = (pos) => `${Number(pos[0]).toFixed(5)}:${Number(pos[1]).toFixed(5)}`;
+    // 그룹화
+    const groups = new Map();
+    entries.forEach((entry) => {
+      const key = posKey(entry.position);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(entry);
+    });
+    // 유사 좌표도 같은 그룹으로 병합
+    const result = new Map();
+    entries.forEach((entry) => {
+      const [lat, lng] = entry.position;
+      let assigned = null;
+      for (const [gk, gList] of result.entries()) {
+        const [glat, glng] = gk.split(':').map(Number);
+        if (Math.abs(lat - glat) < THRESHOLD && Math.abs(lng - glng) < THRESHOLD) {
+          assigned = gk;
+          break;
+        }
+      }
+      if (!assigned) {
+        assigned = posKey(entry.position);
+        result.set(assigned, []);
+      }
+      result.get(assigned).push(entry);
+    });
+    return entries.map((entry) => {
+      const [lat, lng] = entry.position;
+      let groupKey = null;
+      for (const [gk, gList] of result.entries()) {
+        if (gList.includes(entry)) { groupKey = gk; break; }
+      }
+      const group = result.get(groupKey) || [entry];
+      if (group.length <= 1) return { ...entry, spreadPosition: entry.position, extraTailH: 0 };
+      const idx = group.indexOf(entry);
+      const total = group.length;
+      // 부채꼴: 위쪽 반원 (180도 범위), 가운데 마커부터 좌우로 펼침
+      const angleStep = Math.PI / Math.max(total - 1, 1);
+      const startAngle = Math.PI; // 왼쪽부터 시작
+      const angle = total === 1 ? -Math.PI / 2 : startAngle + idx * (Math.PI / Math.max(total - 1, 1)) - Math.PI / 2;
+      // 위로 분산 (angle=-π/2가 정상, 좌우로 펼침)
+      const spreadAngle = (idx - (total - 1) / 2) * (Math.PI / Math.max(total, 2));
+      const rx = Math.sin(spreadAngle) * spreadRadiusPx * degPerPx;
+      const ry = Math.abs(Math.cos(spreadAngle)) * spreadRadiusPx * degPerPx;
+      const spreadPosition = [lat + ry, lng + rx];
+      // 꼬리 길이: 원래 위치까지의 픽셀 거리
+      const dxPx = Math.abs(rx / degPerPx);
+      const dyPx = Math.abs(ry / degPerPx);
+      const distPx = Math.sqrt(dxPx * dxPx + dyPx * dyPx);
+      const extraTailH = Math.max(0, Math.round(distPx - tailBase));
+      return { ...entry, spreadPosition, extraTailH };
+    });
+  }, [mapZoom]);
   const visibleTimelineEntries = showTimelineMarkers ? timelineEntries : [];
   const visibleSegmentEntries = showRouteLines ? segmentEntries : [];
   const visibleOverlayEntries = showOverlayMarkers ? overlayEntries : [];
@@ -3713,6 +3791,7 @@ const App = () => {
   const [routePreviewManualRefreshing, setRoutePreviewManualRefreshing] = useState(false);
   const [showOverviewLibraryPoints, setShowOverviewLibraryPoints] = useState(false);
   const [showLibraryCategoryModal, setShowLibraryCategoryModal] = useState(false);
+  const [libraryCategoryModalPos, setLibraryCategoryModalPos] = useState({ top: 200, right: 16 });
   const [heroViewMode, setHeroViewMode] = useState('map'); // 'map' | 'schedule'
   const [overviewMapHidden, setOverviewMapHidden] = useState(false);
   const routePreviewSegmentCacheRef = useRef({});
@@ -12235,7 +12314,7 @@ const App = () => {
             return (
               <>
                 <div className="fixed inset-0 z-[598]" onClick={() => setShowLibraryCategoryModal(false)} />
-                <div className="fixed right-4 top-[200px] z-[599] w-52 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.3)]">
+                <div className="fixed z-[599] w-52 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.3)]" style={{ top: libraryCategoryModalPos.top, left: libraryCategoryModalPos.left, right: libraryCategoryModalPos.right }}>
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-[10px] font-black text-slate-700">내 장소 카테고리</span>
                     <button type="button" onClick={() => setShowLibraryCategoryModal(false)} className="rounded-lg p-0.5 text-slate-400 hover:text-slate-600"><X size={12} /></button>
@@ -12311,7 +12390,18 @@ const App = () => {
                   <div className="flex shrink-0 items-center gap-1.5 pb-0.5">
                     <button
                       type="button"
-                      onClick={() => setShowLibraryCategoryModal((prev) => !prev)}
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const modalW = 208;
+                        const left = rect.right - modalW;
+                        const top = rect.bottom + 6;
+                        setLibraryCategoryModalPos({
+                          top,
+                          left: Math.max(8, left),
+                          right: undefined,
+                        });
+                        setShowLibraryCategoryModal((prev) => !prev);
+                      }}
                       className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[10px] font-black transition-all ${showOverviewLibraryPoints ? 'border-purple-200 bg-purple-50 text-purple-600' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
                     >
                       <MapPin size={10} /><span>내 장소{showOverviewLibraryPoints ? ' ✓' : ''}</span>

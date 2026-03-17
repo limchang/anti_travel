@@ -2242,6 +2242,23 @@ const getMapCategoryLabel = (type = 'place') => {
   const found = TAG_OPTIONS.find((tag) => tag.value === type);
   return found?.label || '장소';
 };
+const MAP_CATEGORY_EMOJI = {
+  food: '🍽️',
+  cafe: '☕',
+  tour: '📸',
+  lodge: '🏨',
+  stay: '🌙',
+  ship: '⛴️',
+  rest: '💤',
+  pickup: '📦',
+  openrun: '⏰',
+  view: '🌅',
+  experience: '⭐',
+  souvenir: '🛍️',
+  place: '📍',
+  quick: '⚡',
+};
+const getMapCategoryEmoji = (type = 'place') => MAP_CATEGORY_EMOJI[type] || '📍';
 
 const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#FFFFFF', categoryLabel = '', isFirst = false, isLast = false, extraTailH = 0) => {
   // 일정 마커: 단색 배경 + 흰 번호 — 선명하고 진하게
@@ -2289,7 +2306,7 @@ const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#F
   });
 };
 
-const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0, clusterColors = []) => {
+const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0, clusterColors = [], categoryType = '') => {
   const isCluster = clusterCount > 1;
   const sz = isFocused ? 36 : 28;
   const shadow = isFocused
@@ -2306,7 +2323,7 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd
     const c1 = clusterColors[1] || '#64748B'; // 중간
     const c2 = clusterColors[0] || categoryColor || '#1E40AF'; // 맨 앞
     const offset = isFocused ? 5 : 4;
-    const shortLabel = String(categoryLabel || '장소').trim().slice(0, 2);
+    const emojiLabel = getMapCategoryEmoji(categoryType || categoryLabel);
     const totalW = csz + offset * 2;
     const totalH = csz + offset * 2;
     return L.divIcon({
@@ -2316,7 +2333,7 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd
           ${stackN >= 3 ? `<div style="position:absolute;left:${offset*2}px;top:${offset*2}px;width:${csz}px;height:${csz}px;border-radius:${radius};background:${c0};border:2px solid rgba(255,255,255,0.7);"></div>` : ''}
           ${stackN >= 2 ? `<div style="position:absolute;left:${offset}px;top:${offset}px;width:${csz}px;height:${csz}px;border-radius:${radius};background:${c1};border:2px solid rgba(255,255,255,0.8);"></div>` : ''}
           <div style="position:absolute;left:0;top:0;width:${csz}px;height:${csz}px;border-radius:${radius};background:${c2};border:2px solid rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;">
-            <span style="font-size:${isFocused?'12px':'10px'};font-weight:900;color:#fff;line-height:1;">${shortLabel}</span>
+            <span style="font-size:${isFocused?'16px':'13px'};line-height:1;">${emojiLabel}</span>
           </div>
         </div>
       `,
@@ -2325,7 +2342,7 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd
     });
   }
 
-  const shortLabel = String(categoryLabel || '장소').trim().slice(0, 2);
+  const emojiLabel = getMapCategoryEmoji(categoryType || categoryLabel);
   return L.divIcon({
     className: '',
     html: `
@@ -2335,10 +2352,7 @@ const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd
           background:${categoryColor};border:${borderStyle};
           display:flex;align-items:center;justify-content:center;
         ">
-          <span style="
-            font-size:${isFocused?'13px':'11px'};
-            font-weight:900;color:#fff;line-height:1;
-          ">${shortLabel}</span>
+          <span style="font-size:${isFocused?'17px':'14px'};line-height:1;">${emojiLabel}</span>
         </div>
       </div>
     `,
@@ -3036,7 +3050,7 @@ const RoutePreviewCanvas = ({
                 position={point.position}
                 bubblingMouseEvents={false}
                 icon={point.kind === 'place'
-                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors)
+                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors, point.primaryType || '')
                   : buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
                 eventHandlers={interactive ? {
                   click: () => {

@@ -9860,9 +9860,10 @@ const App = () => {
       {editingPlaceId && editPlaceDraft && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }}>
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-          <div className="relative max-h-[85vh] overflow-y-auto no-scrollbar px-3" onClick={(e) => e.stopPropagation()}>
+          <div className="relative px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceEditorCard
-              className="w-[min(360px,calc(100vw-24px))] mx-auto"
+              className="w-[min(460px,calc(100vw-24px))] mx-auto"
+              maxModalHeight="85vh"
               title="장소 수정"
               draft={editPlaceDraft}
               createDraft={createPlaceEditorDraft}
@@ -9983,9 +9984,10 @@ const App = () => {
       {editingPlanTarget && editPlanDraft && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => { setEditingPlanTarget(null); setEditPlanDraft(null); }}>
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-          <div className="relative max-h-[85vh] overflow-y-auto no-scrollbar px-3" onClick={(e) => e.stopPropagation()}>
+          <div className="relative px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceEditorCard
-              className="w-[min(360px,calc(100vw-24px))] mx-auto"
+              className="w-[min(460px,calc(100vw-24px))] mx-auto"
+              maxModalHeight="85vh"
               title="일정 수정"
               draft={editPlanDraft}
               createDraft={createPlaceEditorDraft}
@@ -10098,7 +10100,7 @@ const App = () => {
       {isAddingPlace && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={resetNewPlaceDraft}>
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-          <div className="relative max-h-[85vh] overflow-y-auto no-scrollbar px-3" onClick={(e) => e.stopPropagation()}>
+          <div className="relative px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceAddForm
               newPlaceName={newPlaceName}
               setNewPlaceName={setNewPlaceName}

@@ -202,7 +202,8 @@ export const PlaceAddForm = ({
   return (
     <div className="mb-4 w-full shrink-0">
       <PlaceEditorCard
-        className="w-[min(360px,calc(100vw-24px))] mx-auto"
+        className="w-[min(460px,calc(100vw-24px))] mx-auto"
+        maxModalHeight="85vh"
         title="새 장소 등록"
         draft={draft}
         createDraft={createPlaceEditorDraft}

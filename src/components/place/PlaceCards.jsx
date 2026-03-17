@@ -349,6 +349,7 @@ const SharedTotalFooter = ({ expanded, onToggle, total }) => (
 
 export const PlaceEditorCard = ({
   className = '',
+  maxModalHeight = null,
   title,
   draft,
   onDraftChange,
@@ -459,8 +460,11 @@ export const PlaceEditorCard = ({
   };
 
   return (
-    <div className={`w-full rounded-[24px] border border-slate-200 bg-white shadow-[0_12px_30px_-18px_rgba(15,23,42,0.25)] overflow-hidden ${className}`.trim()}>
-      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
+    <div
+      className={`w-full rounded-[24px] border border-slate-200 bg-white shadow-[0_12px_30px_-18px_rgba(15,23,42,0.25)] overflow-hidden flex flex-col ${className}`.trim()}
+      style={maxModalHeight ? { maxHeight: maxModalHeight } : undefined}
+    >
+      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between shrink-0">
         <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.18em]">{title}</p>
         <button type="button" onClick={onCancel} className="p-1 rounded-md text-slate-300 hover:text-slate-500 hover:bg-white transition-colors">
           <X size={14} />
@@ -473,7 +477,7 @@ export const PlaceEditorCard = ({
         </div>
       )}
 
-      <div className="p-4 flex flex-col gap-3">
+      <div className="p-4 flex flex-col gap-3 shrink-0">
         {onSuperSmartPaste && (
           <button
             type="button"
@@ -604,9 +608,9 @@ export const PlaceEditorCard = ({
         <SharedMemoRow value={safeDraft.memo} onChange={(event) => updateDraft((current) => ({ ...current, memo: event.target.value }))} />
       </div>
 
-      <div className="mx-4 mb-4 rounded-2xl overflow-hidden border border-slate-100/80">
+      <div className="mx-4 mb-4 rounded-2xl overflow-hidden border border-slate-100/80 flex flex-col min-h-0">
         {receiptExpanded && (
-          <div className="px-5 py-4 bg-white border-b border-slate-100 border-dashed">
+          <div className="px-5 py-4 bg-white border-b border-slate-100 border-dashed overflow-y-auto flex-1 min-h-0">
             <div className="space-y-3 mb-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[10px] text-slate-400 font-semibold">메뉴명/수량/가격을 수정하면 총액이 자동 계산됩니다.</p>
@@ -693,7 +697,7 @@ export const PlaceEditorCard = ({
         <SharedTotalFooter expanded={receiptExpanded} total={total} onToggle={() => setReceiptExpanded((prev) => (forceReceiptExpanded ? true : !prev))} />
       </div>
 
-      <div className="px-4 pb-4 flex gap-2">
+      <div className="px-4 pb-4 flex gap-2 shrink-0">
         <button onClick={() => onSubmit(createDraft({ ...safeDraft, price: total }))} className="flex-1 py-3 bg-[#3182F6] text-white text-[13px] font-black rounded-xl shadow-[0_8px_16px_-6px_rgba(49,130,246,0.35)] hover:bg-blue-600 transition-all active:scale-[0.98]">
           {submitLabel}
         </button>

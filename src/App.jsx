@@ -3790,7 +3790,7 @@ const App = () => {
   }, [itinerary.days, itinerary.places]);
   const isMobileLayout = viewportWidth < 1100;
   const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 440;
-  const leftExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 220;
+  const leftExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : 280;
   const leftCollapsedWidth = 0;
   const rightCollapsedWidth = 0;
   const leftSidebarWidth = isMobileLayout ? (col1Collapsed ? leftCollapsedWidth : leftExpandedWidth) : leftExpandedWidth;
@@ -12263,6 +12263,7 @@ const App = () => {
                 const planPos = viewingPlanIdx[p.id] ?? 0;
                 const isPlanBActive = planPos > 0;
                 const isMapFocusedTimeline = focusedMapTarget?.kind === 'timeline' && focusedMapTarget.id === p.id;
+                const focusedDayColor = ROUTE_PREVIEW_COLORS[dIdx % ROUTE_PREVIEW_COLORS.length];
 
                 let stateStyles;
                 if (isLodge) stateStyles = 'bg-[linear-gradient(180deg,rgba(244,245,255,0.98),rgba(255,255,255,0.98))] border-indigo-200 shadow-[0_12px_28px_-12px_rgba(99,102,241,0.18)]';
@@ -12459,7 +12460,8 @@ const App = () => {
                           setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropOnItem(null); setIsDragCopy(false);
                         }
                       }}
-                      className={`relative z-10 w-full flex flex-col transition-all group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${isTimelineDragActive ? 'scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${isMapFocusedTimeline ? 'scale-[1.01]' : ''}`}
+                      className={`relative z-10 w-full flex flex-col transition-all group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${isTimelineDragActive ? 'scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${isMapFocusedTimeline ? 'scale-[1.015]' : ''}`}
+                      style={isMapFocusedTimeline ? { outline: `3px solid ${focusedDayColor}`, outlineOffset: '2px', borderRadius: '26px', boxShadow: `0 0 0 6px ${focusedDayColor}28, 0 16px 40px -12px ${focusedDayColor}60` } : undefined}
                     >
 
 

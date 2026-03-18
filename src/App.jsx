@@ -3767,6 +3767,11 @@ const App = () => {
   const [shareSettings, setShareSettings] = useState({ visibility: 'private', permission: 'viewer' });
   const [isSharedReadOnly, setIsSharedReadOnly] = useState(false);
   const [sharedSource, setSharedSource] = useState(null); // { ownerId, planId }
+  const [collaborators, setCollaborators] = useState([]); // [{ email, uid?, addedAt }]
+  const [collaboratorInput, setCollaboratorInput] = useState('');
+  const [collaboratorLoading, setCollaboratorLoading] = useState(false);
+  const [saveHistory, setSaveHistory] = useState([]); // [{ savedAt, label, snapshot }]
+  const [showSaveHistoryPanel, setShowSaveHistoryPanel] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
   const entryChooserShownRef = useRef(false);
@@ -3791,6 +3796,11 @@ const App = () => {
   const [isAddingPlace, setIsAddingPlace] = useState(false);
   const [isAddingPlaceAutoFill, setIsAddingPlaceAutoFill] = useState(false);
   const addPlaceLongPressTimerRef = React.useRef(null);
+  const [showAddPlaceMenu, setShowAddPlaceMenu] = useState(false);
+  const [showBulkAddModal, setShowBulkAddModal] = useState(false);
+  const [bulkAddText, setBulkAddText] = useState('');
+  const [bulkAddParsed, setBulkAddParsed] = useState([]); // [{ name, address, types, selected }]
+  const [bulkAddLoading, setBulkAddLoading] = useState(false);
   const [placeTypesPopoverId, setPlaceTypesPopoverId] = useState(null); // 카테고리 팝오버 열린 place id
   const [newPlaceName, setNewPlaceName] = useState('');
   const [newPlaceTypes, setNewPlaceTypes] = useState(['food']);
@@ -9474,6 +9484,57 @@ const App = () => {
     setLastAction(`'${targetPlace.name || '내 장소'}'을(를) 휴지통에서 복원했습니다.`);
   };
 
+  // 여러 장소 텍스트 파싱 (카카오맵 공유 텍스트 등)
+  const parseBulkPlaceText = (text) => {
+    if (!text?.trim()) return [];
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const results = [];
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      // 주소 줄 패턴: "제주특별자치도" 또는 "서울" 등으로 시작하는 행
+      const isAddressLine = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주특별자치)/.test(line);
+      if (isAddressLine) { i++; continue; }
+      // 이름+카테고리 줄 패턴 파싱
+      // 예: "스무돈가스" / "말고기연구소 제주공항점육류,고기요리" / "🏡 키즈펜션 로그밸리펜션펜션"
+      const nameLine = line.replace(/^[^\w가-힣a-zA-Z0-9]+/, ''); // 앞 이모지 제거
+      // 뒤에 붙은 카테고리 키워드 추출
+      const categoryKeywords = ['카페', '디저트', '베이커리', '국수', '한식', '중식당', '치킨', '닭강정', '육류', '고기요리', '떡카페', '식당', '음식', '호텔', '펜션', '수목원', '식물원', '계곡', '키즈카페', '실내놀이터', '협동조합', '관람', '체험', '햄버거', '전복요리', '카셰어링', '한과', '토스트', '야시장', '지역명소', '이탈리아음식', '고사리육개장'];
+      let cleanName = nameLine;
+      let detectedTypes = [];
+      for (const kw of categoryKeywords) {
+        if (cleanName.endsWith(kw)) { cleanName = cleanName.slice(0, -kw.length).trim(); }
+        if (kw === '카페' || kw === '디저트') detectedTypes.push('cafe');
+        else if (['베이커리', '토스트', '한과', '떡카페'].includes(kw)) detectedTypes.push('dessert');
+        else if (['국수', '한식', '중식당', '전복요리', '고사리육개장'].includes(kw)) detectedTypes.push('food');
+        else if (['육류', '고기요리', '치킨', '닭강정', '햄버거'].includes(kw)) detectedTypes.push('food');
+        else if (['호텔', '펜션'].includes(kw)) detectedTypes.push('stay');
+        else if (['수목원', '식물원', '계곡', '지역명소', '야시장'].includes(kw)) detectedTypes.push('tour');
+        else if (['키즈카페', '실내놀이터', '관람', '체험', '협동조합'].includes(kw)) detectedTypes.push('activity');
+      }
+      // 다음 줄이 주소인지 확인
+      const nextLine = lines[i + 1] || '';
+      const nextIsAddress = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주특별자치)/.test(nextLine);
+      const address = nextIsAddress ? nextLine : '';
+      // 이름에서 끝에 붙은 장소명 중복 제거 (예: "로그밸리펜션펜션" → "로그밸리펜션")
+      let finalName = cleanName;
+      // 이름에서 카테고리 키워드가 중간에 섞인 경우 제거 시도
+      // 예: "말고기연구소 제주공항점육류" → "말고기연구소 제주공항점"
+      for (const kw of categoryKeywords) {
+        const idx = finalName.lastIndexOf(kw);
+        if (idx > 0 && idx === finalName.length - kw.length) {
+          finalName = finalName.slice(0, idx).trim();
+        }
+      }
+      if (finalName.length >= 1) {
+        const types = detectedTypes.length > 0 ? [...new Set(detectedTypes)] : ['place'];
+        results.push({ name: finalName, address, types, selected: true });
+      }
+      i += nextIsAddress ? 2 : 1;
+    }
+    return results;
+  };
+
   const deletePlacePermanently = (placeId) => {
     const targetPlace = (itinerary.placeTrash || []).find((place) => place.id === placeId);
     if (!targetPlace) return;
@@ -10060,7 +10121,7 @@ const App = () => {
     setIsDirty(true);
   }, [itinerary, loading, user, currentPlanId, tripRegion, tripStartDate, tripEndDate, isSharedReadOnly, shareSettings]);
 
-  const saveItineraryManually = async () => {
+  const saveItineraryManually = async (historyLabel = null) => {
     if (!user || user.isGuest || isSharedReadOnly) return;
     const currentItinerary = itineraryRef.current;
     if (!currentItinerary || !currentItinerary.days || currentItinerary.days.length === 0) return;
@@ -10074,12 +10135,36 @@ const App = () => {
       planTitle: currentItinerary.planTitle || `${tripRegion || '여행'} 일정`,
       planCode: currentItinerary.planCode || makePlanCode(tripRegion || '여행', tripStartDate || ''),
       share: normalizeShare(currentItinerary.share || shareSettings),
+      collaborators,
       updatedAt: Date.now(),
     };
     setLastAction('저장 중...');
     await enqueueItinerarySave(planId, payload);
     setIsDirty(false);
     setLastAction('저장 완료 ✓');
+    // 수동 저장 히스토리 기록 (최대 20개)
+    const now = Date.now();
+    const label = historyLabel || `${tripRegion || '여행'} 일정 — ${new Date(now).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+    setSaveHistory(prev => [{
+      savedAt: now,
+      label,
+      snapshot: JSON.parse(JSON.stringify({ ...payload, collaborators })),
+    }, ...prev].slice(0, 20));
+  };
+
+  const restoreSaveHistory = async (entry) => {
+    if (!user || user.isGuest || isSharedReadOnly) return;
+    if (!window.confirm(`"${entry.label}" 시점으로 복원하시겠습니까?\n현재 내용은 사라집니다.`)) return;
+    const { snapshot } = entry;
+    const planId = currentPlanId || 'main';
+    setLastAction('복원 중...');
+    await setDoc(doc(db, 'users', user.uid, 'itinerary', planId), { ...snapshot, updatedAt: Date.now() });
+    setItinerary({ days: snapshot.days || [], places: snapshot.places || [], placeTrash: snapshot.placeTrash || [], maxBudget: snapshot.maxBudget || 0, planTitle: snapshot.planTitle || '', planCode: snapshot.planCode || '' });
+    if (snapshot.tripRegion) setTripRegion(snapshot.tripRegion);
+    if (snapshot.tripStartDate) setTripStartDate(snapshot.tripStartDate);
+    if (snapshot.tripEndDate) setTripEndDate(snapshot.tripEndDate);
+    setLastAction('복원 완료 ✓');
+    setShowSaveHistoryPanel(false);
   };
 
 
@@ -10111,7 +10196,9 @@ const App = () => {
           if (sharedSnap.exists()) {
             const sharedData = sharedSnap.data();
             const sharedConfig = normalizeShare(sharedData.share || {});
-            if (sharedConfig.visibility === 'private') {
+            const sharedCollaborators = Array.isArray(sharedData.collaborators) ? sharedData.collaborators : [];
+            const isCollaborator = user?.email && sharedCollaborators.some(c => c.email?.toLowerCase() === user.email?.toLowerCase());
+            if (sharedConfig.visibility === 'private' && !isCollaborator) {
               setLastAction('공유가 비공개라 접근할 수 없습니다.');
               setLoading(false);
               return;
@@ -10140,7 +10227,9 @@ const App = () => {
             if (typeof sharedData.tripStartDate === 'string') setTripStartDate(sharedData.tripStartDate);
             if (typeof sharedData.tripEndDate === 'string') setTripEndDate(sharedData.tripEndDate);
             setCurrentPlanId(sharedSource.planId || 'main');
-            setIsSharedReadOnly(sharedConfig.permission !== 'editor');
+            // collaborator는 항상 편집 가능, 아니면 공유 설정 기준
+            setIsSharedReadOnly(!isCollaborator && sharedConfig.permission !== 'editor');
+            if (Array.isArray(sharedCollaborators)) setCollaborators(sharedCollaborators);
             setLoading(false);
             return;
           }
@@ -10221,6 +10310,7 @@ const App = () => {
             planCode: finalData.planCode || makePlanCode(finalData.tripRegion || tripRegion || '여행', finalData.tripStartDate || ''),
           });
           setShareSettings(normalizeShare(finalData.share || {}));
+          if (Array.isArray(finalData.collaborators)) setCollaborators(finalData.collaborators);
           if (finalData.tripRegion) setTripRegion(finalData.tripRegion);
           if (typeof finalData.tripStartDate === 'string') setTripStartDate(finalData.tripStartDate);
           if (typeof finalData.tripEndDate === 'string') setTripEndDate(finalData.tripEndDate);
@@ -11494,108 +11584,93 @@ const App = () => {
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={() => {
-                    if (addPlaceLongPressTimerRef._fired) { addPlaceLongPressTimerRef._fired = false; return; }
-                    if (isAddingPlace) resetNewPlaceDraft();
-                    else {
-                      // 단일 카테고리만 활성화 상태면 그 카테고리를 기본값으로 적용
-                      const allTagValues = TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map(t => t.value);
-                      const activeTags = allTagValues.filter(v => !placeFilterTags.includes(v));
-                      if (activeTags.length === 1 && activeTags[0] !== 'food') {
-                        setNewPlaceTypes([activeTags[0]]);
-                      }
-                      setIsAddingPlaceAutoFill(false); setIsAddingPlace(true);
-                    }
-                  }}
-                  onMouseDown={() => {
-                    addPlaceLongPressTimerRef._fired = false;
-                    addPlaceLongPressTimerRef.current = setTimeout(async () => {
-                      addPlaceLongPressTimerRef._fired = true;
-                      showInfoToast('⚡ 클립보드에서 장소 정보를 분석 중…', { durationMs: 2000 });
-                      const allTagValues = TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map(t => t.value);
-                      const activeSingleTag = (() => { const a = allTagValues.filter(v => !placeFilterTags.includes(v)); return a.length === 1 ? a[0] : null; })();
-                      try {
-                        const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
-                        const parsed = result?.parsed;
-                        if (parsed?.name) {
-                          let address = parsed.address || '';
-                          if (!address && parsed.name) {
-                            const searchRes = await searchAddressFromPlaceName(parsed.name, tripRegion);
-                            if (searchRes?.address) address = searchRes.address;
-                          }
-                          const parsedTypes = parsed.types?.length ? parsed.types.filter(t => t !== 'place') : (activeSingleTag ? [activeSingleTag] : []);
-                          addPlace({
-                            name: parsed.name,
-                            types: ['quick', ...parsedTypes],
-                            menus: parsed.menus?.length ? parsed.menus : [],
-                            address,
-                            memo: '',
-                            business: parsed.business || {},
-                          }, { unselectedMenus: true });
-                          showInfoToast(`⚡ '${parsed.name}' 내 장소에 추가됐습니다!`, { durationMs: 2400 });
-                        } else {
-                          showInfoToast('정보를 찾지 못했습니다. 일반 추가로 전환합니다.');
-                          if (activeSingleTag) setNewPlaceTypes([activeSingleTag]);
-                          setIsAddingPlaceAutoFill(false);
-                          setIsAddingPlace(true);
-                        }
-                      } catch {
-                        showInfoToast('자동채우기 오류. 일반 추가로 전환합니다.');
-                        if (activeSingleTag) setNewPlaceTypes([activeSingleTag]);
-                        setIsAddingPlaceAutoFill(false);
-                        setIsAddingPlace(true);
-                      }
-                    }, 500);
-                  }}
-                  onMouseUp={() => clearTimeout(addPlaceLongPressTimerRef.current)}
-                  onMouseLeave={() => clearTimeout(addPlaceLongPressTimerRef.current)}
-                  onTouchStart={() => {
-                    addPlaceLongPressTimerRef._fired = false;
-                    addPlaceLongPressTimerRef.current = setTimeout(async () => {
-                      addPlaceLongPressTimerRef._fired = true;
-                      showInfoToast('⚡ 클립보드에서 장소 정보를 분석 중…', { durationMs: 2000 });
-                      const allTagValues = TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map(t => t.value);
-                      const activeSingleTag = (() => { const a = allTagValues.filter(v => !placeFilterTags.includes(v)); return a.length === 1 ? a[0] : null; })();
-                      try {
-                        const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
-                        const parsed = result?.parsed;
-                        if (parsed?.name) {
-                          let address = parsed.address || '';
-                          if (!address && parsed.name) {
-                            const searchRes = await searchAddressFromPlaceName(parsed.name, tripRegion);
-                            if (searchRes?.address) address = searchRes.address;
-                          }
-                          const parsedTypes = parsed.types?.length ? parsed.types.filter(t => t !== 'place') : (activeSingleTag ? [activeSingleTag] : []);
-                          addPlace({
-                            name: parsed.name,
-                            types: ['quick', ...parsedTypes],
-                            menus: parsed.menus?.length ? parsed.menus : [],
-                            address,
-                            memo: '',
-                            business: parsed.business || {},
-                          }, { unselectedMenus: true });
-                          showInfoToast(`⚡ '${parsed.name}' 내 장소에 추가됐습니다!`, { durationMs: 2400 });
-                        } else {
-                          showInfoToast('정보를 찾지 못했습니다. 일반 추가로 전환합니다.');
-                          if (activeSingleTag) setNewPlaceTypes([activeSingleTag]);
-                          setIsAddingPlaceAutoFill(false);
-                          setIsAddingPlace(true);
-                        }
-                      } catch {
-                        showInfoToast('자동채우기 오류. 일반 추가로 전환합니다.');
-                        if (activeSingleTag) setNewPlaceTypes([activeSingleTag]);
-                        setIsAddingPlaceAutoFill(false);
-                        setIsAddingPlace(true);
-                      }
-                    }, 500);
-                  }}
-                  onTouchEnd={() => clearTimeout(addPlaceLongPressTimerRef.current)}
-                  className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] transition-colors shrink-0"
-                  title="길게 누르면 ⚡ 슈퍼 자동채우기"
-                >
-                  <Plus size={11} />
-                </button>
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddPlaceMenu(v => !v)}
+                    className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors shrink-0 ${showAddPlaceMenu ? 'bg-[#3182F6] text-white' : 'bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-[#3182F6]'}`}
+                    title="장소 추가 메뉴"
+                  >
+                    <Plus size={11} className={`transition-transform ${showAddPlaceMenu ? 'rotate-45' : ''}`} />
+                  </button>
+                  {showAddPlaceMenu && (
+                    <>
+                      <div className="fixed inset-0 z-[9980]" onClick={() => setShowAddPlaceMenu(false)} />
+                      <div className="absolute right-0 top-8 z-[9990] w-[176px] rounded-[14px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAddPlaceMenu(false);
+                            const allTagValues = TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map(t => t.value);
+                            const activeTags = allTagValues.filter(v => !placeFilterTags.includes(v));
+                            if (activeTags.length === 1 && activeTags[0] !== 'food') setNewPlaceTypes([activeTags[0]]);
+                            setIsAddingPlaceAutoFill(false);
+                            setIsAddingPlace(true);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[10px] text-[11px] font-black text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                            <Plus size={11} className="text-slate-500" />
+                          </div>
+                          장소 추가
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            setShowAddPlaceMenu(false);
+                            showInfoToast('⚡ 클립보드에서 장소 정보를 분석 중…', { durationMs: 2000 });
+                            const allTagValues = TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map(t => t.value);
+                            const activeSingleTag = (() => { const a = allTagValues.filter(v => !placeFilterTags.includes(v)); return a.length === 1 ? a[0] : null; })();
+                            try {
+                              const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                              const parsed = result?.parsed;
+                              if (parsed?.name) {
+                                let address = parsed.address || '';
+                                if (!address && parsed.name) {
+                                  const searchRes = await searchAddressFromPlaceName(parsed.name, tripRegion);
+                                  if (searchRes?.address) address = searchRes.address;
+                                }
+                                const parsedTypes = parsed.types?.length ? parsed.types.filter(t => t !== 'place') : (activeSingleTag ? [activeSingleTag] : []);
+                                addPlace({ name: parsed.name, types: ['quick', ...parsedTypes], menus: parsed.menus?.length ? parsed.menus : [], address, memo: '', business: parsed.business || {} }, { unselectedMenus: true });
+                                showInfoToast(`⚡ '${parsed.name}' 내 장소에 추가됐습니다!`, { durationMs: 2400 });
+                              } else {
+                                showInfoToast('정보를 찾지 못했습니다. 일반 추가로 전환합니다.');
+                                if (activeSingleTag) setNewPlaceTypes([activeSingleTag]);
+                                setIsAddingPlaceAutoFill(false); setIsAddingPlace(true);
+                              }
+                            } catch {
+                              showInfoToast('자동채우기 오류. 일반 추가로 전환합니다.');
+                              if (activeSingleTag) setNewPlaceTypes([activeSingleTag]);
+                              setIsAddingPlaceAutoFill(false); setIsAddingPlace(true);
+                            }
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[10px] text-[11px] font-black text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3182F6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                          </div>
+                          스마트 퀵 장소 추가
+                        </button>
+                        <div className="h-px bg-slate-100 my-1" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAddPlaceMenu(false);
+                            setBulkAddText('');
+                            setBulkAddParsed([]);
+                            setShowBulkAddModal(true);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[10px] text-[11px] font-black text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="w-6 h-6 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                          </div>
+                          여러 장소 추가하기
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -12434,6 +12509,113 @@ const App = () => {
             </>
           )}
 
+          {/* ── 여러 장소 추가 모달 ── */}
+          {showBulkAddModal && (
+            <>
+              <div className="fixed inset-0 z-[260] bg-black/30 backdrop-blur-sm" onClick={() => setShowBulkAddModal(false)} />
+              <div className="fixed z-[261] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl flex flex-col max-h-[85vh]" style={{ paddingLeft: leftSidebarWidth > 0 && !isMobileLayout ? `calc(${leftSidebarWidth}px / 2)` : undefined }}>
+                <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
+                  <div>
+                    <p className="text-[14px] font-black text-slate-800">여러 장소 추가하기</p>
+                    <p className="text-[10px] font-bold text-slate-400 mt-0.5">카카오맵 공유 텍스트, 장소명+주소 형식 지원</p>
+                  </div>
+                  <button onClick={() => setShowBulkAddModal(false)} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {bulkAddParsed.length === 0 ? (
+                    <>
+                      <textarea
+                        value={bulkAddText}
+                        onChange={(e) => setBulkAddText(e.target.value)}
+                        placeholder={"카카오맵 공유 텍스트 또는\n장소명\n주소\n\n장소명\n주소\n\n형식으로 붙여넣기하세요"}
+                        className="w-full h-48 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6] resize-none leading-relaxed"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const text = bulkAddText.trim() || await navigator.clipboard.readText().catch(() => '');
+                          if (!text) { showInfoToast('텍스트를 입력하거나 붙여넣기하세요.'); return; }
+                          setBulkAddLoading(true);
+                          const parsed = parseBulkPlaceText(text || bulkAddText);
+                          setBulkAddParsed(parsed);
+                          setBulkAddLoading(false);
+                          if (parsed.length === 0) showInfoToast('파싱된 장소가 없습니다. 형식을 확인해주세요.');
+                        }}
+                        disabled={bulkAddLoading}
+                        className="w-full py-2.5 rounded-xl bg-[#3182F6] text-white text-[12px] font-black hover:bg-blue-600 transition-colors disabled:opacity-50"
+                      >
+                        {bulkAddLoading ? '분석 중...' : '장소 분석하기'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const text = await navigator.clipboard.readText();
+                            setBulkAddText(text);
+                          } catch { showInfoToast('클립보드 접근 권한이 없습니다.'); }
+                        }}
+                        className="w-full py-2 rounded-xl border border-slate-200 text-[11px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                      >
+                        클립보드에서 붙여넣기
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-[11px] font-black text-slate-700">{bulkAddParsed.length}개 장소 감지됨</p>
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => setBulkAddParsed(prev => prev.map(p => ({ ...p, selected: true })))} className="text-[10px] font-black text-[#3182F6] hover:underline">전체선택</button>
+                          <button type="button" onClick={() => setBulkAddParsed(prev => prev.map(p => ({ ...p, selected: false })))} className="text-[10px] font-black text-slate-400 hover:underline">전체해제</button>
+                          <button type="button" onClick={() => { setBulkAddParsed([]); setBulkAddText(''); }} className="text-[10px] font-black text-slate-400 hover:underline">다시 입력</button>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+                        {bulkAddParsed.map((item, idx) => (
+                          <div
+                            key={idx}
+                            onClick={() => setBulkAddParsed(prev => prev.map((p, i) => i === idx ? { ...p, selected: !p.selected } : p))}
+                            className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-colors ${item.selected ? 'border-blue-200 bg-blue-50/60' : 'border-slate-200 bg-slate-50 opacity-50'}`}
+                          >
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${item.selected ? 'border-[#3182F6] bg-[#3182F6]' : 'border-slate-300 bg-white'}`}>
+                              {item.selected && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[11px] font-black text-slate-800">{item.name}</span>
+                                {item.types.filter(t => t !== 'place').map(t => <span key={t} className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-600">{t}</span>)}
+                              </div>
+                              {item.address && <p className="text-[10px] font-bold text-slate-400 mt-0.5 truncate">{item.address}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const selected = bulkAddParsed.filter(p => p.selected);
+                          if (selected.length === 0) { showInfoToast('선택된 장소가 없습니다.'); return; }
+                          setBulkAddLoading(true);
+                          for (const item of selected) {
+                            addPlace({ name: item.name, types: item.types, address: item.address, memo: '', menus: [], business: {} }, { unselectedMenus: true });
+                          }
+                          setBulkAddLoading(false);
+                          showInfoToast(`${selected.length}개 장소를 추가했습니다!`, { durationMs: 2400 });
+                          setShowBulkAddModal(false);
+                          setBulkAddText('');
+                          setBulkAddParsed([]);
+                        }}
+                        disabled={bulkAddLoading || bulkAddParsed.filter(p => p.selected).length === 0}
+                        className="w-full py-2.5 rounded-xl bg-[#3182F6] text-white text-[12px] font-black hover:bg-blue-600 transition-colors disabled:opacity-50"
+                      >
+                        {bulkAddLoading ? '추가 중...' : `선택한 ${bulkAddParsed.filter(p => p.selected).length}개 장소 추가`}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
           {showPlanOptions && (
             <>
               <div className="fixed inset-0 z-[260] bg-black/20" onClick={() => setShowPlanOptions(false)} />
@@ -12482,6 +12664,114 @@ const App = () => {
                     />
                   </div>
                 </div>
+
+                {/* ── 공동 편집자 ── */}
+                {canManagePlan && (
+                  <div className="mt-3 pt-3 border-t border-slate-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[11px] font-black text-slate-700">공동 편집자</p>
+                      <span className="text-[9px] font-bold text-slate-400">Gmail 계정만 지원</span>
+                    </div>
+                    <div className="flex gap-1.5 mb-2">
+                      <input
+                        value={collaboratorInput}
+                        onChange={(e) => setCollaboratorInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const email = collaboratorInput.trim().toLowerCase();
+                            if (!email || !email.includes('@')) return;
+                            if (collaborators.some(c => c.email === email)) { setCollaboratorInput(''); return; }
+                            const next = [...collaborators, { email, addedAt: Date.now() }];
+                            setCollaborators(next);
+                            setCollaboratorInput('');
+                          }
+                        }}
+                        placeholder="gmail@gmail.com"
+                        className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const email = collaboratorInput.trim().toLowerCase();
+                          if (!email || !email.includes('@')) return;
+                          if (collaborators.some(c => c.email === email)) { setCollaboratorInput(''); return; }
+                          const next = [...collaborators, { email, addedAt: Date.now() }];
+                          setCollaborators(next);
+                          setCollaboratorInput('');
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-[#3182F6] text-white text-[11px] font-black hover:bg-blue-600 transition-colors"
+                      >추가</button>
+                    </div>
+                    {collaborators.length > 0 ? (
+                      <div className="space-y-1 max-h-[100px] overflow-y-auto">
+                        {collaborators.map((c) => (
+                          <div key={c.email} className="flex items-center justify-between bg-blue-50 rounded-lg px-2.5 py-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-5 h-5 rounded-full bg-blue-200 flex items-center justify-center text-[9px] font-black text-blue-600">{c.email[0].toUpperCase()}</div>
+                              <span className="text-[10px] font-bold text-slate-700">{c.email}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setCollaborators(prev => prev.filter(x => x.email !== c.email))}
+                              className="text-slate-400 hover:text-red-500 transition-colors"
+                            ><X size={11} /></button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] font-bold text-slate-400 text-center py-2">추가된 공동 편집자가 없습니다</p>
+                    )}
+                  </div>
+                )}
+
+                {/* ── 저장 히스토리 ── */}
+                {canManagePlan && (
+                  <div className="mt-3 pt-3 border-t border-slate-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[11px] font-black text-slate-700">저장 히스토리</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowSaveHistoryPanel(v => !v)}
+                        className="text-[9px] font-black text-[#3182F6] hover:underline"
+                      >{showSaveHistoryPanel ? '접기' : `${saveHistory.length}개 보기`}</button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setCollaboratorLoading(true);
+                        await saveItineraryManually();
+                        setCollaboratorLoading(false);
+                      }}
+                      disabled={collaboratorLoading}
+                      className="w-full py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-[11px] font-black text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                      {collaboratorLoading ? '저장 중...' : '지금 수동 저장'}
+                    </button>
+                    {showSaveHistoryPanel && saveHistory.length > 0 && (
+                      <div className="mt-2 space-y-1 max-h-[160px] overflow-y-auto">
+                        {saveHistory.map((entry) => (
+                          <div key={entry.savedAt} className="flex items-center justify-between bg-slate-50 rounded-lg px-2.5 py-1.5 gap-2">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-black text-slate-700 truncate">{entry.label}</p>
+                              <p className="text-[9px] font-bold text-slate-400">{new Date(entry.savedAt).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => restoreSaveHistory(entry)}
+                              className="shrink-0 px-2 py-1 rounded-lg border border-amber-200 bg-amber-50 text-[9px] font-black text-amber-700 hover:bg-amber-100 transition-colors"
+                            >복원</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {showSaveHistoryPanel && saveHistory.length === 0 && (
+                      <p className="text-[10px] font-bold text-slate-400 text-center py-2 mt-1">저장 기록이 없습니다</p>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2 mt-3">
                   <button
                     onClick={() => {

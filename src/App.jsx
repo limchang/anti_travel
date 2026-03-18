@@ -4247,19 +4247,14 @@ const App = () => {
   const [recommendationGeoMap, setRecommendationGeoMap] = useState({});
   const routeRetryCooldownMs = 45000;
   const autoRouteQueuedRef = useRef(new Set());
-  const [dashboardHeight, setDashboardHeight] = useState(() => {
-    if (typeof window === 'undefined') return 380;
-    return window.innerWidth < 1100 ? 320 : 360;
-  });
   const [showTravelIntensityInfo, setShowTravelIntensityInfo] = useState(false);
   const dashboardRef = useRef(null);
+  const heroSpacerRef = useRef(null);
   const [heroPinnedCompact, setHeroPinnedCompact] = useState(false);
   const [heroCompactBudgetBarVisible, setHeroCompactBudgetBarVisible] = useState(false);
   const [heroSummaryExpanded, setHeroSummaryExpanded] = useState(false);
   const [showHeroSummaryModal, setShowHeroSummaryModal] = useState(false);
-  const prevHeroPinnedCompactRef = useRef(false);
-  const prevDashboardHeightRef = useRef(typeof window === 'undefined' ? 0 : (window.innerWidth < 1100 ? 320 : 360));
-  const pendingHeroScrollAdjustRef = useRef(null);
+  const prevDashboardHeightRef = useRef(0);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
   useEffect(() => {
     const places = itinerary.places || [];
@@ -5336,53 +5331,36 @@ const App = () => {
   }, [basePlanRef?.address, itinerary.places]);
 
   useLayoutEffect(() => {
-    if (!dashboardRef.current) return undefined;
-    const syncDashboardHeight = () => {
-      if (!dashboardRef.current) return;
-      const nextHeight = dashboardRef.current.getBoundingClientRect().height;
-      setDashboardHeight(nextHeight);
+    const hero = dashboardRef.current;
+    const spacer = heroSpacerRef.current;
+    if (!hero || !spacer) return undefined;
 
-      const pending = pendingHeroScrollAdjustRef.current;
-      if (
-        pending
-        && pending.targetCompact === heroPinnedCompact
-        && window.scrollY > 0
-      ) {
-        const delta = nextHeight - pending.fromHeight;
-        if (Math.abs(delta) > 1) {
-          window.scrollBy({ top: delta, behavior: 'auto' });
-        }
-        pendingHeroScrollAdjustRef.current = null;
+    const applyHeight = (nextH, compensate) => {
+      if (nextH <= 0) return;
+      const prev = prevDashboardHeightRef.current;
+      const delta = nextH - prev;
+      // 1) spacer를 먼저 DOM에 직접 반영 (React re-render 기다리지 않음)
+      spacer.style.height = `${nextH}px`;
+      // 2) 스크롤 보정 - spacer 줄어든 만큼 scrollY도 같이 당김
+      if (compensate && prev > 0 && delta < -1 && window.scrollY > 0) {
+        window.scrollBy({ top: delta, behavior: 'instant' });
       }
-      prevDashboardHeightRef.current = nextHeight;
+      prevDashboardHeightRef.current = nextH;
     };
-    syncDashboardHeight();
-    const rafId = window.requestAnimationFrame(syncDashboardHeight);
-    const timeoutId = window.setTimeout(syncDashboardHeight, 90);
-    const observer = new ResizeObserver(() => {
-      syncDashboardHeight();
-    });
-    observer.observe(dashboardRef.current);
-    window.addEventListener('resize', syncDashboardHeight);
-    window.addEventListener('load', syncDashboardHeight);
+
+    const measure = (compensate = false) => {
+      const h = hero.getBoundingClientRect().height;
+      applyHeight(h, compensate);
+    };
+
+    const rafId = window.requestAnimationFrame(() => measure(false));
+    const observer = new ResizeObserver(() => measure(true));
+    observer.observe(hero);
     return () => {
       window.cancelAnimationFrame(rafId);
-      window.clearTimeout(timeoutId);
       observer.disconnect();
-      window.removeEventListener('resize', syncDashboardHeight);
-      window.removeEventListener('load', syncDashboardHeight);
     };
   }, [heroPinnedCompact, heroSummaryExpanded, isMobileLayout, leftSidebarWidth, rightSidebarWidth, col2Collapsed]);
-
-  useEffect(() => {
-    if (prevHeroPinnedCompactRef.current !== heroPinnedCompact) {
-      pendingHeroScrollAdjustRef.current = {
-        targetCompact: heroPinnedCompact,
-        fromHeight: prevDashboardHeightRef.current,
-      };
-      prevHeroPinnedCompactRef.current = heroPinnedCompact;
-    }
-  }, [heroPinnedCompact]);
 
   useEffect(() => {
     const updateHeroCompact = () => {
@@ -13495,7 +13473,7 @@ const App = () => {
               : `${Math.round(averageTravelMinutes)}분`;
             const heroCompactActive = heroPinnedCompact && !heroSummaryExpanded;
             return (
-              <div className="mb-1.5 relative" style={{ height: Math.max(dashboardHeight + (heroCompactActive ? 0 : (isMobileLayout ? 5 : 6)), heroCompactActive ? 122 : (isMobileLayout ? 356 : 386)) }}>
+              <div ref={heroSpacerRef} className="mb-1.5 relative" style={{ minHeight: heroCompactActive ? 122 : '18rem' }}>
                 {/* 풀 카드 (최상단) */}
                 <div
                   className="fixed top-0 z-[120]"
@@ -13510,7 +13488,7 @@ const App = () => {
                   >
                     <div className="w-full relative overflow-visible bg-transparent">
                       {canManagePlan && (
-                        <div className={`absolute right-4 z-20 flex items-center transition-all duration-300 ${heroCompactActive ? 'top-2 gap-1.5' : 'top-4 gap-2'}`}>
+                        <div className={`absolute right-4 z-20 grid transition-all duration-300 ${heroCompactActive ? 'top-2 grid-cols-2 gap-1' : 'top-4 grid-cols-1 gap-1.5'}`}>
                           <button
                             onClick={() => setShowPlanOptions(true)}
                             className={`${heroCompactActive ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg`}
@@ -13608,7 +13586,7 @@ const App = () => {
 
                         {/* 개요 3개 카드 */}
                         {!heroCompactActive && (
-                          <div className={`w-full mx-auto px-4 sm:px-6 ${timelineMaxClass}`}>
+                          <div className={`w-full mx-auto ${timelineMaxClass}`}>
                           <div className="rounded-[24px] border border-slate-200 bg-white/95 shadow-[0_10px_32px_-16px_rgba(15,23,42,0.18)] p-3">
                           <div className="grid grid-cols-3 gap-3 sm:gap-3">
                             <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">

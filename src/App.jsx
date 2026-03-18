@@ -1997,7 +1997,7 @@ const TimeWheelColumn = ({
   const listRef = React.useRef(null);
   const settleTimerRef = React.useRef(null);
   const isProgrammaticRef = React.useRef(false);
-  const pointerDragRef = React.useRef({ active: false, pointerId: null, startY: 0, startTop: 0 });
+  const pointerDragRef = React.useRef({ active: false, pointerId: null, startY: 0, startTop: 0, accY: 0 });
   const touchDragRef = React.useRef({ active: false, startY: 0, startTop: 0 });
   const dragMovedRef = React.useRef(false);
   const lastEmittedValueRef = React.useRef(value);
@@ -2129,6 +2129,7 @@ const TimeWheelColumn = ({
       pointerId: e.pointerId,
       startY: e.clientY,
       startTop: list.scrollTop,
+      accY: 0,
     };
     try {
       list.setPointerCapture(e.pointerId);
@@ -2146,9 +2147,10 @@ const TimeWheelColumn = ({
     const state = pointerDragRef.current;
     if (!list || !state.active || state.pointerId !== e.pointerId) return;
     onInteract?.();
-    const deltaY = e.clientY - state.startY;
-    if (Math.abs(deltaY) >= 2) dragMovedRef.current = true;
-    list.scrollTop = state.startTop - deltaY;
+    // movementY는 OS 마우스 가속도 무관한 실제 물리 이동량
+    state.accY += e.movementY;
+    if (Math.abs(state.accY) >= 2) dragMovedRef.current = true;
+    list.scrollTop = state.startTop - state.accY;
     if (liveOnDrag) {
       const nextValue = getClosestValue();
       if (nextValue !== null && nextValue !== lastEmittedValueRef.current) {
@@ -2166,7 +2168,7 @@ const TimeWheelColumn = ({
     const state = pointerDragRef.current;
     if (!list || !state.active || state.pointerId !== e.pointerId) return;
     onInteract?.();
-    pointerDragRef.current = { active: false, pointerId: null, startY: 0, startTop: 0 };
+    pointerDragRef.current = { active: false, pointerId: null, startY: 0, startTop: 0, accY: 0 };
     try {
       list.releasePointerCapture(e.pointerId);
     } catch {

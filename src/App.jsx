@@ -9523,10 +9523,11 @@ const App = () => {
         else if (['수목원', '식물원', '계곡', '지역명소', '야시장'].includes(kw)) detectedTypes.push('tour');
         else if (['키즈카페', '실내놀이터', '관람', '체험', '협동조합'].includes(kw)) detectedTypes.push('activity');
       }
-      // 다음 줄이 주소인지 확인
+      // 다음 줄이 주소인지 확인 — 주소가 없으면 상호명이 아닌 것으로 판단해 건너뜀
       const nextLine = lines[i + 1] || '';
       const nextIsAddress = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주특별자치)/.test(nextLine);
-      const address = nextIsAddress ? nextLine : '';
+      if (!nextIsAddress) { i++; continue; }
+      const address = nextLine;
       // 이름에서 끝에 붙은 장소명 중복 제거 (예: "로그밸리펜션펜션" → "로그밸리펜션")
       let finalName = cleanName;
       // 이름에서 카테고리 키워드가 중간에 섞인 경우 제거 시도
@@ -9541,7 +9542,7 @@ const App = () => {
         const types = detectedTypes.length > 0 ? [...new Set(detectedTypes)] : ['place'];
         results.push({ name: finalName, address, types, selected: true });
       }
-      i += nextIsAddress ? 2 : 1;
+      i += 2;
     }
     return results;
   };

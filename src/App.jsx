@@ -5203,54 +5203,6 @@ const App = () => {
 
   const endTouchDragLock = () => { };
 
-  useLayoutEffect(() => {
-    if (!dashboardRef.current) return undefined;
-    const syncDashboardHeight = () => {
-      if (!dashboardRef.current) return;
-      const nextHeight = dashboardRef.current.getBoundingClientRect().height;
-      setDashboardHeight(nextHeight);
-
-      const pending = pendingHeroScrollAdjustRef.current;
-      if (
-        pending
-        && pending.targetCompact === heroPinnedCompact
-        && window.scrollY > 0
-      ) {
-        const delta = nextHeight - pending.fromHeight;
-        if (Math.abs(delta) > 1) {
-          window.scrollBy({ top: delta, behavior: 'auto' });
-        }
-        pendingHeroScrollAdjustRef.current = null;
-      }
-      prevDashboardHeightRef.current = nextHeight;
-    };
-    syncDashboardHeight();
-    const rafId = window.requestAnimationFrame(syncDashboardHeight);
-    const timeoutId = window.setTimeout(syncDashboardHeight, 90);
-    const observer = new ResizeObserver(() => {
-      syncDashboardHeight();
-    });
-    observer.observe(dashboardRef.current);
-    window.addEventListener('resize', syncDashboardHeight);
-    window.addEventListener('load', syncDashboardHeight);
-    return () => {
-      window.cancelAnimationFrame(rafId);
-      window.clearTimeout(timeoutId);
-      observer.disconnect();
-      window.removeEventListener('resize', syncDashboardHeight);
-      window.removeEventListener('load', syncDashboardHeight);
-    };
-  }, [heroPinnedCompact, heroSummaryExpanded, isMobileLayout, leftSidebarWidth, rightSidebarWidth, col2Collapsed]);
-
-  useEffect(() => {
-    if (prevHeroPinnedCompactRef.current !== heroPinnedCompact) {
-      pendingHeroScrollAdjustRef.current = {
-        targetCompact: heroPinnedCompact,
-        fromHeight: prevDashboardHeightRef.current,
-      };
-      prevHeroPinnedCompactRef.current = heroPinnedCompact;
-    }
-  }, [heroPinnedCompact]);
 
   useEffect(() => {
     if (user && !user.isGuest) return;
@@ -5382,6 +5334,55 @@ const App = () => {
     void run();
     return () => { aborted = true; };
   }, [basePlanRef?.address, itinerary.places]);
+
+  useLayoutEffect(() => {
+    if (!dashboardRef.current) return undefined;
+    const syncDashboardHeight = () => {
+      if (!dashboardRef.current) return;
+      const nextHeight = dashboardRef.current.getBoundingClientRect().height;
+      setDashboardHeight(nextHeight);
+
+      const pending = pendingHeroScrollAdjustRef.current;
+      if (
+        pending
+        && pending.targetCompact === heroPinnedCompact
+        && window.scrollY > 0
+      ) {
+        const delta = nextHeight - pending.fromHeight;
+        if (Math.abs(delta) > 1) {
+          window.scrollBy({ top: delta, behavior: 'auto' });
+        }
+        pendingHeroScrollAdjustRef.current = null;
+      }
+      prevDashboardHeightRef.current = nextHeight;
+    };
+    syncDashboardHeight();
+    const rafId = window.requestAnimationFrame(syncDashboardHeight);
+    const timeoutId = window.setTimeout(syncDashboardHeight, 90);
+    const observer = new ResizeObserver(() => {
+      syncDashboardHeight();
+    });
+    observer.observe(dashboardRef.current);
+    window.addEventListener('resize', syncDashboardHeight);
+    window.addEventListener('load', syncDashboardHeight);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.clearTimeout(timeoutId);
+      observer.disconnect();
+      window.removeEventListener('resize', syncDashboardHeight);
+      window.removeEventListener('load', syncDashboardHeight);
+    };
+  }, [heroPinnedCompact, heroSummaryExpanded, isMobileLayout, leftSidebarWidth, rightSidebarWidth, col2Collapsed]);
+
+  useEffect(() => {
+    if (prevHeroPinnedCompactRef.current !== heroPinnedCompact) {
+      pendingHeroScrollAdjustRef.current = {
+        targetCompact: heroPinnedCompact,
+        fromHeight: prevDashboardHeightRef.current,
+      };
+      prevHeroPinnedCompactRef.current = heroPinnedCompact;
+    }
+  }, [heroPinnedCompact]);
 
   useEffect(() => {
     const updateHeroCompact = () => {
@@ -11001,15 +11002,6 @@ const App = () => {
                   <h2 className="text-[13px] font-black tracking-[0.18em] text-slate-800 uppercase leading-none">Anti Planer</h2>
                   <p className="mt-1 text-[10px] font-bold text-slate-400 leading-none">{pushTimeLabel}</p>
                 </div>
-                {user && !user.isGuest && (
-                  <button
-                    onClick={saveItineraryManually}
-                    className={`shrink-0 px-2.5 py-1.5 rounded-xl text-[10px] font-black border transition-all flex items-center gap-1.5 ${isDirty ? 'bg-amber-500 border-amber-400 text-white shadow-[0_4px_12px_rgba(245,158,11,0.4)] animate-pulse' : 'bg-slate-50 border-slate-100 text-slate-400 opacity-60'}`}
-                  >
-                    <CheckSquare size={10} />
-                    {isDirty ? '저장' : '완료'}
-                  </button>
-                )}
               </div>
 
             </div>
@@ -11394,6 +11386,18 @@ const App = () => {
                   </button>
                   {showNavMenu && (
                     <div className="fixed rounded-[20px] border border-slate-200 overflow-hidden z-[9990] animate-in slide-in-from-bottom-2" style={{ bottom: '80px', left: '12px', width: `calc(${leftSidebarWidth} - 24px)`, background: '#ffffff', boxShadow: '0 -8px 32px -8px rgba(15,23,42,0.18)' }}>
+                      {user && !user.isGuest && (
+                        <>
+                          <button
+                            onClick={() => { saveItineraryManually(); setShowNavMenu(false); }}
+                            className={`w-full px-4 py-3 text-left text-[12px] font-bold flex items-center gap-2.5 transition-colors ${isDirty ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'text-slate-400 hover:bg-slate-50'}`}
+                          >
+                            <CheckSquare size={13} className={isDirty ? 'text-amber-500' : 'text-slate-300'} />
+                            {isDirty ? '저장 (변경됨)' : '저장 완료'}
+                          </button>
+                          <div className="h-px bg-slate-100 mx-4" />
+                        </>
+                      )}
                       <button
                         onClick={() => { setShowPlanManager(true); setShowNavMenu(false); }}
                         className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
@@ -13524,7 +13528,7 @@ const App = () => {
                         </div>
                       )}
                       {/* 🖼️ 배경 이미지 (고정 높이, 요약 확장과 무관) */}
-                      <div className={`absolute left-0 right-0 top-0 overflow-hidden pointer-events-none transition-all duration-300 ${heroCompactActive ? 'h-[124px] sm:h-[138px]' : 'h-[332px] sm:h-[356px]'}`}>
+                      <div className={`absolute left-0 right-0 top-0 overflow-hidden pointer-events-none transition-all duration-300 ${heroCompactActive ? 'h-[124px] sm:h-[138px]' : 'h-[220px] sm:h-[236px]'}`}>
                         <img
                           src={getRegionCoverImage(tripRegion)}
                           className="w-full h-full object-cover opacity-95 scale-105"
@@ -13532,7 +13536,7 @@ const App = () => {
                         />
                         <div
                           className="absolute inset-0"
-                          style={{ background: 'linear-gradient(to bottom, rgba(15,23,42,0.26) 0%, rgba(15,23,42,0.12) 42%, rgba(242,244,246,0.1) 64%, rgba(242,244,246,0.04) 78%, rgba(242,244,246,0) 88%, rgba(242,244,246,0) 100%)' }}
+                          style={{ background: 'linear-gradient(to bottom, rgba(15,23,42,0.26) 0%, rgba(15,23,42,0.12) 60%, rgba(15,23,42,0) 100%)' }}
                         />
                         <div
                           className={`pointer-events-none absolute inset-x-0 bottom-0 z-[11] h-[4px] bg-slate-200/90 transition-opacity duration-200 ease-out ${heroCompactBudgetBarVisible ? 'opacity-100' : 'opacity-0'}`}
@@ -13556,7 +13560,7 @@ const App = () => {
                         )}
                       </div>
 
-                      <div className={`relative z-10 flex w-full mx-auto flex-col transition-all duration-300 ${timelineMaxClass} ${heroCompactActive ? 'gap-2' : 'gap-5 md:gap-6'}`}>
+                      <div className={`relative z-10 flex w-full mx-auto flex-col transition-all duration-300 ${timelineMaxClass} ${heroCompactActive ? 'gap-2' : 'gap-3'}`}>
                         {/* 🌟 1. 타이틀 & 일정 */}
                         <div className={`flex flex-col transition-all duration-300 ${heroCompactActive ? 'gap-2 px-4 pt-3 sm:px-6 sm:pt-4' : 'items-center gap-3 px-6 pt-8 text-center sm:px-8 sm:pt-10'}`}>
                           <input
@@ -13601,6 +13605,52 @@ const App = () => {
                             )}
                           </div>
                         </div>
+
+                        {/* 개요 3개 카드 */}
+                        {!heroCompactActive && (
+                          <div className={`w-full mx-auto px-4 sm:px-6 ${timelineMaxClass}`}>
+                          <div className="rounded-[24px] border border-slate-200 bg-white/95 shadow-[0_10px_32px_-16px_rgba(15,23,42,0.18)] p-3">
+                          <div className="grid grid-cols-3 gap-3 sm:gap-3">
+                            <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
+                              <div className="flex h-full flex-col items-center justify-center text-center">
+                                <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
+                                <p className="mt-2 text-[22px] leading-none font-black text-[#3182F6] tabular-nums sm:text-[31px]">{usedPct}%</p>
+                                <p className="mt-2 text-[10px] font-bold text-slate-500 tabular-nums sm:text-[11px]">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
+                              </div>
+                            </div>
+                            <div className="relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] px-3 py-4 sm:px-4">
+                              <div className="flex h-full flex-col items-center justify-center text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
+                                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowTravelIntensityInfo((prev) => !prev); }} className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-slate-400 transition-colors hover:border-[#3182F6]/40 hover:text-[#3182F6]" title="여행 강도 계산식 보기">
+                                    <Info size={10} />
+                                  </button>
+                                </div>
+                                <p className="mt-2 text-[21px] text-center leading-none font-black text-slate-800 sm:text-[27px]">{travelIntensity.label}</p>
+                                <p className="mt-2 text-[10px] text-center font-bold text-slate-500 sm:text-[11px]">{travelIntensity.note}</p>
+                              </div>
+                              {showTravelIntensityInfo && (
+                                <div className="absolute left-1/2 top-[calc(100%-8px)] z-20 w-[250px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left shadow-[0_16px_30px_-18px_rgba(15,23,42,0.35)]">
+                                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">계산식</p>
+                                  <p className="mt-2 text-[11px] font-bold text-slate-600">시간당 방문 수: {visitPerHour.toFixed(2)}개</p>
+                                  <p className="mt-1 text-[11px] font-bold text-slate-600">하루 활동 시간: 평균 {averageSpanHours.toFixed(1)}시간</p>
+                                  <p className="mt-1 text-[11px] font-bold text-slate-600">하루 이동 시간: 평균 {averageTravelHoursLabel}</p>
+                                  <p className="mt-1 text-[11px] font-bold text-slate-600">숙소 고정 제약: {lodgingConstraintCount}개</p>
+                                  <p className="mt-2 text-[10px] font-bold text-slate-400">방문 수는 `숙소/휴식/페리`를 제외한 일정만 세며, 숙소의 고정 체크인/체크아웃도 강도 점수에 반영합니다.</p>
+                                </div>
+                              )}
+                            </div>
+                            <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] px-3 py-4 sm:px-4">
+                              <div className="flex h-full flex-col items-center justify-center text-center">
+                                <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
+                                <p className="mt-2 text-[22px] text-center leading-none font-black text-slate-800 tabular-nums sm:text-[31px]">{visitPerHour.toFixed(1)}개/h</p>
+                                <p className="mt-2 text-[10px] text-center font-bold text-slate-500 sm:text-[11px]">방문 일정 {visitPlanCount}개 기준</p>
+                              </div>
+                            </div>
+                          </div>
+                          </div>
+                          </div>
+                        )}
 
                         {showHeroSummaryModal && (
                           <div className="fixed inset-0 z-[297] flex items-center justify-center bg-slate-950/36 px-4 py-6 backdrop-blur-sm" onClick={() => setShowHeroSummaryModal(false)}>
@@ -13978,7 +14028,7 @@ const App = () => {
                           return;
                         }
                         const targetEl = e.target instanceof Element ? e.target : null;
-                        if (targetEl?.closest('input,button,a,textarea,[contenteditable],[data-no-drag]')) return;
+                        if (targetEl?.closest('input,button,a,textarea,[contenteditable],[data-no-drag],[data-time-trigger],[data-time-modal]')) return;
                         // 카드 드래그는 항상 현재 화면에 보이는(메인) 일정을 이동
                         const payload = { dayIdx: dIdx, pIdx, planPos: hasPlanB ? planPos : undefined };
                         touchDragSourceRef.current = { kind: 'timeline', payload, startX: e.touches[0].clientX, startY: e.touches[0].clientY };
@@ -13992,7 +14042,7 @@ const App = () => {
                         }
                         const copy = ctrlHeldRef.current;
                         const targetEl = e.target instanceof Element ? e.target : null;
-                        const isInteractiveTarget = !!targetEl?.closest('input, button, a, textarea, [contenteditable="true"], [data-no-drag="true"]');
+                        const isInteractiveTarget = !!targetEl?.closest('input, button, a, textarea, [contenteditable="true"], [data-no-drag="true"], [data-time-trigger="true"], [data-time-modal="true"]');
                         if (isInteractiveTarget) { e.preventDefault(); return; }
                         // 카드 드래그는 항상 현재 화면에 보이는(메인) 일정을 이동
                         const payload = { dayIdx: dIdx, pIdx, planPos: hasPlanB ? planPos : undefined };
@@ -14136,57 +14186,66 @@ const App = () => {
                                       >
                                         <div className="flex w-full items-stretch gap-1.5 px-1 py-1.5">
                                           {/* 시작 시간 */}
-                                          <button
-                                            type="button"
-                                            onClick={toggleInline}
-                                            className={`flex flex-1 h-[40px] items-center justify-center rounded-[12px] border px-2 transition-all ${p.isTimeFixed ? 'border-[#3182F6]/60 bg-blue-50 shadow-[0_0_0_2px_rgba(49,130,246,0.12)]' : 'border-slate-200 bg-white/92 hover:border-slate-300'}`}
-                                          >
-                                            <span className={`text-[22px] font-black tabular-nums tracking-[-0.06em] leading-none ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-900'}`}>
-                                              {hh}<span className="mx-[1px] opacity-70">:</span>{mm}
-                                            </span>
-                                          </button>
-
-                                          {/* 소요 시간 */}
-                                          <div className={`relative z-10 flex flex-1 h-[40px] items-center justify-center rounded-[12px] border shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all overflow-hidden ${isAutoLocked
-                                              ? 'border-red-400 bg-red-500 text-white'
-                                              : isDurationLocked
-                                                ? 'border-[#ff8a1a] bg-[#ff8a1a] text-white'
-                                                : 'border-slate-200 bg-white text-slate-700'
-                                              }`}
-                                          >
-                                            <button
-                                              type="button"
-                                              onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, -1); }}
-                                              className="flex items-center justify-center px-1.5 h-full hover:bg-black/10 active:bg-black/20 transition-colors"
-                                            >
-                                              <ChevronLeft size={10} />
-                                            </button>
+                                          <div className="flex flex-1 flex-col items-center gap-0.5">
+                                            <span className="text-[9px] font-bold tracking-widest uppercase text-slate-400">Start</span>
                                             <button
                                               type="button"
                                               onClick={toggleInline}
-                                              className="flex-1 flex items-center justify-center h-full"
+                                              className={`flex w-full h-[40px] items-center justify-center rounded-[12px] border px-2 transition-all ${p.isTimeFixed ? 'border-[#3182F6]/60 bg-blue-50 shadow-[0_0_0_2px_rgba(49,130,246,0.12)]' : 'border-slate-200 bg-white/92 hover:border-slate-300'}`}
                                             >
-                                              <span className="font-black tabular-nums text-[11px] tracking-[0.04em] whitespace-nowrap">{fmtDurCompact(p.duration)}</span>
-                                            </button>
-                                            <button
-                                              type="button"
-                                              onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, 1); }}
-                                              className="flex items-center justify-center px-1.5 h-full hover:bg-black/10 active:bg-black/20 transition-colors"
-                                            >
-                                              <ChevronRight size={10} />
+                                              <span className={`text-[22px] font-black tabular-nums tracking-[-0.06em] leading-none ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-900'}`}>
+                                                {hh}<span className="mx-[1px] opacity-70">:</span>{mm}
+                                              </span>
                                             </button>
                                           </div>
 
+                                          {/* 소요 시간 */}
+                                          <div className="flex flex-1 flex-col items-center gap-0.5">
+                                            <span className="text-[9px] font-bold tracking-widest uppercase text-slate-400">Duration</span>
+                                            <div className={`relative z-10 flex w-full h-[40px] items-center justify-center rounded-[12px] border shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all overflow-hidden ${isAutoLocked
+                                                ? 'border-red-400 bg-red-500 text-white'
+                                                : isDurationLocked
+                                                  ? 'border-[#ff8a1a] bg-[#ff8a1a] text-white'
+                                                  : 'border-slate-200 bg-white text-slate-700'
+                                                }`}
+                                            >
+                                              <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, -1); }}
+                                                className="flex items-center justify-center px-1.5 h-full hover:bg-black/10 active:bg-black/20 transition-colors"
+                                              >
+                                                <ChevronLeft size={10} />
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={toggleInline}
+                                                className="flex-1 flex items-center justify-center h-full"
+                                              >
+                                                <span className="font-black tabular-nums text-[11px] tracking-[0.04em] whitespace-nowrap">{fmtDurCompact(p.duration)}</span>
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, 1); }}
+                                                className="flex items-center justify-center px-1.5 h-full hover:bg-black/10 active:bg-black/20 transition-colors"
+                                              >
+                                                <ChevronRight size={10} />
+                                              </button>
+                                            </div>
+                                          </div>
+
                                           {/* 종료 시간 */}
-                                          <button
-                                            type="button"
-                                            onClick={toggleInline}
-                                            className={`flex flex-1 h-[40px] items-center justify-center rounded-[12px] border px-2 transition-all ${isEndTimeFixed ? 'border-violet-400/60 bg-violet-50 shadow-[0_0_0_2px_rgba(139,92,246,0.12)]' : 'border-slate-200 bg-slate-50/95 hover:border-slate-300'}`}
-                                          >
-                                            <span className={`text-[22px] font-black tabular-nums tracking-[-0.06em] leading-none ${isEndTimeFixed ? 'text-violet-500' : 'text-slate-400'}`}>
-                                              {ehh}<span className="mx-[1px] opacity-65">:</span>{emm}
-                                            </span>
-                                          </button>
+                                          <div className="flex flex-1 flex-col items-center gap-0.5">
+                                            <span className="text-[9px] font-bold tracking-widest uppercase text-slate-400">End</span>
+                                            <button
+                                              type="button"
+                                              onClick={toggleInline}
+                                              className={`flex w-full h-[40px] items-center justify-center rounded-[12px] border px-2 transition-all ${isEndTimeFixed ? 'border-violet-400/60 bg-violet-50 shadow-[0_0_0_2px_rgba(139,92,246,0.12)]' : 'border-slate-200 bg-slate-50/95 hover:border-slate-300'}`}
+                                            >
+                                              <span className={`text-[22px] font-black tabular-nums tracking-[-0.06em] leading-none ${isEndTimeFixed ? 'text-violet-500' : 'text-slate-400'}`}>
+                                                {ehh}<span className="mx-[1px] opacity-65">:</span>{emm}
+                                              </span>
+                                            </button>
+                                          </div>
                                         </div>
                                       </div>
                                     )}
@@ -14367,15 +14426,16 @@ const App = () => {
                                         </button>
                                       </div>
                                       {/* 루트 배너 */}
-                                      <div className="flex items-center bg-gradient-to-r from-blue-700 to-cyan-600 rounded-xl px-3 py-2 gap-2">
-                                        <div className="flex flex-col items-start min-w-0">
-                                          <span className="text-[8px] text-blue-200 font-bold tracking-widest uppercase">Departure</span>
+                                      <div className="flex items-stretch gap-2 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 p-2.5">
+                                        {/* 출발지 */}
+                                        <div className="flex flex-1 flex-col items-start gap-0.5 min-w-0 rounded-xl bg-white/80 border border-blue-100 px-2.5 py-2 shadow-sm">
+                                          <span className="text-[8px] font-bold tracking-widest uppercase text-blue-400">Departure</span>
                                           <input
                                             value={p.startPoint || '목포항'}
                                             onChange={(e) => { e.stopPropagation(); updateShipPoint(dIdx, pIdx, 'startPoint', e.target.value); }}
                                             onClick={(e) => e.stopPropagation()}
                                             onFocus={(e) => e.target.select()}
-                                            className="text-[14px] font-black text-white bg-transparent outline-none w-16 focus:border-b focus:border-white/50"
+                                            className="w-full bg-transparent text-[15px] font-black text-blue-900 outline-none focus:border-b focus:border-blue-300 truncate"
                                           />
                                           <input
                                             value={p.receipt?.address || ''}
@@ -14383,23 +14443,26 @@ const App = () => {
                                             onClick={(e) => e.stopPropagation()}
                                             onFocus={async (e) => { e.target.select(); if (p.startPoint) { const r = await searchAddressFromPlaceName(p.startPoint); if (r?.address) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...d.days[dIdx].plan[pIdx].receipt, address: r.address }; return d; }); } }}
                                             placeholder="클릭 시 자동 입력"
-                                            className="text-[9px] text-blue-200/80 bg-transparent outline-none w-24 focus:border-b focus:border-white/30 truncate cursor-pointer"
+                                            className="w-full bg-transparent text-[9px] text-slate-400 outline-none focus:border-b focus:border-blue-200 truncate cursor-pointer"
                                           />
                                         </div>
-                                        <div className="relative flex-1 self-stretch">
-                                          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-dashed border-white/30" />
-                                          <span className="absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md bg-blue-700/80 px-1.5 py-0.5 text-[9px] text-white/70 font-bold">
+                                        {/* 항해 시간 */}
+                                        <div className="flex flex-col items-center justify-center gap-1 px-1">
+                                          <div className="w-6 h-px bg-blue-200" />
+                                          <span className="text-[9px] font-bold text-blue-400 whitespace-nowrap">
                                             {(() => { const s = p.sailDuration ?? 240; return `${Math.floor(s / 60)}h${s % 60 > 0 ? ` ${s % 60}m` : ''}`; })()}
                                           </span>
+                                          <div className="w-6 h-px bg-blue-200" />
                                         </div>
-                                        <div className="flex flex-col items-end min-w-0">
-                                          <span className="text-[8px] text-blue-200 font-bold tracking-widest uppercase">Arrival</span>
+                                        {/* 도착지 */}
+                                        <div className="flex flex-1 flex-col items-end gap-0.5 min-w-0 rounded-xl bg-white/80 border border-blue-100 px-2.5 py-2 shadow-sm">
+                                          <span className="text-[8px] font-bold tracking-widest uppercase text-cyan-500">Arrival</span>
                                           <input
                                             value={p.endPoint || '제주항'}
                                             onChange={(e) => { e.stopPropagation(); updateShipPoint(dIdx, pIdx, 'endPoint', e.target.value); }}
                                             onClick={(e) => e.stopPropagation()}
                                             onFocus={(e) => e.target.select()}
-                                            className="text-[14px] font-black text-white bg-transparent outline-none w-16 text-right focus:border-b focus:border-white/50"
+                                            className="w-full bg-transparent text-[15px] font-black text-blue-900 text-right outline-none focus:border-b focus:border-blue-300 truncate"
                                           />
                                           <input
                                             value={p.endAddress || ''}
@@ -14407,7 +14470,7 @@ const App = () => {
                                             onClick={(e) => e.stopPropagation()}
                                             onFocus={async (e) => { e.target.select(); if (p.endPoint) { const r = await searchAddressFromPlaceName(p.endPoint); if (r?.address) updateShipPoint(dIdx, pIdx, 'endAddress', r.address); } }}
                                             placeholder="클릭 시 자동 입력"
-                                            className="text-[9px] text-blue-200/80 bg-transparent outline-none w-24 text-right focus:border-b focus:border-white/30 truncate cursor-pointer"
+                                            className="w-full bg-transparent text-[9px] text-slate-400 text-right outline-none focus:border-b focus:border-blue-200 truncate cursor-pointer"
                                           />
                                         </div>
                                       </div>
@@ -14477,12 +14540,14 @@ const App = () => {
                                           </div>
                                         );
                                       })()}
-                                      <SharedMemoRow
-                                        value={p.memo || ''}
-                                        onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
-                                        placeholder="메모를 입력하세요..."
-                                        onContainerClick={(e) => e.stopPropagation()}
-                                      />
+                                      {String(p.memo || '').trim() ? (
+                                        <SharedMemoRow
+                                          value={p.memo || ''}
+                                          onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
+                                          placeholder="메모를 입력하세요..."
+                                          onContainerClick={(e) => e.stopPropagation()}
+                                        />
+                                      ) : null}
                                     </>
                                   );
                                 })()}

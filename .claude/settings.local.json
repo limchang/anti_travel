@@ -20,7 +20,9 @@
       "WebFetch(domain:alexwlchan.net)",
       "Bash(npm run build)",
       "Bash(firebase deploy:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Skill(keybindings-help)",
+      "Skill(keybindings-help:*)"
     ]
   }
 }

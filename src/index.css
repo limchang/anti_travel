@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 가로 스크롤 방지 */
+html, body {
+  overflow-x: hidden;
+}
+
+/* 드래그 중 텍스트 선택 방지 */
+* {
+  -webkit-user-select: none;
+  user-select: none;
+}
+input, textarea, [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* 내장소 마커 팝업 스타일 오버라이드 */
 .library-marker-popup {
   z-index: 9999 !important;

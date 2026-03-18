@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import 'leaflet/dist/leaflet.css'
+import { Agentation } from 'agentation'
 
 const rootEl = document.getElementById('root')
 
@@ -35,6 +36,7 @@ const boot = async () => {
     createRoot(rootEl).render(
       <StrictMode>
         <App />
+        {import.meta.env.DEV && <Agentation />}
       </StrictMode>,
     )
     window.__APP_MOUNTED__ = true

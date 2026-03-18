@@ -3504,8 +3504,8 @@ const SmartFillGuideModal = ({ onClose }) => {
 
   return (
     <>
-      <div className="fixed inset-0 z-[260] bg-black/20" onClick={isEditing ? undefined : onClose} />
-      <div className="fixed inset-x-4 top-[5vh] bottom-[5vh] z-[261] max-w-lg mx-auto bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+      <div className="fixed inset-0 z-[291] bg-black/20" onClick={isEditing ? undefined : onClose} />
+      <div className="fixed inset-x-4 top-[5vh] bottom-[5vh] z-[292] max-w-lg mx-auto bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden">
         {/* 헤더 */}
         <div className="px-5 pt-4 pb-1 border-b border-slate-100 bg-slate-50/70 shrink-0">
           <div className="flex items-center justify-between mb-3">
@@ -4235,7 +4235,7 @@ const App = () => {
   const [showOverviewMapModal, setShowOverviewMapModal] = useState(false);
   const [showPlaceMapModal, setShowPlaceMapModal] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
-  const [placeLibraryViewMode, setPlaceLibraryViewMode] = useState('compact');
+  const [placeLibraryViewMode, setPlaceLibraryViewMode] = useState('single');
   const [libraryGeoMap, setLibraryGeoMap] = useState({});
   const [recommendationGeoMap, setRecommendationGeoMap] = useState({});
   const routeRetryCooldownMs = 45000;
@@ -4387,7 +4387,7 @@ const App = () => {
   }, [clearMobileLibraryLongPress, isMobileLayout]);
 
   useEffect(() => {
-    if (placeLibraryViewMode === 'compact') {
+    if (placeLibraryViewMode === 'compact' || placeLibraryViewMode === 'single') {
       setExpandedPlaceId(null);
     }
   }, [placeLibraryViewMode]);
@@ -10965,7 +10965,7 @@ const App = () => {
 
       {/* ── Col1: 예산 + 일정 네비게이션 ── */}
       <div
-        className={`flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-visible ${showNavMenu ? 'z-[290]' : 'z-[220]'}`}
+        className="flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-visible z-[290]"
         style={{ width: leftSidebarWidth, transition: panelResizingRef.current?.side === 'left' ? 'none' : 'width 0.3s' }}
       >
         {/* 좌측 패널 너비 조절 핸들 */}
@@ -11550,20 +11550,27 @@ const App = () => {
                     <div className="absolute right-0 top-8 z-[9990] min-w-[186px] rounded-[12px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
                       <div className="mb-1 rounded-[10px] border border-slate-100 bg-slate-50/80 p-1">
                         <p className="px-1.5 pb-1 text-[9px] font-black tracking-[0.14em] text-slate-400 uppercase">카드 보기</p>
-                        <div className="grid grid-cols-2 gap-1">
+                        <div className="grid grid-cols-3 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setPlaceLibraryViewMode('single')}
+                            className={`rounded-[8px] px-1.5 py-2 text-[10px] font-black transition-colors ${placeLibraryViewMode === 'single' ? 'bg-[#3182F6] text-white shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}
+                          >
+                            1열
+                          </button>
                           <button
                             type="button"
                             onClick={() => setPlaceLibraryViewMode('default')}
-                            className={`rounded-[8px] px-2 py-2 text-[10px] font-black transition-colors ${placeLibraryViewMode === 'default' ? 'bg-[#3182F6] text-white shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}
+                            className={`rounded-[8px] px-1.5 py-2 text-[10px] font-black transition-colors ${placeLibraryViewMode === 'default' ? 'bg-[#3182F6] text-white shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}
                           >
                             기본
                           </button>
                           <button
                             type="button"
                             onClick={() => setPlaceLibraryViewMode('compact')}
-                            className={`rounded-[8px] px-2 py-2 text-[10px] font-black transition-colors ${placeLibraryViewMode === 'compact' ? 'bg-[#3182F6] text-white shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}
+                            className={`rounded-[8px] px-1.5 py-2 text-[10px] font-black transition-colors ${placeLibraryViewMode === 'compact' ? 'bg-[#3182F6] text-white shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}
                           >
-                            축소
+                            축소 2열
                           </button>
                         </div>
                       </div>
@@ -11978,7 +11985,7 @@ const App = () => {
                         + 버튼으로 장소를 추가하고<br />타임라인으로 드래그하세요
                       </p>
                     )}
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className={`grid gap-2.5 ${placeLibraryViewMode === 'single' ? 'grid-cols-1' : 'grid-cols-2'}`}>
                     {visiblePlaces.filter(place => place && (place.id || place.name)).map(place => {
                       const isTypePopoverOpen = placeTypesPopoverId === place.id;
                       const currentTypes = place.types?.length ? place.types : ['place'];
@@ -12293,8 +12300,8 @@ const App = () => {
 
           {showEntryChooser && !user?.isGuest && !sharedSource?.ownerId && (
             <>
-              <div className="fixed inset-0 z-[270] bg-black/25 backdrop-blur-[1px]" />
-              <div className="fixed z-[271] inset-0 flex items-center justify-center p-4">
+              <div className="fixed inset-0 z-[295] bg-black/25 backdrop-blur-[1px]" />
+              <div className="fixed z-[296] inset-0 flex items-center justify-center p-4">
                 <div className="w-[min(640px,94vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)] p-5">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-[16px] font-black text-slate-800">일정 선택</p>
@@ -12368,8 +12375,8 @@ const App = () => {
 
           {navDayMenu && (
             <>
-              <div className="fixed inset-0 z-[260] bg-black/20" onClick={() => setNavDayMenu(null)} />
-              <div className="fixed z-[261] top-1/2 left-1/2 w-[min(360px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setNavDayMenu(null)} />
+              <div className="fixed z-[292] top-1/2 left-1/2 w-[min(360px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
                 <div className="mb-3 flex items-center justify-between">
                   <div>
                     <p className="text-[14px] font-black text-slate-800">일별 수정 메뉴</p>
@@ -12412,8 +12419,8 @@ const App = () => {
 
           {showPlanManager && (
             <>
-              <div className="fixed inset-0 z-[260] bg-black/20" onClick={() => setShowPlanManager(false)} />
-              <div className="fixed z-[261] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(640px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowPlanManager(false)} />
+              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(640px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[14px] font-black text-slate-800">일정 관리 (도시별 예시)</p>
                   <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowPlanManager(false)}><X size={16} /></button>
@@ -12471,8 +12478,8 @@ const App = () => {
 
           {showPlaceTrash && (
             <>
-              <div className="fixed inset-0 z-[260] bg-black/20" onClick={() => setShowPlaceTrash(false)} />
-              <div className="fixed z-[261] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowPlaceTrash(false)} />
+              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-[14px] font-black text-slate-800">내 장소 휴지통</p>
@@ -12523,8 +12530,8 @@ const App = () => {
           {/* ── 여러 장소 추가 모달 ── */}
           {showBulkAddModal && (
             <>
-              <div className="fixed inset-0 z-[260] bg-black/30 backdrop-blur-sm" onClick={() => setShowBulkAddModal(false)} />
-              <div className="fixed z-[261] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl flex flex-col max-h-[85vh]" style={{ paddingLeft: leftSidebarWidth > 0 && !isMobileLayout ? `calc(${leftSidebarWidth}px / 2)` : undefined }}>
+              <div className="fixed inset-0 z-[291] bg-black/30 backdrop-blur-sm" onClick={() => setShowBulkAddModal(false)} />
+              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl flex flex-col max-h-[85vh]" style={{ paddingLeft: leftSidebarWidth > 0 && !isMobileLayout ? `calc(${leftSidebarWidth}px / 2)` : undefined }}>
                 <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
                   <div>
                     <p className="text-[14px] font-black text-slate-800">여러 장소 추가하기</p>
@@ -12629,8 +12636,8 @@ const App = () => {
 
           {showPlanOptions && (
             <>
-              <div className="fixed inset-0 z-[260] bg-black/20" onClick={() => setShowPlanOptions(false)} />
-              <div className="fixed z-[261] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowPlanOptions(false)} />
+              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[14px] font-black text-slate-800">일정 옵션</p>
                   <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowPlanOptions(false)}><X size={16} /></button>
@@ -12821,8 +12828,8 @@ const App = () => {
 
           {showShareManager && (
             <>
-              <div className="fixed inset-0 z-[260] bg-black/20" onClick={() => setShowShareManager(false)} />
-              <div className="fixed z-[261] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowShareManager(false)} />
+              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[14px] font-black text-slate-800">공유 범위 / 편집 권한</p>
                   <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowShareManager(false)}><X size={16} /></button>
@@ -12903,8 +12910,8 @@ const App = () => {
 
           {showAiSettings && (
             <>
-              <div className="fixed inset-0 z-[260] bg-black/20" onClick={() => setShowAiSettings(false)} />
-              <div className="fixed z-[261] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(480px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowAiSettings(false)} />
+              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(480px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-[14px] font-black text-slate-800">AI 스마트 채우기 설정</p>
@@ -13194,10 +13201,10 @@ const App = () => {
           {perplexityNearbyModal.open && (
             <>
               <div
-                className="fixed inset-0 z-[262] bg-black/20"
+                className="fixed inset-0 z-[293] bg-black/20"
                 onClick={() => setPerplexityNearbyModal({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' })}
               />
-              <div className="fixed z-[263] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)] overflow-hidden">
+              <div className="fixed z-[294] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)] overflow-hidden">
                 <div className="px-5 py-4 border-b border-slate-100 bg-[linear-gradient(135deg,#faf5ff,#ffffff)] flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[14px] font-black text-slate-800">AI 근처 추천</p>
@@ -13555,7 +13562,7 @@ const App = () => {
                         </div>
 
                         {showHeroSummaryModal && (
-                          <div className="fixed inset-0 z-[280] flex items-center justify-center bg-slate-950/36 px-4 py-6 backdrop-blur-sm" onClick={() => setShowHeroSummaryModal(false)}>
+                          <div className="fixed inset-0 z-[297] flex items-center justify-center bg-slate-950/36 px-4 py-6 backdrop-blur-sm" onClick={() => setShowHeroSummaryModal(false)}>
                             <div className="w-full max-w-[560px] rounded-[28px] border border-white/70 bg-white/96 p-4 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)]" onClick={(event) => event.stopPropagation()}>
                               <div className="flex items-center justify-between gap-3">
                                 <div>
@@ -15402,7 +15409,7 @@ const App = () => {
               <div
                 data-time-modal="true"
                 data-no-drag="true"
-                className={`fixed z-[260] rounded-[24px] border border-slate-200 bg-white/96 p-2.5 backdrop-blur-xl animate-in ${replaceMode ? 'shadow-[0_12px_26px_-18px_rgba(15,23,42,0.26)]' : 'shadow-[0_24px_50px_-24px_rgba(15,23,42,0.45)]'}`}
+                className={`fixed z-[291] rounded-[24px] border border-slate-200 bg-white/96 p-2.5 backdrop-blur-xl animate-in ${replaceMode ? 'shadow-[0_12px_26px_-18px_rgba(15,23,42,0.26)]' : 'shadow-[0_24px_50px_-24px_rgba(15,23,42,0.45)]'}`}
                 style={{ left, top, width: panelWidth, height: panelHeight }}
                 onClick={(e) => e.stopPropagation()}
                 onPointerDown={bumpTimeControllerAutoClose}

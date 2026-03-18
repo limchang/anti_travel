@@ -11098,7 +11098,10 @@ const App = () => {
                                           onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
                                         >{p.time || '--:--'}</span>
                                         <div className="min-w-0 flex items-center gap-1.5 overflow-hidden">
-                                          <div className={`shrink-0 scale-[0.88] origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-70'}`}>{getCategoryBadge(navPrimaryType)}</div>
+                                          <div
+                                            className={`shrink-0 scale-[0.88] origin-left transition-opacity cursor-pointer hover:scale-100 ${isActive ? 'opacity-100' : 'opacity-70'}`}
+                                            onClick={(e) => { e.stopPropagation(); const realPIdx = (itinerary.days?.[dNavIdx]?.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) openPlanEditModal(dNavIdx, realPIdx); }}
+                                          >{getCategoryBadge(navPrimaryType)}</div>
                                           <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-600' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-500'}`}>{p.activity}</span>
                                           {isRouteLoadingNav && (
                                             <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[8px] font-black leading-none text-[#3182F6]">
@@ -11137,7 +11140,10 @@ const App = () => {
                                           onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
                                         >{p.time || '--:--'}</span>
                                         <div className="min-w-0 flex items-center gap-1.5 overflow-hidden">
-                                          <div className={`shrink-0 scale-[0.88] origin-left transition-opacity ${isActive ? 'opacity-100' : 'opacity-70'}`}>{getCategoryBadge(navPrimaryType)}</div>
+                                          <div
+                                            className={`shrink-0 scale-[0.88] origin-left transition-opacity cursor-pointer hover:scale-100 ${isActive ? 'opacity-100' : 'opacity-70'}`}
+                                            onClick={(e) => { e.stopPropagation(); const realPIdx = (itinerary.days?.[dNavIdx]?.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) openPlanEditModal(dNavIdx, realPIdx); }}
+                                          >{getCategoryBadge(navPrimaryType)}</div>
                                           <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-600' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-500'}`}>{p.activity}</span>
                                           {isRouteLoadingNav && (
                                             <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[8px] font-black leading-none text-[#3182F6]">

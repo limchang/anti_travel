@@ -6434,12 +6434,15 @@ const App = () => {
   useEffect(() => {
     let cancelled = false;
     const loadLibraryGeo = async () => {
+      const _geoAllTags = TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map(t => t.value);
+      const _geoActiveTags = placeFilterTags.length > 0 ? _geoAllTags.filter(t => !placeFilterTags.includes(t)) : [];
       const visiblePlaces = (itinerary.places || [])
         .filter(Boolean)
         .filter((place) => {
           if (!placeFilterTags.length) return true;
           const placeTags = Array.isArray(place?.types) ? place.types : [];
-          return !placeFilterTags.some((tag) => placeTags.includes(tag));
+          if (_geoActiveTags.length > 0) return placeTags.some(t => _geoActiveTags.includes(t));
+          return false;
         })
         .map((place) => ({
           id: String(place?.id || '').trim(),
@@ -6616,7 +6619,10 @@ const App = () => {
         if (isLodgeStay(place?.types) && lodgesWithActiveSegments.has(String(place?.id || ''))) return false;
         if (!placeFilterTags.length) return true;
         const placeTags = Array.isArray(place?.types) ? place.types : [];
-        return !placeFilterTags.some((tag) => placeTags.includes(tag));
+        const _mapAllTags = TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map(t => t.value);
+        const _mapActiveTags = _mapAllTags.filter(t => !placeFilterTags.includes(t));
+        if (_mapActiveTags.length > 0) return placeTags.some(t => _mapActiveTags.includes(t));
+        return false;
       })
       .map((place) => {
         const address = String(place?.address || place?.receipt?.address || '').trim();
@@ -11710,9 +11716,14 @@ const App = () => {
                 let visiblePlaces = [...distanceSortedPlaces].filter(Boolean);
 
                 if (placeFilterTags.length > 0) {
+                  // 활성 태그(= placeFilterTags에 없는 태그) 계산
+                  const allKnownTags = filterTagOptions.map(t => t.value);
+                  const activeTags = allKnownTags.filter(t => !placeFilterTags.includes(t));
                   visiblePlaces = visiblePlaces.filter(p => {
                     const pTags = p.types || [];
-                    return !placeFilterTags.some(ft => pTags.includes(ft));
+                    // 장소 타입 중 하나라도 활성 카테고리에 있으면 표시 (OR)
+                    if (activeTags.length > 0) return pTags.some(t => activeTags.includes(t));
+                    return false;
                   });
                 }
                 const categoryCounts = (distanceSortedPlaces || []).reduce((acc, place) => {

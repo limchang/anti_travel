@@ -10869,7 +10869,7 @@ const App = () => {
 
       {/* ── Col1: 예산 + 일정 네비게이션 ── */}
       <div
-        className="flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] z-[220] shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-visible"
+        className={`flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-visible ${showNavMenu ? 'z-[290]' : 'z-[220]'}`}
         style={{ width: leftSidebarWidth, transition: panelResizingRef.current?.side === 'left' ? 'none' : 'width 0.3s' }}
       >
         {/* 좌측 패널 너비 조절 핸들 */}

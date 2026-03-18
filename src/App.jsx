@@ -11719,6 +11719,10 @@ const App = () => {
                   if (closeMins <= openMins) return activeTimeMins >= openMins || activeTimeMins < closeMins;
                   return activeTimeMins >= openMins && activeTimeMins < closeMins;
                 };
+                const filterTagOptions = [
+                  ...TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map((tag) => ({ ...tag, isCustom: false })),
+                  ...customPlaceCategories.map((tag) => ({ value: tag, label: getCustomTagLabel(tag), isCustom: true })),
+                ];
                 // 필터링 적용: 기준 일정이 있으면 영업 상태와 무관하게 거리순 유지
                 let visiblePlaces = [...distanceSortedPlaces].filter(Boolean);
 
@@ -11740,10 +11744,6 @@ const App = () => {
                   });
                   return acc;
                 }, {});
-                const filterTagOptions = [
-                  ...TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map((tag) => ({ ...tag, isCustom: false })),
-                  ...customPlaceCategories.map((tag) => ({ value: tag, label: getCustomTagLabel(tag), isCustom: true })),
-                ];
                 return (
                   <div
                     className="flex flex-col flex-1 overflow-hidden"

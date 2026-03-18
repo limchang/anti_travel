@@ -3770,7 +3770,7 @@ const App = () => {
   const [collaborators, setCollaborators] = useState([]); // [{ email, uid?, addedAt }]
   const [collaboratorInput, setCollaboratorInput] = useState('');
   const [collaboratorLoading, setCollaboratorLoading] = useState(false);
-  const [saveHistory, setSaveHistory] = useState([]); // [{ savedAt, label, snapshot }]
+  const [manualSaveHistory, setManualSaveHistory] = useState([]); // [{ savedAt, label, snapshot }]
   const [showSaveHistoryPanel, setShowSaveHistoryPanel] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
@@ -10151,7 +10151,7 @@ const App = () => {
     // 수동 저장 히스토리 기록 (최대 20개)
     const now = Date.now();
     const label = historyLabel || `${tripRegion || '여행'} 일정 — ${new Date(now).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
-    setSaveHistory(prev => [{
+    setManualSaveHistory(prev => [{
       savedAt: now,
       label,
       snapshot: JSON.parse(JSON.stringify({ ...payload, collaborators })),
@@ -12768,7 +12768,7 @@ const App = () => {
                         type="button"
                         onClick={() => setShowSaveHistoryPanel(v => !v)}
                         className="text-[9px] font-black text-[#3182F6] hover:underline"
-                      >{showSaveHistoryPanel ? '접기' : `${saveHistory.length}개 보기`}</button>
+                      >{showSaveHistoryPanel ? '접기' : `${manualSaveHistory.length}개 보기`}</button>
                     </div>
                     <button
                       type="button"
@@ -12783,9 +12783,9 @@ const App = () => {
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                       {collaboratorLoading ? '저장 중...' : '지금 수동 저장'}
                     </button>
-                    {showSaveHistoryPanel && saveHistory.length > 0 && (
+                    {showSaveHistoryPanel && manualSaveHistory.length > 0 && (
                       <div className="mt-2 space-y-1 max-h-[160px] overflow-y-auto">
-                        {saveHistory.map((entry) => (
+                        {manualSaveHistory.map((entry) => (
                           <div key={entry.savedAt} className="flex items-center justify-between bg-slate-50 rounded-lg px-2.5 py-1.5 gap-2">
                             <div className="min-w-0">
                               <p className="text-[10px] font-black text-slate-700 truncate">{entry.label}</p>
@@ -12800,7 +12800,7 @@ const App = () => {
                         ))}
                       </div>
                     )}
-                    {showSaveHistoryPanel && saveHistory.length === 0 && (
+                    {showSaveHistoryPanel && manualSaveHistory.length === 0 && (
                       <p className="text-[10px] font-bold text-slate-400 text-center py-2 mt-1">저장 기록이 없습니다</p>
                     )}
                   </div>

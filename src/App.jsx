@@ -11367,6 +11367,9 @@ const App = () => {
 
             {/* ── 하단 고정 메뉴 ── */}
             <div className="relative p-4 border-t border-slate-100 bg-white shrink-0 mt-auto">
+              {showNavMenu && (
+                <div className="fixed inset-0 z-[9980]" onClick={() => setShowNavMenu(false)} />
+              )}
               {canManagePlan && (
                 <div className="relative mb-2.5">
                   <button
@@ -11382,7 +11385,7 @@ const App = () => {
                     </span>
                   </button>
                   {showNavMenu && (
-                    <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[20px] border border-slate-200 bg-white/98 shadow-[0_22px_44px_-24px_rgba(15,23,42,0.26)] overflow-hidden z-[9990] animate-in slide-in-from-bottom-2">
+                    <div className="fixed rounded-[20px] border border-slate-200 bg-white/98 shadow-[0_-8px_32px_-8px_rgba(15,23,42,0.18)] overflow-hidden z-[9990] animate-in slide-in-from-bottom-2" style={{ bottom: '80px', left: '12px', width: `calc(${leftSidebarWidth} - 24px)` }}>
                       <button
                         onClick={() => { setShowPlanManager(true); setShowNavMenu(false); }}
                         className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"

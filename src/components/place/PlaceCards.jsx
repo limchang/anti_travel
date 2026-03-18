@@ -719,6 +719,7 @@ export const PlaceLibraryCard = ({
   statusChip = null,
   businessSummary = '미설정',
   isExpanded = false,
+  onNameClick = null,
   onEdit,
   onOpenMap,
   onBusinessEdit,
@@ -777,7 +778,10 @@ export const PlaceLibraryCard = ({
         value={place.name || ''}
         readOnly
         placeholder="장소 이름"
-        onContainerClick={(event) => event.stopPropagation()}
+        onContainerClick={(event) => {
+          event.stopPropagation();
+          if (typeof onNameClick === 'function') onNameClick(event);
+        }}
         actionButton={nameRowActions}
       />
       {!isCompact && (

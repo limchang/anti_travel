@@ -11778,8 +11778,16 @@ const App = () => {
                           onLibraryMarkerFocus={(placeId) => {
                             setFocusedLibraryMarkerId(placeId);
                           }}
-                          onLibraryMarkerTypeEdit={(placeId, currentTypes) => {
-                            setLibraryTypeModal({ placeId, types: currentTypes?.length ? [...currentTypes] : ['place'] });
+                          onLibraryMarkerTypeEdit={(placeId) => {
+                            const p = (itinerary.places || []).find(x => x?.id === placeId);
+                            if (!p) return;
+                            // 카드로 스크롤
+                            setTimeout(() => {
+                              document.getElementById(`library-place-${placeId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 80);
+                            // 편집 모달 열기
+                            setEditingPlaceId(p.id);
+                            setEditPlaceDraft(createPlaceEditorDraft(p));
                           }}
                           focusedLibraryMarkerId={focusedLibraryMarkerId}
                           onBackgroundClick={clearOverviewMapFocus}
@@ -12079,6 +12087,14 @@ const App = () => {
                         <PlaceLibraryCard
                           key={place.id}
                           buildBusinessQuickEditSegments={buildBusinessQuickEditSegments}
+                          onNameClick={(e) => {
+                            e?.stopPropagation?.();
+                            // 해당 카드로 스크롤
+                            document.getElementById(`library-place-${place.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            // 편집 모달 열기
+                            setEditingPlaceId(place.id);
+                            setEditPlaceDraft(createPlaceEditorDraft(place));
+                          }}
                           cardProps={{
                             id: `library-place-${place.id}`,
                             onClickCapture: () => focusLibraryOnMap(place),

@@ -731,6 +731,7 @@ export const PlaceLibraryCard = ({
   extraContent = null,
   buildBusinessQuickEditSegments,
   viewMode = 'default',
+  highlighted = false,
 }) => {
   const visibleMenus = (place.receipt?.items || []).filter((menu) => menu && menu.selected !== false);
   const isCompact = viewMode === 'compact';
@@ -762,7 +763,7 @@ export const PlaceLibraryCard = ({
   <div
     {...cardProps}
     data-map-focus-card="true"
-    className={`w-full group relative overflow-hidden rounded-[24px] border border-[#3182F6]/15 bg-white shadow-[0_10px_28px_-14px_rgba(49,130,246,0.18)] ring-1 ring-[#3182F6]/6 transition-all duration-300 ${cardProps.className || ''}`.trim()}
+    className={`w-full group relative overflow-hidden rounded-[24px] border bg-white shadow-[0_10px_28px_-14px_rgba(49,130,246,0.18)] ring-1 transition-all duration-300 ${highlighted ? 'border-[#3182F6] ring-[#3182F6]/30 shadow-[0_0_0_3px_rgba(49,130,246,0.18)]' : 'border-[#3182F6]/15 ring-[#3182F6]/6'} ${cardProps.className || ''}`.trim()}
   >
     <div className="p-4 flex flex-col gap-2.5">
       <div className="flex items-center gap-1.5 flex-wrap pr-12" data-no-drag="true">

@@ -2770,6 +2770,7 @@ const RoutePreviewCanvas = ({
   onLibraryMarkerFocus = null,
   onLibraryMarkerTypeChange = null,
   onLibraryMarkerTypeEdit = null,
+  onLibraryMarkerNameClick = null,
   onBackgroundClick = null,
   onSegmentLabelClick = null,
   interactive = true,
@@ -3340,7 +3341,10 @@ const RoutePreviewCanvas = ({
                               <span style={{ fontSize: '9px', fontWeight: 900, color: point.categoryColor || '#2563EB' }}>{point.categoryLabel || '내장소'}</span>
                             </button>
                           </div>
-                          <div style={{ fontSize: '12px', fontWeight: 900, color: '#1E293B', marginBottom: '3px', wordBreak: 'break-all' }}>{point.label}</div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); if (typeof onLibraryMarkerNameClick === 'function') onLibraryMarkerNameClick(point.id); }}
+                            style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: typeof onLibraryMarkerNameClick === 'function' ? 'pointer' : 'default', fontSize: '12px', fontWeight: 900, color: '#1E293B', marginBottom: '3px', wordBreak: 'break-all', textDecoration: typeof onLibraryMarkerNameClick === 'function' ? 'underline' : 'none' }}
+                          >{point.label}</button>
                           {point.address && <div style={{ fontSize: '9px', color: '#94A3B8', marginBottom: '6px', wordBreak: 'break-all' }}>{point.address}</div>}
                           <button
                             onClick={(e) => { e.stopPropagation(); if (typeof onLibraryMarkerAddClick === 'function') onLibraryMarkerAddClick({ id: point.id, label: point.label }); if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(null); }}
@@ -3761,6 +3765,7 @@ const App = () => {
   const [showAiSettings, setShowAiSettings] = useState(false);
   const [showPlanOptions, setShowPlanOptions] = useState(false);
   const [showNavMenu, setShowNavMenu] = useState(false);
+  const [highlightedPlaceId, setHighlightedPlaceId] = useState(null);
   const [showSmartFillGuide, setShowSmartFillGuide] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -11385,7 +11390,7 @@ const App = () => {
                     </span>
                   </button>
                   {showNavMenu && (
-                    <div className="fixed rounded-[20px] border border-slate-200 bg-white/98 shadow-[0_-8px_32px_-8px_rgba(15,23,42,0.18)] overflow-hidden z-[9990] animate-in slide-in-from-bottom-2" style={{ bottom: '80px', left: '12px', width: `calc(${leftSidebarWidth} - 24px)` }}>
+                    <div className="fixed rounded-[20px] border border-slate-200 overflow-hidden z-[9990] animate-in slide-in-from-bottom-2" style={{ bottom: '80px', left: '12px', width: `calc(${leftSidebarWidth} - 24px)`, background: '#ffffff', boxShadow: '0 -8px 32px -8px rgba(15,23,42,0.18)' }}>
                       <button
                         onClick={() => { setShowPlanManager(true); setShowNavMenu(false); }}
                         className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
@@ -11792,6 +11797,19 @@ const App = () => {
                             setEditingPlaceId(p.id);
                             setEditPlaceDraft(createPlaceEditorDraft(p));
                           }}
+                          onLibraryMarkerNameClick={(placeId) => {
+                            const p = (itinerary.places || []).find(x => x?.id === placeId);
+                            if (!p) return;
+                            // 내 장소 탭으로 전환
+                            setActiveTab('places');
+                            // 카드로 스크롤 + 강조
+                            setHighlightedPlaceId(placeId);
+                            setTimeout(() => {
+                              document.getElementById(`library-place-${placeId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 120);
+                            // 2초 후 강조 해제
+                            setTimeout(() => setHighlightedPlaceId(null), 2200);
+                          }}
                           focusedLibraryMarkerId={focusedLibraryMarkerId}
                           onBackgroundClick={clearOverviewMapFocus}
                           onSegmentLabelClick={(toItemId) => {
@@ -12089,6 +12107,7 @@ const App = () => {
                       return (
                         <PlaceLibraryCard
                           key={place.id}
+                          highlighted={highlightedPlaceId === place.id}
                           buildBusinessQuickEditSegments={buildBusinessQuickEditSegments}
                           onNameClick={(e) => {
                             e?.stopPropagation?.();

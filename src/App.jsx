@@ -9553,34 +9553,50 @@ const App = () => {
       // 예: "스무돈가스" / "말고기연구소 제주공항점육류,고기요리" / "🏡 키즈펜션 로그밸리펜션펜션"
       const nameLine = line.replace(/^[^\w가-힣a-zA-Z0-9]+/, ''); // 앞 이모지 제거
       // 뒤에 붙은 카테고리 키워드 추출
-      const categoryKeywords = ['카페', '디저트', '베이커리', '국수', '한식', '중식당', '치킨', '닭강정', '육류', '고기요리', '떡카페', '식당', '음식', '호텔', '펜션', '수목원', '식물원', '계곡', '키즈카페', '실내놀이터', '협동조합', '관람', '체험', '햄버거', '전복요리', '카셰어링', '한과', '토스트', '야시장', '지역명소', '이탈리아음식', '고사리육개장'];
+      const categoryKeywords = ['카페', '디저트', '베이커리', '국수', '한식', '중식당', '치킨', '닭강정', '육류', '고기요리', '떡카페', '식당', '음식', '호텔', '펜션', '수목원', '식물원', '계곡', '키즈카페', '실내놀이터', '협동조합', '관람', '체험', '햄버거', '전복요리', '카셰어링', '한과', '토스트', '야시장', '지역명소', '이탈리아음식', '고사리육개장', '해수욕장', '해변', '행정지명', '공원', '놀이공원', '테마파크', '마트', '편의점', '미용실', '숙박', '게스트하우스', '민박', '리조트', '맛집', '분식', '일식', '양식', '중국집', '피자', '치킨집', '횟집', '생선회', '해물', '고깃집', '삼겹살', '갈비', '족발', '보쌈', '전문점'];
+      const kwToType = (kw) => {
+        if (['카페', '디저트', '베이커리', '토스트', '한과', '떡카페'].includes(kw)) return 'cafe';
+        if (['국수', '한식', '중식당', '전복요리', '고사리육개장', '분식', '일식', '양식', '중국집', '피자', '횟집', '생선회', '해물', '고깃집', '삼겹살', '갈비', '족발', '보쌈', '맛집', '전문점'].includes(kw)) return 'food';
+        if (['육류', '고기요리', '치킨', '닭강정', '햄버거', '치킨집'].includes(kw)) return 'food';
+        if (['호텔', '펜션', '숙박', '게스트하우스', '민박', '리조트'].includes(kw)) return 'stay';
+        if (['수목원', '식물원', '계곡', '지역명소', '야시장', '해수욕장', '해변', '공원', '놀이공원', '테마파크', '행정지명'].includes(kw)) return 'tour';
+        if (['키즈카페', '실내놀이터', '관람', '체험', '협동조합'].includes(kw)) return 'experience';
+        if (['마트', '편의점', '미용실'].includes(kw)) return 'place';
+        return null;
+      };
+      // 쉼표로 구분된 카테고리 접미사 먼저 분리: "거제식물원식물원,수목원" → "거제식물원식물원" + ['수목원']
       let cleanName = nameLine;
       let detectedTypes = [];
-      for (const kw of categoryKeywords) {
-        if (cleanName.endsWith(kw)) { cleanName = cleanName.slice(0, -kw.length).trim(); }
-        if (kw === '카페' || kw === '디저트') detectedTypes.push('cafe');
-        else if (['베이커리', '토스트', '한과', '떡카페'].includes(kw)) detectedTypes.push('dessert');
-        else if (['국수', '한식', '중식당', '전복요리', '고사리육개장'].includes(kw)) detectedTypes.push('food');
-        else if (['육류', '고기요리', '치킨', '닭강정', '햄버거'].includes(kw)) detectedTypes.push('food');
-        else if (['호텔', '펜션'].includes(kw)) detectedTypes.push('stay');
-        else if (['수목원', '식물원', '계곡', '지역명소', '야시장'].includes(kw)) detectedTypes.push('tour');
-        else if (['키즈카페', '실내놀이터', '관람', '체험', '협동조합'].includes(kw)) detectedTypes.push('activity');
+      const commaIdx = cleanName.indexOf(',');
+      if (commaIdx > 0) {
+        const suffixPart = cleanName.slice(commaIdx + 1);
+        const suffixTokens = suffixPart.split(',').map(s => s.trim()).filter(Boolean);
+        for (const token of suffixTokens) {
+          const mapped = kwToType(token);
+          if (mapped) detectedTypes.push(mapped);
+        }
+        cleanName = cleanName.slice(0, commaIdx).trim();
+      }
+      // 끝에 붙은 카테고리 반복 제거
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const kw of categoryKeywords) {
+          if (cleanName.endsWith(kw) && cleanName.length > kw.length) {
+            const mapped = kwToType(kw);
+            if (mapped && !detectedTypes.includes(mapped)) detectedTypes.push(mapped);
+            cleanName = cleanName.slice(0, -kw.length).trim();
+            changed = true;
+            break;
+          }
+        }
       }
       // 다음 줄이 주소인지 확인 — 주소가 없으면 상호명이 아닌 것으로 판단해 건너뜀
       const nextLine = lines[i + 1] || '';
       const nextIsAddress = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|충청|전북|전남|전라|경북|경남|경상|제주특별자치도|서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도)/.test(nextLine);
       if (!nextIsAddress) { i++; continue; }
       const address = nextLine;
-      // 이름에서 끝에 붙은 장소명 중복 제거 (예: "로그밸리펜션펜션" → "로그밸리펜션")
-      let finalName = cleanName;
-      // 이름에서 카테고리 키워드가 중간에 섞인 경우 제거 시도
-      // 예: "말고기연구소 제주공항점육류" → "말고기연구소 제주공항점"
-      for (const kw of categoryKeywords) {
-        const idx = finalName.lastIndexOf(kw);
-        if (idx > 0 && idx === finalName.length - kw.length) {
-          finalName = finalName.slice(0, idx).trim();
-        }
-      }
+      const finalName = cleanName;
       if (finalName.length >= 1) {
         const types = detectedTypes.length > 0 ? [...new Set(detectedTypes)] : ['place'];
         results.push({ name: finalName, address, types, selected: true });

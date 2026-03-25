@@ -9,6 +9,12 @@ import updateLog from './update-log.json';
 import { collection, doc, getDoc, getDocs, setDoc, query, limit } from 'firebase/firestore';
 
 import { onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
+// Phase 1 유틸 파일 준비 완료 — 점진적 교체 예정
+// import { safeLocalStorageGet, safeLocalStorageSet } from './utils/storage.js';
+// import { normalizeGeoPoint, hasGeoCoords, isGeoStaleForAddress, makePushTokenDocId, getTimeOfDayOverlay } from './utils/geo.js';
+// import { timeToMinutes, minutesToTime, getNextDayClockMinutes, fmtMinutesLabel, fmtDur, fmtDurCompact, normalizeBusiness, normalizeTimeToken, extractTimesFromText, getShipLoadingRange, getShipBoardTimeValue, getShipLoadEndTimeValue, getShipLoadStartTimeValue, resolveShipAbsoluteMinutes, getShipTimeline } from './utils/time.js';
+// import { PLACE_TYPES, TAG_OPTIONS, TAG_VALUES, MODIFIER_TAGS, getPreferredMapCategory, normalizeTagOrder, toggleTagSelection, getTagButtonClass, WEEKDAY_OPTIONS, formatClosedDaysSummary, EMPTY_BUSINESS, BUSINESS_PRESETS, DEFAULT_BUSINESS, KAKAO_API_KEY, ADDRESS_REGEX, NAVER_PARSE_STOP_WORDS, bulkKwToType } from './utils/constants.js';
+// import { parseBusinessHoursText, isLikelyParsedAddress, isLikelyMenuPriceLine, isLikelyMenuNameLine } from './utils/parse.js';
 import {
   Navigation, MessageSquare, LogOut, User as UserIcon,
   Hourglass, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
@@ -48,22 +54,7 @@ class AppErrorBoundary extends React.Component {
   }
 }
 
-const safeLocalStorageGet = (key, fallback = '') => {
-  try {
-    return localStorage.getItem(key) || fallback;
-  } catch (e) {
-    console.warn(`localStorage read failed (${key})`, e);
-    return fallback;
-  }
-};
-
-const safeLocalStorageSet = (key, value) => {
-  try {
-    localStorage.setItem(key, value);
-  } catch (e) {
-    console.warn(`localStorage write failed (${key})`, e);
-  }
-};
+// storage utils → ./utils/storage.js
 
 const normalizeGeoPoint = (raw = {}, fallbackAddress = '') => {
   const address = String(raw?.address || fallbackAddress || '').trim();

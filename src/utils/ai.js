@@ -752,3 +752,125 @@ export const searchAddressFromPlaceName = async (keyword, regionHint = '', kakao
   }
   return { address: '', source: '카카오', error: '카카오 주소 검색 결과 없음' };
 };
+
+// ── Jina Reader 기반 네이버 지도 스마트필 v2 ──
+
+const JINA_READER_PREFIX = 'https://r.jina.ai/';
+
+const fetchJinaReader = async (targetUrl) => {
+  const res = await fetch(`${JINA_READER_PREFIX}${encodeURI(targetUrl)}`, {
+    headers: { Accept: 'text/plain' },
+  });
+  if (!res.ok) throw new Error(`Jina Reader HTTP ${res.status}`);
+  return res.text();
+};
+
+const parseJinaSearchResults = (text) => {
+  const results = [];
+  const linkRegex = /\[([^\]]+)\]\((https?:\/\/m\.place\.naver\.com\/[^\s)]+)\)/g;
+  let match;
+  while ((match = linkRegex.exec(text)) !== null) {
+    const name = match[1].trim();
+    const url = match[2].trim();
+    const placeIdMatch = url.match(/\/place\/(\d+)/);
+    if (placeIdMatch && name && !/더보기|이전|다음|지도/.test(name)) {
+      results.push({ name, url: url.replace(/\/home.*$/, '/home'), placeId: placeIdMatch[1] });
+    }
+  }
+  // 중복 제거
+  const seen = new Set();
+  return results.filter(r => { if (seen.has(r.placeId)) return false; seen.add(r.placeId); return true; });
+};
+
+const parseJinaPlaceDetail = (text) => {
+  const result = { name: '', address: '', phone: '', category: '', menus: [], business: {} };
+
+  // 이름: 첫 번째 # 헤더 또는 첫 줄
+  const nameMatch = text.match(/^#\s+(.+)$/m);
+  if (nameMatch) result.name = nameMatch[1].trim();
+
+  // 주소
+  const addrMatch = text.match(/((?:서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)[^\n]{5,60})/);
+  if (addrMatch) result.address = addrMatch[1].replace(/\s*(복사|지도|길찾기|주소).*$/, '').trim();
+
+  // 전화번호
+  const phoneMatch = text.match(/(\d{2,4}-\d{3,4}-\d{4})/);
+  if (phoneMatch) result.phone = phoneMatch[1];
+
+  // 영업시간
+  const hoursMatch = text.match(/(\d{1,2}:\d{2})\s*[~\-–—]\s*(\d{1,2}:\d{2})/);
+  if (hoursMatch) {
+    result.business.open = hoursMatch[1];
+    result.business.close = hoursMatch[2];
+  }
+  const breakMatch = text.match(/브레이크타임[:\s]*(\d{1,2}:\d{2})\s*[~\-–—]\s*(\d{1,2}:\d{2})/i);
+  if (breakMatch) {
+    result.business.breakStart = breakMatch[1];
+    result.business.breakEnd = breakMatch[2];
+  }
+  const lastOrderMatch = text.match(/라스트\s*오더[:\s]*(\d{1,2}:\d{2})/i);
+  if (lastOrderMatch) result.business.lastOrder = lastOrderMatch[1];
+
+  // 휴무일
+  const closedMatch = text.match(/(?:휴무|정기휴무|쉬는\s*날)[:\s]*([^\n]+)/i);
+  if (closedMatch) {
+    const dayMap = { '월': 'mon', '화': 'tue', '수': 'wed', '목': 'thu', '금': 'fri', '토': 'sat', '일': 'sun' };
+    const closedDays = [];
+    for (const [k, v] of Object.entries(dayMap)) {
+      if (closedMatch[1].includes(k + '요일') || closedMatch[1].match(new RegExp(`${k}[,\\s]`))) closedDays.push(v);
+    }
+    if (closedDays.length) result.business.closedDays = closedDays;
+  }
+
+  // 메뉴 파싱: "메뉴명 가격" 또는 "메뉴명 | 가격" 패턴
+  const menuRegex = /^[\s]*([가-힣a-zA-Z][^\n]{1,30}?)\s+[₩￦]?\s*([0-9,]{3,10})원?\s*$/gm;
+  let menuMatch;
+  while ((menuMatch = menuRegex.exec(text)) !== null) {
+    const menuName = menuMatch[1].trim();
+    const price = Number(menuMatch[2].replace(/,/g, '')) || 0;
+    if (menuName && price > 0 && !/복사|지도|길찾기|이전|다음/.test(menuName)) {
+      result.menus.push({ name: menuName, price, qty: 1, selected: true });
+    }
+  }
+  // 중복 메뉴 제거
+  const seenMenus = new Set();
+  result.menus = result.menus.filter(m => { const k = m.name; if (seenMenus.has(k)) return false; seenMenus.add(k); return true; }).slice(0, 8);
+
+  // 별점
+  const ratingMatch = text.match(/(?:별점|평점)[:\s]*([0-9.]+)/);
+  if (ratingMatch) result.rating = parseFloat(ratingMatch[1]);
+
+  return result;
+};
+
+export const runJinaSmartFill = async ({ placeName, regionHint = '' }) => {
+  if (!placeName?.trim()) throw new Error('장소 이름을 입력해주세요.');
+
+  const query = regionHint ? `${regionHint} ${placeName.trim()}` : placeName.trim();
+  const searchUrl = `https://m.map.naver.com/search?query=${encodeURIComponent(query)}`;
+
+  // 1단계: 검색 결과에서 장소 링크 추출
+  const searchText = await fetchJinaReader(searchUrl);
+  const places = parseJinaSearchResults(searchText);
+
+  if (!places.length) throw new Error('네이버 지도에서 검색 결과를 찾지 못했습니다.');
+
+  // 가장 적합한 결과 선택 (이름이 가장 유사한 것)
+  const target = places.find(p => p.name.includes(placeName.trim()) || placeName.trim().includes(p.name)) || places[0];
+
+  // 2단계: 상세 페이지 파싱
+  const detailText = await fetchJinaReader(target.url);
+  const detail = parseJinaPlaceDetail(detailText);
+
+  return {
+    name: detail.name || target.name,
+    address: detail.address,
+    phone: detail.phone,
+    business: detail.business,
+    menus: detail.menus,
+    rating: detail.rating,
+    placeId: target.placeId,
+    placeUrl: target.url,
+    source: 'jina-naver',
+  };
+};

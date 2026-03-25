@@ -7,6 +7,7 @@ import {
   Minus,
   Pencil,
   Plus,
+  Search,
   Sparkles,
   Square,
   Trash2,
@@ -296,6 +297,7 @@ export const PlaceEditorCard = ({
   onSmartPasteMenus,
   onSmartPasteAddress,
   onSuperSmartPaste,
+  onJinaSmartFill,
   onNameInput = null,
   onNamePaste = null,
   createDraft,
@@ -407,20 +409,39 @@ export const PlaceEditorCard = ({
       )}
 
       <div className="p-4 flex flex-col gap-3 shrink-0">
-        {onSuperSmartPaste && (
-          <button
-            type="button"
-            onClick={wrapSmartPaste(onSuperSmartPaste)}
-            disabled={smartPasteLoading}
-            className="w-full py-2.5 bg-gradient-to-r from-[#3182F6] to-indigo-500 rounded-xl text-white text-[12px] font-black flex items-center justify-center gap-2 shadow-[0_8px_16px_-6px_rgba(49,130,246,0.25)] hover:shadow-[0_12px_20px_-8px_rgba(49,130,246,0.35)] active:scale-[0.98] transition-all disabled:opacity-50"
-          >
-            {smartPasteLoading ? (
-              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
-            ) : (
-              <Sparkles size={14} className="animate-pulse" />
+        {(onSuperSmartPaste || onJinaSmartFill) && (
+          <div className="flex gap-2">
+            {onSuperSmartPaste && (
+              <button
+                type="button"
+                onClick={wrapSmartPaste(onSuperSmartPaste)}
+                disabled={smartPasteLoading}
+                className="flex-1 py-2.5 bg-gradient-to-r from-[#3182F6] to-indigo-500 rounded-xl text-white text-[12px] font-black flex items-center justify-center gap-2 shadow-[0_8px_16px_-6px_rgba(49,130,246,0.25)] hover:shadow-[0_12px_20px_-8px_rgba(49,130,246,0.35)] active:scale-[0.98] transition-all disabled:opacity-50"
+              >
+                {smartPasteLoading ? (
+                  <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                ) : (
+                  <Sparkles size={14} className="animate-pulse" />
+                )}
+                <span>✦ AI 자동채우기</span>
+              </button>
             )}
-            <span>✦ AI 슈퍼 자동 채우기 (전체 정보)</span>
-          </button>
+            {onJinaSmartFill && (
+              <button
+                type="button"
+                onClick={wrapSmartPaste(onJinaSmartFill)}
+                disabled={smartPasteLoading}
+                className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl text-white text-[12px] font-black flex items-center justify-center gap-2 shadow-[0_8px_16px_-6px_rgba(16,185,129,0.25)] hover:shadow-[0_12px_20px_-8px_rgba(16,185,129,0.35)] active:scale-[0.98] transition-all disabled:opacity-50"
+              >
+                {smartPasteLoading ? (
+                  <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                ) : (
+                  <Search size={14} />
+                )}
+                <span>v2 지도검색</span>
+              </button>
+            )}
+          </div>
         )}
 
         <OrderedTagPicker title="태그" value={safeDraft.types} onChange={(tags) => updateDraft((current) => ({ ...current, types: tags }))} />

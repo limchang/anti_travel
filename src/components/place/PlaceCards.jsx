@@ -681,6 +681,7 @@ export const PlaceLibraryCard = ({
   buildBusinessQuickEditSegments,
   viewMode = 'default',
   highlighted = false,
+  onJinaSmartFill,
 }) => {
   const visibleMenus = (place.receipt?.items || []).filter((menu) => menu && menu.selected !== false);
   const isCompact = viewMode === 'compact';
@@ -695,6 +696,16 @@ export const PlaceLibraryCard = ({
           title="네이버 지도에서 장소 검색"
         >
           <MapIcon size={9} />
+        </button>
+      )}
+      {onJinaSmartFill && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onJinaSmartFill(); }}
+          className="shrink-0 p-1 rounded-md border border-emerald-200 bg-white text-emerald-500 hover:border-emerald-400 hover:bg-emerald-50 transition-colors"
+          title="v2 지도검색 자동채우기"
+        >
+          <Search size={9} />
         </button>
       )}
       <button

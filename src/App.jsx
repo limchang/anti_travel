@@ -8205,6 +8205,33 @@ const App = () => {
                           businessSummary={bizWarningNow ? `주의 · ${hasBizSummary ? bizSummary : '영업 정보 미설정'}` : (hasBizSummary ? bizSummary : '미설정')}
                           isExpanded={isPlaceExpanded}
                           viewMode={placeLibraryViewMode}
+                          onJinaSmartFill={async () => {
+                            try {
+                              showInfoToast('v2: 네이버 지도 검색 + AI 분석 중...');
+                              const normalizedSettings = normalizeAiSmartFillConfig(aiSmartFillConfig);
+                              const result = await runJinaSmartFill({
+                                placeName: place.name,
+                                runGroqPostProcess: useAiSmartFill ? runGroqSmartFill : null,
+                                aiSettings: useAiSmartFill ? normalizedSettings : null,
+                                jinaApiKey: normalizedSettings.perplexityApiKey || '',
+                              });
+                              if (result) {
+                                setItinerary(prev => {
+                                  const next = JSON.parse(JSON.stringify(prev));
+                                  const target = (next.places || []).find(p => p.id === place.id);
+                                  if (!target) return prev;
+                                  if (result.address) { target.address = result.address; if (!target.receipt) target.receipt = {}; target.receipt.address = result.address; }
+                                  if (result.business && Object.keys(result.business).length) target.business = normalizeBusiness({ ...(target.business || {}), ...result.business });
+                                  if (result.menus?.length) { if (!target.receipt) target.receipt = {}; target.receipt.items = result.menus; }
+                                  if (result.phone) target.phone = result.phone;
+                                  return next;
+                                });
+                                showInfoToast(`v2: ${result.name || place.name} 정보를 불러왔습니다.`);
+                              }
+                            } catch (err) {
+                              showInfoToast(`v2 실패: ${err?.message || '알 수 없는 오류'}`);
+                            }
+                          }}
                           extraContent={isLodgeStay(place.types) ? (
                             <div className="mt-0.5 rounded-2xl border border-indigo-100 bg-indigo-50/45 px-3 py-3" data-no-drag="true" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center justify-between gap-2">

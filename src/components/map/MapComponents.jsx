@@ -1070,7 +1070,7 @@ export const RoutePreviewCanvas = ({
                           {/* 카테고리 칩 — 클릭 시 App 레벨 모달 */}
                           <div style={{ marginBottom: '4px' }}>
                             <button
-                              onClick={(e) => { e.stopPropagation(); if (typeof onLibraryMarkerTypeEdit === 'function') onLibraryMarkerTypeEdit(point.id, point.types || []); }}
+                              onClick={(e) => { e.stopPropagation(); if (typeof onLibraryMarkerTypeEdit === 'function') onLibraryMarkerTypeEdit(point.id, e); }}
                               style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', padding: 0, cursor: typeof onLibraryMarkerTypeEdit === 'function' ? 'pointer' : 'default' }}
                             >
                               <div style={{ width: '8px', height: '8px', borderRadius: '3px', background: point.categoryColor || '#2563EB', flexShrink: 0 }} />

@@ -7797,16 +7797,12 @@ const App = () => {
                           onLibraryMarkerFocus={(placeId) => {
                             setFocusedLibraryMarkerId(placeId);
                           }}
-                          onLibraryMarkerTypeEdit={(placeId) => {
+                          onLibraryMarkerTypeEdit={(placeId, event) => {
                             const p = (itinerary.places || []).find(x => x?.id === placeId);
                             if (!p) return;
-                            // 카드로 스크롤
-                            setTimeout(() => {
-                              document.getElementById(`library-place-${placeId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            }, 80);
-                            // 편집 모달 열기
-                            setEditingPlaceId(p.id);
-                            setEditPlaceDraft(createPlaceEditorDraft(p));
+                            const currentTypes = p.types?.length ? p.types : ['place'];
+                            const pos = event?.currentTarget ? (() => { const r = event.currentTarget.getBoundingClientRect(); return { x: r.left, y: r.bottom }; })() : { x: window.innerWidth / 2, y: window.innerHeight / 3 };
+                            setLibraryTypeModal({ placeId: p.id, types: [...currentTypes], position: pos });
                           }}
                           onLibraryMarkerNameClick={(placeId) => {
                             const p = (itinerary.places || []).find(x => x?.id === placeId);

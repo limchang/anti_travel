@@ -2,6 +2,26 @@ import { normalizeTagOrder, EMPTY_BUSINESS } from './constants.js';
 import { normalizeBusiness } from './time.js';
 import { normalizeGeoPoint, hasGeoCoords } from './geo.js';
 
+// 순수 유틸 — App.jsx에서도 동일 정의가 있지만 helpers.js 내부에서 필요
+export const getMenuQty = (menu) => {
+  const parsed = Number(menu?.qty);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 1;
+  return parsed;
+};
+export const getMenuLineTotal = (menu) => Number(menu?.price || 0) * getMenuQty(menu);
+
+const getBaseDurationValue = (item = {}) => {
+  const current = Math.max(0, Number(item?.duration) || 0);
+  const stored = Number(item?.baseDuration);
+  return Number.isFinite(stored) && stored >= 0 ? stored : current;
+};
+export const ensureBaseDuration = (item = {}) => {
+  if (!item || item.type === 'backup') return 0;
+  const safe = getBaseDurationValue(item);
+  item.baseDuration = safe;
+  return safe;
+};
+
 export const ensureShipItemDefaults = (item, dayNumber = 1) => {
   if (!item || !Array.isArray(item.types) || !item.types.includes('ship')) return item;
   const isOutbound = Number(dayNumber || 1) === 1;

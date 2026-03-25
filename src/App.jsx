@@ -4570,25 +4570,10 @@ const App = () => {
             item._manualBufferTimeOverride = `${nextMinutes}분`;
             item._isBufferCoordinated = false;
           } else if (prevItem && !prevItem.types?.includes('ship')) {
-            const prevEnd = getAbsoluteTimelineItemEndMinutes(prevItem, prevEntry.dayIdx);
-            const currentStart = (dayIdx * 1440) + timeToMinutes(item.time || '00:00');
-            const newStart = currentStart + delta;
-            const gap = newStart - prevEnd - travelMins;
-
-            if (gap >= 0) {
-              item.time = minutesToTime(newStart % 1440);
-              item.isTimeFixed = true;
-              item.bufferTimeOverride = `${gap}분`;
-              item._manualBufferTimeOverride = `${gap}분`;
-              item._isBufferCoordinated = gap > 0;
-            } else {
-              item.time = minutesToTime(newStart % 1440);
-              item.isTimeFixed = true;
-              item.bufferTimeOverride = '0분';
-              item._manualBufferTimeOverride = '0분';
-              item._isBufferCoordinated = false;
-              if (prevItem) prevItem._isAutoBufferAdjusted = true;
-            }
+            // 보정시간만 변경, 시작시간 잠금은 건드리지 않음
+            item.bufferTimeOverride = `${nextMinutes}분`;
+            item._manualBufferTimeOverride = `${nextMinutes}분`;
+            item._isBufferCoordinated = false;
           } else {
             item.bufferTimeOverride = `${nextMinutes}분`;
             item._manualBufferTimeOverride = `${nextMinutes}분`;

@@ -758,7 +758,7 @@ export const searchAddressFromPlaceName = async (keyword, regionHint = '', kakao
 const JINA_READER_PREFIX = 'https://r.jina.ai/';
 
 const fetchJinaReader = async (targetUrl) => {
-  const res = await fetch(`${JINA_READER_PREFIX}${encodeURI(targetUrl)}`, {
+  const res = await fetch(`${JINA_READER_PREFIX}${targetUrl}`, {
     headers: { Accept: 'text/plain' },
   });
   if (!res.ok) throw new Error(`Jina Reader HTTP ${res.status}`);
@@ -767,14 +767,15 @@ const fetchJinaReader = async (targetUrl) => {
 
 const parseJinaSearchResults = (text) => {
   const results = [];
-  const linkRegex = /\[([^\]]+)\]\((https?:\/\/m\.place\.naver\.com\/[^\s)]+)\)/g;
+  // place, restaurant, cafe 등 다양한 카테고리 경로 지원
+  const linkRegex = /\[([^\]]+)\]\((https?:\/\/m\.place\.naver\.com\/(?:place|restaurant|cafe|hairshop|hospital|pharmacy|accommodation|parking|bank|gasstation|school|mart|store)[\/](\d+)[^\s)]*)\)/g;
   let match;
   while ((match = linkRegex.exec(text)) !== null) {
     const name = match[1].trim();
     const url = match[2].trim();
-    const placeIdMatch = url.match(/\/place\/(\d+)/);
-    if (placeIdMatch && name && !/더보기|이전|다음|지도/.test(name)) {
-      results.push({ name, url: url.replace(/\/home.*$/, '/home'), placeId: placeIdMatch[1] });
+    const placeId = match[3];
+    if (placeId && name && !/더보기|이전|다음|지도|검색|전체/.test(name)) {
+      results.push({ name, url: `https://m.place.naver.com/place/${placeId}/home`, placeId });
     }
   }
   // 중복 제거

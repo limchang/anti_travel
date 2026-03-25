@@ -719,7 +719,7 @@ const NAVER_PARSE_STOP_WORDS = new Set([
   '대표', '페이지 닫기',
 ]);
 
-const isLikelyParsedAddress = (line = '') => /(제주|서울|부산|인천|대구|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남)/.test(line) && /(로|길|대로|번길|읍|면|동|리)\s*\d/.test(line);
+const isLikelyParsedAddress = (line = '') => /(제주|서울|부산|인천|대구|광주|대전|울산|세종|경기|강원|충북|충남|충청|전북|전남|전라|경북|경남|경상)/.test(line) && /(로|길|대로|번길|읍|면|동|리)\s*\d/.test(line);
 const isLikelyMenuPriceLine = (line = '') => /^[0-9][0-9,]*원$/.test(line) || /변동/.test(line);
 const isLikelyMenuNameLine = (line = '') => {
   const trimmed = String(line || '').trim();
@@ -9547,7 +9547,7 @@ const App = () => {
     while (i < lines.length) {
       const line = lines[i];
       // 주소 줄 패턴: "제주특별자치도" 또는 "서울" 등으로 시작하는 행
-      const isAddressLine = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주특별자치)/.test(line);
+      const isAddressLine = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|충청|전북|전남|전라|경북|경남|경상|제주특별자치도|서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도)/.test(line);
       if (isAddressLine) { i++; continue; }
       // 이름+카테고리 줄 패턴 파싱
       // 예: "스무돈가스" / "말고기연구소 제주공항점육류,고기요리" / "🏡 키즈펜션 로그밸리펜션펜션"
@@ -9568,7 +9568,7 @@ const App = () => {
       }
       // 다음 줄이 주소인지 확인 — 주소가 없으면 상호명이 아닌 것으로 판단해 건너뜀
       const nextLine = lines[i + 1] || '';
-      const nextIsAddress = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주특별자치)/.test(nextLine);
+      const nextIsAddress = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|충청|전북|전남|전라|경북|경남|경상|제주특별자치도|서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도)/.test(nextLine);
       if (!nextIsAddress) { i++; continue; }
       const address = nextLine;
       // 이름에서 끝에 붙은 장소명 중복 제거 (예: "로그밸리펜션펜션" → "로그밸리펜션")
@@ -12753,7 +12753,7 @@ const App = () => {
                         className="w-full h-32 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6] resize-none leading-relaxed"
                       />
                       {bulkAddText.trim() && (() => {
-                        const addressRe = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주특별자치)/;
+                        const addressRe = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|충청|전북|전남|전라|경북|경남|경상|제주특별자치도|서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도)/;
                         const lines = bulkAddText.split('\n');
                         const items = [];
                         for (let li = 0; li < lines.length; li++) {

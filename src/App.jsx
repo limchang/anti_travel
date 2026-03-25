@@ -9538,6 +9538,17 @@ const App = () => {
     setLastAction(`'${targetPlace.name || '내 장소'}'을(를) 휴지통에서 복원했습니다.`);
   };
 
+  const bulkKwToType = (kw) => {
+    if (['카페', '디저트', '베이커리', '토스트', '한과', '떡카페'].includes(kw)) return 'cafe';
+    if (['국수', '한식', '중식당', '전복요리', '고사리육개장', '분식', '일식', '양식', '중국집', '피자', '횟집', '생선회', '해물', '고깃집', '삼겹살', '갈비', '족발', '보쌈', '맛집', '전문점', '식당', '음식'].includes(kw)) return 'food';
+    if (['육류', '고기요리', '치킨', '닭강정', '햄버거', '치킨집'].includes(kw)) return 'food';
+    if (['호텔', '펜션', '숙박', '게스트하우스', '민박', '리조트'].includes(kw)) return 'stay';
+    if (['수목원', '식물원', '계곡', '지역명소', '야시장', '해수욕장', '해변', '공원', '놀이공원', '테마파크', '행정지명'].includes(kw)) return 'tour';
+    if (['키즈카페', '실내놀이터', '관람', '체험', '협동조합'].includes(kw)) return 'experience';
+    if (['마트', '편의점', '미용실', '기념품샵'].includes(kw)) return 'place';
+    return null;
+  };
+
   // 여러 장소 텍스트 파싱 (카카오맵 공유 텍스트 등)
   const parseBulkPlaceText = (text) => {
     if (!text?.trim()) return [];
@@ -9552,66 +9563,30 @@ const App = () => {
       // 이름+카테고리 줄 패턴 파싱
       // 예: "스무돈가스" / "말고기연구소 제주공항점육류,고기요리" / "🏡 키즈펜션 로그밸리펜션펜션"
       const nameLine = line.replace(/^[^\w가-힣a-zA-Z0-9]+/, ''); // 앞 이모지 제거
-      // 뒤에 붙은 카테고리 키워드 추출
-      const categoryKeywords = ['카페', '디저트', '베이커리', '국수', '한식', '중식당', '치킨', '닭강정', '육류', '고기요리', '떡카페', '식당', '음식', '호텔', '펜션', '수목원', '식물원', '계곡', '키즈카페', '실내놀이터', '협동조합', '관람', '체험', '햄버거', '전복요리', '카셰어링', '한과', '토스트', '야시장', '지역명소', '이탈리아음식', '고사리육개장', '해수욕장', '해변', '행정지명', '공원', '놀이공원', '테마파크', '마트', '편의점', '미용실', '숙박', '게스트하우스', '민박', '리조트', '맛집', '분식', '일식', '양식', '중국집', '피자', '치킨집', '횟집', '생선회', '해물', '고깃집', '삼겹살', '갈비', '족발', '보쌈', '전문점'];
-      const kwToType = (kw) => {
-        if (['카페', '디저트', '베이커리', '토스트', '한과', '떡카페'].includes(kw)) return 'cafe';
-        if (['국수', '한식', '중식당', '전복요리', '고사리육개장', '분식', '일식', '양식', '중국집', '피자', '횟집', '생선회', '해물', '고깃집', '삼겹살', '갈비', '족발', '보쌈', '맛집', '전문점'].includes(kw)) return 'food';
-        if (['육류', '고기요리', '치킨', '닭강정', '햄버거', '치킨집'].includes(kw)) return 'food';
-        if (['호텔', '펜션', '숙박', '게스트하우스', '민박', '리조트'].includes(kw)) return 'stay';
-        if (['수목원', '식물원', '계곡', '지역명소', '야시장', '해수욕장', '해변', '공원', '놀이공원', '테마파크', '행정지명'].includes(kw)) return 'tour';
-        if (['키즈카페', '실내놀이터', '관람', '체험', '협동조합'].includes(kw)) return 'experience';
-        if (['마트', '편의점', '미용실'].includes(kw)) return 'place';
-        return null;
-      };
-      // 카테고리 분리: 쉼표 구분 + 끝에 붙은 키워드 모두 제거
-      // "통영식당해물,생선요리" → 쉼표 뒤 제거 → "통영식당해물" → 끝 키워드 "해물" 제거 → "통영식당"
-      let cleanName = nameLine;
+      // 쉼표 앞까지가 이름 원본, 쉼표 뒤는 카테고리 참고용 (이름 자동 편집 없음)
+      const commaIdx = nameLine.indexOf(',');
+      const rawName = commaIdx > 0 ? nameLine.slice(0, commaIdx).trim() : nameLine.trim();
       let detectedTypes = [];
-      const commaIdx = cleanName.indexOf(',');
       if (commaIdx > 0) {
-        const suffixPart = cleanName.slice(commaIdx + 1);
-        const suffixTokens = suffixPart.split(',').map(s => s.trim()).filter(Boolean);
+        const suffixTokens = nameLine.slice(commaIdx + 1).split(',').map(s => s.trim()).filter(Boolean);
         for (const token of suffixTokens) {
-          const mapped = kwToType(token);
+          const mapped = bulkKwToType(token);
           if (mapped) detectedTypes.push(mapped);
         }
-        cleanName = cleanName.slice(0, commaIdx).trim();
       }
-      // 끝에 붙은 카테고리 키워드 반복 제거 (쉼표 유무 관계없이)
-      let changed = true;
-      while (changed) {
-        changed = false;
-        for (const kw of categoryKeywords) {
-          if (cleanName.endsWith(kw) && cleanName.length > kw.length) {
-            const mapped = kwToType(kw);
-            if (mapped && !detectedTypes.includes(mapped)) detectedTypes.push(mapped);
-            cleanName = cleanName.slice(0, -kw.length).trim();
-            changed = true;
-            break;
-          }
-        }
-      }
-      // 다음 줄이 주소인지 확인 — 주소가 없으면 상호명이 아닌 것으로 판단해 건너뜀
+      // 학습 데이터 적용: 이전에 사용자가 수정한 패턴이 있으면 적용
+      const corrections = JSON.parse(safeLocalStorageGet('bulk_name_corrections', '{}'));
+      const finalName = corrections[rawName] || rawName;
+      // 다음 줄이 주소인지 확인
       const nextLine = lines[i + 1] || '';
       const nextIsAddress = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|충청|전북|전남|전라|경북|경남|경상|제주특별자치도|서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도)/.test(nextLine);
       if (!nextIsAddress) { i++; continue; }
       const address = nextLine;
-      // 주소 끝에서 상호명 역추출 시도: "경상남도 거제시 거제면 서정리 978 거제식물원" → "거제식물원"
-      // 주소 끝에서 상호명 역추출: "...978 거제식물원" → "거제식물원"
-      // 원본 상호줄(nameLine)에 주소 마지막 토큰이 포함되면 그것이 실제 상호명
-      const addrTokens = address.split(/\s+/);
-      const lastAddrToken = addrTokens[addrTokens.length - 1] || '';
-      const isLastTokenNumeric = /^[산\d\-]+$/.test(lastAddrToken);
-      let finalName = cleanName;
-      if (!isLastTokenNumeric && lastAddrToken.length >= 2 && nameLine.includes(lastAddrToken) && lastAddrToken.length >= cleanName.length) {
-        finalName = lastAddrToken;
-      }
       if (finalName.length >= 1) {
         const types = detectedTypes.length > 0 ? [...new Set(detectedTypes)] : ['place'];
         const dupKey = `${finalName.toLowerCase()}::${address.toLowerCase()}`;
         if (!results.some(r => `${r.name.toLowerCase()}::${r.address.toLowerCase()}` === dupKey)) {
-          results.push({ name: finalName, address, types, selected: true });
+          results.push({ name: finalName, address, types, selected: true, _rawName: rawName });
         }
       }
       i += 2;
@@ -12895,8 +12870,25 @@ const App = () => {
                               {item.selected && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-[11px] font-black text-slate-800">{item.name}</span>
+                              <div className="flex items-center gap-1.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                  value={item.name}
+                                  onChange={(e) => {
+                                    const newName = e.target.value;
+                                    setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, name: newName }));
+                                  }}
+                                  onBlur={() => {
+                                    // 이름이 원본과 다르면 학습 데이터 저장
+                                    if (item._rawName && item.name !== item._rawName) {
+                                      try {
+                                        const corrections = JSON.parse(safeLocalStorageGet('bulk_name_corrections', '{}'));
+                                        corrections[item._rawName] = item.name;
+                                        safeLocalStorageSet('bulk_name_corrections', JSON.stringify(corrections));
+                                      } catch {}
+                                    }
+                                  }}
+                                  className="text-[11px] font-black text-slate-800 bg-transparent outline-none border-b border-transparent focus:border-[#3182F6] min-w-0 w-full"
+                                />
                               </div>
                               {item.address && <p className="text-[10px] font-bold text-slate-400 mt-0.5 truncate">{item.address}</p>}
                               <div className="flex flex-wrap gap-1 mt-1.5" onClick={(e) => e.stopPropagation()}>

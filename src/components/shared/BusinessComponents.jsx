@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { timeToMinutes, minutesToTime, extractTimesFromText, normalizeBusiness } from '../../utils/time.js';
-import { WEEKDAY_OPTIONS, BUSINESS_PRESETS, DEFAULT_BUSINESS, EMPTY_BUSINESS } from '../../utils/constants.js';
+import { WEEKDAY_OPTIONS, BUSINESS_PRESETS, DEFAULT_BUSINESS, EMPTY_BUSINESS, formatClosedDaysSummary } from '../../utils/constants.js';
 
 export const TimeInput = ({ value, onChange, onFocus, onBlurExtra, className = '', title = '', placeholder = '', inputRef = null, onKeyDown }) => {
   const handleChange = (e) => {

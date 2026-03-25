@@ -9564,11 +9564,12 @@ const App = () => {
         if (['마트', '편의점', '미용실'].includes(kw)) return 'place';
         return null;
       };
-      // 쉼표로 구분된 카테고리 접미사 먼저 분리: "거제식물원식물원,수목원" → "거제식물원식물원" + ['수목원']
+      // 쉼표로 구분된 카테고리 접미사 분리: "통영식당해물,생선요리" → 이름 "통영식당해물" + 타입 ['food']
       let cleanName = nameLine;
       let detectedTypes = [];
       const commaIdx = cleanName.indexOf(',');
-      if (commaIdx > 0) {
+      const hasComma = commaIdx > 0;
+      if (hasComma) {
         const suffixPart = cleanName.slice(commaIdx + 1);
         const suffixTokens = suffixPart.split(',').map(s => s.trim()).filter(Boolean);
         for (const token of suffixTokens) {
@@ -9577,17 +9578,19 @@ const App = () => {
         }
         cleanName = cleanName.slice(0, commaIdx).trim();
       }
-      // 끝에 붙은 카테고리 반복 제거
-      let changed = true;
-      while (changed) {
-        changed = false;
-        for (const kw of categoryKeywords) {
-          if (cleanName.endsWith(kw) && cleanName.length > kw.length) {
-            const mapped = kwToType(kw);
-            if (mapped && !detectedTypes.includes(mapped)) detectedTypes.push(mapped);
-            cleanName = cleanName.slice(0, -kw.length).trim();
-            changed = true;
-            break;
+      // 쉼표가 없을 때만 끝에 붙은 카테고리 키워드 제거 (쉼표가 있으면 쉼표가 구분자이므로 이름 보존)
+      if (!hasComma) {
+        let changed = true;
+        while (changed) {
+          changed = false;
+          for (const kw of categoryKeywords) {
+            if (cleanName.endsWith(kw) && cleanName.length > kw.length) {
+              const mapped = kwToType(kw);
+              if (mapped && !detectedTypes.includes(mapped)) detectedTypes.push(mapped);
+              cleanName = cleanName.slice(0, -kw.length).trim();
+              changed = true;
+              break;
+            }
           }
         }
       }

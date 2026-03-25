@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import L from 'leaflet';
 import { MapContainer, Marker, Pane, Polyline, Popup, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
-import { ChevronDown, ChevronUp, Plus, Minus, Pencil, X, Eye, RotateCcw, MapPin, Sparkles, LoaderCircle, Anchor, GripVertical } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Minus, Pencil, X, Eye, RotateCcw, MapPin, Sparkles, LoaderCircle, Anchor, GripVertical, Map as MapIcon } from 'lucide-react';
 import { safeLocalStorageGet, safeLocalStorageSet } from '../../utils/storage.js';
 import { normalizeGeoPoint, hasGeoCoords } from '../../utils/geo.js';
 import { TAG_OPTIONS, MODIFIER_TAGS, getPreferredMapCategory, normalizeTagOrder, toggleTagSelection, getTagButtonClass, KAKAO_API_KEY } from '../../utils/constants.js';

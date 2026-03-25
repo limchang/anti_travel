@@ -54,7 +54,22 @@ class AppErrorBoundary extends React.Component {
   }
 }
 
-// storage utils → ./utils/storage.js
+const safeLocalStorageGet = (key, fallback = '') => {
+  try {
+    return localStorage.getItem(key) || fallback;
+  } catch (e) {
+    console.warn(`localStorage read failed (${key})`, e);
+    return fallback;
+  }
+};
+
+const safeLocalStorageSet = (key, value) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {
+    console.warn(`localStorage write failed (${key})`, e);
+  }
+};
 
 const normalizeGeoPoint = (raw = {}, fallbackAddress = '') => {
   const address = String(raw?.address || fallbackAddress || '').trim();

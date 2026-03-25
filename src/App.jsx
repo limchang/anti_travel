@@ -9607,9 +9607,7 @@ const App = () => {
       if (!isLastTokenNumeric && lastAddrToken.length >= 2 && nameLine.includes(lastAddrToken) && lastAddrToken.length >= cleanName.length) {
         finalName = lastAddrToken;
       }
-      // 행정지명 카테고리가 붙은 항목은 실제 장소가 아니므로 제외
-      const isAdminArea = /행정지명/.test(line);
-      if (finalName.length >= 1 && !isAdminArea) {
+      if (finalName.length >= 1) {
         const types = detectedTypes.length > 0 ? [...new Set(detectedTypes)] : ['place'];
         const dupKey = `${finalName.toLowerCase()}::${address.toLowerCase()}`;
         if (!results.some(r => `${r.name.toLowerCase()}::${r.address.toLowerCase()}` === dupKey)) {
@@ -12785,7 +12783,7 @@ const App = () => {
                           const trimmed = line.trim();
                           const isAddr = addressRe.test(trimmed);
                           const nextTrimmed = li < lines.length - 1 ? lines[li + 1]?.trim() : '';
-                          const isName = trimmed && !isAddr && !(/행정지명/.test(trimmed)) && addressRe.test(nextTrimmed || '');
+                          const isName = trimmed && !isAddr && addressRe.test(nextTrimmed || '');
                           if (isName) { nameCount++; return 'name'; }
                           if (isAddr) return 'addr';
                           return 'none';

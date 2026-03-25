@@ -10219,91 +10219,111 @@ const App = () => {
                               </div>
                             ) : isHome ? (
                               <div className="flex flex-col gap-2 py-0.5" onClick={(e) => e.stopPropagation()}>
-                                {/* 집 이름 */}
-                                <div className="flex items-center gap-1.5">
-                                  <Home size={11} className="text-amber-500 shrink-0" />
-                                  <input
-                                    value={p.activity}
-                                    onChange={(e) => updateActivityName(dIdx, pIdx, e.target.value)}
-                                    onFocus={(e) => e.target.select()}
-                                    className="flex-1 min-w-0 bg-transparent text-[15px] font-black text-slate-800 leading-tight outline-none placeholder:text-slate-300 focus:outline-none truncate"
-                                    placeholder="출발지 이름"
-                                  />
-                                  <button onClick={(e) => { e.stopPropagation(); setEditingItemId(p.id); setEditDraft(createPlanEditorDraft(p)); }} className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors" title="일정 수정"><Pencil size={9} /></button>
-                                </div>
-                                {/* 주소 */}
-                                <SharedAddressRow
-                                  value={p.receipt?.address || p.address || ''}
-                                  onChange={(v) => {
-                                    const addr = String(v || '').trim();
-                                    setItinerary(prev => {
-                                      const next = JSON.parse(JSON.stringify(prev));
-                                      const item = next.days[dIdx]?.plan?.[pIdx];
-                                      if (!item) return prev;
-                                      item.address = addr;
-                                      if (!item.receipt) item.receipt = {};
-                                      item.receipt.address = addr;
-                                      return next;
-                                    });
-                                  }}
-                                  onSearchClick={() => openNaverPlaceSearch(p.activity || '집', p.receipt?.address || p.address || '')}
-                                  onStarClick={() => setBasePlanRef(p.receipt?.address ? { dayIdx: dIdx, pIdx, id: p.id, name: p.activity, address: p.receipt.address } : null)}
-                                  isStarred={basePlanRef?.id === p.id}
-                                />
-                                {/* 출발 + 다음 일정 배너 */}
                                 {(() => {
                                   const nextItem = nextMainItem;
                                   const nextTravel = nextItem ? (nextItem.travelTimeOverride || nextItem.travelTimeAuto || '') : '';
                                   const nextDist = nextItem?.distance;
                                   const nextName = nextItem?.activity || '';
+                                  const homeAddress = p.receipt?.address || p.address || '';
+                                  const nextAddress = nextItem?.receipt?.address || nextItem?.address || '';
+                                  const departTime = String(p.time || '00:00');
+                                  const travelMins = parseMinsLabel(nextTravel, 0);
+                                  const arrivalMins = timeToMinutes(departTime) + (Number(p.duration) || 0) + travelMins;
+                                  const arrivalTime = `${String(Math.floor(arrivalMins / 60) % 24).padStart(2, '0')}:${String(arrivalMins % 60).padStart(2, '0')}`;
                                   return (
-                                    <div
-                                      data-time-trigger="true"
-                                      onClick={() => setTimeControllerTarget(prev => prev?.itemId === p.id && prev?.kind === 'plan-time' ? null : { kind: 'plan-time', dayIdx: dIdx, pIdx, itemId: p.id })}
-                                      className={`flex items-stretch gap-2 rounded-2xl border p-2.5 cursor-pointer transition-colors ${timeControllerTarget?.itemId === p.id && timeControllerTarget?.kind === 'plan-time' ? 'bg-amber-50 border-amber-300' : 'bg-gradient-to-br from-amber-50/80 to-orange-50/50 border-amber-100 hover:border-amber-200'}`}
-                                    >
-                                      {/* 출발 */}
-                                      <div className="flex flex-col items-center justify-center rounded-xl bg-white/80 border border-amber-100 px-3 py-2 shadow-sm min-w-0">
-                                        <span className="text-[8px] font-bold tracking-widest uppercase text-amber-400">Departure</span>
-                                        <span className={`text-[18px] font-black tabular-nums tracking-tight mt-0.5 ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-amber-800'}`}>
-                                          {String(p.time || '00:00').split(':')[0]}:{String(p.time || '00:00').split(':')[1]}
-                                        </span>
+                                    <>
+                                      {/* 이름 행 */}
+                                      <div className="flex items-center gap-1.5">
+                                        <Home size={11} className="text-amber-500 shrink-0" />
+                                        <input
+                                          value={p.activity}
+                                          onChange={(e) => updateActivityName(dIdx, pIdx, e.target.value)}
+                                          onFocus={(e) => e.target.select()}
+                                          className="flex-1 min-w-0 bg-transparent text-[15px] font-black text-slate-800 leading-tight outline-none placeholder:text-slate-300 focus:outline-none truncate"
+                                          placeholder="출발지 이름"
+                                        />
+                                        <button onClick={(e) => { e.stopPropagation(); setEditingItemId(p.id); setEditDraft(createPlanEditorDraft(p)); }} className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors" title="일정 수정"><Pencil size={9} /></button>
                                       </div>
-                                      {/* 이동 정보 */}
-                                      {nextItem && (
-                                        <>
-                                          <div className="flex flex-col items-center justify-center gap-1 px-1">
-                                            <div className="w-6 h-px bg-amber-200" />
-                                            <span className="text-[9px] font-bold text-amber-400 whitespace-nowrap">
-                                              {nextTravel || '—'}
-                                            </span>
-                                            {nextDist > 0 && <span className="text-[8px] text-amber-300">{nextDist}km</span>}
-                                            <div className="w-6 h-px bg-amber-200" />
-                                          </div>
-                                          {/* 다음 일정 */}
-                                          <div className="flex flex-1 flex-col items-end justify-center rounded-xl bg-white/80 border border-amber-100 px-3 py-2 shadow-sm min-w-0">
-                                            <span className="text-[8px] font-bold tracking-widest uppercase text-amber-400">Next</span>
-                                            <span className="text-[13px] font-black text-amber-800 mt-0.5 truncate max-w-full text-right">{nextName || '—'}</span>
-                                          </div>
-                                        </>
-                                      )}
-                                      {!nextItem && (
-                                        <div className="flex flex-1 items-center justify-center">
-                                          <span className="text-[10px] font-bold text-amber-400/70">클릭하여 출발 시간 변경</span>
+
+                                      {/* 루트 배너 */}
+                                      <div className="flex items-stretch gap-2 rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50/50 p-2.5">
+                                        {/* 출발지 */}
+                                        <div className="flex flex-1 flex-col items-start gap-0.5 min-w-0 rounded-xl bg-white/80 border border-amber-100 px-2.5 py-2 shadow-sm">
+                                          <span className="text-[8px] font-bold tracking-widest uppercase text-amber-400">Departure</span>
+                                          <input
+                                            value={p.activity || ''}
+                                            readOnly
+                                            className="w-full bg-transparent text-[15px] font-black text-amber-900 outline-none truncate"
+                                          />
+                                          <input
+                                            value={homeAddress}
+                                            onChange={(v) => {
+                                              const addr = typeof v === 'string' ? v : v?.target?.value || '';
+                                              setItinerary(prev => {
+                                                const next = JSON.parse(JSON.stringify(prev));
+                                                const item = next.days[dIdx]?.plan?.[pIdx];
+                                                if (!item) return prev;
+                                                item.address = addr.trim();
+                                                if (!item.receipt) item.receipt = {};
+                                                item.receipt.address = addr.trim();
+                                                return next;
+                                              });
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onFocus={(e) => e.target.select()}
+                                            placeholder="주소 입력"
+                                            className="w-full bg-transparent text-[9px] text-slate-400 outline-none truncate cursor-pointer focus:border-b focus:border-amber-200"
+                                          />
                                         </div>
-                                      )}
-                                    </div>
+                                        {/* 이동 시간 */}
+                                        <div className="flex flex-col items-center justify-center gap-1 px-1">
+                                          <div className="w-6 h-px bg-amber-200" />
+                                          <span className="text-[9px] font-bold text-amber-400 whitespace-nowrap">
+                                            {nextTravel || '—'}
+                                          </span>
+                                          {nextDist > 0 && <span className="text-[8px] text-amber-300">{nextDist}km</span>}
+                                          <div className="w-6 h-px bg-amber-200" />
+                                        </div>
+                                        {/* 다음 일정 */}
+                                        <div className="flex flex-1 flex-col items-end gap-0.5 min-w-0 rounded-xl bg-white/80 border border-amber-100 px-2.5 py-2 shadow-sm">
+                                          <span className="text-[8px] font-bold tracking-widest uppercase text-orange-400">Next</span>
+                                          <span className="w-full text-[15px] font-black text-amber-900 text-right truncate">{nextName || '—'}</span>
+                                          <span className="w-full text-[9px] text-slate-400 text-right truncate">{nextAddress || ''}</span>
+                                        </div>
+                                      </div>
+
+                                      {/* 시간 정보 행 */}
+                                      <div
+                                        data-time-trigger="true"
+                                        className="flex gap-2 select-none"
+                                      >
+                                        <div
+                                          onClick={() => setTimeControllerTarget(prev => prev?.itemId === p.id && prev?.kind === 'plan-time' ? null : { kind: 'plan-time', dayIdx: dIdx, pIdx, itemId: p.id })}
+                                          className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border py-2.5 cursor-pointer transition-colors ${timeControllerTarget?.itemId === p.id && timeControllerTarget?.kind === 'plan-time' ? 'bg-amber-50 border-amber-300' : 'bg-slate-50/60 border-slate-200 hover:bg-amber-50/50'}`}
+                                        >
+                                          <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">출발</span>
+                                          <span className={`text-[13px] font-black tabular-nums ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{departTime.split(':')[0]}:{departTime.split(':')[1]}</span>
+                                        </div>
+                                        {nextItem && (
+                                          <div className="flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50/60 py-2.5">
+                                            <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">도착예정</span>
+                                            <span className="text-[13px] font-black tabular-nums text-slate-800">{arrivalTime}</span>
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* 메모 */}
+                                      {String(p.memo || '').trim() ? (
+                                        <input
+                                          value={p.memo || ''}
+                                          onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
+                                          className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
+                                          placeholder="메모를 입력하세요..."
+                                        />
+                                      ) : null}
+                                    </>
                                   );
                                 })()}
-                                {/* 메모 */}
-                                {String(p.memo || '').trim() ? (
-                                  <input
-                                    value={p.memo || ''}
-                                    onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
-                                    className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
-                                    placeholder="메모를 입력하세요..."
-                                  />
-                                ) : null}
                               </div>
                             ) : (
                               <>

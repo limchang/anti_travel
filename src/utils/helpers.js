@@ -403,10 +403,23 @@ export const runSchedulePass = (dayPlan) => {
     if (item.isTimeFixed) {
       startMinutes = timeToMinutes(item.time || '00:00');
       const baseArrival = prevEndMinutes + travel;
-      effectiveBuffer = Math.max(0, startMinutes - baseArrival);
-      item.bufferTimeOverride = `${effectiveBuffer}분`;
-      item._manualBufferTimeOverride = `${effectiveBuffer}분`;
-      item._isBufferCoordinated = item.isTimeFixed && effectiveBuffer > 0;
+      const gap = startMinutes - baseArrival;
+      if (gap >= 0) {
+        // 여유 있음: gap을 보정시간으로 표시
+        effectiveBuffer = gap;
+        item.bufferTimeOverride = `${effectiveBuffer}분`;
+        item._manualBufferTimeOverride = `${effectiveBuffer}분`;
+        item._isBufferCoordinated = effectiveBuffer > 0;
+      } else {
+        // 시간 부족: compressBeforeFixedItems가 이미 조정했으므로
+        // 보정시간 0으로 설정하고 충돌 표시
+        effectiveBuffer = 0;
+        item.bufferTimeOverride = '0분';
+        item._manualBufferTimeOverride = '0분';
+        item._isBufferCoordinated = false;
+        item._timingConflict = true;
+        item._timingConflictReason = `이전 일정 종료(${minutesToTime(baseArrival)}) + 이동(${travel}분) 후 도착이 고정 시작(${minutesToTime(startMinutes)})보다 ${Math.abs(gap)}분 늦습니다`;
+      }
     } else {
       if (item._isBufferCoordinated) {
         item.bufferTimeOverride = `${manualBufferBase}분`;
@@ -476,10 +489,18 @@ export const runSchedulePassAcrossDays = (days) => {
       if (item.isTimeFixed) {
         startMinutes = (Math.max(0, Number(dayIdx) || 0) * 1440) + timeToMinutes(item.time || '00:00');
         const baseArrival = prevEndMinutes + travel;
-        const effectiveBuffer = Math.max(0, startMinutes - baseArrival);
-        item.bufferTimeOverride = `${effectiveBuffer}분`;
-        item._manualBufferTimeOverride = `${effectiveBuffer}분`;
-        item._isBufferCoordinated = effectiveBuffer > 0;
+        const gap = startMinutes - baseArrival;
+        if (gap >= 0) {
+          item.bufferTimeOverride = `${gap}분`;
+          item._manualBufferTimeOverride = `${gap}분`;
+          item._isBufferCoordinated = gap > 0;
+        } else {
+          item.bufferTimeOverride = '0분';
+          item._manualBufferTimeOverride = '0분';
+          item._isBufferCoordinated = false;
+          item._timingConflict = true;
+          item._timingConflictReason = `이전 일정 + 이동(${travel}분) 후 도착이 고정 시작보다 ${Math.abs(gap)}분 늦습니다`;
+        }
       } else {
         if (item._isBufferCoordinated) {
           item.bufferTimeOverride = `${manualBufferBase}분`;

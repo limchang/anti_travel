@@ -9354,7 +9354,7 @@ const App = () => {
       selected: unselectedMenus ? false : menu?.selected !== false,
     }));
     const nextPlace = normalizeLibraryPlace({
-      id: `place_${Date.now()}`,
+      id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: resolvedName,
       types: normalizeTagOrder(types),
       revisit: !!revisit,

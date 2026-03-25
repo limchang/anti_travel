@@ -19,7 +19,7 @@ import { ensureShipItemDefaults, normalizeLibraryPlace, formatBusinessSummary, r
 import { parseBulkPlaceText } from './utils/parse.js';
 import BulkAddModal from './components/shared/BulkAddModal.jsx';
 import TimeControllerModal, { InlineTimeController } from './components/shared/TimeControllerModal.jsx';
-import LibraryTypeModal from './components/shared/LibraryTypeModal.jsx';
+import LibraryTypeModal, { TagPickerModal } from './components/shared/LibraryTypeModal.jsx';
 import { MobileTabBar, DragActionBar, DragGhost } from './components/shared/DragOverlays.jsx';
 import HeroSummaryModal from './components/shared/HeroSummaryModal.jsx';
 import NavBottomMenu from './components/shared/NavBottomMenu.jsx';
@@ -10300,16 +10300,6 @@ const App = () => {
                               </div>
                             ) : (
                               <>
-                                {tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx && (
-                                  <div className="mb-0.5" onClick={(e) => e.stopPropagation()}>
-                                    <OrderedTagPicker
-                                      title="태그"
-                                      value={p.types || ['place']}
-                                      onChange={(tags) => updatePlanTags(dIdx, pIdx, tags)}
-                                    />
-                                  </div>
-                                )}
-
                                 {/* 1행: 카테고리 칩 + 이름 */}
                                 <SharedNameRow
                                   value={p.activity}
@@ -10331,7 +10321,7 @@ const App = () => {
                                       <div
                                         className={`flex items-center gap-0.5 flex-nowrap shrink-0 cursor-pointer rounded px-0.5 py-0.5 -ml-0.5 transition-colors ${tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx ? 'bg-blue-50 ring-1 ring-[#3182F6]/30' : 'hover:bg-slate-100/60'}`}
                                         title="클릭하여 태그 편집"
-                                        onClick={(e) => { e.stopPropagation(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx }); }}
+                                        onClick={(e) => { e.stopPropagation(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx, types: [...(p.types || ['place'])] }); }}
                                       >
                                         {mainChips}{subChips}
                                       </div>
@@ -10923,6 +10913,19 @@ const App = () => {
         POPUP_TAG_OPTIONS={POPUP_TAG_OPTIONS}
         itinerary={itinerary}
         updatePlace={updatePlace}
+      />
+      <TagPickerModal
+        show={!!tagEditorTarget}
+        types={tagEditorTarget?.types || ['place']}
+        tagOptions={POPUP_TAG_OPTIONS}
+        onTypesChange={(next) => setTagEditorTarget(prev => prev ? { ...prev, types: next } : null)}
+        onConfirm={() => {
+          if (tagEditorTarget) {
+            updatePlanTags(tagEditorTarget.dayIdx, tagEditorTarget.pIdx, tagEditorTarget.types);
+            setTagEditorTarget(null);
+          }
+        }}
+        onClose={() => setTagEditorTarget(null)}
       />
 
       </div >

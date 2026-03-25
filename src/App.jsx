@@ -10250,22 +10250,51 @@ const App = () => {
                                   onStarClick={() => setBasePlanRef(p.receipt?.address ? { dayIdx: dIdx, pIdx, id: p.id, name: p.activity, address: p.receipt.address } : null)}
                                   isStarred={basePlanRef?.id === p.id}
                                 />
-                                {/* 출발 시간 배너 */}
-                                <div
-                                  data-time-trigger="true"
-                                  onClick={() => setTimeControllerTarget(prev => prev?.itemId === p.id && prev?.kind === 'plan-time' ? null : { kind: 'plan-time', dayIdx: dIdx, pIdx, itemId: p.id })}
-                                  className={`flex items-stretch gap-2 rounded-2xl border p-2.5 cursor-pointer transition-colors ${timeControllerTarget?.itemId === p.id && timeControllerTarget?.kind === 'plan-time' ? 'bg-amber-50 border-amber-300' : 'bg-gradient-to-br from-amber-50/80 to-orange-50/50 border-amber-100 hover:border-amber-200'}`}
-                                >
-                                  <div className="flex flex-col items-center justify-center rounded-xl bg-white/80 border border-amber-100 px-4 py-2 shadow-sm">
-                                    <span className="text-[8px] font-bold tracking-widest uppercase text-amber-400">Departure</span>
-                                    <span className={`text-[20px] font-black tabular-nums tracking-tight mt-0.5 ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-amber-800'}`}>
-                                      {String(p.time || '00:00').split(':')[0]}:{String(p.time || '00:00').split(':')[1]}
-                                    </span>
-                                  </div>
-                                  <div className="flex flex-1 items-center justify-center">
-                                    <span className="text-[10px] font-bold text-amber-400/70">클릭하여 출발 시간 변경</span>
-                                  </div>
-                                </div>
+                                {/* 출발 + 다음 일정 배너 */}
+                                {(() => {
+                                  const nextItem = nextMainItem;
+                                  const nextTravel = nextItem ? (nextItem.travelTimeOverride || nextItem.travelTimeAuto || '') : '';
+                                  const nextDist = nextItem?.distance;
+                                  const nextName = nextItem?.activity || '';
+                                  return (
+                                    <div
+                                      data-time-trigger="true"
+                                      onClick={() => setTimeControllerTarget(prev => prev?.itemId === p.id && prev?.kind === 'plan-time' ? null : { kind: 'plan-time', dayIdx: dIdx, pIdx, itemId: p.id })}
+                                      className={`flex items-stretch gap-2 rounded-2xl border p-2.5 cursor-pointer transition-colors ${timeControllerTarget?.itemId === p.id && timeControllerTarget?.kind === 'plan-time' ? 'bg-amber-50 border-amber-300' : 'bg-gradient-to-br from-amber-50/80 to-orange-50/50 border-amber-100 hover:border-amber-200'}`}
+                                    >
+                                      {/* 출발 */}
+                                      <div className="flex flex-col items-center justify-center rounded-xl bg-white/80 border border-amber-100 px-3 py-2 shadow-sm min-w-0">
+                                        <span className="text-[8px] font-bold tracking-widest uppercase text-amber-400">Departure</span>
+                                        <span className={`text-[18px] font-black tabular-nums tracking-tight mt-0.5 ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-amber-800'}`}>
+                                          {String(p.time || '00:00').split(':')[0]}:{String(p.time || '00:00').split(':')[1]}
+                                        </span>
+                                      </div>
+                                      {/* 이동 정보 */}
+                                      {nextItem && (
+                                        <>
+                                          <div className="flex flex-col items-center justify-center gap-1 px-1">
+                                            <div className="w-6 h-px bg-amber-200" />
+                                            <span className="text-[9px] font-bold text-amber-400 whitespace-nowrap">
+                                              {nextTravel || '—'}
+                                            </span>
+                                            {nextDist > 0 && <span className="text-[8px] text-amber-300">{nextDist}km</span>}
+                                            <div className="w-6 h-px bg-amber-200" />
+                                          </div>
+                                          {/* 다음 일정 */}
+                                          <div className="flex flex-1 flex-col items-end justify-center rounded-xl bg-white/80 border border-amber-100 px-3 py-2 shadow-sm min-w-0">
+                                            <span className="text-[8px] font-bold tracking-widest uppercase text-amber-400">Next</span>
+                                            <span className="text-[13px] font-black text-amber-800 mt-0.5 truncate max-w-full text-right">{nextName || '—'}</span>
+                                          </div>
+                                        </>
+                                      )}
+                                      {!nextItem && (
+                                        <div className="flex flex-1 items-center justify-center">
+                                          <span className="text-[10px] font-bold text-amber-400/70">클릭하여 출발 시간 변경</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
                                 {/* 메모 */}
                                 {String(p.memo || '').trim() ? (
                                   <input

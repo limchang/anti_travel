@@ -758,7 +758,7 @@ export const searchAddressFromPlaceName = async (keyword, regionHint = '', kakao
 const JINA_READER_PREFIX = 'https://r.jina.ai/';
 
 const fetchJinaReader = async (targetUrl, jinaApiKey = '') => {
-  const headers = { 'User-Agent': 'Mozilla/5.0', Accept: 'text/plain' };
+  const headers = { Accept: 'text/plain', 'X-Return-Format': 'text' };
   if (jinaApiKey) headers.Authorization = `Bearer ${jinaApiKey}`;
   const res = await fetch(`${JINA_READER_PREFIX}${targetUrl}`, { headers });
   if (!res.ok) throw new Error(`Jina Reader HTTP ${res.status}`);

@@ -10317,15 +10317,15 @@ const App = () => {
                                   placeholder="일정 이름 입력 후 Enter"
                                   onContainerClick={(e) => e.stopPropagation()}
                                   prefixContent={
-                                    (mainChips.length > 0 || subChips.length > 0) ? (
-                                      <div
-                                        className={`flex items-center gap-0.5 flex-nowrap shrink-0 cursor-pointer rounded px-0.5 py-0.5 -ml-0.5 transition-colors ${tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx ? 'bg-blue-50 ring-1 ring-[#3182F6]/30' : 'hover:bg-slate-100/60'}`}
-                                        title="클릭하여 태그 편집"
-                                        onClick={(e) => { e.stopPropagation(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx, types: [...(p.types || ['place'])] }); }}
-                                      >
-                                        {mainChips}{subChips}
-                                      </div>
-                                    ) : null
+                                    <button
+                                      type="button"
+                                      className={`flex items-center gap-0.5 flex-nowrap shrink-0 cursor-pointer rounded-lg px-1 py-0.5 -ml-0.5 transition-colors border ${tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx ? 'bg-blue-50 border-[#3182F6]/30' : 'border-transparent hover:bg-slate-100/80 hover:border-slate-200'}`}
+                                      title="클릭하여 태그 편집"
+                                      onClick={(e) => { e.stopPropagation(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx, types: [...(p.types || ['place'])] }); }}
+                                    >
+                                      {mainChips.length > 0 || subChips.length > 0 ? <>{mainChips}{subChips}</> : <span className="text-[9px] font-black text-slate-300">태그</span>}
+                                      <ChevronDown size={8} className="text-slate-300 ml-0.5" />
+                                    </button>
                                   }
                                   actionButton={
                                     <div className="flex items-center gap-1">

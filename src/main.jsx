@@ -36,7 +36,7 @@ const boot = async () => {
     createRoot(rootEl).render(
       <StrictMode>
         <App />
-        {import.meta.env.DEV && <Agentation />}
+        {import.meta.env.DEV && <Agentation endpoint="http://localhost:4747" />}
       </StrictMode>,
     )
     window.__APP_MOUNTED__ = true

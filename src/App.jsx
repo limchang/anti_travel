@@ -9599,7 +9599,24 @@ const App = () => {
       const nextIsAddress = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|충청|전북|전남|전라|경북|경남|경상|제주특별자치도|서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도)/.test(nextLine);
       if (!nextIsAddress) { i++; continue; }
       const address = nextLine;
-      const finalName = cleanName;
+      // 주소 끝에서 상호명 역추출 시도: "경상남도 거제시 거제면 서정리 978 거제식물원" → "거제식물원"
+      // 주소의 마지막 토큰이 숫자가 아니고, cleanName에 포함되면 그것이 실제 상호명
+      const addrTokens = address.split(/\s+/);
+      const lastAddrToken = addrTokens[addrTokens.length - 1] || '';
+      const isLastTokenNumeric = /^[산\d\-]+$/.test(lastAddrToken);
+      let finalName = cleanName;
+      if (!isLastTokenNumeric && lastAddrToken.length >= 2 && cleanName.includes(lastAddrToken)) {
+        finalName = lastAddrToken;
+        // 주소에서 추출한 이름으로부터 카테고리도 재감지
+        if (detectedTypes.length === 0) {
+          for (const kw of categoryKeywords) {
+            if (cleanName.includes(kw) && !finalName.includes(kw)) {
+              const mapped = kwToType(kw);
+              if (mapped && !detectedTypes.includes(mapped)) detectedTypes.push(mapped);
+            }
+          }
+        }
+      }
       // 행정지명 카테고리가 붙은 항목은 실제 장소가 아니므로 제외
       const isAdminArea = /행정지명/.test(line);
       if (finalName.length >= 1 && !isAdminArea) {

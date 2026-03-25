@@ -765,32 +765,26 @@ const fetchJinaReader = async (targetUrl, jinaApiKey = '') => {
   return res.text();
 };
 
-// 1단계: 검색 결과에서 Place ID 추출 (레퍼런스 기반 m_local 검색)
-const extractPlaceIdFromSearch = (text) => {
-  const results = [];
-  // restaurant, place, cafe 등 다양한 카테고리 경로에서 ID 추출
+// 1단계: 마크다운에서 Place ID 추출 (레퍼런스 그대로)
+const extractPlaceIdFromSearch = (content) => {
+  // 레퍼런스 패턴 그대로 사용
   const patterns = [
-    /\[([^\]]*)\]\(https?:\/\/m?\.?place\.naver\.com\/restaurant\/(\d+)[^\s)]*\)/g,
-    /\[([^\]]*)\]\(https?:\/\/m?\.?place\.naver\.com\/place\/(\d+)[^\s)]*\)/g,
-    /\[([^\]]*)\]\(https?:\/\/m?\.?place\.naver\.com\/cafe\/(\d+)[^\s)]*\)/g,
-    /\[([^\]]*)\]\(https?:\/\/m?\.?place\.naver\.com\/accommodation\/(\d+)[^\s)]*\)/g,
     /place\.naver\.com\/restaurant\/(\d+)/g,
     /place\.naver\.com\/place\/(\d+)/g,
-    /place\.naver\.com\/cafe\/(\d+)/g,
   ];
-  for (const regex of patterns) {
+  const ids = [];
+  const seen = new Set();
+  for (const p of patterns) {
     let m;
-    while ((m = regex.exec(text)) !== null) {
-      const name = m.length > 2 ? m[1].trim() : '';
-      const placeId = m.length > 2 ? m[2] : m[1];
-      if (placeId && !/더보기|이전|다음|지도|검색|전체/.test(name)) {
-        results.push({ name, placeId });
+    while ((m = p.exec(content)) !== null) {
+      const placeId = m[1];
+      if (!seen.has(placeId)) {
+        seen.add(placeId);
+        ids.push({ placeId });
       }
     }
   }
-  // 중복 제거
-  const seen = new Set();
-  return results.filter(r => { if (seen.has(r.placeId)) return false; seen.add(r.placeId); return true; });
+  return ids;
 };
 
 // 2단계: 상세 페이지 regex 파싱 (Groq 실패 시 폴백)
@@ -893,8 +887,8 @@ export const runJinaSmartFill = async ({ placeName, regionHint = '', runGroqPost
 
   if (!places.length) throw new Error('네이버 지도에서 검색 결과를 찾지 못했습니다.');
 
-  // 가장 적합한 결과 선택
-  const target = places.find(p => p.name && (p.name.includes(placeName.trim()) || placeName.trim().includes(p.name))) || places[0];
+  // 첫 번째 결과 사용 (네이버 검색 정렬 신뢰)
+  const target = places[0];
   const detailUrl = `https://m.place.naver.com/restaurant/${target.placeId}/home`;
 
   // 2단계: 상세 페이지 파싱

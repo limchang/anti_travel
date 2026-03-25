@@ -12807,6 +12807,18 @@ const App = () => {
                               <textarea
                                 value={bulkAddText}
                                 onChange={(e) => setBulkAddText(e.target.value)}
+                                onPaste={(e) => {
+                                  e.preventDefault();
+                                  const pasted = e.clipboardData.getData('text/plain');
+                                  const cleaned = pasted.replace(/\n{3,}/g, '\n\n');
+                                  const ta = e.target;
+                                  const start = ta.selectionStart;
+                                  const end = ta.selectionEnd;
+                                  const prev = bulkAddText;
+                                  const next = prev.slice(0, start) + cleaned + prev.slice(end);
+                                  setBulkAddText(next);
+                                  requestAnimationFrame(() => { const pos = start + cleaned.length; ta.selectionStart = ta.selectionEnd = pos; });
+                                }}
                                 onScroll={(e) => { const bd = document.getElementById('bulk-highlight-backdrop'); if (bd) bd.scrollTop = e.target.scrollTop; }}
                                 placeholder={"카카오맵 공유 텍스트 또는\n장소명\n주소\n형식으로 붙여넣기하세요"}
                                 className="absolute inset-0 w-full h-full px-3 py-2.5 outline-none resize-none"

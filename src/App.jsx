@@ -3109,6 +3109,89 @@ const App = () => {
     return { total: totalSpent, remaining: (MAX_BUDGET || 0) - totalSpent };
   }, [itinerary, MAX_BUDGET]);
 
+  const heroStats = useMemo(() => {
+    const usedPct = MAX_BUDGET > 0 ? Math.min(100, Math.round((budgetSummary.total / MAX_BUDGET) * 100)) : 0;
+    const timingConflictCount = (itinerary.days || []).reduce((sum, day) => (
+      sum + ((day.plan || []).filter((item) => item?._timingConflict).length)
+    ), 0);
+    const budgetExceeded = Math.max(0, budgetSummary.total - MAX_BUDGET);
+    const compactHeroAlert = timingConflictCount > 0
+      ? { label: `시간 충돌 ${timingConflictCount}건`, tone: 'danger' }
+      : budgetExceeded > 0
+        ? { label: `예산 초과 +₩${budgetExceeded.toLocaleString()}`, tone: 'danger' }
+        : usedPct >= 85
+          ? { label: `예산 임박 ${usedPct}%`, tone: 'warn' }
+          : null;
+    const allSummaryItems = (itinerary.days || []).flatMap((day) => (day.plan || []))
+      .filter((item) => item && item.type !== 'backup' && !item.types?.includes('ship'));
+    const revisitCount = allSummaryItems.filter((item) => (typeof item.revisit === 'boolean' ? item.revisit : isRevisitCourse(item))).length;
+    const newCount = Math.max(0, allSummaryItems.length - revisitCount);
+    const revisitPct = allSummaryItems.length > 0 ? Math.round((revisitCount / allSummaryItems.length) * 100) : 0;
+    const newPct = allSummaryItems.length > 0 ? Math.round((newCount / allSummaryItems.length) * 100) : 0;
+    const allBudgetItems = (itinerary.days || []).flatMap((day) => (day.plan || []))
+      .filter((item) => item && item.type !== 'backup');
+    const lodgeSegmentPriceKeys = new Set(
+      allBudgetItems
+        .filter((item) => isStandaloneLodgeSegmentItem(item) && getPlanReceiptSelectedTotal(item) > 0)
+        .map((item) => getLodgeAggregateKey(item))
+        .filter(Boolean)
+    );
+    const categoryLabelMap = { ship: '페리', lodge: '숙소', food: '식당', cafe: '카페', tour: '관광', rest: '휴식', pickup: '픽업', openrun: '오픈런', view: '뷰맛집', experience: '체험', souvenir: '기념품샵', place: '장소', transport: '이동비' };
+    const categorySpendMap = allBudgetItems.reduce((acc, item) => {
+      const types = Array.isArray(item.types) ? item.types : [];
+      const baseType = types.find((t) => !MODIFIER_TAGS.has(t) && t !== 'place') || types.find((t) => !MODIFIER_TAGS.has(t)) || 'place';
+      acc[baseType] = (acc[baseType] || 0) + getEffectivePlanPrice(item, lodgeSegmentPriceKeys);
+      if (item.distance) acc.transport = (acc.transport || 0) + calculateFuelCost(item.distance);
+      return acc;
+    }, {});
+    const totalCategorySpend = Object.values(categorySpendMap).reduce((sum, v) => sum + Number(v || 0), 0);
+    const categorySpendRows = Object.entries(categorySpendMap)
+      .map(([key, value]) => ({ key, label: categoryLabelMap[key] || key, amount: Number(value) || 0, pct: totalCategorySpend > 0 ? Math.round((Number(value) || 0) / totalCategorySpend * 100) : 0 }))
+      .sort((a, b) => b.amount - a.amount);
+    const visitItemsByDay = (itinerary.days || []).map((day) => (
+      (day.plan || []).filter((item) => {
+        if (!item || item.type === 'backup') return false;
+        const types = Array.isArray(item.types) ? item.types : [];
+        return !types.includes('lodge') && !types.includes('rest') && !types.includes('ship');
+      })
+    ));
+    const visitPlanCount = visitItemsByDay.reduce((sum, dayItems) => sum + dayItems.length, 0);
+    const visitDayStats = visitItemsByDay.map((dayItems) => {
+      if (!dayItems.length) return { count: 0, spanHours: 0, travelMinutes: 0 };
+      const startMinutes = timeToMinutes(dayItems[0]?.time || '00:00');
+      const endItem = dayItems[dayItems.length - 1];
+      const endMinutes = timeToMinutes(endItem?.time || '00:00') + (Number(endItem?.duration) || 0);
+      const spanHours = Math.max(0.5, Math.max(0, endMinutes - startMinutes) / 60);
+      const travelMinutes = dayItems.reduce((sum, item) => sum + parseMinsLabel(item.travelTimeOverride || item.travelTimeAuto, 0), 0);
+      return { count: dayItems.length, spanHours, travelMinutes };
+    });
+    const activeVisitDayCount = visitDayStats.filter((stat) => stat.count > 0).length || 1;
+    const totalVisitSpanHours = visitDayStats.reduce((sum, stat) => sum + stat.spanHours, 0);
+    const visitPerHour = totalVisitSpanHours > 0 ? (visitPlanCount / totalVisitSpanHours) : 0;
+    const averageTravelMinutes = activeVisitDayCount > 0
+      ? visitDayStats.reduce((sum, stat) => sum + stat.travelMinutes, 0) / activeVisitDayCount : 0;
+    const lodgingConstraintCount = (itinerary.days || []).reduce((sum, day) => sum + ((day.plan || []).reduce((daySum, item) => {
+      if (!item || item.type === 'backup' || !isFullLodgeStayItem(item)) return daySum;
+      return daySum + (item.isTimeFixed ? 1 : 0) + (item.lodgeCheckoutFixed && item.lodgeCheckoutTime ? 1 : 0);
+    }, 0)), 0);
+    const averageSpanHours = activeVisitDayCount > 0
+      ? visitDayStats.reduce((sum, stat) => sum + stat.spanHours, 0) / activeVisitDayCount : 0;
+    const intensityScore = [
+      visitPerHour >= 0.95 ? 2 : visitPerHour >= 0.7 ? 1 : 0,
+      averageSpanHours >= 11 ? 2 : averageSpanHours >= 8.5 ? 1 : 0,
+      averageTravelMinutes >= 120 ? 2 : averageTravelMinutes >= 70 ? 1 : 0,
+      lodgingConstraintCount >= 3 ? 2 : lodgingConstraintCount >= 1 ? 1 : 0,
+    ].reduce((sum, value) => sum + value, 0);
+    const travelIntensity = intensityScore >= 5
+      ? { label: '매우 빠듯함', note: '이동/체류 여유 적음' }
+      : intensityScore >= 3 ? { label: '빠듯함', note: '조정 여지 확인 필요' }
+      : intensityScore >= 1 ? { label: '보통', note: '무난한 이동 밀도' }
+      : { label: '널널함', note: '여유 있는 흐름' };
+    const averageTravelHoursLabel = averageTravelMinutes >= 60
+      ? `${(averageTravelMinutes / 60).toFixed(1)}시간` : `${Math.round(averageTravelMinutes)}분`;
+    return { usedPct, timingConflictCount, budgetExceeded, compactHeroAlert, revisitCount, newCount, revisitPct, newPct, categorySpendRows, visitPlanCount, visitPerHour, travelIntensity, averageSpanHours, averageTravelHoursLabel, lodgingConstraintCount };
+  }, [itinerary, MAX_BUDGET, budgetSummary]);
+
   const distanceSortedPlaces = useMemo(() => {
     const list = [...(itinerary.places || [])];
     if (!basePlanRef?.id) {
@@ -9255,126 +9338,7 @@ const App = () => {
 
           {/* ── 여행 헤더 카드 ── */}
           {(() => {
-            const usedPct = MAX_BUDGET > 0 ? Math.min(100, Math.round((budgetSummary.total / MAX_BUDGET) * 100)) : 0;
-            const timingConflictCount = (itinerary.days || []).reduce((sum, day) => (
-              sum + ((day.plan || []).filter((item) => item?._timingConflict).length)
-            ), 0);
-            const budgetExceeded = Math.max(0, budgetSummary.total - MAX_BUDGET);
-            const compactHeroAlert = timingConflictCount > 0
-              ? {
-                label: `시간 충돌 ${timingConflictCount}건`,
-                tone: 'danger',
-              }
-              : budgetExceeded > 0
-                ? {
-                  label: `예산 초과 +₩${budgetExceeded.toLocaleString()}`,
-                  tone: 'danger',
-                }
-                : usedPct >= 85
-                  ? {
-                    label: `예산 임박 ${usedPct}%`,
-                    tone: 'warn',
-                  }
-                  : null;
-            const allSummaryItems = (itinerary.days || []).flatMap((day) => (day.plan || []))
-              .filter((item) => item && item.type !== 'backup' && !item.types?.includes('ship'));
-            const revisitCount = allSummaryItems.filter((item) => (typeof item.revisit === 'boolean' ? item.revisit : isRevisitCourse(item))).length;
-            const newCount = Math.max(0, allSummaryItems.length - revisitCount);
-            const revisitPct = allSummaryItems.length > 0 ? Math.round((revisitCount / allSummaryItems.length) * 100) : 0;
-            const newPct = allSummaryItems.length > 0 ? Math.round((newCount / allSummaryItems.length) * 100) : 0;
-            const allBudgetItems = (itinerary.days || []).flatMap((day) => (day.plan || []))
-              .filter((item) => item && item.type !== 'backup');
-            const lodgeSegmentPriceKeys = new Set(
-              allBudgetItems
-                .filter((item) => isStandaloneLodgeSegmentItem(item) && getPlanReceiptSelectedTotal(item) > 0)
-                .map((item) => getLodgeAggregateKey(item))
-                .filter(Boolean)
-            );
-            const categoryLabelMap = {
-              ship: '페리',
-              lodge: '숙소',
-              food: '식당',
-              cafe: '카페',
-              tour: '관광',
-              rest: '휴식',
-              pickup: '픽업',
-              openrun: '오픈런',
-              view: '뷰맛집',
-              experience: '체험',
-              souvenir: '기념품샵',
-              place: '장소',
-              transport: '이동비',
-            };
-            const categorySpendMap = allBudgetItems.reduce((acc, item) => {
-              const types = Array.isArray(item.types) ? item.types : [];
-              const baseType = types.find((t) => !MODIFIER_TAGS.has(t) && t !== 'place') || types.find((t) => !MODIFIER_TAGS.has(t)) || 'place';
-              const itemPrice = getEffectivePlanPrice(item, lodgeSegmentPriceKeys);
-              acc[baseType] = (acc[baseType] || 0) + itemPrice;
-              if (item.distance) {
-                acc.transport = (acc.transport || 0) + calculateFuelCost(item.distance);
-              }
-              return acc;
-            }, {});
-            const totalCategorySpend = Object.values(categorySpendMap).reduce((sum, v) => sum + Number(v || 0), 0);
-            const categorySpendRows = Object.entries(categorySpendMap)
-              .map(([key, value]) => {
-                const label = categoryLabelMap[key] || key;
-                const amount = Number(value) || 0;
-                const pct = totalCategorySpend > 0 ? Math.round((amount / totalCategorySpend) * 100) : 0;
-                return { key, label, amount, pct };
-              })
-              .sort((a, b) => b.amount - a.amount);
-            const totalPlanCount = (itinerary.days || []).reduce((sum, day) => (
-              sum + ((day.plan || []).filter((item) => item && item.type !== 'backup').length)
-            ), 0);
-            const visitItemsByDay = (itinerary.days || []).map((day) => (
-              (day.plan || []).filter((item) => {
-                if (!item || item.type === 'backup') return false;
-                const types = Array.isArray(item.types) ? item.types : [];
-                return !types.includes('lodge') && !types.includes('rest') && !types.includes('ship');
-              })
-            ));
-            const visitPlanCount = visitItemsByDay.reduce((sum, dayItems) => sum + dayItems.length, 0);
-            const visitDayStats = visitItemsByDay.map((dayItems) => {
-              if (!dayItems.length) return { count: 0, spanHours: 0, travelMinutes: 0 };
-              const startMinutes = timeToMinutes(dayItems[0]?.time || '00:00');
-              const endItem = dayItems[dayItems.length - 1];
-              const endMinutes = timeToMinutes(endItem?.time || '00:00') + (Number(endItem?.duration) || 0);
-              const spanHours = Math.max(0.5, Math.max(0, endMinutes - startMinutes) / 60);
-              const travelMinutes = dayItems.reduce((sum, item) => sum + parseMinsLabel(item.travelTimeOverride || item.travelTimeAuto, 0), 0);
-              return { count: dayItems.length, spanHours, travelMinutes };
-            });
-            const activeVisitDayCount = visitDayStats.filter((stat) => stat.count > 0).length || 1;
-            const totalVisitSpanHours = visitDayStats.reduce((sum, stat) => sum + stat.spanHours, 0);
-            const visitPerHour = totalVisitSpanHours > 0 ? (visitPlanCount / totalVisitSpanHours) : 0;
-            const averageTravelMinutes = activeVisitDayCount > 0
-              ? visitDayStats.reduce((sum, stat) => sum + stat.travelMinutes, 0) / activeVisitDayCount
-              : 0;
-            const lodgingConstraintCount = (itinerary.days || []).reduce((sum, day) => sum + ((day.plan || []).reduce((daySum, item) => {
-              if (!item || item.type === 'backup' || !isFullLodgeStayItem(item)) return daySum;
-              return daySum
-                + (item.isTimeFixed ? 1 : 0)
-                + (item.lodgeCheckoutFixed && item.lodgeCheckoutTime ? 1 : 0);
-            }, 0)), 0);
-            const averageSpanHours = activeVisitDayCount > 0
-              ? visitDayStats.reduce((sum, stat) => sum + stat.spanHours, 0) / activeVisitDayCount
-              : 0;
-            const intensityScore = [
-              visitPerHour >= 0.95 ? 2 : visitPerHour >= 0.7 ? 1 : 0,
-              averageSpanHours >= 11 ? 2 : averageSpanHours >= 8.5 ? 1 : 0,
-              averageTravelMinutes >= 120 ? 2 : averageTravelMinutes >= 70 ? 1 : 0,
-              lodgingConstraintCount >= 3 ? 2 : lodgingConstraintCount >= 1 ? 1 : 0,
-            ].reduce((sum, value) => sum + value, 0);
-            const travelIntensity = intensityScore >= 5
-              ? { label: '매우 빠듯함', note: '이동/체류 여유 적음' }
-              : intensityScore >= 3
-                ? { label: '빠듯함', note: '조정 여지 확인 필요' }
-                : intensityScore >= 1
-                  ? { label: '보통', note: '무난한 이동 밀도' }
-                  : { label: '널널함', note: '여유 있는 흐름' };
-            const averageTravelHoursLabel = averageTravelMinutes >= 60
-              ? `${(averageTravelMinutes / 60).toFixed(1)}시간`
-              : `${Math.round(averageTravelMinutes)}분`;
+            const { usedPct, timingConflictCount, budgetExceeded, compactHeroAlert, revisitCount, newCount, revisitPct, newPct, categorySpendRows, visitPlanCount, visitPerHour, travelIntensity, averageSpanHours, averageTravelHoursLabel, lodgingConstraintCount } = heroStats;
             const heroCompactActive = heroPinnedCompact && !heroSummaryExpanded;
             return (
               <div ref={heroSpacerRef} className="mb-1.5 relative" style={{ minHeight: heroCompactActive ? 122 : '18rem' }}>

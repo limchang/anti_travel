@@ -758,24 +758,34 @@ export const searchAddressFromPlaceName = async (keyword, regionHint = '', kakao
 const JINA_READER_PREFIX = 'https://r.jina.ai/';
 
 const fetchJinaReader = async (targetUrl, jinaApiKey = '') => {
-  const headers = { Accept: 'text/plain' };
+  const headers = { 'User-Agent': 'Mozilla/5.0', Accept: 'text/plain' };
   if (jinaApiKey) headers.Authorization = `Bearer ${jinaApiKey}`;
   const res = await fetch(`${JINA_READER_PREFIX}${targetUrl}`, { headers });
   if (!res.ok) throw new Error(`Jina Reader HTTP ${res.status}`);
   return res.text();
 };
 
-const parseJinaSearchResults = (text) => {
+// 1단계: 검색 결과에서 Place ID 추출 (레퍼런스 기반 m_local 검색)
+const extractPlaceIdFromSearch = (text) => {
   const results = [];
-  // place, restaurant, cafe 등 다양한 카테고리 경로 지원
-  const linkRegex = /\[([^\]]+)\]\((https?:\/\/m\.place\.naver\.com\/(?:place|restaurant|cafe|hairshop|hospital|pharmacy|accommodation|parking|bank|gasstation|school|mart|store)[\/](\d+)[^\s)]*)\)/g;
-  let match;
-  while ((match = linkRegex.exec(text)) !== null) {
-    const name = match[1].trim();
-    const url = match[2].trim();
-    const placeId = match[3];
-    if (placeId && name && !/더보기|이전|다음|지도|검색|전체/.test(name)) {
-      results.push({ name, url: `https://m.place.naver.com/place/${placeId}/home`, placeId });
+  // restaurant, place, cafe 등 다양한 카테고리 경로에서 ID 추출
+  const patterns = [
+    /\[([^\]]*)\]\(https?:\/\/m?\.?place\.naver\.com\/restaurant\/(\d+)[^\s)]*\)/g,
+    /\[([^\]]*)\]\(https?:\/\/m?\.?place\.naver\.com\/place\/(\d+)[^\s)]*\)/g,
+    /\[([^\]]*)\]\(https?:\/\/m?\.?place\.naver\.com\/cafe\/(\d+)[^\s)]*\)/g,
+    /\[([^\]]*)\]\(https?:\/\/m?\.?place\.naver\.com\/accommodation\/(\d+)[^\s)]*\)/g,
+    /place\.naver\.com\/restaurant\/(\d+)/g,
+    /place\.naver\.com\/place\/(\d+)/g,
+    /place\.naver\.com\/cafe\/(\d+)/g,
+  ];
+  for (const regex of patterns) {
+    let m;
+    while ((m = regex.exec(text)) !== null) {
+      const name = m.length > 2 ? m[1].trim() : '';
+      const placeId = m.length > 2 ? m[2] : m[1];
+      if (placeId && !/더보기|이전|다음|지도|검색|전체/.test(name)) {
+        results.push({ name, placeId });
+      }
     }
   }
   // 중복 제거
@@ -783,16 +793,21 @@ const parseJinaSearchResults = (text) => {
   return results.filter(r => { if (seen.has(r.placeId)) return false; seen.add(r.placeId); return true; });
 };
 
+// 2단계: 상세 페이지 regex 파싱 (Groq 실패 시 폴백)
 const parseJinaPlaceDetail = (text) => {
-  const result = { name: '', address: '', phone: '', category: '', menus: [], business: {} };
+  const result = { name: '', address: '', phone: '', category: '', menus: [], business: {}, reviewCount: 0, keywords: [] };
 
-  // 이름: 첫 번째 # 헤더 또는 첫 줄
+  // 이름
   const nameMatch = text.match(/^#\s+(.+)$/m);
   if (nameMatch) result.name = nameMatch[1].trim();
 
+  // 카테고리
+  const catMatch = text.match(/(?:카테고리|업종)[:\s]*([^\n]+)/i);
+  if (catMatch) result.category = catMatch[1].trim();
+
   // 주소
-  const addrMatch = text.match(/((?:서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)[^\n]{5,60})/);
-  if (addrMatch) result.address = addrMatch[1].replace(/\s*(복사|지도|길찾기|주소).*$/, '').trim();
+  const addrMatch = text.match(/((?:서울|부산|대구|인천|광주|대전|울산|세종|경기|충북|충남|전북|전남|경북|경남|제주|강원)[가-힣\s\d\-·.,]{5,80})/);
+  if (addrMatch) result.address = addrMatch[1].replace(/\s*(복사|지도|길찾기|주소|도로명|지번).*$/, '').trim();
 
   // 전화번호
   const phoneMatch = text.match(/(\d{2,4}-\d{3,4}-\d{4})/);
@@ -804,7 +819,7 @@ const parseJinaPlaceDetail = (text) => {
     result.business.open = hoursMatch[1];
     result.business.close = hoursMatch[2];
   }
-  const breakMatch = text.match(/브레이크타임[:\s]*(\d{1,2}:\d{2})\s*[~\-–—]\s*(\d{1,2}:\d{2})/i);
+  const breakMatch = text.match(/브레이크\s*타임[:\s]*(\d{1,2}:\d{2})\s*[~\-–—]\s*(\d{1,2}:\d{2})/i);
   if (breakMatch) {
     result.business.breakStart = breakMatch[1];
     result.business.breakEnd = breakMatch[2];
@@ -813,33 +828,48 @@ const parseJinaPlaceDetail = (text) => {
   if (lastOrderMatch) result.business.lastOrder = lastOrderMatch[1];
 
   // 휴무일
-  const closedMatch = text.match(/(?:휴무|정기휴무|쉬는\s*날)[:\s]*([^\n]+)/i);
+  const closedMatch = text.match(/(?:정기\s*휴무|휴무|쉬는\s*날)[:\s]*([^\n]+)/i);
   if (closedMatch) {
     const dayMap = { '월': 'mon', '화': 'tue', '수': 'wed', '목': 'thu', '금': 'fri', '토': 'sat', '일': 'sun' };
     const closedDays = [];
     for (const [k, v] of Object.entries(dayMap)) {
-      if (closedMatch[1].includes(k + '요일') || closedMatch[1].match(new RegExp(`${k}[,\\s]`))) closedDays.push(v);
+      if (closedMatch[1].includes(k + '요일') || new RegExp(`${k}[,\\s]`).test(closedMatch[1])) closedDays.push(v);
     }
     if (closedDays.length) result.business.closedDays = closedDays;
   }
 
-  // 메뉴 파싱: "메뉴명 가격" 또는 "메뉴명 | 가격" 패턴
-  const menuRegex = /^[\s]*([가-힣a-zA-Z][^\n]{1,30}?)\s+[₩￦]?\s*([0-9,]{3,10})원?\s*$/gm;
-  let menuMatch;
-  while ((menuMatch = menuRegex.exec(text)) !== null) {
-    const menuName = menuMatch[1].trim();
-    const price = Number(menuMatch[2].replace(/,/g, '')) || 0;
-    if (menuName && price > 0 && !/복사|지도|길찾기|이전|다음/.test(menuName)) {
-      result.menus.push({ name: menuName, price, qty: 1, selected: true });
+  // 메뉴 파싱
+  const menuPatterns = [
+    /^[\s]*([가-힣a-zA-Z][^\n]{1,30}?)\s+[₩￦]?\s*([0-9,]{3,10})원?\s*$/gm,
+    /([가-힣a-zA-Z][^\n|]{1,25})\s*[|｜]\s*[₩￦]?\s*([0-9,]{3,10})원?/g,
+  ];
+  for (const menuRegex of menuPatterns) {
+    let menuMatch;
+    while ((menuMatch = menuRegex.exec(text)) !== null) {
+      const menuName = menuMatch[1].trim();
+      const price = Number(menuMatch[2].replace(/,/g, '')) || 0;
+      if (menuName && price > 0 && !/복사|지도|길찾기|이전|다음|이미지|translateX/.test(menuName)) {
+        result.menus.push({ name: menuName, price, qty: 1, selected: true });
+      }
     }
   }
-  // 중복 메뉴 제거
   const seenMenus = new Set();
   result.menus = result.menus.filter(m => { const k = m.name; if (seenMenus.has(k)) return false; seenMenus.add(k); return true; }).slice(0, 8);
 
   // 별점
-  const ratingMatch = text.match(/(?:별점|평점)[:\s]*([0-9.]+)/);
+  const ratingMatch = text.match(/(?:별점|평점)\s*([0-9.]+)/);
   if (ratingMatch) result.rating = parseFloat(ratingMatch[1]);
+
+  // 방문자 리뷰수
+  const reviewMatch = text.match(/방문자\s*리뷰\s*([\d,]+)/);
+  if (reviewMatch) result.reviewCount = Number(reviewMatch[1].replace(/,/g, '')) || 0;
+
+  // 리뷰 키워드
+  const kwRegex = /"([^"]+)"\s*이\s*키워드를\s*선택한\s*인원\s*([\d,]+)/g;
+  let kwMatch;
+  while ((kwMatch = kwRegex.exec(text)) !== null) {
+    result.keywords.push({ keyword: kwMatch[1], count: Number(kwMatch[2].replace(/,/g, '')) || 0 });
+  }
 
   return result;
 };
@@ -848,19 +878,33 @@ export const runJinaSmartFill = async ({ placeName, regionHint = '', runGroqPost
   if (!placeName?.trim()) throw new Error('장소 이름을 입력해주세요.');
 
   const query = regionHint ? `${regionHint} ${placeName.trim()}` : placeName.trim();
-  const searchUrl = `https://m.map.naver.com/search?query=${encodeURIComponent(query)}`;
 
-  // 1단계: 검색 결과에서 장소 링크 추출
+  // 1단계: 네이버 로컬 검색으로 Place ID 찾기 (레퍼런스 기반 m_local)
+  const searchUrl = `https://m.search.naver.com/search.naver?query=${encodeURIComponent(query)}&where=m_local`;
   const searchText = await fetchJinaReader(searchUrl, jinaApiKey);
-  const places = parseJinaSearchResults(searchText);
+  let places = extractPlaceIdFromSearch(searchText);
+
+  // m_local 실패 시 m.map.naver.com 폴백
+  if (!places.length) {
+    const fallbackUrl = `https://m.map.naver.com/search?query=${encodeURIComponent(query)}`;
+    const fallbackText = await fetchJinaReader(fallbackUrl, jinaApiKey);
+    places = extractPlaceIdFromSearch(fallbackText);
+  }
 
   if (!places.length) throw new Error('네이버 지도에서 검색 결과를 찾지 못했습니다.');
 
-  // 가장 적합한 결과 선택 (이름이 가장 유사한 것)
-  const target = places.find(p => p.name.includes(placeName.trim()) || placeName.trim().includes(p.name)) || places[0];
+  // 가장 적합한 결과 선택
+  const target = places.find(p => p.name && (p.name.includes(placeName.trim()) || placeName.trim().includes(p.name))) || places[0];
+  const detailUrl = `https://m.place.naver.com/restaurant/${target.placeId}/home`;
 
   // 2단계: 상세 페이지 파싱
-  const detailText = await fetchJinaReader(target.url, jinaApiKey);
+  let detailText;
+  try {
+    detailText = await fetchJinaReader(detailUrl, jinaApiKey);
+  } catch (_) {
+    // restaurant 실패 시 place 경로 폴백
+    detailText = await fetchJinaReader(`https://m.place.naver.com/place/${target.placeId}/home`, jinaApiKey);
+  }
 
   // 3단계: Groq AI 후처리 (사용 가능한 경우)
   if (typeof runGroqPostProcess === 'function') {
@@ -868,11 +912,12 @@ export const runJinaSmartFill = async ({ placeName, regionHint = '', runGroqPost
       const groqResult = await runGroqPostProcess({
         mode: 'all',
         text: [
-          '네이버 지도 장소 상세 페이지에서 추출한 텍스트입니다. 장소 정보를 정리해주세요.',
-          `장소 URL: ${target.url}`,
+          '네이버 지도 장소 상세 페이지에서 Jina Reader로 추출한 텍스트입니다.',
+          '장소의 이름, 주소, 영업시간, 메뉴/가격, 휴무일, 전화번호를 정확히 파싱해주세요.',
+          `장소 URL: ${detailUrl}`,
           `검색어: ${query}`,
           '---',
-          detailText.slice(0, 4000),
+          detailText.slice(0, 5000),
         ].join('\n\n'),
         imageDataUrl: '',
         aiSettings,
@@ -881,14 +926,14 @@ export const runJinaSmartFill = async ({ placeName, regionHint = '', runGroqPost
       if (groqResult?.parsed) {
         const parsed = groqResult.parsed;
         return {
-          name: parsed.name || target.name,
+          name: parsed.name || target.name || placeName,
           address: parsed.address || '',
           phone: parsed.phone || '',
           business: parsed.business || {},
           menus: parsed.menus || [],
           rating: parsed.rating,
           placeId: target.placeId,
-          placeUrl: target.url,
+          placeUrl: detailUrl,
           source: 'jina-groq',
         };
       }
@@ -900,14 +945,17 @@ export const runJinaSmartFill = async ({ placeName, regionHint = '', runGroqPost
   // 폴백: regex 파싱
   const detail = parseJinaPlaceDetail(detailText);
   return {
-    name: detail.name || target.name,
+    name: detail.name || target.name || placeName,
     address: detail.address,
     phone: detail.phone,
+    category: detail.category,
     business: detail.business,
     menus: detail.menus,
     rating: detail.rating,
+    reviewCount: detail.reviewCount,
+    keywords: detail.keywords,
     placeId: target.placeId,
-    placeUrl: target.url,
+    placeUrl: detailUrl,
     source: 'jina-naver',
   };
 };

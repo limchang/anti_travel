@@ -758,7 +758,12 @@ export const searchAddressFromPlaceName = async (keyword, regionHint = '', kakao
 const JINA_READER_PREFIX = 'https://r.jina.ai/';
 
 const fetchJinaReader = async (targetUrl, jinaApiKey = '') => {
-  const headers = { Accept: 'text/plain', 'X-Return-Format': 'text' };
+  const headers = {
+    Accept: 'text/plain',
+    'X-Return-Format': 'text',
+    'X-Wait-For-Selector': 'a[href*="place.naver.com"]',
+    'X-Timeout': '15',
+  };
   if (jinaApiKey) headers.Authorization = `Bearer ${jinaApiKey}`;
   const res = await fetch(`${JINA_READER_PREFIX}${targetUrl}`, { headers });
   if (!res.ok) throw new Error(`Jina Reader HTTP ${res.status}`);
@@ -871,7 +876,9 @@ const parseJinaPlaceDetail = (text) => {
 export const runJinaSmartFill = async ({ placeName, regionHint = '', runGroqPostProcess = null, aiSettings = null, jinaApiKey = '' }) => {
   if (!placeName?.trim()) throw new Error('장소 이름을 입력해주세요.');
 
-  const query = regionHint ? `${regionHint} ${placeName.trim()}` : placeName.trim();
+  // 장소 이름에 이미 지역명이 포함되어 있으면 regionHint 생략
+  const nameHasRegion = regionHint && placeName.trim().includes(regionHint.replace(/도$|시$|군$|구$/g, '').trim());
+  const query = (regionHint && !nameHasRegion) ? `${regionHint} ${placeName.trim()}` : placeName.trim();
 
   // 1단계: 네이버 로컬 검색으로 Place ID 찾기 (레퍼런스 기반 m_local)
   const searchUrl = `https://m.search.naver.com/search.naver?query=${encodeURIComponent(query)}&where=m_local`;

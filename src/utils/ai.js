@@ -758,12 +758,7 @@ export const searchAddressFromPlaceName = async (keyword, regionHint = '', kakao
 const JINA_READER_PREFIX = 'https://r.jina.ai/';
 
 const fetchJinaReader = async (targetUrl, jinaApiKey = '') => {
-  const headers = {
-    Accept: 'text/plain',
-    'X-Return-Format': 'text',
-    'X-Wait-For-Selector': 'a[href*="place.naver.com"]',
-    'X-Timeout': '15',
-  };
+  const headers = {};
   if (jinaApiKey) headers.Authorization = `Bearer ${jinaApiKey}`;
   const res = await fetch(`${JINA_READER_PREFIX}${targetUrl}`, { headers });
   if (!res.ok) throw new Error(`Jina Reader HTTP ${res.status}`);

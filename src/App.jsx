@@ -18,14 +18,7 @@ import { extractPlaceNameFromLines, extractMenusFromNaverLines, parseNaverMapTex
 import { ensureShipItemDefaults, normalizeLibraryPlace, formatBusinessSummary, getBusinessWarningNow, buildRouteFlowMeta, recalculateSchedule, runSchedulePass, runSchedulePassAcrossDays, createTimelineItem } from './utils/helpers.js';
 import { parseBulkPlaceText } from './utils/parse.js';
 import BulkAddModal from './components/shared/BulkAddModal.jsx';
-import PlanOptionsModal from './components/shared/PlanOptionsModal.jsx';
-import AiSettingsModal from './components/shared/AiSettingsModal.jsx';
 import { OrderedTagPicker, SharedNameRow, SharedAddressRow, SharedBusinessRow, SharedMemoRow, MenuPriceInput, SharedTotalFooter, parseChecklistLines, toggleChecklistLine, hasChecklistItems, createPlaceEditorDraft, buildSmartFillMenuItems, getCustomTagLabel, ACTION_SLOT_CLASS } from './components/shared/SharedComponents.jsx';
-import PlanManagerModal from './components/shared/PlanManagerModal.jsx';
-import PlaceTrashModal from './components/shared/PlaceTrashModal.jsx';
-import ShareManagerModal from './components/shared/ShareManagerModal.jsx';
-import UpdateModal from './components/shared/UpdateModal.jsx';
-import OverviewMapModal from './components/shared/OverviewMapModal.jsx';
 import { TimeInput, buildBusinessQuickEditSegments, BusinessHoursEditor, DateRangePicker, TimeWheelColumn } from './components/shared/BusinessComponents.jsx';
 import { loadKakaoMapSdk, ROUTE_PREVIEW_DEFAULT_CENTER, toLeafletLatLng, getMapCategoryColor, getMapCategoryLabel, MAP_CATEGORY_EMOJI, getMapCategoryEmoji, buildTimelineMarkerIcon, buildGroupedTimelineMarkerIcon, buildLibraryMarkerIcon, buildOverlayMarkerIcon, buildSegmentLabelIcon, calcBearingDeg, buildArrowIcon, sampleRouteArrows, LeafletMapViewportController, LeafletMapBackgroundClickHandler, LeafletMapContextMenuHandler, POPUP_TAG_OPTIONS, RoutePreviewCanvas } from './components/map/MapComponents.jsx';
 import { SmartFillGuideModal, GUIDE_DOC_PATH, isLegacySmartFillGuideContent } from './components/shared/SmartFillGuideModal.jsx';
@@ -8726,23 +8719,552 @@ const App = () => {
             </>
           )}
 
-          <PlanManagerModal visible={showPlanManager} {...{showPlanManager, setShowPlanManager, planList, currentPlanId, setCurrentPlanId, createBlankPlan, setItinerary, setTripRegion, setTripStartDate, setTripEndDate, refreshPlanList, showInfoToast}} />
+          {showPlanManager && (
+            <>
+              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowPlanManager(false)} />
+              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(640px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[14px] font-black text-slate-800">일정 관리 (도시별 예시)</p>
+                  <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowPlanManager(false)}><X size={16} /></button>
+                </div>
+                <button
+                  onClick={() => {
+                    const regionInput = window.prompt('새 일정 지역을 입력하세요. (예: 부산)', '') || '';
+                    void createNewPlan(regionInput);
+                  }}
+                  className="w-full mb-3 py-2 rounded-xl bg-[#3182F6] text-white text-[11px] font-black"
+                >
+                  새 도시 일정 만들기
+                </button>
+                <div className="max-h-[52vh] overflow-y-auto">
+                  {(planList || []).length === 0 ? (
+                    <p className="text-[11px] text-slate-400 font-bold p-3">생성된 일정이 없습니다.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {(planList || []).map((plan) => {
+                        const meta = resolvePlanMetaForCard(plan);
+                        return (
+                          <button
+                            key={plan.id}
+                            onClick={() => {
+                              setCurrentPlanId(plan.id);
+                              setShowPlanManager(false);
+                              setLastAction(`'${meta.title}' 일정으로 전환했습니다.`);
+                            }}
+                            className={`relative overflow-hidden rounded-2xl border text-left min-h-[170px] transition-all hover:-translate-y-0.5 ${currentPlanId === plan.id ? 'border-[#3182F6] ring-2 ring-[#3182F6]/20' : 'border-slate-200 hover:border-slate-300'}`}
+                          >
+                            <img
+                              src={getRegionCoverImage(meta.region)}
+                              alt="plan cover"
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/55" />
+                            <div className="relative z-10 p-4 flex flex-col gap-1.5 text-white">
+                              <p className="text-[18px] font-black truncate">{meta.region}</p>
+                              {meta.startDate && (
+                                <p className="text-[11px] font-bold text-white/85">{meta.startDate.replace(/-/g, '.')}</p>
+                              )}
+                              {meta.code && meta.code !== 'main' && (
+                                <p className="text-[11px] font-black text-white/95 tracking-wide">{meta.code}</p>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
 
-          <PlaceTrashModal visible={showPlaceTrash} {...{showPlaceTrash, setShowPlaceTrash, itinerary, setItinerary, restorePlaceFromTrash, deletePlacePermanently, showInfoToast}} />
+          {showPlaceTrash && (
+            <>
+              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowPlaceTrash(false)} />
+              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-[14px] font-black text-slate-800">내 장소 휴지통</p>
+                    <p className="mt-1 text-[10px] font-bold text-slate-400">삭제된 장소는 여기로 이동하고, 여기서 삭제하면 완전 삭제됩니다.</p>
+                  </div>
+                  <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowPlaceTrash(false)}><X size={16} /></button>
+                </div>
+                <div className="max-h-[52vh] overflow-y-auto space-y-2">
+                  {(itinerary.placeTrash || []).length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
+                      <p className="text-[12px] font-black text-slate-500">휴지통이 비어 있습니다.</p>
+                    </div>
+                  ) : (
+                    (itinerary.placeTrash || []).map((place) => (
+                      <div key={`trash-${place.id}`} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-[12px] font-black text-slate-800">{place.name || '이름 없는 장소'}</p>
+                            <p className="mt-1 truncate text-[10px] font-bold text-slate-400">{place.address || place.receipt?.address || '주소 없음'}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => restorePlaceFromTrash(place.id)}
+                              className="flex items-center gap-1 rounded-xl border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[10px] font-black text-[#3182F6] hover:bg-blue-100"
+                            >
+                              <RotateCcw size={11} />
+                              복원
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deletePlacePermanently(place.id)}
+                              className="flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-2.5 py-1.5 text-[10px] font-black text-red-500 hover:bg-red-100"
+                            >
+                              <Trash2 size={11} />
+                              완전삭제
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* ── 여러 장소 추가 모달 ── */}
           <BulkAddModal showBulkAddModal={showBulkAddModal} setShowBulkAddModal={setShowBulkAddModal} bulkAddText={bulkAddText} setBulkAddText={setBulkAddText} bulkAddParsed={bulkAddParsed} setBulkAddParsed={setBulkAddParsed} bulkAddLoading={bulkAddLoading} setBulkAddLoading={setBulkAddLoading} showInfoToast={showInfoToast} addPlace={addPlace} itinerary={itinerary} setItinerary={setItinerary} />
 
-          <PlanOptionsModal visible={showPlanOptions} {...{ showPlanOptions, setShowPlanOptions, tripRegion, setTripRegion, tripStartDate, setTripStartDate, tripEndDate, setTripEndDate, itinerary, setItinerary, showInfoToast }} />
+          {showPlanOptions && (
+            <>
+              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowPlanOptions(false)} />
+              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[14px] font-black text-slate-800">일정 옵션</p>
+                  <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowPlanOptions(false)}><X size={16} /></button>
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 mb-1">여행지</p>
+                    <input
+                      value={planOptionRegion}
+                      onChange={(e) => setPlanOptionRegion(e.target.value)}
+                      placeholder="여행지"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 mb-1">시작일</p>
+                      <input
+                        type="date"
+                        value={planOptionStartDate}
+                        onChange={(e) => setPlanOptionStartDate(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 mb-1">종료일</p>
+                      <input
+                        type="date"
+                        value={planOptionEndDate}
+                        onChange={(e) => setPlanOptionEndDate(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 mb-1">총 예산</p>
+                    <input
+                      type="number"
+                      value={planOptionBudget}
+                      onChange={(e) => setPlanOptionBudget(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                    />
+                  </div>
+                </div>
 
-          <ShareManagerModal visible={showShareManager} {...{showShareManager, setShowShareManager, shareSettings, setShareSettings, collaborators, setCollaborators, collaboratorInput, setCollaboratorInput, collaboratorLoading, showInfoToast, user}} />
+                {/* ── 공동 편집자 ── */}
+                {canManagePlan && (
+                  <div className="mt-3 pt-3 border-t border-slate-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[11px] font-black text-slate-700">공동 편집자</p>
+                      <span className="text-[9px] font-bold text-slate-400">Gmail 계정만 지원</span>
+                    </div>
+                    <div className="flex gap-1.5 mb-2">
+                      <input
+                        value={collaboratorInput}
+                        onChange={(e) => setCollaboratorInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const email = collaboratorInput.trim().toLowerCase();
+                            if (!email || !email.includes('@')) return;
+                            if (collaborators.some(c => c.email === email)) { setCollaboratorInput(''); return; }
+                            const next = [...collaborators, { email, addedAt: Date.now() }];
+                            setCollaborators(next);
+                            setCollaboratorInput('');
+                          }
+                        }}
+                        placeholder="gmail@gmail.com"
+                        className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const email = collaboratorInput.trim().toLowerCase();
+                          if (!email || !email.includes('@')) return;
+                          if (collaborators.some(c => c.email === email)) { setCollaboratorInput(''); return; }
+                          const next = [...collaborators, { email, addedAt: Date.now() }];
+                          setCollaborators(next);
+                          setCollaboratorInput('');
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-[#3182F6] text-white text-[11px] font-black hover:bg-blue-600 transition-colors"
+                      >추가</button>
+                    </div>
+                    {collaborators.length > 0 ? (
+                      <div className="space-y-1 max-h-[100px] overflow-y-auto">
+                        {collaborators.map((c) => (
+                          <div key={c.email} className="flex items-center justify-between bg-blue-50 rounded-lg px-2.5 py-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-5 h-5 rounded-full bg-blue-200 flex items-center justify-center text-[9px] font-black text-blue-600">{c.email[0].toUpperCase()}</div>
+                              <span className="text-[10px] font-bold text-slate-700">{c.email}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setCollaborators(prev => prev.filter(x => x.email !== c.email))}
+                              className="text-slate-400 hover:text-red-500 transition-colors"
+                            ><X size={11} /></button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] font-bold text-slate-400 text-center py-2">추가된 공동 편집자가 없습니다</p>
+                    )}
+                  </div>
+                )}
+
+                {/* ── 저장 히스토리 ── */}
+                {canManagePlan && (
+                  <div className="mt-3 pt-3 border-t border-slate-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[11px] font-black text-slate-700">저장 히스토리</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowSaveHistoryPanel(v => !v)}
+                        className="text-[9px] font-black text-[#3182F6] hover:underline"
+                      >{showSaveHistoryPanel ? '접기' : `${manualSaveHistory.length}개 보기`}</button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setCollaboratorLoading(true);
+                        await saveItineraryManually();
+                        setCollaboratorLoading(false);
+                      }}
+                      disabled={collaboratorLoading}
+                      className="w-full py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-[11px] font-black text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                      {collaboratorLoading ? '저장 중...' : '지금 수동 저장'}
+                    </button>
+                    {showSaveHistoryPanel && manualSaveHistory.length > 0 && (
+                      <div className="mt-2 space-y-1 max-h-[160px] overflow-y-auto">
+                        {manualSaveHistory.map((entry) => (
+                          <div key={entry.savedAt} className="flex items-center justify-between bg-slate-50 rounded-lg px-2.5 py-1.5 gap-2">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-black text-slate-700 truncate">{entry.label}</p>
+                              <p className="text-[9px] font-bold text-slate-400">{new Date(entry.savedAt).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => restoreSaveHistory(entry)}
+                              className="shrink-0 px-2 py-1 rounded-lg border border-amber-200 bg-amber-50 text-[9px] font-black text-amber-700 hover:bg-amber-100 transition-colors"
+                            >복원</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {showSaveHistoryPanel && manualSaveHistory.length === 0 && (
+                      <p className="text-[10px] font-bold text-slate-400 text-center py-2 mt-1">저장 기록이 없습니다</p>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 mt-3">
+                  <button
+                    onClick={() => {
+                      setShowPlanOptions(false);
+                      setShowHeroSummaryModal(true);
+                    }}
+                    className="flex-1 py-2 rounded-xl border border-slate-200 bg-white text-[11px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                  >
+                    여행 요약 보기
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowPlanOptions(false);
+                      setShowPlanManager(true);
+                    }}
+                    className="flex-1 py-2 rounded-xl border border-slate-200 bg-white text-[11px] font-black text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                  >
+                    목록 열기
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTripRegion(String(planOptionRegion || '').trim());
+                      setTripStartDate(planOptionStartDate || '');
+                      setTripEndDate(planOptionEndDate || '');
+                      setItinerary(prev => ({ ...prev, maxBudget: Number(planOptionBudget) || 0 }));
+                      setShowPlanOptions(false);
+                    }}
+                    className="flex-1 py-2 rounded-xl bg-[#3182F6] text-white text-[11px] font-black"
+                  >
+                    완료
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {showShareManager && (
+            <>
+              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowShareManager(false)} />
+              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[14px] font-black text-slate-800">공유 범위 / 편집 권한</p>
+                  <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowShareManager(false)}><X size={16} /></button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <select
+                    value={shareSettings.visibility}
+                    onChange={(e) => updateShareConfig({ ...shareSettings, visibility: e.target.value })}
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                  >
+                    <option value="private">비공개</option>
+                    <option value="link">링크 소지자 공개</option>
+                    <option value="public">공개</option>
+                  </select>
+                  <select
+                    value={shareSettings.permission}
+                    onChange={(e) => updateShareConfig({ ...shareSettings, permission: e.target.value })}
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                  >
+                    <option value="viewer">보기만</option>
+                    <option value="editor">편집 가능</option>
+                  </select>
+                </div>
+                <button
+                  onClick={() => { void copyShareLink(); }}
+                  className="w-full py-2 rounded-xl border border-blue-200 bg-blue-50 text-[#3182F6] text-[11px] font-black hover:bg-blue-100 transition-colors"
+                >
+                  {shareCopied ? '복사됨' : '공유 링크 복사'}
+                </button>
+                <p className="text-[10px] text-slate-400 font-bold mt-2">
+                  링크에는 현재 플랜 ID가 포함됩니다. (예: 다른 도시 일정 분리 공유)
+                </p>
+              </div>
+            </>
+          )}
 
           {/* 업데이트 알림 모달 */}
-          <UpdateModal visible={showUpdateModal} {...{showUpdateModal, setShowUpdateModal, APP_VERSION, latestUpdate}} />
+          {showUpdateModal && (
+            <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/40 p-4 transition-all" onClick={() => setShowUpdateModal(false)}>
+              <div
+                className="relative w-full max-w-[340px] rounded-2xl bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => setShowUpdateModal(false)}
+                  className="absolute right-3.5 top-3.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus:outline-none transition-colors"
+                >
+                  <X size={14} strokeWidth={2.5} />
+                </button>
+                <div className="mb-4">
+                  <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2 py-0.5 text-blue-600">
+                    <Sparkles size={10} className="fill-blue-600" />
+                    <span className="text-[9px] font-black uppercase tracking-wider">업데이트 완료</span>
+                  </div>
+                  <h3 className="mt-1 text-base font-black text-slate-800">새로운 기능이 변경되었습니다!</h3>
+                  <p className="mt-1 text-[11.5px] font-bold leading-relaxed text-slate-500">
+                    버전 <span className="font-black text-[#3182F6]">{APP_VERSION}</span> 패치가 성공적으로 적용되었습니다.
+                  </p>
+                </div>
+                <div className="mb-5 rounded-xl bg-slate-50 p-3.5">
+                  <div className="flex items-center gap-1.5 mb-2.5 border-b border-slate-200 pb-2">
+                    <CheckSquare size={13} className="text-[#3182F6]" />
+                    <span className="text-[11.5px] font-black text-slate-700">이번 업데이트 내용</span>
+                  </div>
+                  <div className="text-[11.5px] font-bold text-slate-600 leading-[1.6] whitespace-pre-wrap whitespace-pre-line pl-1 border-l-2 border-slate-200">
+                    {latestUpdate.message}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowUpdateModal(false)}
+                  className="w-full rounded-xl bg-[#3182F6] py-3 text-[13px] font-black tracking-wide text-white transition-colors hover:bg-blue-600 focus:outline-none"
+                >
+                  확인하고 시작하기
+                </button>
+              </div>
+            </div>
+          )}
 
-          <AiSettingsModal visible={showAiSettings} {...{ showAiSettings, setShowAiSettings, aiSmartFillConfig, setAiSmartFillConfig, normalizeAiSmartFillConfig, serverAiKeyStatus, fetchServerAiKeyStatus, saveServerAiKey, deleteServerAiKey, auth, DEFAULT_AI_SMART_FILL_CONFIG }} />
+          {showAiSettings && (
+            <>
+              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowAiSettings(false)} />
+              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(480px,92vw)] max-h-[88vh] overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-[14px] font-black text-slate-800">AI 스마트 채우기 설정</p>
+                    <p className="text-[10px] font-bold text-slate-400 mt-1">로그인 상태에서는 서버 암호화 저장을 우선 사용합니다.</p>
+                  </div>
+                  <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowAiSettings(false)}><X size={16} /></button>
+                </div>
+                <div className="space-y-3">
+                  <label className="block">
+                    <span className="text-[10px] font-black text-slate-500">Groq API Key</span>
+                    <input
+                      type="password"
+                      value={aiSmartFillConfig.apiKey}
+                      onChange={(e) => setAiSmartFillConfig((prev) => normalizeAiSmartFillConfig({ ...prev, apiKey: e.target.value }))}
+                      placeholder={serverAiKeyStatus.hasStoredGroqKey ? '새 Groq 키로 교체하려면 다시 입력' : '암호화 저장할 Groq API 키 입력'}
+                      className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                    />
+                    <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-[#3182F6] hover:underline">
+                      Groq API 키 발급받기 →
+                    </a>
+                  </label>
+                  <label className="block">
+                    <span className="text-[10px] font-black text-slate-500">Gemini API Key (네이버 링크 전용)</span>
+                    <input
+                      type="password"
+                      value={aiSmartFillConfig.geminiApiKey}
+                      onChange={(e) => setAiSmartFillConfig((prev) => normalizeAiSmartFillConfig({ ...prev, geminiApiKey: e.target.value }))}
+                      placeholder={serverAiKeyStatus.hasStoredGeminiKey ? '새 Gemini 키로 교체하려면 다시 입력' : '암호화 저장할 Gemini API 키 입력'}
+                      className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                    />
+                    <p className="mt-1 text-[9px] font-bold text-slate-400">Gemini는 링크 기반 정보 추출 전용이며, 텍스트/이미지 자동채우기는 계속 Groq를 사용합니다.</p>
+                  </label>
+                  <label className="block">
+                    <span className="text-[10px] font-black text-slate-500">Perplexity API Key (선택, 있으면 우선 사용)</span>
+                    <input
+                      type="password"
+                      value={aiSmartFillConfig.perplexityApiKey}
+                      onChange={(e) => setAiSmartFillConfig((prev) => normalizeAiSmartFillConfig({ ...prev, perplexityApiKey: e.target.value }))}
+                      placeholder={serverAiKeyStatus.hasStoredPerplexityKey ? '새 Perplexity 키로 교체하려면 다시 입력' : '암호화 저장할 Perplexity API 키 입력'}
+                      className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                    />
+                    <p className="mt-1 text-[9px] font-bold text-slate-400">없으면 Gemini 키로 무료 AI 추천을 시도하고, 있으면 Perplexity를 우선 사용합니다.</p>
+                  </label>
+                  <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-bold text-slate-500 leading-relaxed">
+                    {auth.currentUser && !auth.currentUser.isGuest ? (
+                      <>
+                        <div className="flex items-center justify-between gap-2">
+                          <span>{serverAiKeyStatus.loading ? '저장 상태 확인 중...' : `Groq ${serverAiKeyStatus.hasStoredGroqKey ? '저장됨' : '없음'} · Gemini ${serverAiKeyStatus.hasStoredGeminiKey ? '저장됨' : '없음'} · Perplexity ${serverAiKeyStatus.hasStoredPerplexityKey ? '저장됨' : '없음'}`}</span>
+                          <button
+                            type="button"
+                            onClick={() => { void fetchServerAiKeyStatus(); }}
+                            className="text-[10px] font-black text-[#3182F6]"
+                          >
+                            새로고침
+                          </button>
+                        </div>
+                        {serverAiKeyStatus.updatedAt && (
+                          <div className="mt-1 text-[9px] text-slate-400">최근 저장: {new Date(serverAiKeyStatus.updatedAt).toLocaleString('ko-KR')}</div>
+                        )}
+                      </>
+                    ) : (
+                      <span>게스트/비로그인 상태에서는 현재 세션 동안만 메모리에 보관됩니다.</span>
+                    )}
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-500 leading-relaxed">
+                    로그인 상태에서는 서버가 Groq/Gemini/Perplexity 키를 암호화해 Firestore에 저장합니다. Groq 분석, Gemini 링크 분석, 근처 AI 추천은 저장된 서버 키를 재사용할 수 있고, 이 브라우저 localStorage에는 평문 키를 저장하지 않습니다.
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { void saveServerAiKey(); }}
+                    className="px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-[11px] font-black text-[#3182F6] hover:bg-blue-100"
+                  >
+                    키 저장
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { void deleteServerAiKey(); }}
+                    className="px-3 py-2 rounded-xl border border-slate-200 text-[11px] font-black text-slate-500 hover:border-slate-300"
+                  >
+                    저장 키 삭제
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAiSmartFillConfig((prev) => ({ ...DEFAULT_AI_SMART_FILL_CONFIG, apiKey: '', geminiApiKey: '', perplexityApiKey: '' }))}
+                    className="px-3 py-2 rounded-xl border border-slate-200 text-[11px] font-black text-slate-500 hover:border-slate-300"
+                  >
+                    입력 초기화
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAiSettings(false)}
+                    className="px-4 py-2 rounded-xl bg-[#3182F6] text-white text-[11px] font-black"
+                  >
+                    닫기
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
 
-          <OverviewMapModal visible={showOverviewMapModal} {...{showOverviewMapModal, setShowOverviewMapModal}} />
+          {showOverviewMapModal && (
+            <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/42 px-4 py-6 backdrop-blur-sm" onClick={() => setShowOverviewMapModal(false)}>
+              <div
+                className="w-full max-w-[980px] rounded-[28px] border border-white/70 bg-white/96 p-4 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)]"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-black tracking-tight text-slate-900">동선 지도 크게 보기</p>
+                    <p className="mt-1 text-[11px] font-bold text-slate-400 truncate">
+                      {`일정 ${overviewTimelinePoints.length} · 내 장소 ${libraryMapPoints.length} · 추천 ${recommendationMapPoints.length}`}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowOverviewMapModal(false)}
+                    className="shrink-0 rounded-2xl border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
+                    title="지도 크게 보기 닫기"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="mt-3 overflow-hidden rounded-[22px] border border-slate-200 bg-white">
+                  <RoutePreviewCanvas
+                    routePreviewMap={overviewFilteredRoutePreviewMap}
+                    libraryPoints={[]}
+                    recommendationPoints={[]}
+                    focusedTarget={focusedMapTarget}
+                    onMarkerClick={handleOverviewMapMarkerClick}
+                    onBackgroundClick={clearOverviewMapFocus}
+                    onSegmentLabelClick={(toItemId) => {
+                      let found = null;
+                      (itinerary.days || []).forEach((day, dI) => {
+                        (day.plan || []).forEach((item, pI) => {
+                          if (item?.id === toItemId) found = { dIdx: dI, pIdx: pI };
+                        });
+                      });
+                      if (found) {
+                        document.getElementById(`travel-chip-${found.dIdx}-${found.pIdx}`)
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
+                    }}
+                    interactive
+                    height={isMobileLayout ? 460 : 620}
+                    showTimelineMarkers
+                    showRouteLines
+                    showOverlayMarkers={false}
+                    scopeKey={`${overviewMapScope}:${overviewMapDayFilter ?? 'all'}`}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
           {showPlaceMapModal && (
             <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/42 px-4 py-6 backdrop-blur-sm" onClick={() => setShowPlaceMapModal(false)}>
               <div

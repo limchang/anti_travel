@@ -15,7 +15,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw, AlignLeft, Zap
+  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw, AlignLeft, Zap, Home
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -127,6 +127,7 @@ const PLACE_TYPES = [
   { label: '체험', types: ['experience'], Icon: Star, className: 'text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100' },
   { label: '기념품샵', types: ['souvenir'], Icon: Gift, className: 'text-teal-600 bg-teal-50 border-teal-200 hover:bg-teal-100' },
   { label: '픽업', types: ['pickup'], Icon: Package, className: 'text-orange-500 bg-orange-50 border-orange-200 hover:bg-orange-100' },
+  { label: '집', types: ['home'], Icon: Home, className: 'text-amber-700 bg-amber-50 border-amber-200 hover:bg-amber-100' },
   { label: '장소', types: ['place'], Icon: MapPin, className: 'text-slate-500 bg-slate-50 border-slate-200 hover:bg-slate-100' },
 ];
 
@@ -143,6 +144,7 @@ const TAG_OPTIONS = [
   { label: '뷰맛집', value: 'view' },
   { label: '체험', value: 'experience' },
   { label: '기념품샵', value: 'souvenir' },
+  { label: '집', value: 'home' },
   { label: '장소', value: 'place' },
   { label: '퀵등록', value: 'quick' },
   { label: '신규', value: 'new' },
@@ -2329,7 +2331,16 @@ const loadKakaoMapSdk = (() => {
   };
 })();
 
-const ROUTE_PREVIEW_DEFAULT_CENTER = [33.3617, 126.5292];
+const ROUTE_PREVIEW_DEFAULT_CENTER = (() => {
+  try {
+    const raw = localStorage.getItem('last_map_center');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length === 2 && isFinite(parsed[0]) && isFinite(parsed[1])) return parsed;
+    }
+  } catch {}
+  return [37.5665, 126.9780]; // 서울 시청 (폴백)
+})();
 const toLeafletLatLng = (point) => {
   const rawLat = point?.lat;
   const rawLon = point?.lon;
@@ -2366,6 +2377,7 @@ const getMapCategoryColor = (type = 'place') => {
     case 'experience': return '#10B981';
     case 'souvenir': return '#14B8A6';
     case 'pickup': return '#F97316';
+    case 'home': return '#B45309';
     default: return '#64748B';
   }
 };
@@ -2387,6 +2399,7 @@ const MAP_CATEGORY_EMOJI = {
   view: '🌅',
   experience: '⭐',
   souvenir: '🛍️',
+  home: '🏠',
   place: '📍',
   quick: '⚡',
 };
@@ -2781,6 +2794,7 @@ const RoutePreviewCanvas = ({
   showOverlayMarkers = true,
   scopeKey = '',
   focusedLibraryMarkerId = null,
+  hideLongSegments = false,
 }) => {
   const tileProviders = useMemo(() => ([
     {
@@ -2892,12 +2906,18 @@ const RoutePreviewCanvas = ({
       .filter(Boolean)
   ), [focusedOverlayKey, libraryPoints, recommendationPoints]);
   // boundsPoints: 일정(timeline+segment)만 기준 — 내장소(overlay) 제외하여 지도 범위가 내장소에 의해 축소되지 않도록
-  const allBoundsPoints = useMemo(() => (
+  // 단, 일정 포인트가 없으면 내장소 밀집 지역으로 fallback
+  const timelineBoundsPoints = useMemo(() => (
     [
       ...(showRouteLines ? segmentEntries.flatMap((segment) => segment.positions) : []),
       ...(showTimelineMarkers ? timelineEntries.map((point) => point.position) : []),
     ]
   ), [segmentEntries, showRouteLines, showTimelineMarkers, timelineEntries]);
+  const allBoundsPoints = useMemo(() => (
+    timelineBoundsPoints.length > 0
+      ? timelineBoundsPoints
+      : overlayEntries.map((e) => e.position)
+  ), [timelineBoundsPoints, overlayEntries]);
   const focusedViewportPoints = useMemo(() => {
     if (focusedTarget?.kind === 'timeline') {
       const focusedTimelinePoints = (showTimelineMarkers ? timelineEntries : [])
@@ -2914,7 +2934,9 @@ const RoutePreviewCanvas = ({
       .map((point) => point.position);
   }, [focusedTarget?.kind, overlayEntries, segmentEntries, showOverlayMarkers, showRouteLines, showTimelineMarkers, timelineEntries]);
   const rawVisibleTimelineEntries = showTimelineMarkers ? timelineEntries : [];
-  const visibleSegmentEntries = showRouteLines ? segmentEntries : [];
+  const visibleSegmentEntries = showRouteLines
+    ? (hideLongSegments ? segmentEntries.filter((s) => !(s.durationMins != null && s.durationMins >= 60)) : segmentEntries)
+    : [];
   const rawVisibleOverlayEntries = showOverlayMarkers ? overlayEntries : [];
 
   const [tileProviderIndex, setTileProviderIndex] = useState(0);
@@ -3143,6 +3165,10 @@ const RoutePreviewCanvas = ({
               return { ...prev, x: pt.x, y: pt.y, zoom: map.getZoom() };
             } catch { return prev; }
           });
+          try {
+            const c = map.getCenter();
+            safeLocalStorageSet('last_map_center', JSON.stringify([c.lat, c.lng]));
+          } catch {}
         }} />
         {(() => {
           const ZoomTracker = () => {
@@ -3754,7 +3780,7 @@ const App = () => {
   };
 
   const [loading, setLoading] = useState(true);
-  const [currentPlanId, setCurrentPlanId] = useState('main');
+  const [currentPlanId, setCurrentPlanId] = useState(() => safeLocalStorageGet('last_plan_id', 'main'));
   const [planList, setPlanList] = useState([]);
   const emptyPlanRecoveryKeyRef = useRef('');
   const [showPlanManager, setShowPlanManager] = useState(false);
@@ -3765,6 +3791,7 @@ const App = () => {
   const [navDayMenu, setNavDayMenu] = useState(null); // { dayIdx, day }
   const [perplexityNearbyModal, setPerplexityNearbyModal] = useState({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' });
   const [showAiSettings, setShowAiSettings] = useState(false);
+  const [navAiExpanded, setNavAiExpanded] = useState(false);
   const [showPlanOptions, setShowPlanOptions] = useState(false);
   const [showNavMenu, setShowNavMenu] = useState(false);
   const [highlightedPlaceId, setHighlightedPlaceId] = useState(null);
@@ -3800,6 +3827,7 @@ const App = () => {
   const [dragCoord, setDragCoord] = useState({ x: 0, y: 0 });
   const desktopDragRef = useRef(null);
   const ctrlHeldRef = useRef(false);
+  const saveItineraryRef = useRef(null);
   const [isAddingPlace, setIsAddingPlace] = useState(false);
   const [isAddingPlaceAutoFill, setIsAddingPlaceAutoFill] = useState(false);
   const addPlaceLongPressTimerRef = React.useRef(null);
@@ -4232,6 +4260,7 @@ const App = () => {
   const routePreviewAutoRetryKeyRef = useRef('');
 
   const [hiddenRoutePreviewEndpoints, setHiddenRoutePreviewEndpoints] = useState({});
+  const [hideLongRouteSegments, setHideLongRouteSegments] = useState(false);
   const [overviewMapScope, setOverviewMapScope] = useState('all');
   const [overviewMapDayFilter, setOverviewMapDayFilter] = useState(null);
   const [overviewMapRouteVisible, setOverviewMapRouteVisible] = useState(true);
@@ -4704,11 +4733,20 @@ const App = () => {
       const overnightCheckout = checkout <= checkin ? checkout + 1440 : checkout;
       return Math.max(30, overnightCheckout - checkin);
     })();
-    return [
+    const builtIn = [
       { id: `${place.id}_stay`, type: 'stay', label: '숙박', time: normalizeLodgeSegmentTime(place.time, '15:00'), duration: defaultStayDuration, note: '' },
       { id: `${place.id}_rest`, type: 'rest', label: '휴식', time: normalizeLodgeSegmentTime(place.time, '15:00'), duration: 60, note: '' },
       { id: `${place.id}_swim`, type: 'swim', label: '물놀이', time: normalizeLodgeSegmentTime(place.time, '15:00'), duration: 90, note: '' },
     ];
+    const custom = Array.isArray(place.customSegments) ? place.customSegments.map((seg) => ({
+      id: `${place.id}_custom_${seg.key}`,
+      type: seg.key,
+      label: seg.label,
+      time: normalizeLodgeSegmentTime(place.time, '15:00'),
+      duration: Number(seg.duration) || 60,
+      note: '',
+    })) : [];
+    return [...builtIn, ...custom];
   };
 
   const extractLodgeSegmentMemo = (parentMemo = '', segmentType = '') => {
@@ -4719,7 +4757,7 @@ const App = () => {
       rest: ['휴식'],
       swim: ['물놀이'],
     };
-    const labels = labelMap[normalizedType] || [];
+    const labels = labelMap[normalizedType] || [normalizedType];
     if (!labels.length) return '';
     const lines = String(parentMemo || '')
       .split(/\r?\n/)
@@ -4744,7 +4782,9 @@ const App = () => {
       ? ['lodge', 'stay']
       : segmentType === 'swim'
         ? ['lodge', 'experience']
-        : ['lodge', 'rest'];
+        : segmentType === 'rest'
+          ? ['lodge', 'rest']
+          : ['lodge', 'experience'];
     return normalizeLibraryPlace({
       id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: `${place.name || place.activity || '숙소'} · ${segment.label || '내부 일정'}`,
@@ -4901,8 +4941,8 @@ const App = () => {
       revisit: typeof placeData?.revisit === 'boolean' ? placeData.revisit : false,
       business: normalizeBusiness(placeData?.business || {}),
       price: isStandaloneLodgeSegment ? 0 : (placeData ? (priceFromReceipt || placeData.price || 0) : 0),
-      duration: Number(placeData?.duration || (isShip ? 330 : 60)),
-      baseDuration: Number(placeData?.baseDuration ?? placeData?.duration ?? (isShip ? 330 : 60)),
+      duration: Number(placeData?.duration || (isShip ? 330 : normalizedTypes.includes('home') ? 0 : 60)),
+      baseDuration: Number(placeData?.baseDuration ?? placeData?.duration ?? (isShip ? 330 : normalizedTypes.includes('home') ? 0 : 60)),
       sailDuration: Number(placeData?.sailDuration || (isShip ? 240 : 0)) || undefined,
       startPoint: placeData?.startPoint,
       endPoint: placeData?.endPoint,
@@ -5009,6 +5049,10 @@ const App = () => {
     };
     const onKeyDown = (e) => {
       if (e.key === 'Control') ctrlHeldRef.current = true;
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveItineraryRef.current?.();
+      }
       if (e.key === 'Backspace' && !e.metaKey && !e.ctrlKey && !e.altKey) {
         const target = e.target instanceof HTMLElement ? e.target : document.activeElement;
         if (!isEditableElement(target)) {
@@ -5203,6 +5247,10 @@ const App = () => {
     if (user && !user.isGuest) return;
     safeLocalStorageSet('trip_region_hint', tripRegion);
   }, [tripRegion, user]);
+
+  useEffect(() => {
+    safeLocalStorageSet('last_plan_id', currentPlanId);
+  }, [currentPlanId]);
 
   useEffect(() => {
     if (timeControllerTarget?.kind === 'plan-time' || isTimeWheelDragging) return;
@@ -6311,6 +6359,7 @@ const App = () => {
             return [...merged.values()];
           });
         }
+        if (changed) routePreviewBuildKeyRef.current = '';
         return changed ? nextData : prev;
       });
       geoSyncRequestKeyRef.current = '';
@@ -6744,8 +6793,8 @@ const App = () => {
       return;
     }
     if (target.kind === 'place') {
-      // 내장소 마커 클릭: focusedMapTarget(timeline)을 유지하고 스크롤만
-      document.getElementById(`library-place-${target.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setFocusedMapTarget({ kind: 'place', id: target.id });
+      document.getElementById(`library-place-${target.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     if (target.kind === 'recommendation') {
@@ -9047,7 +9096,9 @@ const App = () => {
         itemToMove.id = `item_${Date.now()}`;
         if (!isCopy) {
           nextData.days[sourceDayIdx].plan.splice(sourcePIdx, 1);
-          nextData.days[sourceDayIdx].plan = recalculateSchedule(nextData.days[sourceDayIdx].plan);
+          if (targetDayIdx !== sourceDayIdx) {
+            nextData.days[sourceDayIdx].plan = recalculateSchedule(nextData.days[sourceDayIdx].plan);
+          }
           if (targetDayIdx === sourceDayIdx && insertAfterPIdx > sourcePIdx) insertAfterPIdx--;
           sourceRemoved = true;
         }
@@ -9056,7 +9107,17 @@ const App = () => {
       const targetDayPlan = nextData.days[targetDayIdx].plan;
       const prevItem = targetDayPlan[insertAfterPIdx];
       const nextItem = targetDayPlan[insertAfterPIdx + 1];
-      if (options?.anchor === 'next' && nextItem && !itemToMove.types?.includes('ship')) {
+
+      // 같은 날 안에서 이동 시: 드롭 위치의 아이템 시간을 가져와서 교환
+      const originalTime = itemToMove.time;
+      if (!isCopy && targetDayIdx === sourceDayIdx && !itemToMove.types?.includes('ship')) {
+        // 드롭 위치의 다음 아이템 시간을 이동 아이템에 적용
+        if (nextItem && nextItem.type !== 'backup') {
+          itemToMove.time = nextItem.time;
+        } else if (prevItem && prevItem.type !== 'backup') {
+          itemToMove.time = minutesToTime(getTimelineItemEndMinutes(prevItem) + DEFAULT_TRAVEL_MINS + DEFAULT_BUFFER_MINS);
+        }
+      } else if (options?.anchor === 'next' && nextItem && !itemToMove.types?.includes('ship')) {
         const nextTravel = DEFAULT_TRAVEL_MINS;
         const nextBuffer = DEFAULT_BUFFER_MINS;
         const nextStart = timeToMinutes(nextItem.time || '00:00');
@@ -9269,6 +9330,7 @@ const App = () => {
       case 'experience': return <div key={type} className={`${style} text-emerald-600 bg-emerald-50 border-emerald-100`}><Star size={10} /> 체험</div>;
       case 'souvenir': return <div key={type} className={`${style} text-teal-600 bg-teal-50 border-teal-100`}><Gift size={10} /> 기념품샵</div>;
       case 'pickup': return <div key={type} className={`${style} text-orange-500 bg-orange-50 border-orange-100`}><Package size={10} /> 픽업</div>;
+      case 'home': return <div key={type} className={`${style} text-amber-700 bg-amber-50 border-amber-100`}><Home size={10} /> 집</div>;
       case 'quick': return <div key={type} className={`${style} text-yellow-600 bg-yellow-50 border-yellow-200`}><Zap size={10} /> 퀵등록</div>;
       case 'new': return <span key="new" className={style + ' text-emerald-600 bg-emerald-50 border-emerald-200'}>신규</span>;
       case 'revisit': return <span key="revisit" className={style + ' text-blue-600 bg-blue-50 border-blue-200'}>재방문</span>;
@@ -10115,7 +10177,10 @@ const App = () => {
   }, [itinerary, loading, user, currentPlanId, tripRegion, tripStartDate, tripEndDate, isSharedReadOnly, shareSettings]);
 
   const saveItineraryManually = async (historyLabel = null) => {
-    if (!user || user.isGuest || isSharedReadOnly) return;
+    if (!user || user.isGuest || isSharedReadOnly) {
+      showInfoToast(!user ? '로그인 후 저장할 수 있습니다.' : user.isGuest ? '게스트 모드에서는 저장할 수 없습니다.' : '읽기 전용 일정입니다.');
+      return;
+    }
     const currentItinerary = itineraryRef.current;
     if (!currentItinerary || !currentItinerary.days || currentItinerary.days.length === 0) return;
     const planId = currentPlanId || 'main';
@@ -10131,10 +10196,10 @@ const App = () => {
       collaborators,
       updatedAt: Date.now(),
     };
-    setLastAction('저장 중...');
+    showInfoToast('저장 중...', { durationMs: 1500 });
     await enqueueItinerarySave(planId, payload);
     setIsDirty(false);
-    setLastAction('저장 완료 ✓');
+    showInfoToast('저장 완료 ✓');
     // 수동 저장 히스토리 기록 (최대 20개)
     const now = Date.now();
     const label = historyLabel || `${tripRegion || '여행'} 일정 — ${new Date(now).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
@@ -10144,6 +10209,7 @@ const App = () => {
       snapshot: JSON.parse(JSON.stringify({ ...payload, collaborators })),
     }, ...prev].slice(0, 20));
   };
+  saveItineraryRef.current = saveItineraryManually;
 
   const restoreSaveHistory = async (entry) => {
     if (!user || user.isGuest || isSharedReadOnly) return;
@@ -11385,12 +11451,78 @@ const App = () => {
                       </button>
                       <div className="h-px bg-slate-100 mx-4" />
                       <button
-                        onClick={() => { setShowAiSettings(true); setShowNavMenu(false); }}
+                        onClick={() => setNavAiExpanded((v) => !v)}
                         className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
                       >
                         <Wand2 size={13} className="text-slate-400" />
                         AI 설정
+                        <ChevronDown size={11} className={`ml-auto text-slate-400 transition-transform ${navAiExpanded ? 'rotate-180' : ''}`} />
                       </button>
+                      {navAiExpanded && (
+                        <div className="px-4 pb-3 space-y-2.5">
+                          <label className="block">
+                            <span className="text-[10px] font-black text-slate-500">Groq API Key</span>
+                            <input
+                              type="password"
+                              value={aiSmartFillConfig.apiKey}
+                              onChange={(e) => setAiSmartFillConfig((prev) => normalizeAiSmartFillConfig({ ...prev, apiKey: e.target.value }))}
+                              placeholder={serverAiKeyStatus.hasStoredGroqKey ? '새 Groq 키로 교체' : 'Groq API 키 입력'}
+                              className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                            />
+                            <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-[#3182F6] hover:underline">
+                              Groq API 키 발급받기 →
+                            </a>
+                          </label>
+                          <label className="block">
+                            <span className="text-[10px] font-black text-slate-500">Gemini API Key (네이버 링크 전용)</span>
+                            <input
+                              type="password"
+                              value={aiSmartFillConfig.geminiApiKey}
+                              onChange={(e) => setAiSmartFillConfig((prev) => normalizeAiSmartFillConfig({ ...prev, geminiApiKey: e.target.value }))}
+                              placeholder={serverAiKeyStatus.hasStoredGeminiKey ? '새 Gemini 키로 교체' : 'Gemini API 키 입력'}
+                              className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="text-[10px] font-black text-slate-500">Perplexity API Key (선택)</span>
+                            <input
+                              type="password"
+                              value={aiSmartFillConfig.perplexityApiKey}
+                              onChange={(e) => setAiSmartFillConfig((prev) => normalizeAiSmartFillConfig({ ...prev, perplexityApiKey: e.target.value }))}
+                              placeholder={serverAiKeyStatus.hasStoredPerplexityKey ? '새 Perplexity 키로 교체' : 'Perplexity API 키 입력'}
+                              className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
+                            />
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => { void saveServerAiKey(); }}
+                              className="px-2.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50 text-[10px] font-black text-[#3182F6] hover:bg-blue-100"
+                            >
+                              키 저장
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { void deleteServerAiKey(); }}
+                              className="px-2.5 py-1.5 rounded-xl border border-slate-200 text-[10px] font-black text-slate-500 hover:border-slate-300"
+                            >
+                              삭제
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowAiSettings(true)}
+                              className="ml-auto px-2.5 py-1.5 rounded-xl border border-slate-200 text-[10px] font-black text-slate-400 hover:border-slate-300"
+                            >
+                              상세 설정
+                            </button>
+                          </div>
+                          <div className="text-[9px] font-bold text-slate-400 leading-relaxed">
+                            {auth.currentUser && !auth.currentUser.isGuest
+                              ? `Groq ${serverAiKeyStatus.hasStoredGroqKey ? '✓' : '✗'} · Gemini ${serverAiKeyStatus.hasStoredGeminiKey ? '✓' : '✗'} · Perplexity ${serverAiKeyStatus.hasStoredPerplexityKey ? '✓' : '✗'}`
+                              : '비로그인: 현재 세션에서만 유지'}
+                          </div>
+                        </div>
+                      )}
                       <div className="h-px bg-slate-100 mx-4" />
                       <div className="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors">
                         <button
@@ -11496,7 +11628,7 @@ const App = () => {
             <Package size={14} className="text-slate-300" />
           </div>
         ) : (
-          <>
+          <React.Fragment>
             {/* ── 고정 헤더 ── */}
             <div className="px-5 pt-5 pb-2.5 border-b border-slate-100/60 shrink-0 bg-white">
               <div className="flex items-center gap-2">
@@ -11814,7 +11946,8 @@ const App = () => {
                           showTimelineMarkers={overviewMapRouteVisible}
                           showRouteLines={overviewMapRouteVisible}
                           showOverlayMarkers
-                          scopeKey={`lib:${overviewMapScope}:${overviewMapDayFilter ?? 'all'}:${overviewMapRouteVisible ? 'r' : 'nr'}`}
+                          scopeKey={`lib:${overviewMapScope}:${overviewMapDayFilter ?? 'all'}:${overviewMapRouteVisible ? 'r' : 'nr'}:${hideLongRouteSegments ? 'hl' : 'sl'}`}
+                          hideLongSegments={hideLongRouteSegments}
                         />
                         {/* 오버레이 버튼: 좌상단 Day 필터 */}
                         <div className="absolute top-2 left-2 flex gap-1 flex-wrap max-w-[70%] z-[500]" data-no-map-clear="true">
@@ -11843,8 +11976,15 @@ const App = () => {
                             );
                           })}
                         </div>
-                        {/* 오버레이 버튼: 우상단 출발/도착 + 새로고침 */}
-                        <div className="absolute top-2 right-2 flex gap-1 z-[500]" data-no-map-clear="true">
+                        {/* 오버레이 버튼: 우상단 장거리 숨기기 + 페리 토글 + 새로고침 */}
+                        <div className="absolute top-2 right-2 flex gap-1 flex-wrap justify-end z-[500]" data-no-map-clear="true">
+                          <button
+                            type="button"
+                            onClick={() => setHideLongRouteSegments((v) => !v)}
+                            className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[9px] font-black shadow-sm backdrop-blur-sm transition-all ${hideLongRouteSegments ? 'border-orange-200 bg-orange-50/90 text-orange-500' : 'border-slate-200 bg-white/80 text-slate-500 hover:border-orange-200 hover:text-orange-500'}`}
+                          >
+                            <Eye size={9} /><span>장거리 {hideLongRouteSegments ? '숨김' : '표시'}</span>
+                          </button>
                           {routePreviewEndpointActions.map((action) => (
                             <button
                               key={action.id}
@@ -12184,6 +12324,7 @@ const App = () => {
                               <div className="mt-2 flex flex-wrap gap-1.5">
                                 {lodgeSegmentItems.map((segment) => {
                                   const segmentPayload = buildLibraryPayloadFromLodgeSegment(place, segment);
+                                  const isCustom = segment.id.includes('_custom_');
                                   return (
                                     <div
                                       key={segment.id}
@@ -12216,14 +12357,54 @@ const App = () => {
                                         });
                                       }}
                                       onDragEnd={() => { desktopDragRef.current = null; setDraggingFromLibrary(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false); }}
-                                      className={`inline-flex items-center gap-1.5 rounded-xl border px-2 py-1 text-[10px] font-black transition-colors cursor-grab active:cursor-grabbing select-none ${segment.type === 'stay' ? 'border-violet-200 bg-violet-50 text-violet-600' : segment.type === 'swim' ? 'border-cyan-200 bg-cyan-50 text-cyan-600' : 'border-slate-200 bg-white text-slate-500 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600'}`}
+                                      className={`inline-flex items-center gap-1.5 rounded-xl border px-2 py-1 text-[10px] font-black transition-colors cursor-grab active:cursor-grabbing select-none ${segment.type === 'stay' ? 'border-violet-200 bg-violet-50 text-violet-600' : segment.type === 'swim' ? 'border-cyan-200 bg-cyan-50 text-cyan-600' : isCustom ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-slate-200 bg-white text-slate-500 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600'}`}
                                       title="드래그하여 일정에 복제"
                                     >
                                       <GripVertical size={10} className="shrink-0" />
                                       <span>{segment.label}</span>
+                                      {isCustom && (
+                                        <button
+                                          type="button"
+                                          className="ml-0.5 text-emerald-400 hover:text-red-500 transition-colors"
+                                          title="세그먼트 삭제"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            const segKey = segment.type;
+                                            updatePlace(place.id, {
+                                              customSegments: (place.customSegments || []).filter((s) => s.key !== segKey),
+                                            });
+                                          }}
+                                          onMouseDown={(e) => e.stopPropagation()}
+                                          draggable={false}
+                                          onDragStart={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                                        >
+                                          <X size={9} />
+                                        </button>
+                                      )}
                                     </div>
                                   );
                                 })}
+                                <button
+                                  type="button"
+                                  data-no-drag="true"
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const label = window.prompt('추가할 세그먼트 이름 (예: 생태체험, 바베큐, 조식)');
+                                    if (!label?.trim()) return;
+                                    const key = label.trim().toLowerCase().replace(/\s+/g, '_');
+                                    const existing = Array.isArray(place.customSegments) ? place.customSegments : [];
+                                    if (existing.some((s) => s.key === key)) return;
+                                    updatePlace(place.id, {
+                                      customSegments: [...existing, { key, label: label.trim(), duration: 60 }],
+                                    });
+                                  }}
+                                  className="inline-flex items-center justify-center w-6 h-6 rounded-xl border border-dashed border-slate-300 text-slate-400 hover:text-emerald-500 hover:border-emerald-400 hover:bg-emerald-50 transition-all"
+                                  title="커스텀 세그먼트 추가"
+                                >
+                                  <Plus size={11} />
+                                </button>
                               </div>
                             </div>
                           ) : null}
@@ -12259,7 +12440,7 @@ const App = () => {
                 );
               })()}
             </div>
-          </>
+          </React.Fragment>
         )
         }
       </div>
@@ -12554,7 +12735,7 @@ const App = () => {
           {showBulkAddModal && (
             <>
               <div className="fixed inset-0 z-[291] bg-black/30 backdrop-blur-sm" onClick={() => setShowBulkAddModal(false)} />
-              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl flex flex-col max-h-[85vh]" style={{ paddingLeft: leftSidebarWidth > 0 && !isMobileLayout ? `calc(${leftSidebarWidth}px / 2)` : undefined }}>
+              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl flex flex-col max-h-[85vh]">
                 <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
                   <div>
                     <p className="text-[14px] font-black text-slate-800">여러 장소 추가하기</p>
@@ -12569,8 +12750,40 @@ const App = () => {
                         value={bulkAddText}
                         onChange={(e) => setBulkAddText(e.target.value)}
                         placeholder={"카카오맵 공유 텍스트 또는\n장소명\n주소\n\n장소명\n주소\n\n형식으로 붙여넣기하세요"}
-                        className="w-full h-48 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6] resize-none leading-relaxed"
+                        className="w-full h-32 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6] resize-none leading-relaxed"
                       />
+                      {bulkAddText.trim() && (() => {
+                        const addressRe = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주특별자치)/;
+                        const lines = bulkAddText.split('\n');
+                        const items = [];
+                        for (let li = 0; li < lines.length; li++) {
+                          const trimmed = lines[li].trim();
+                          if (!trimmed) continue;
+                          const isAddr = addressRe.test(trimmed);
+                          const nextTrimmed = li < lines.length - 1 ? lines[li + 1]?.trim() : '';
+                          const isName = !isAddr && addressRe.test(nextTrimmed || '');
+                          if (isName) items.push({ name: trimmed, address: nextTrimmed });
+                        }
+                        return items.length > 0 ? (
+                          <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                            <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                              <span className="text-[10px] font-black text-slate-500">{items.length}개 장소 감지</span>
+                              <div className="flex items-center gap-2">
+                                <span className="flex items-center gap-1 text-[9px] font-bold text-blue-500"><span className="w-1.5 h-1.5 rounded-full bg-blue-400" /> 상호</span>
+                                <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-500"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> 주소</span>
+                              </div>
+                            </div>
+                            <div className="max-h-[120px] overflow-y-auto divide-y divide-slate-100">
+                              {items.map((item, idx) => (
+                                <div key={idx} className="px-3 py-2 flex flex-col gap-0.5">
+                                  <span className="text-[11px] font-black text-blue-600">{item.name}</span>
+                                  <span className="text-[10px] font-bold text-emerald-600">{item.address}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
                       <button
                         type="button"
                         onClick={async () => {
@@ -12623,9 +12836,27 @@ const App = () => {
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="text-[11px] font-black text-slate-800">{item.name}</span>
-                                {item.types.filter(t => t !== 'place').map(t => <span key={t} className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-600">{t}</span>)}
                               </div>
                               {item.address && <p className="text-[10px] font-bold text-slate-400 mt-0.5 truncate">{item.address}</p>}
+                              <div className="flex flex-wrap gap-1 mt-1.5" onClick={(e) => e.stopPropagation()}>
+                                {TAG_OPTIONS.filter(t => !['place', 'new', 'revisit', 'quick'].includes(t.value)).map(t => {
+                                  const active = item.types.includes(t.value);
+                                  return (
+                                    <button
+                                      key={t.value}
+                                      type="button"
+                                      onClick={() => setBulkAddParsed(prev => prev.map((p, i) => {
+                                        if (i !== idx) return p;
+                                        const nextTypes = active ? p.types.filter(v => v !== t.value) : [...p.types.filter(v => v !== 'place'), t.value];
+                                        return { ...p, types: nextTypes.length ? nextTypes : ['place'] };
+                                      }))}
+                                      className={`px-1.5 py-0.5 rounded text-[9px] font-black border transition-colors ${active ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300'}`}
+                                    >
+                                      {t.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -12636,11 +12867,32 @@ const App = () => {
                           const selected = bulkAddParsed.filter(p => p.selected);
                           if (selected.length === 0) { showInfoToast('선택된 장소가 없습니다.'); return; }
                           setBulkAddLoading(true);
+                          const existingNames = new Set((itinerary.places || []).map(p => String(p.name || '').trim().toLowerCase()));
+                          let addedCount = 0;
+                          let dupCount = 0;
                           for (const item of selected) {
-                            addPlace({ name: item.name, types: item.types, address: item.address, memo: '', menus: [], business: {} }, { unselectedMenus: true });
+                            const normalizedName = String(item.name || '').trim().toLowerCase();
+                            if (existingNames.has(normalizedName)) {
+                              // 중복 → 휴지통으로
+                              const trashPlace = normalizeLibraryPlace({
+                                id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+                                name: item.name, types: normalizeTagOrder(item.types),
+                                address: (item.address || '').trim(),
+                                receipt: { address: (item.address || '').trim(), items: [] },
+                              });
+                              setItinerary(prev => ({ ...prev, placeTrash: [...(prev.placeTrash || []), trashPlace] }));
+                              dupCount++;
+                            } else {
+                              addPlace({ name: item.name, types: item.types, address: item.address, memo: '', menus: [], business: {} }, { unselectedMenus: true });
+                              existingNames.add(normalizedName);
+                              addedCount++;
+                            }
                           }
                           setBulkAddLoading(false);
-                          showInfoToast(`${selected.length}개 장소를 추가했습니다!`, { durationMs: 2400 });
+                          const msg = dupCount > 0
+                            ? `${addedCount}개 추가, ${dupCount}개 중복 → 휴지통`
+                            : `${addedCount}개 장소를 추가했습니다!`;
+                          showInfoToast(msg, { durationMs: 2400 });
                           setShowBulkAddModal(false);
                           setBulkAddText('');
                           setBulkAddParsed([]);
@@ -12934,7 +13186,7 @@ const App = () => {
           {showAiSettings && (
             <>
               <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowAiSettings(false)} />
-              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(480px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(480px,92vw)] max-h-[88vh] overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-[14px] font-black text-slate-800">AI 스마트 채우기 설정</p>
@@ -12952,6 +13204,9 @@ const App = () => {
                       placeholder={serverAiKeyStatus.hasStoredGroqKey ? '새 Groq 키로 교체하려면 다시 입력' : '암호화 저장할 Groq API 키 입력'}
                       className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
                     />
+                    <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-[#3182F6] hover:underline">
+                      Groq API 키 발급받기 →
+                    </a>
                   </label>
                   <label className="block">
                     <span className="text-[10px] font-black text-slate-500">Gemini API Key (네이버 링크 전용)</span>
@@ -13841,6 +14096,7 @@ const App = () => {
                 const isLodgeSegmentCard = isStandaloneLodgeSegmentItem(p);
                 const isLodgeTagged = Array.isArray(p.types) && p.types.includes('lodge');
                 const isShip = p.types?.includes('ship');
+                const isHome = p.types?.includes('home');
                 const prevMainItem = getPreviousMainPlanItemByIndex(itinerary.days || [], dIdx, pIdx);
                 const nextMainItem = getNextMainPlanItemByIndex(itinerary.days || [], dIdx, pIdx);
                 const isFirstMainItem = isFirstMainPlanItemOfDayByIndex(itinerary.days || [], dIdx, pIdx);
@@ -13853,7 +14109,8 @@ const App = () => {
                 const focusedDayColor = ROUTE_PREVIEW_COLORS[dIdx % ROUTE_PREVIEW_COLORS.length];
 
                 let stateStyles;
-                if (isLodge) stateStyles = 'bg-[linear-gradient(180deg,rgba(244,245,255,0.98),rgba(255,255,255,0.98))] border-indigo-200 shadow-[0_12px_28px_-12px_rgba(99,102,241,0.18)]';
+                if (isHome) stateStyles = 'bg-[linear-gradient(180deg,rgba(255,251,235,0.98),rgba(255,255,255,0.98))] border-amber-200 shadow-[0_10px_24px_-10px_rgba(180,131,9,0.14)]';
+                else if (isLodge) stateStyles = 'bg-[linear-gradient(180deg,rgba(244,245,255,0.98),rgba(255,255,255,0.98))] border-indigo-200 shadow-[0_12px_28px_-12px_rgba(99,102,241,0.18)]';
                 else if (isLodgeTagged) stateStyles = 'bg-[linear-gradient(180deg,rgba(249,245,255,0.98),rgba(255,255,255,0.98))] border-violet-200 shadow-[0_12px_28px_-14px_rgba(139,92,246,0.16)]';
                 else if (isShip) stateStyles = 'bg-[#f4fafe] border-blue-200 shadow-[0_8px_24px_-8px_rgba(29,78,216,0.12)]';
                 else if (hasPlanB) stateStyles = 'bg-white border-amber-300 shadow-[0_10px_30px_-8px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/20';
@@ -13894,7 +14151,7 @@ const App = () => {
                     className={`relative group transition-all duration-300 ${highlightedItemId === p.id ? 'scale-[1.02]' : ''}`}
                   >
                     {isFirstMainItem && renderMobileLibraryInsertSlot(dIdx, -1, `mobile-insert-start-${d.day}`)}
-                    {d.day > 1 && isFirstMainItem && (
+                    {isFirstMainItem && (isTimelineDragActive || d.day > 1) && (
                       <div className="flex w-full items-center justify-center my-3">
                         {isTimelineDragActive ? (
                           (() => {
@@ -14097,7 +14354,7 @@ const App = () => {
                         {/* planVariantPicker 팝업은 overflow-hidden 카드 밖 루트 레벨에서 렌더링 */}
                         <div className="relative flex flex-col border-b border-slate-100 border-dashed">
 
-                          {!isShip && !isLodge && (
+                          {!isShip && !isLodge && !isHome && (
                             <div
                               data-no-drag="true"
                               className={`flex flex-col group/tower transition-all duration-300 ease-out ${isTimeCellExpanded ? 'overflow-visible z-20 py-2 px-2 sm:px-2.5' : 'w-full border-b border-slate-100 overflow-hidden'} ${!isTimeCellExpanded ? 'py-1.5 px-2 sm:px-2.5' : ''} bg-transparent`}
@@ -14375,7 +14632,7 @@ const App = () => {
                           )}
 
                           {/* 🟢 내용 영역 */}
-                          <div className={`${isTimeCellExpanded && !isShip && !isLodge ? 'hidden' : ''} w-full min-w-0 flex flex-col justify-start transition-all duration-500 overflow-hidden ${isTimelineDragActive ? 'gap-1.5 p-2.5 sm:p-3' : isCompactTimeline ? 'gap-2 p-2.5 sm:p-3' : 'gap-2 p-3 sm:p-4'}`}>
+                          <div className={`${isTimeCellExpanded && !isShip && !isLodge && !isHome ? 'hidden' : ''} w-full min-w-0 flex flex-col justify-start transition-all duration-500 overflow-hidden ${isTimelineDragActive ? 'gap-1.5 p-2.5 sm:p-3' : isCompactTimeline ? 'gap-2 p-2.5 sm:p-3' : 'gap-2 p-3 sm:p-4'}`}>
                             {isShip ? (
                               <div className="flex flex-col gap-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                                 {(() => {
@@ -14728,6 +14985,63 @@ const App = () => {
                                     );
                                   })()}
                                 </div>
+                                {String(p.memo || '').trim() ? (
+                                  <input
+                                    value={p.memo || ''}
+                                    onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
+                                    className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
+                                    placeholder="메모를 입력하세요..."
+                                  />
+                                ) : null}
+                              </div>
+                            ) : isHome ? (
+                              <div className="flex flex-col gap-2 py-0.5" onClick={(e) => e.stopPropagation()}>
+                                {/* 집 이름 */}
+                                <div className="flex items-center gap-1.5">
+                                  <Home size={11} className="text-amber-600 shrink-0" />
+                                  <input
+                                    value={p.activity}
+                                    onChange={(e) => updateActivityName(dIdx, pIdx, e.target.value)}
+                                    onFocus={(e) => e.target.select()}
+                                    className="flex-1 min-w-0 bg-transparent text-[13px] font-black text-slate-800 outline-none placeholder:text-slate-300"
+                                    placeholder="집 이름"
+                                  />
+                                  <button onClick={(e) => { e.stopPropagation(); setEditingItemId(p.id); setEditDraft(createPlanEditorDraft(p)); }} className="shrink-0 p-1 rounded-lg text-slate-300 hover:text-[#3182F6] hover:bg-blue-50 transition-colors"><Pencil size={11} /></button>
+                                </div>
+                                {/* 주소 */}
+                                <SharedAddressRow
+                                  value={p.receipt?.address || p.address || ''}
+                                  onChange={(v) => {
+                                    const addr = String(v || '').trim();
+                                    setItinerary(prev => {
+                                      const next = JSON.parse(JSON.stringify(prev));
+                                      const item = next.days[dIdx]?.plan?.[pIdx];
+                                      if (!item) return prev;
+                                      item.address = addr;
+                                      if (!item.receipt) item.receipt = {};
+                                      item.receipt.address = addr;
+                                      return next;
+                                    });
+                                  }}
+                                  onSearchClick={() => openNaverPlaceSearch(p.activity || '집', p.receipt?.address || p.address || '')}
+                                  onStarClick={() => setBasePlanRef(p.receipt?.address ? { dayIdx: dIdx, pIdx, id: p.id, name: p.activity, address: p.receipt.address } : null)}
+                                  isStarred={basePlanRef?.id === p.id}
+                                />
+                                {/* 출발 시간 */}
+                                <div className="flex gap-2">
+                                  <div
+                                    data-time-trigger="true"
+                                    onClick={() => setTimeControllerTarget(prev => prev?.itemId === p.id && prev?.kind === 'plan-time' ? null : { kind: 'plan-time', dayIdx: dIdx, pIdx, itemId: p.id })}
+                                    className={`relative overflow-hidden flex-1 rounded-xl border p-3 flex flex-col items-center justify-center gap-2 min-h-[80px] cursor-pointer transition-colors ${timeControllerTarget?.itemId === p.id && timeControllerTarget?.kind === 'plan-time' ? 'bg-amber-100/80 border-amber-300' : 'bg-amber-50/70 border-amber-100 hover:bg-amber-100/60'}`}
+                                  >
+                                    <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[48px] font-black tracking-[0.08em] text-amber-200/55 select-none">GO</span>
+                                    <span className="text-[8px] font-black tracking-[0.18em] text-amber-500">출발</span>
+                                    <span className={`text-[22px] font-black tabular-nums tracking-tight ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-amber-900'}`}>
+                                      {String(p.time || '00:00').split(':')[0]}:{String(p.time || '00:00').split(':')[1]}
+                                    </span>
+                                  </div>
+                                </div>
+                                {/* 메모 */}
                                 {String(p.memo || '').trim() ? (
                                   <input
                                     value={p.memo || ''}

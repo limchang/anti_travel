@@ -21,6 +21,11 @@ import BulkAddModal from './components/shared/BulkAddModal.jsx';
 import PlanOptionsModal from './components/shared/PlanOptionsModal.jsx';
 import AiSettingsModal from './components/shared/AiSettingsModal.jsx';
 import { OrderedTagPicker, SharedNameRow, SharedAddressRow, SharedBusinessRow, SharedMemoRow, MenuPriceInput, SharedTotalFooter, parseChecklistLines, toggleChecklistLine, hasChecklistItems, createPlaceEditorDraft, buildSmartFillMenuItems, getCustomTagLabel, ACTION_SLOT_CLASS } from './components/shared/SharedComponents.jsx';
+import PlanManagerModal from './components/shared/PlanManagerModal.jsx';
+import PlaceTrashModal from './components/shared/PlaceTrashModal.jsx';
+import ShareManagerModal from './components/shared/ShareManagerModal.jsx';
+import UpdateModal from './components/shared/UpdateModal.jsx';
+import OverviewMapModal from './components/shared/OverviewMapModal.jsx';
 import { TimeInput, buildBusinessQuickEditSegments, BusinessHoursEditor, DateRangePicker, TimeWheelColumn } from './components/shared/BusinessComponents.jsx';
 import { loadKakaoMapSdk, ROUTE_PREVIEW_DEFAULT_CENTER, toLeafletLatLng, getMapCategoryColor, getMapCategoryLabel, MAP_CATEGORY_EMOJI, getMapCategoryEmoji, buildTimelineMarkerIcon, buildGroupedTimelineMarkerIcon, buildLibraryMarkerIcon, buildOverlayMarkerIcon, buildSegmentLabelIcon, calcBearingDeg, buildArrowIcon, sampleRouteArrows, LeafletMapViewportController, LeafletMapBackgroundClickHandler, LeafletMapContextMenuHandler, POPUP_TAG_OPTIONS, RoutePreviewCanvas } from './components/map/MapComponents.jsx';
 import { SmartFillGuideModal, GUIDE_DOC_PATH, isLegacySmartFillGuideContent } from './components/shared/SmartFillGuideModal.jsx';
@@ -8999,258 +9004,23 @@ const App = () => {
             </>
           )}
 
-          {showPlanManager && (
-            <>
-              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowPlanManager(false)} />
-              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(640px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[14px] font-black text-slate-800">일정 관리 (도시별 예시)</p>
-                  <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowPlanManager(false)}><X size={16} /></button>
-                </div>
-                <button
-                  onClick={() => {
-                    const regionInput = window.prompt('새 일정 지역을 입력하세요. (예: 부산)', '') || '';
-                    void createNewPlan(regionInput);
-                  }}
-                  className="w-full mb-3 py-2 rounded-xl bg-[#3182F6] text-white text-[11px] font-black"
-                >
-                  새 도시 일정 만들기
-                </button>
-                <div className="max-h-[52vh] overflow-y-auto">
-                  {(planList || []).length === 0 ? (
-                    <p className="text-[11px] text-slate-400 font-bold p-3">생성된 일정이 없습니다.</p>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {(planList || []).map((plan) => {
-                        const meta = resolvePlanMetaForCard(plan);
-                        return (
-                          <button
-                            key={plan.id}
-                            onClick={() => {
-                              setCurrentPlanId(plan.id);
-                              setShowPlanManager(false);
-                              setLastAction(`'${meta.title}' 일정으로 전환했습니다.`);
-                            }}
-                            className={`relative overflow-hidden rounded-2xl border text-left min-h-[170px] transition-all hover:-translate-y-0.5 ${currentPlanId === plan.id ? 'border-[#3182F6] ring-2 ring-[#3182F6]/20' : 'border-slate-200 hover:border-slate-300'}`}
-                          >
-                            <img
-                              src={getRegionCoverImage(meta.region)}
-                              alt="plan cover"
-                              className="absolute inset-0 w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/55" />
-                            <div className="relative z-10 p-4 flex flex-col gap-1.5 text-white">
-                              <p className="text-[18px] font-black truncate">{meta.region}</p>
-                              {meta.startDate && (
-                                <p className="text-[11px] font-bold text-white/85">{meta.startDate.replace(/-/g, '.')}</p>
-                              )}
-                              {meta.code && meta.code !== 'main' && (
-                                <p className="text-[11px] font-black text-white/95 tracking-wide">{meta.code}</p>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
+          <PlanManagerModal visible={showPlanManager} {...{showPlanManager, setShowPlanManager, planList, currentPlanId, setCurrentPlanId, createBlankPlan, setItinerary, setTripRegion, setTripStartDate, setTripEndDate, refreshPlanList, showInfoToast}} />
 
-          {showPlaceTrash && (
-            <>
-              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowPlaceTrash(false)} />
-              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <p className="text-[14px] font-black text-slate-800">내 장소 휴지통</p>
-                    <p className="mt-1 text-[10px] font-bold text-slate-400">삭제된 장소는 여기로 이동하고, 여기서 삭제하면 완전 삭제됩니다.</p>
-                  </div>
-                  <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowPlaceTrash(false)}><X size={16} /></button>
-                </div>
-                <div className="max-h-[52vh] overflow-y-auto space-y-2">
-                  {(itinerary.placeTrash || []).length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
-                      <p className="text-[12px] font-black text-slate-500">휴지통이 비어 있습니다.</p>
-                    </div>
-                  ) : (
-                    (itinerary.placeTrash || []).map((place) => (
-                      <div key={`trash-${place.id}`} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-[12px] font-black text-slate-800">{place.name || '이름 없는 장소'}</p>
-                            <p className="mt-1 truncate text-[10px] font-bold text-slate-400">{place.address || place.receipt?.address || '주소 없음'}</p>
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => restorePlaceFromTrash(place.id)}
-                              className="flex items-center gap-1 rounded-xl border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[10px] font-black text-[#3182F6] hover:bg-blue-100"
-                            >
-                              <RotateCcw size={11} />
-                              복원
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => deletePlacePermanently(place.id)}
-                              className="flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-2.5 py-1.5 text-[10px] font-black text-red-500 hover:bg-red-100"
-                            >
-                              <Trash2 size={11} />
-                              완전삭제
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </>
-          )}
+          <PlaceTrashModal visible={showPlaceTrash} {...{showPlaceTrash, setShowPlaceTrash, itinerary, setItinerary, restorePlaceFromTrash, deletePlacePermanently, showInfoToast}} />
 
           {/* ── 여러 장소 추가 모달 ── */}
           <BulkAddModal showBulkAddModal={showBulkAddModal} setShowBulkAddModal={setShowBulkAddModal} bulkAddText={bulkAddText} setBulkAddText={setBulkAddText} bulkAddParsed={bulkAddParsed} setBulkAddParsed={setBulkAddParsed} bulkAddLoading={bulkAddLoading} setBulkAddLoading={setBulkAddLoading} showInfoToast={showInfoToast} addPlace={addPlace} itinerary={itinerary} setItinerary={setItinerary} />
 
           <PlanOptionsModal visible={showPlanOptions} {...{ showPlanOptions, setShowPlanOptions, tripRegion, setTripRegion, tripStartDate, setTripStartDate, tripEndDate, setTripEndDate, itinerary, setItinerary, showInfoToast }} />
 
-          {showShareManager && (
-            <>
-              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowShareManager(false)} />
-              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[14px] font-black text-slate-800">공유 범위 / 편집 권한</p>
-                  <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowShareManager(false)}><X size={16} /></button>
-                </div>
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  <select
-                    value={shareSettings.visibility}
-                    onChange={(e) => updateShareConfig({ ...shareSettings, visibility: e.target.value })}
-                    className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
-                  >
-                    <option value="private">비공개</option>
-                    <option value="link">링크 소지자 공개</option>
-                    <option value="public">공개</option>
-                  </select>
-                  <select
-                    value={shareSettings.permission}
-                    onChange={(e) => updateShareConfig({ ...shareSettings, permission: e.target.value })}
-                    className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
-                  >
-                    <option value="viewer">보기만</option>
-                    <option value="editor">편집 가능</option>
-                  </select>
-                </div>
-                <button
-                  onClick={() => { void copyShareLink(); }}
-                  className="w-full py-2 rounded-xl border border-blue-200 bg-blue-50 text-[#3182F6] text-[11px] font-black hover:bg-blue-100 transition-colors"
-                >
-                  {shareCopied ? '복사됨' : '공유 링크 복사'}
-                </button>
-                <p className="text-[10px] text-slate-400 font-bold mt-2">
-                  링크에는 현재 플랜 ID가 포함됩니다. (예: 다른 도시 일정 분리 공유)
-                </p>
-              </div>
-            </>
-          )}
+          <ShareManagerModal visible={showShareManager} {...{showShareManager, setShowShareManager, shareSettings, setShareSettings, collaborators, setCollaborators, collaboratorInput, setCollaboratorInput, collaboratorLoading, showInfoToast, user}} />
 
           {/* 업데이트 알림 모달 */}
-          {showUpdateModal && (
-            <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/40 p-4 transition-all" onClick={() => setShowUpdateModal(false)}>
-              <div
-                className="relative w-full max-w-[340px] rounded-2xl bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  onClick={() => setShowUpdateModal(false)}
-                  className="absolute right-3.5 top-3.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus:outline-none transition-colors"
-                >
-                  <X size={14} strokeWidth={2.5} />
-                </button>
-                <div className="mb-4">
-                  <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2 py-0.5 text-blue-600">
-                    <Sparkles size={10} className="fill-blue-600" />
-                    <span className="text-[9px] font-black uppercase tracking-wider">업데이트 완료</span>
-                  </div>
-                  <h3 className="mt-1 text-base font-black text-slate-800">새로운 기능이 변경되었습니다!</h3>
-                  <p className="mt-1 text-[11.5px] font-bold leading-relaxed text-slate-500">
-                    버전 <span className="font-black text-[#3182F6]">{APP_VERSION}</span> 패치가 성공적으로 적용되었습니다.
-                  </p>
-                </div>
-                <div className="mb-5 rounded-xl bg-slate-50 p-3.5">
-                  <div className="flex items-center gap-1.5 mb-2.5 border-b border-slate-200 pb-2">
-                    <CheckSquare size={13} className="text-[#3182F6]" />
-                    <span className="text-[11.5px] font-black text-slate-700">이번 업데이트 내용</span>
-                  </div>
-                  <div className="text-[11.5px] font-bold text-slate-600 leading-[1.6] whitespace-pre-wrap whitespace-pre-line pl-1 border-l-2 border-slate-200">
-                    {latestUpdate.message}
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowUpdateModal(false)}
-                  className="w-full rounded-xl bg-[#3182F6] py-3 text-[13px] font-black tracking-wide text-white transition-colors hover:bg-blue-600 focus:outline-none"
-                >
-                  확인하고 시작하기
-                </button>
-              </div>
-            </div>
-          )}
+          <UpdateModal visible={showUpdateModal} {...{showUpdateModal, setShowUpdateModal, APP_VERSION, latestUpdate}} />
 
           <AiSettingsModal visible={showAiSettings} {...{ showAiSettings, setShowAiSettings, aiSmartFillConfig, setAiSmartFillConfig, normalizeAiSmartFillConfig, serverAiKeyStatus, fetchServerAiKeyStatus, saveServerAiKey, deleteServerAiKey, auth, DEFAULT_AI_SMART_FILL_CONFIG }} />
 
-          {showOverviewMapModal && (
-            <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/42 px-4 py-6 backdrop-blur-sm" onClick={() => setShowOverviewMapModal(false)}>
-              <div
-                className="w-full max-w-[980px] rounded-[28px] border border-white/70 bg-white/96 p-4 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)]"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[15px] font-black tracking-tight text-slate-900">동선 지도 크게 보기</p>
-                    <p className="mt-1 text-[11px] font-bold text-slate-400 truncate">
-                      {`일정 ${overviewTimelinePoints.length} · 내 장소 ${libraryMapPoints.length} · 추천 ${recommendationMapPoints.length}`}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowOverviewMapModal(false)}
-                    className="shrink-0 rounded-2xl border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
-                    title="지도 크게 보기 닫기"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-                <div className="mt-3 overflow-hidden rounded-[22px] border border-slate-200 bg-white">
-                  <RoutePreviewCanvas
-                    routePreviewMap={overviewFilteredRoutePreviewMap}
-                    libraryPoints={[]}
-                    recommendationPoints={[]}
-                    focusedTarget={focusedMapTarget}
-                    onMarkerClick={handleOverviewMapMarkerClick}
-                    onBackgroundClick={clearOverviewMapFocus}
-                    onSegmentLabelClick={(toItemId) => {
-                      let found = null;
-                      (itinerary.days || []).forEach((day, dI) => {
-                        (day.plan || []).forEach((item, pI) => {
-                          if (item?.id === toItemId) found = { dIdx: dI, pIdx: pI };
-                        });
-                      });
-                      if (found) {
-                        document.getElementById(`travel-chip-${found.dIdx}-${found.pIdx}`)
-                          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }
-                    }}
-                    interactive
-                    height={isMobileLayout ? 460 : 620}
-                    showTimelineMarkers
-                    showRouteLines
-                    showOverlayMarkers={false}
-                    scopeKey={`${overviewMapScope}:${overviewMapDayFilter ?? 'all'}`}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+          <OverviewMapModal visible={showOverviewMapModal} {...{showOverviewMapModal, setShowOverviewMapModal}} />
           {showPlaceMapModal && (
             <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/42 px-4 py-6 backdrop-blur-sm" onClick={() => setShowPlaceMapModal(false)}>
               <div

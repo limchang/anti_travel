@@ -1,14 +1,29 @@
-import { normalizeTagOrder, EMPTY_BUSINESS } from './constants.js';
-import { normalizeBusiness } from './time.js';
-import { normalizeGeoPoint, hasGeoCoords } from './geo.js';
+import { normalizeTagOrder, EMPTY_BUSINESS, WEEKDAY_OPTIONS, formatClosedDaysSummary } from './constants.js';
+import { timeToMinutes, minutesToTime, normalizeBusiness, getShipTimeline, getShipBoardTimeValue } from './time.js';
+import { normalizeGeoPoint, hasGeoCoords, isGeoStaleForAddress } from './geo.js';
 
-// 순수 유틸 — App.jsx에서도 동일 정의가 있지만 helpers.js 내부에서 필요
+// ── 순수 유틸 ──
+
+export const deepClone = (value) => JSON.parse(JSON.stringify(value));
+
 export const getMenuQty = (menu) => {
   const parsed = Number(menu?.qty);
   if (!Number.isFinite(parsed) || parsed <= 0) return 1;
   return parsed;
 };
 export const getMenuLineTotal = (menu) => Number(menu?.price || 0) * getMenuQty(menu);
+
+export const parseMinsLabel = (value, fallback) => {
+  const hit = String(value || '').match(/(\d+)/);
+  if (!hit) return fallback;
+  const parsed = parseInt(hit[1], 10);
+  return Number.isNaN(parsed) ? fallback : parsed;
+};
+
+export const DEFAULT_TRAVEL_MINS = 15;
+export const DEFAULT_BUFFER_MINS = 10;
+
+// ── Duration 관련 ──
 
 const getBaseDurationValue = (item = {}) => {
   const current = Math.max(0, Number(item?.duration) || 0);
@@ -21,6 +36,131 @@ export const ensureBaseDuration = (item = {}) => {
   item.baseDuration = safe;
   return safe;
 };
+export const syncBaseDuration = (item = {}, minutes = item?.duration) => {
+  if (!item || item.type === 'backup') return 0;
+  const safe = Math.max(0, Number(minutes) || 0);
+  item.baseDuration = safe;
+  return safe;
+};
+
+// ── Lodge/Tag 판별 ──
+
+export const hasRestTag = (types = []) => {
+  const normalized = (Array.isArray(types) ? types : []).map(v => String(v || '').trim().toLowerCase());
+  return normalized.includes('rest') || normalized.includes('휴식');
+};
+export const isLodgeStay = (types = []) => {
+  const normalized = (Array.isArray(types) ? types : []).map(v => String(v || '').trim().toLowerCase());
+  return normalized.includes('lodge') && !hasRestTag(normalized);
+};
+export const isStandaloneLodgeSegmentItem = (item = {}) => (
+  !!item?.renderAsSegmentCard
+  && !!item?.sourceLodgeId
+  && !!String(item?.segmentType || '').trim()
+);
+export const isFullLodgeStayItem = (item = {}) => isLodgeStay(item?.types) && !isStandaloneLodgeSegmentItem(item);
+export const isOvernightLodgeTimelineItem = (item = {}) => (
+  isFullLodgeStayItem(item)
+  || (isStandaloneLodgeSegmentItem(item) && String(item?.segmentType || '').trim() === 'stay')
+);
+
+export const primeTimelineDurationFromBase = (item = {}) => {
+  if (!item || item.type === 'backup') return;
+  const baseDuration = ensureBaseDuration(item);
+  if (item.types?.includes('ship') || isOvernightLodgeTimelineItem(item)) return;
+  if (item.isDurationFixed || item.isEndTimeFixed) return;
+  item.duration = baseDuration;
+};
+
+export const isAutoStretchEligible = (item = {}) => {
+  if (!item || item.type === 'backup') return false;
+  if (item.types?.includes('ship') || item.types?.includes('pickup')) return false;
+  if (item.isDurationFixed || item.isEndTimeFixed) return false;
+  if (isOvernightLodgeTimelineItem(item)) return false;
+  return true;
+};
+
+// ── Geo 관련 ──
+
+const getPlanItemPrimaryAddress = (item = {}) => String(item?.receipt?.address || item?.address || item?.sourceLodgeAddress || '').trim();
+const getShipStartAddress = (item = {}) => String(item?.receipt?.address || item?.startPoint || '').trim();
+const getShipEndAddress = (item = {}) => String(item?.endAddress || item?.endPoint || '').trim();
+
+export const applyGeoFieldsToRecord = (record = {}, forceRefresh = false) => {
+  if (!record || typeof record !== 'object') return record;
+  if (Array.isArray(record?.types) && record.types.includes('ship')) {
+    const startAddress = getShipStartAddress(record);
+    const endAddress = getShipEndAddress(record);
+    record.geoStart = (forceRefresh || isGeoStaleForAddress(record.geoStart, startAddress))
+      ? normalizeGeoPoint({ address: startAddress }, startAddress)
+      : normalizeGeoPoint(record.geoStart, startAddress);
+    record.geoEnd = (forceRefresh || isGeoStaleForAddress(record.geoEnd, endAddress))
+      ? normalizeGeoPoint({ address: endAddress }, endAddress)
+      : normalizeGeoPoint(record.geoEnd, endAddress);
+    delete record.geo;
+    return record;
+  }
+  const address = getPlanItemPrimaryAddress(record);
+  record.geo = (forceRefresh || isGeoStaleForAddress(record.geo, address))
+    ? normalizeGeoPoint({ address }, address)
+    : normalizeGeoPoint(record.geo, address);
+  delete record.geoStart;
+  delete record.geoEnd;
+  return record;
+};
+
+export const cloneGeoForRecord = (record = {}) => {
+  if (Array.isArray(record?.types) && record.types.includes('ship')) {
+    return {
+      geoStart: normalizeGeoPoint(record.geoStart, getShipStartAddress(record)),
+      geoEnd: normalizeGeoPoint(record.geoEnd, getShipEndAddress(record)),
+    };
+  }
+  return { geo: normalizeGeoPoint(record.geo, getPlanItemPrimaryAddress(record)) };
+};
+
+// ── Lodge segment time ──
+
+const normalizeLodgeSegmentTime = (raw, fallback = '18:00') => {
+  const value = String(raw || '').trim();
+  if (!value) return fallback;
+  if (/^\d{1,2}:\d{1,2}$/.test(value)) {
+    const [hourRaw, minuteRaw] = value.split(':');
+    const hours = Number.parseInt(hourRaw, 10);
+    const minutes = Number.parseInt(minuteRaw, 10);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || hours > 24 || minutes < 0 || minutes > 59 || (hours === 24 && minutes > 0)) {
+      return fallback;
+    }
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  }
+  const digits = value.replace(/\D/g, '').slice(0, 4);
+  if (!digits) return fallback;
+  const hours = digits.length <= 2 ? Number.parseInt(digits, 10) : Number.parseInt(digits.slice(0, digits.length - 2), 10);
+  const minutes = digits.length <= 2 ? 0 : Number.parseInt(digits.slice(-2), 10);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || hours > 24 || minutes < 0 || minutes > 59 || (hours === 24 && minutes > 0)) {
+    return fallback;
+  }
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
+export const ensureLodgeStaySegments = (item = {}) => {
+  if (!isFullLodgeStayItem(item)) return item;
+  const fallbackTime = String(item.time || '18:00').trim() || '18:00';
+  item.staySegments = (Array.isArray(item.staySegments) ? item.staySegments : [])
+    .filter(Boolean)
+    .map((segment, index) => ({
+      id: segment.id || `stay_${Date.now()}_${index}`,
+      type: String(segment.type || 'rest').trim() || 'rest',
+      label: String(segment.label || '').trim() || '숙소 일정',
+      time: normalizeLodgeSegmentTime(segment.time, fallbackTime),
+      duration: Math.max(10, Number(segment.duration) || 60),
+      note: String(segment.note || '').trim(),
+    }))
+    .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+  return item;
+};
+
+// ── Ship item defaults ──
 
 export const ensureShipItemDefaults = (item, dayNumber = 1) => {
   if (!item || !Array.isArray(item.types) || !item.types.includes('ship')) return item;
@@ -59,6 +199,8 @@ export const ensureShipItemDefaults = (item, dayNumber = 1) => {
   }
   return item;
 };
+
+// ── normalizeLibraryPlace ──
 
 export const normalizeLibraryPlace = (place, dayNumber = 1) => {
   if (!place) return place;
@@ -110,8 +252,31 @@ export const normalizeLibraryPlace = (place, dayNumber = 1) => {
   return place;
 };
 
+// ── Business 관련 (순수 함수만) ──
 
-// === Schedule & Timeline helpers ===
+const isOvernightBusinessWindow = (business = {}) => {
+  if (!business?.open || !business?.close) return false;
+  return timeToMinutes(business.close) <= timeToMinutes(business.open);
+};
+const isMinuteWithinBusinessWindow = (minute, business = {}) => {
+  if (!business?.open && !business?.close) return true;
+  const openMinute = business?.open ? timeToMinutes(business.open) : null;
+  const closeMinute = business?.close ? timeToMinutes(business.close) : null;
+  if (openMinute === null || closeMinute === null) return true;
+  if (!isOvernightBusinessWindow(business)) return minute >= openMinute && minute < closeMinute;
+  return minute >= openMinute || minute < closeMinute;
+};
+export const getOpenCloseWarningText = (minute, business = {}, beforeText, afterText) => {
+  if (!business?.open || !business?.close) return '';
+  const openMinute = timeToMinutes(business.open);
+  const closeMinute = timeToMinutes(business.close);
+  if (isMinuteWithinBusinessWindow(minute, business)) return '';
+  if (!isOvernightBusinessWindow(business)) {
+    return minute < openMinute ? beforeText : afterText;
+  }
+  if (minute >= closeMinute && minute < openMinute) return beforeText;
+  return afterText;
+};
 
 export const formatBusinessSummary = (businessRaw, context = null) => {
   const business = normalizeBusiness(businessRaw || {});
@@ -133,67 +298,7 @@ export const formatBusinessSummary = (businessRaw, context = null) => {
   return segs.length ? segs.join(' · ') : '미설정';
 };
 
-export const getBusinessWarningNow = (businessRaw) => {
-  const business = normalizeBusiness(businessRaw || {});
-  const hasBiz = business.open || business.close || business.breakStart || business.breakEnd || business.lastOrder || business.entryClose || business.closedDays.length;
-  if (!hasBiz) return '';
-  const { refMins, todayKey } = getActiveRefContext();
-  if (business.closedDays.includes(todayKey)) {
-    const label = WEEKDAY_OPTIONS.find(d => d.value === todayKey)?.label || todayKey;
-    return `${label} 휴무일`;
-  }
-  if (business.open && business.close) {
-    const openCloseWarn = getOpenCloseWarningText(
-      refMins,
-      business,
-      `영업 전 (${business.open} 오픈)`,
-      `영업 종료 (${business.close} 마감)`
-    );
-    if (openCloseWarn) return openCloseWarn;
-  } else {
-    if (business.open && refMins < timeToMinutes(business.open)) return `영업 전 (${business.open} 오픈)`;
-    if (business.close && refMins >= timeToMinutes(business.close)) return `영업 종료 (${business.close} 마감)`;
-  }
-  if (business.lastOrder && refMins > timeToMinutes(business.lastOrder)) return `라스트오더 이후 (${business.lastOrder})`;
-  if (business.entryClose && refMins > timeToMinutes(business.entryClose)) return `입장 마감 이후 (${business.entryClose})`;
-  if (business.breakStart && business.breakEnd) {
-    const bs = timeToMinutes(business.breakStart);
-    const be = timeToMinutes(business.breakEnd);
-    if (refMins >= bs && refMins < be) return `브레이크 타임 (${business.breakStart}~${business.breakEnd})`;
-  }
-  return '';
-};
-
-export const buildRouteFlowMeta = (days = []) => (
-  (days || []).map((day, dayIdx) => ({
-    day: day?.day || dayIdx + 1,
-    routes: (day?.plan || [])
-      .map((_, targetIdx) => getRouteFlowEntry(days, dayIdx, targetIdx))
-      .filter((entry) => entry.targetItem)
-      .map((entry) => ({
-        targetIdx: entry.targetIdx,
-        targetItemId: entry.targetItemId,
-        prevItemId: entry.prevItemId,
-        fromAddress: entry.fromAddress,
-        toAddress: entry.toAddress,
-        status: entry.status,
-      })),
-  }))
-);
-
-export const recalculateSchedule = (dayPlan) => {
-  if (!Array.isArray(dayPlan)) return [];
-  dayPlan.forEach((item) => {
-    ensureBaseDuration(item);
-    primeTimelineDurationFromBase(item);
-  });
-  runSchedulePass(dayPlan);
-  const timelineSnapshot = [{ day: 1, plan: dayPlan }];
-  if (applyAutoStretchAcrossTimeline(timelineSnapshot)) {
-    runSchedulePass(dayPlan);
-  }
-  return dayPlan;
-};
+// ── Schedule 계산 ──
 
 export const runSchedulePass = (dayPlan) => {
   if (!Array.isArray(dayPlan)) return dayPlan;
@@ -348,6 +453,8 @@ export const runSchedulePassAcrossDays = (days) => {
   return days;
 };
 
+// ── createTimelineItem ──
+
 export const createTimelineItem = ({ dayNumber = 1, baseTime = '09:00', types = ['place'], placeData = null, fallbackLabel = '장소' }) => {
   const normalizedTypes = normalizeTagOrder(placeData?.types || types);
   const isStandaloneLodgeSegment = isStandaloneLodgeSegmentItem({
@@ -397,4 +504,3 @@ export const createTimelineItem = ({ dayNumber = 1, baseTime = '09:00', types = 
   applyGeoFieldsToRecord(nextItem);
   return nextItem;
 };
-

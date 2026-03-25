@@ -15,7 +15,7 @@ import { timeToMinutes, minutesToTime, getNextDayClockMinutes, fmtMinutesLabel, 
 import { PLACE_TYPES, TAG_OPTIONS, TAG_VALUES, MODIFIER_TAGS, getPreferredMapCategory, normalizeTagOrder, toggleTagSelection, getTagButtonClass, WEEKDAY_OPTIONS, formatClosedDaysSummary, EMPTY_BUSINESS, BUSINESS_PRESETS, DEFAULT_BUSINESS, KAKAO_API_KEY, ADDRESS_REGEX, NAVER_PARSE_STOP_WORDS, bulkKwToType } from './utils/constants.js';
 import { parseBusinessHoursText, isLikelyParsedAddress, isLikelyMenuPriceLine, isLikelyMenuNameLine } from './utils/parse.js';
 import { extractPlaceNameFromLines, extractMenusFromNaverLines, parseNaverMapText, normalizeSmartFillResult, DEFAULT_AI_SMART_FILL_CONFIG, GEMINI_LINK_MODEL, GEMINI_LINK_SYSTEM_PROMPT, normalizeAiSmartFillConfig, sanitizeAiSmartFillConfigForStorage, isLocalNetworkHost, getAiKeyEndpoint, getAiKeyEndpointCandidates, getPerplexityNearbyEndpoint, getRouteVerifyEndpointCandidates, getSmartFillErrorMessage, isAiSmartFillSource, shouldUseReasoningEffort, extractNaverMapLink, normalizeClosedDaysInput, normalizeGeminiLinkResult, fetchGeminiPlaceInfoFromMapLink, scrapePlaceFromMapLinkUrl, extractJsonPayload, blobToDataUrl, readClipboardPayload, getCurrentUserBearerToken, runGroqSmartFill, analyzeClipboardSmartFill, searchAddressFromPlaceName } from './utils/ai.js';
-import { ensureShipItemDefaults, normalizeLibraryPlace, formatBusinessSummary, getBusinessWarningNow, buildRouteFlowMeta, recalculateSchedule, runSchedulePass, runSchedulePassAcrossDays, createTimelineItem } from './utils/helpers.js';
+import { ensureShipItemDefaults, normalizeLibraryPlace, formatBusinessSummary, runSchedulePass, runSchedulePassAcrossDays, createTimelineItem, deepClone, getMenuQty, getMenuLineTotal, ensureBaseDuration, syncBaseDuration, parseMinsLabel, DEFAULT_TRAVEL_MINS, DEFAULT_BUFFER_MINS, hasRestTag, isLodgeStay, isStandaloneLodgeSegmentItem, isFullLodgeStayItem, isOvernightLodgeTimelineItem, primeTimelineDurationFromBase, isAutoStretchEligible, applyGeoFieldsToRecord, cloneGeoForRecord, getOpenCloseWarningText, ensureLodgeStaySegments } from './utils/helpers.js';
 import { parseBulkPlaceText } from './utils/parse.js';
 import BulkAddModal from './components/shared/BulkAddModal.jsx';
 import { OrderedTagPicker, SharedNameRow, SharedAddressRow, SharedBusinessRow, SharedMemoRow, MenuPriceInput, SharedTotalFooter, parseChecklistLines, toggleChecklistLine, hasChecklistItems, createPlaceEditorDraft, buildSmartFillMenuItems, getCustomTagLabel, ACTION_SLOT_CLASS } from './components/shared/SharedComponents.jsx';
@@ -3469,7 +3469,36 @@ const App = () => {
     return { refMins, todayKey, refTime: firstItem?.time || null };
   };
 
-
+  const getBusinessWarningNow = (businessRaw) => {
+    const business = normalizeBusiness(businessRaw || {});
+    const hasBiz = business.open || business.close || business.breakStart || business.breakEnd || business.lastOrder || business.entryClose || business.closedDays.length;
+    if (!hasBiz) return '';
+    const { refMins, todayKey } = getActiveRefContext();
+    if (business.closedDays.includes(todayKey)) {
+      const label = WEEKDAY_OPTIONS.find(d => d.value === todayKey)?.label || todayKey;
+      return `${label} 휴무일`;
+    }
+    if (business.open && business.close) {
+      const openCloseWarn = getOpenCloseWarningText(
+        refMins,
+        business,
+        `영업 전 (${business.open} 오픈)`,
+        `영업 종료 (${business.close} 마감)`
+      );
+      if (openCloseWarn) return openCloseWarn;
+    } else {
+      if (business.open && refMins < timeToMinutes(business.open)) return `영업 전 (${business.open} 오픈)`;
+      if (business.close && refMins >= timeToMinutes(business.close)) return `영업 종료 (${business.close} 마감)`;
+    }
+    if (business.lastOrder && refMins > timeToMinutes(business.lastOrder)) return `라스트오더 이후 (${business.lastOrder})`;
+    if (business.entryClose && refMins > timeToMinutes(business.entryClose)) return `입장 마감 이후 (${business.entryClose})`;
+    if (business.breakStart && business.breakEnd) {
+      const bs = timeToMinutes(business.breakStart);
+      const be = timeToMinutes(business.breakEnd);
+      if (refMins >= bs && refMins < be) return `브레이크 타임 (${business.breakStart}~${business.breakEnd})`;
+    }
+    return '';
+  };
 
   const saveHistory = () => {
     setHistory(prev => {
@@ -3952,6 +3981,23 @@ const App = () => {
     };
   };
 
+  const buildRouteFlowMeta = (days = []) => (
+    (days || []).map((day, dayIdx) => ({
+      day: day?.day || dayIdx + 1,
+      routes: (day?.plan || [])
+        .map((_, targetIdx) => getRouteFlowEntry(days, dayIdx, targetIdx))
+        .filter((entry) => entry.targetItem)
+        .map((entry) => ({
+          targetIdx: entry.targetIdx,
+          targetItemId: entry.targetItemId,
+          prevItemId: entry.prevItemId,
+          fromAddress: entry.fromAddress,
+          toAddress: entry.toAddress,
+          status: entry.status,
+        })),
+    }))
+  );
+
   const routeFlowLookup = useMemo(() => {
     const lookup = {};
     (itinerary.days || []).forEach((day, dayIdx) => {
@@ -4053,6 +4099,19 @@ const App = () => {
     return changed;
   };
 
+  const recalculateSchedule = (dayPlan) => {
+    if (!Array.isArray(dayPlan)) return [];
+    dayPlan.forEach((item) => {
+      ensureBaseDuration(item);
+      primeTimelineDurationFromBase(item);
+    });
+    runSchedulePass(dayPlan);
+    const timelineSnapshot = [{ day: 1, plan: dayPlan }];
+    if (applyAutoStretchAcrossTimeline(timelineSnapshot)) {
+      runSchedulePass(dayPlan);
+    }
+    return dayPlan;
+  };
 
   const recalculateScheduleAcrossDays = (days) => {
     if (!Array.isArray(days)) return days;

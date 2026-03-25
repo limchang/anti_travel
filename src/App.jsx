@@ -9599,7 +9599,10 @@ const App = () => {
       const finalName = cleanName;
       if (finalName.length >= 1) {
         const types = detectedTypes.length > 0 ? [...new Set(detectedTypes)] : ['place'];
-        results.push({ name: finalName, address, types, selected: true });
+        const dupKey = `${finalName.toLowerCase()}::${address.toLowerCase()}`;
+        if (!results.some(r => `${r.name.toLowerCase()}::${r.address.toLowerCase()}` === dupKey)) {
+          results.push({ name: finalName, address, types, selected: true });
+        }
       }
       i += 2;
     }

@@ -770,6 +770,103 @@ const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = false, aiSe
   };
 };
 
+const latestUpdate = updateLog.lastUpdates[0] || { version: '0.0.0', timestamp: new Date().toISOString() };
+const APP_VERSION = latestUpdate.version;
+const LAST_PUSH_TIME = latestUpdate.timestamp;
+const formatPushTimestampLabel = (timestamp) => {
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) return '날짜 미확인';
+  const yyyy = parsed.getFullYear();
+  const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+  const dd = String(parsed.getDate()).padStart(2, '0');
+  const hh = String(parsed.getHours()).padStart(2, '0');
+  const min = String(parsed.getMinutes()).padStart(2, '0');
+  const diff = Date.now() - parsed.getTime();
+  const absDiff = Math.abs(diff);
+  const mins = Math.floor(absDiff / 60000);
+  const hrs = Math.floor(mins / 60);
+  const days = Math.floor(hrs / 24);
+  let relative = '방금 전';
+  if (mins >= 1 && mins < 60) relative = `${mins}분 전`;
+  else if (hrs < 24) relative = `${hrs}시간 전`;
+  else relative = `${days}일 전`;
+  return `${yyyy}.${mm}.${dd} ${hh}:${min} (${relative})`;
+};
+const ROUTE_PREVIEW_ENABLED = true;
+const ROUTE_PREVIEW_COLORS = ['#34C759', '#FF8A3D', '#8B5CF6', '#3182F6', '#EF4444', '#14B8A6'];
+
+// 국내 주요 카페리 항로 waypoint 정의 (출발/도착 도시 키워드 → 경유 좌표 목록)
+// 각 항로는 양방향 지원 (from/to 순서 무관하게 매칭)
+const FERRY_ROUTES = [
+  {
+    keywords: [['목포', 'mokpo'], ['제주', 'jeju']],
+    // 목포항 → 제주항 서해안 항로
+    waypoints: [
+      { lat: 34.7879, lon: 126.3816 }, // 목포항
+      { lat: 34.4200, lon: 126.3200 }, // 목포 남서방
+      { lat: 34.0500, lon: 126.1800 }, // 서해 중간
+      { lat: 33.7500, lon: 126.3000 }, // 제주 북서
+      { lat: 33.5179, lon: 126.5269 }, // 제주항
+    ],
+  },
+  {
+    keywords: [['완도', 'wando'], ['제주', 'jeju']],
+    waypoints: [
+      { lat: 34.3100, lon: 126.7550 }, // 완도항
+      { lat: 34.0500, lon: 126.7000 },
+      { lat: 33.7000, lon: 126.6500 },
+      { lat: 33.5179, lon: 126.5269 }, // 제주항
+    ],
+  },
+  {
+    keywords: [['녹동', '고흥'], ['제주', 'jeju']],
+    waypoints: [
+      { lat: 34.4600, lon: 127.1400 }, // 녹동항
+      { lat: 34.1000, lon: 127.0000 },
+      { lat: 33.7000, lon: 126.8000 },
+      { lat: 33.5179, lon: 126.5269 }, // 제주항
+    ],
+  },
+  {
+    keywords: [['부산', 'busan'], ['제주', 'jeju']],
+    waypoints: [
+      { lat: 35.0950, lon: 129.0400 }, // 부산항
+      { lat: 34.6000, lon: 128.8000 },
+      { lat: 34.0000, lon: 127.8000 },
+      { lat: 33.5179, lon: 126.5269 }, // 제주항
+    ],
+  },
+  {
+    keywords: [['인천', 'incheon'], ['제주', 'jeju']],
+    waypoints: [
+      { lat: 37.4563, lon: 126.7052 }, // 인천항
+      { lat: 36.5000, lon: 126.3000 },
+      { lat: 35.5000, lon: 126.2000 },
+      { lat: 34.5000, lon: 126.1000 },
+      { lat: 33.5179, lon: 126.5269 }, // 제주항
+    ],
+  },
+];
+
+// 주소 문자열에서 도시 키워드가 포함되는지 확인
+const matchesFerryKeyword = (address, keywords) =>
+  keywords.some((kw) => String(address || '').toLowerCase().includes(kw.toLowerCase()));
+
+// 출발/도착 주소로 미리 정의된 항로 waypoint 반환 (없으면 null)
+const getFerryRouteWaypoints = (fromAddress, toAddress) => {
+  for (const route of FERRY_ROUTES) {
+    const [groupA, groupB] = route.keywords;
+    const aToB = matchesFerryKeyword(fromAddress, groupA) && matchesFerryKeyword(toAddress, groupB);
+    const bToA = matchesFerryKeyword(fromAddress, groupB) && matchesFerryKeyword(toAddress, groupA);
+    if (aToB) return route.waypoints;
+    if (bToA) return [...route.waypoints].reverse();
+  }
+  return null;
+};
+const TIME_WHEEL_ITEM_HEIGHT = 28;
+
+
+
 // 24시간 형식 시간 입력 컴포넌트 (오전/오후 없음, 24:00 지원)
 // ── AI 자동입력 학습 지침 모달 ───────────────────────────────────────────────
 

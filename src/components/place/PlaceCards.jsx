@@ -13,80 +13,9 @@ import {
   Wand2,
   X,
 } from 'lucide-react';
+import { TAG_OPTIONS, normalizeTagOrder, toggleTagSelection, getTagButtonClass } from '../../utils/constants.js';
 
-const TAG_OPTIONS = [
-  { label: '식당', value: 'food' },
-  { label: '카페', value: 'cafe' },
-  { label: '관광', value: 'tour' },
-  { label: '숙소', value: 'lodge' },
-  { label: '숙박', value: 'stay' },
-  { label: '페리', value: 'ship' },
-  { label: '휴식', value: 'rest' },
-  { label: '픽업', value: 'pickup' },
-  { label: '오픈런', value: 'openrun' },
-  { label: '뷰맛집', value: 'view' },
-  { label: '체험', value: 'experience' },
-  { label: '기념품샵', value: 'souvenir' },
-  { label: '장소', value: 'place' },
-  { label: '신규', value: 'new' },
-  { label: '재방문', value: 'revisit' },
-];
-
-const TAG_VALUES = new Set(TAG_OPTIONS.map((tag) => tag.value));
-const MODIFIER_TAGS = new Set(['revisit', 'new']);
 const ACTION_SLOT_CLASS = 'shrink-0 flex items-center justify-end gap-1 min-w-[3.25rem]';
-
-const normalizeTagOrder = (input) => {
-  const list = Array.isArray(input) ? input : [];
-  const modifiers = [...new Set(list.filter((tag) => MODIFIER_TAGS.has(tag)))];
-  const categoryTags = list.filter((tag) => !MODIFIER_TAGS.has(tag) && TAG_VALUES.has(tag));
-  const customTags = list
-    .filter((tag) => !MODIFIER_TAGS.has(tag) && !TAG_VALUES.has(tag))
-    .map((tag) => String(tag || '').trim())
-    .filter(Boolean);
-  const uniqueCategories = [...new Set(categoryTags)].slice(0, 2);
-  const uniqueCustom = [...new Set(customTags)];
-  if (!uniqueCategories.length && !uniqueCustom.length && !modifiers.length) return ['place'];
-  return [...uniqueCategories, ...modifiers, ...uniqueCustom];
-};
-
-const toggleTagSelection = (current, tagValue) => {
-  const normalized = normalizeTagOrder(current);
-  if (MODIFIER_TAGS.has(tagValue)) {
-    return normalized.includes(tagValue)
-      ? normalizeTagOrder(normalized.filter((tag) => tag !== tagValue))
-      : normalizeTagOrder([...normalized, tagValue]);
-  }
-
-  const categoryTags = normalized.filter((tag) => !MODIFIER_TAGS.has(tag));
-  const modifiers = normalized.filter((tag) => MODIFIER_TAGS.has(tag));
-  let nextCategoryTags;
-  if (categoryTags.includes(tagValue)) {
-    nextCategoryTags = categoryTags.filter((tag) => tag !== tagValue);
-    if (!nextCategoryTags.length) nextCategoryTags = ['place'];
-  } else {
-    nextCategoryTags = categoryTags.length >= 2 ? [categoryTags[0], tagValue] : [...categoryTags, tagValue];
-  }
-  return [...nextCategoryTags, ...modifiers];
-};
-
-const getTagButtonClass = (value, active) => {
-  if (!active) return 'bg-white text-slate-400 border-slate-200 hover:border-slate-300';
-  if (value === 'food') return 'text-rose-500 bg-red-50 border-red-200';
-  if (value === 'cafe') return 'text-amber-600 bg-amber-50 border-amber-200';
-  if (value === 'tour') return 'text-purple-600 bg-purple-50 border-purple-200';
-  if (value === 'lodge') return 'text-indigo-600 bg-indigo-50 border-indigo-200';
-  if (value === 'ship') return 'text-blue-600 bg-blue-50 border-blue-200';
-  if (value === 'rest') return 'text-cyan-600 bg-cyan-50 border-cyan-200';
-  if (value === 'pickup') return 'text-orange-500 bg-orange-50 border-orange-200';
-  if (value === 'openrun') return 'text-red-500 bg-red-50 border-red-100';
-  if (value === 'view') return 'text-sky-600 bg-sky-50 border-sky-200';
-  if (value === 'experience') return 'text-emerald-600 bg-emerald-50 border-emerald-200';
-  if (value === 'souvenir') return 'text-teal-600 bg-teal-50 border-teal-200';
-  if (value === 'new') return 'text-emerald-600 bg-emerald-50 border-emerald-200';
-  if (value === 'revisit') return 'text-blue-600 bg-blue-50 border-blue-200';
-  return 'text-slate-500 bg-slate-100 border-slate-200';
-};
 
 const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', className = '' }) => {
   const selected = normalizeTagOrder(value);

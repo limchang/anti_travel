@@ -15,9 +15,11 @@ import { timeToMinutes, minutesToTime, getNextDayClockMinutes, fmtMinutesLabel, 
 import { PLACE_TYPES, TAG_OPTIONS, TAG_VALUES, MODIFIER_TAGS, getPreferredMapCategory, normalizeTagOrder, toggleTagSelection, getTagButtonClass, WEEKDAY_OPTIONS, formatClosedDaysSummary, EMPTY_BUSINESS, BUSINESS_PRESETS, DEFAULT_BUSINESS, KAKAO_API_KEY, ADDRESS_REGEX, NAVER_PARSE_STOP_WORDS, bulkKwToType } from './utils/constants.js';
 import { parseBusinessHoursText, isLikelyParsedAddress, isLikelyMenuPriceLine, isLikelyMenuNameLine } from './utils/parse.js';
 import { extractPlaceNameFromLines, extractMenusFromNaverLines, parseNaverMapText, normalizeSmartFillResult, DEFAULT_AI_SMART_FILL_CONFIG, GEMINI_LINK_MODEL, GEMINI_LINK_SYSTEM_PROMPT, normalizeAiSmartFillConfig, sanitizeAiSmartFillConfigForStorage, isLocalNetworkHost, getAiKeyEndpoint, getAiKeyEndpointCandidates, getPerplexityNearbyEndpoint, getRouteVerifyEndpointCandidates, getSmartFillErrorMessage, isAiSmartFillSource, shouldUseReasoningEffort, extractNaverMapLink, normalizeClosedDaysInput, normalizeGeminiLinkResult, fetchGeminiPlaceInfoFromMapLink, scrapePlaceFromMapLinkUrl, extractJsonPayload, blobToDataUrl, readClipboardPayload, getCurrentUserBearerToken, runGroqSmartFill, analyzeClipboardSmartFill, searchAddressFromPlaceName } from './utils/ai.js';
-import { ensureShipItemDefaults, normalizeLibraryPlace, formatBusinessSummary, runSchedulePass, runSchedulePassAcrossDays, createTimelineItem, deepClone, getMenuQty, getMenuLineTotal, ensureBaseDuration, syncBaseDuration, parseMinsLabel, DEFAULT_TRAVEL_MINS, DEFAULT_BUFFER_MINS, hasRestTag, isLodgeStay, isStandaloneLodgeSegmentItem, isFullLodgeStayItem, isOvernightLodgeTimelineItem, primeTimelineDurationFromBase, isAutoStretchEligible, applyGeoFieldsToRecord, cloneGeoForRecord, getOpenCloseWarningText, ensureLodgeStaySegments } from './utils/helpers.js';
+import { ensureShipItemDefaults, normalizeLibraryPlace, formatBusinessSummary, runSchedulePass, runSchedulePassAcrossDays, createTimelineItem, deepClone, getMenuQty, getMenuLineTotal, ensureBaseDuration, syncBaseDuration, parseMinsLabel, DEFAULT_TRAVEL_MINS, DEFAULT_BUFFER_MINS, hasRestTag, isLodgeStay, isStandaloneLodgeSegmentItem, isFullLodgeStayItem, isOvernightLodgeTimelineItem, primeTimelineDurationFromBase, isAutoStretchEligible, applyGeoFieldsToRecord, cloneGeoForRecord, getOpenCloseWarningText, ensureLodgeStaySegments, normalizeLodgeSegmentTime, getPlanItemPrimaryAddress, getShipStartAddress, getShipEndAddress } from './utils/helpers.js';
 import { parseBulkPlaceText } from './utils/parse.js';
 import BulkAddModal from './components/shared/BulkAddModal.jsx';
+import TimeControllerModal from './components/shared/TimeControllerModal.jsx';
+import LibraryTypeModal from './components/shared/LibraryTypeModal.jsx';
 import { OrderedTagPicker, SharedNameRow, SharedAddressRow, SharedBusinessRow, SharedMemoRow, MenuPriceInput, SharedTotalFooter, parseChecklistLines, toggleChecklistLine, hasChecklistItems, createPlaceEditorDraft, buildSmartFillMenuItems, getCustomTagLabel, ACTION_SLOT_CLASS } from './components/shared/SharedComponents.jsx';
 import { TimeInput, buildBusinessQuickEditSegments, BusinessHoursEditor, DateRangePicker, TimeWheelColumn } from './components/shared/BusinessComponents.jsx';
 import { loadKakaoMapSdk, ROUTE_PREVIEW_DEFAULT_CENTER, toLeafletLatLng, getMapCategoryColor, getMapCategoryLabel, MAP_CATEGORY_EMOJI, getMapCategoryEmoji, buildTimelineMarkerIcon, buildGroupedTimelineMarkerIcon, buildLibraryMarkerIcon, buildOverlayMarkerIcon, buildSegmentLabelIcon, calcBearingDeg, buildArrowIcon, sampleRouteArrows, LeafletMapViewportController, LeafletMapBackgroundClickHandler, LeafletMapContextMenuHandler, POPUP_TAG_OPTIONS, RoutePreviewCanvas } from './components/map/MapComponents.jsx';
@@ -1161,45 +1163,6 @@ const App = () => {
   };
 
 
-  const normalizeLodgeSegmentTime = (raw, fallback = '18:00') => {
-    const value = String(raw || '').trim();
-    if (!value) return fallback;
-    if (/^\d{1,2}:\d{1,2}$/.test(value)) {
-      const [hourRaw, minuteRaw] = value.split(':');
-      const hours = Number.parseInt(hourRaw, 10);
-      const minutes = Number.parseInt(minuteRaw, 10);
-      if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || hours > 24 || minutes < 0 || minutes > 59 || (hours === 24 && minutes > 0)) {
-        return fallback;
-      }
-      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-    }
-    const digits = value.replace(/\D/g, '').slice(0, 4);
-    if (!digits) return fallback;
-    const hours = digits.length <= 2 ? Number.parseInt(digits, 10) : Number.parseInt(digits.slice(0, digits.length - 2), 10);
-    const minutes = digits.length <= 2 ? 0 : Number.parseInt(digits.slice(-2), 10);
-    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || hours > 24 || minutes < 0 || minutes > 59 || (hours === 24 && minutes > 0)) {
-      return fallback;
-    }
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-  };
-
-  const ensureLodgeStaySegments = (item = {}) => {
-    if (!isFullLodgeStayItem(item)) return item;
-    const fallbackTime = String(item.time || '18:00').trim() || '18:00';
-    item.staySegments = (Array.isArray(item.staySegments) ? item.staySegments : [])
-      .filter(Boolean)
-      .map((segment, index) => ({
-        id: segment.id || `stay_${Date.now()}_${index}`,
-        type: String(segment.type || 'rest').trim() || 'rest',
-        label: String(segment.label || '').trim() || '숙소 일정',
-        time: normalizeLodgeSegmentTime(segment.time, fallbackTime),
-        duration: Math.max(10, Number(segment.duration) || 60),
-        note: String(segment.note || '').trim(),
-      }))
-      .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
-    return item;
-  };
-
   const getLodgeSegmentDragItems = (place = {}) => {
     if (!isLodgeStay(place?.types)) return [];
     const defaultStayDuration = (() => {
@@ -1304,42 +1267,6 @@ const App = () => {
     sourceSegmentType: String(segmentItem?.segmentType || '').trim(),
   });
 
-  const getPlanItemPrimaryAddress = (item = {}) => String(item?.receipt?.address || item?.address || item?.sourceLodgeAddress || '').trim();
-  const getShipStartAddress = (item = {}) => String(item?.receipt?.address || item?.startPoint || '').trim();
-  const getShipEndAddress = (item = {}) => String(item?.endAddress || item?.endPoint || '').trim();
-  const applyGeoFieldsToRecord = (record = {}, forceRefresh = false) => {
-    if (!record || typeof record !== 'object') return record;
-    if (Array.isArray(record?.types) && record.types.includes('ship')) {
-      const startAddress = getShipStartAddress(record);
-      const endAddress = getShipEndAddress(record);
-      record.geoStart = (forceRefresh || isGeoStaleForAddress(record.geoStart, startAddress))
-        ? normalizeGeoPoint({ address: startAddress }, startAddress)
-        : normalizeGeoPoint(record.geoStart, startAddress);
-      record.geoEnd = (forceRefresh || isGeoStaleForAddress(record.geoEnd, endAddress))
-        ? normalizeGeoPoint({ address: endAddress }, endAddress)
-        : normalizeGeoPoint(record.geoEnd, endAddress);
-      delete record.geo;
-      return record;
-    }
-    const address = getPlanItemPrimaryAddress(record);
-    record.geo = (forceRefresh || isGeoStaleForAddress(record.geo, address))
-      ? normalizeGeoPoint({ address }, address)
-      : normalizeGeoPoint(record.geo, address);
-    delete record.geoStart;
-    delete record.geoEnd;
-    return record;
-  };
-
-
-  const cloneGeoForRecord = (record = {}) => {
-    if (Array.isArray(record?.types) && record.types.includes('ship')) {
-      return {
-        geoStart: normalizeGeoPoint(record.geoStart, getShipStartAddress(record)),
-        geoEnd: normalizeGeoPoint(record.geoEnd, getShipEndAddress(record)),
-      };
-    }
-    return { geo: normalizeGeoPoint(record.geo, getPlanItemPrimaryAddress(record)) };
-  };
 
 
 
@@ -1886,26 +1813,12 @@ const App = () => {
   // 코드 오류 수정 및 3일차 일정 변경 키
   const STORAGE_KEY = 'travel_planner_v105_fix_syntax_day3';
   const TIME_UNIT = 1;
-  const DEFAULT_TRAVEL_MINS = 15;
-  const DEFAULT_BUFFER_MINS = 10;
   const BUFFER_STEP = 1;
-  const getMenuQty = (menu) => {
-    const parsed = Number(menu?.qty);
-    if (!Number.isFinite(parsed) || parsed <= 0) return 1;
-    return parsed;
-  };
-  const getMenuLineTotal = (menu) => Number(menu?.price || 0) * getMenuQty(menu);
   const isRevisitCourse = (item) => {
     if (typeof item?.revisit === 'boolean') return item.revisit;
     const receiptNames = Array.isArray(item?.receipt?.items) ? item.receipt.items.map(m => m?.name || '').join(' ') : '';
     const hints = `${item?.memo || ''} ${receiptNames}`;
     return /재방문/i.test(hints);
-  };
-  const parseMinsLabel = (value, fallback) => {
-    const hit = String(value || '').match(/(\d+)/);
-    if (!hit) return fallback;
-    const parsed = parseInt(hit[1], 10);
-    return Number.isNaN(parsed) ? fallback : parsed;
   };
   const haversineKm = (lat1, lon1, lat2, lon2) => {
     const toRad = (d) => d * (Math.PI / 180);
@@ -1950,55 +1863,6 @@ const App = () => {
     if (!Number.isFinite(num) || num < 0) return '미계산';
     return `${num}km`;
   };
-  const hasRestTag = (types = []) => {
-    const normalized = (Array.isArray(types) ? types : []).map(v => String(v || '').trim().toLowerCase());
-    return normalized.includes('rest') || normalized.includes('휴식');
-  };
-  const isLodgeStay = (types = []) => {
-    const normalized = (Array.isArray(types) ? types : []).map(v => String(v || '').trim().toLowerCase());
-    return normalized.includes('lodge') && !hasRestTag(normalized);
-  };
-  const isStandaloneLodgeSegmentItem = (item = {}) => (
-    !!item?.renderAsSegmentCard
-    && !!item?.sourceLodgeId
-    && !!String(item?.segmentType || '').trim()
-  );
-  const isFullLodgeStayItem = (item = {}) => isLodgeStay(item?.types) && !isStandaloneLodgeSegmentItem(item);
-  const isOvernightLodgeTimelineItem = (item = {}) => (
-    isFullLodgeStayItem(item)
-    || (isStandaloneLodgeSegmentItem(item) && String(item?.segmentType || '').trim() === 'stay')
-  );
-  const getBaseDurationValue = (item = {}) => {
-    const current = Math.max(0, Number(item?.duration) || 0);
-    const stored = Number(item?.baseDuration);
-    return Number.isFinite(stored) && stored >= 0 ? stored : current;
-  };
-  const ensureBaseDuration = (item = {}) => {
-    if (!item || item.type === 'backup') return 0;
-    const safe = getBaseDurationValue(item);
-    item.baseDuration = safe;
-    return safe;
-  };
-  const syncBaseDuration = (item = {}, minutes = item?.duration) => {
-    if (!item || item.type === 'backup') return 0;
-    const safe = Math.max(0, Number(minutes) || 0);
-    item.baseDuration = safe;
-    return safe;
-  };
-  const primeTimelineDurationFromBase = (item = {}) => {
-    if (!item || item.type === 'backup') return;
-    const baseDuration = ensureBaseDuration(item);
-    if (item.types?.includes('ship') || isOvernightLodgeTimelineItem(item)) return;
-    if (item.isDurationFixed || item.isEndTimeFixed) return;
-    item.duration = baseDuration;
-  };
-  const isAutoStretchEligible = (item = {}) => {
-    if (!item || item.type === 'backup') return false;
-    if (item.types?.includes('ship') || item.types?.includes('pickup')) return false;
-    if (item.isDurationFixed || item.isEndTimeFixed) return false;
-    if (isOvernightLodgeTimelineItem(item)) return false;
-    return true;
-  };
   const getPlanReceiptSelectedTotal = (item = {}) => {
     const receiptItems = Array.isArray(item?.receipt?.items) ? item.receipt.items : null;
     if (!receiptItems?.length) return Number(item?.price || 0);
@@ -2022,29 +1886,6 @@ const App = () => {
     return basePrice;
   };
   const getPlaceSearchName = (item = {}) => String(item?.sourceLodgeName || item?.activity || item?.name || '').trim();
-  const isOvernightBusinessWindow = (business = {}) => {
-    if (!business?.open || !business?.close) return false;
-    return timeToMinutes(business.close) <= timeToMinutes(business.open);
-  };
-  const isMinuteWithinBusinessWindow = (minute, business = {}) => {
-    if (!business?.open && !business?.close) return true;
-    const openMinute = business?.open ? timeToMinutes(business.open) : null;
-    const closeMinute = business?.close ? timeToMinutes(business.close) : null;
-    if (openMinute === null || closeMinute === null) return true;
-    if (!isOvernightBusinessWindow(business)) return minute >= openMinute && minute < closeMinute;
-    return minute >= openMinute || minute < closeMinute;
-  };
-  const getOpenCloseWarningText = (minute, business = {}, beforeText, afterText) => {
-    if (!business?.open || !business?.close) return '';
-    const openMinute = timeToMinutes(business.open);
-    const closeMinute = timeToMinutes(business.close);
-    if (isMinuteWithinBusinessWindow(minute, business)) return '';
-    if (!isOvernightBusinessWindow(business)) {
-      return minute < openMinute ? beforeText : afterText;
-    }
-    if (minute >= closeMinute && minute < openMinute) return beforeText;
-    return afterText;
-  };
   const openNaverPlaceSearch = (name = '', address = '') => {
     const query = `${String(name || '').trim()} ${String(address || '').trim()}`.trim();
     if (!query) return;
@@ -7339,7 +7180,7 @@ const App = () => {
                               return (
                                 <React.Fragment key={p.id}>
                                   {isLastLodge && <div className="mt-1.5 border-t border-dashed border-indigo-100/90" />}
-                                  <button
+                                  <div role="button" tabIndex={0}
                                     id={`nav-item-${p.id}`}
                                     draggable={isEditMode}
                                     onTouchStart={(e) => {
@@ -7477,7 +7318,7 @@ const App = () => {
                                         })()}
                                       </>
                                     )}
-                                  </button>
+                                  </div>
                                   {p._timingConflict && navConflictRecommendation && (
                                     <div className="grid grid-cols-[2.45rem_1fr_auto] items-center gap-1.5 px-1 py-0.5">
                                       <span />
@@ -11725,206 +11566,20 @@ const App = () => {
             )
           }
 
-          {timeControllerTarget?.kind === 'plan-time' && (() => {
-            if (timeControllerTarget?.inline) return null;
-            const dayIdx = timeControllerTarget.dayIdx;
-            const pIdx = timeControllerTarget.pIdx;
-            const item = itinerary.days?.[dayIdx]?.plan?.[pIdx];
-            if (!item || item.type === 'backup' || item.types?.includes('ship') || isLodgeStay(item.types)) return null;
-            const startMinutes = timeToMinutes(item.time || '00:00');
-            const durationMinutes = Math.max(0, Number(item.duration) || 0);
-            const endMinutesAbsolute = startMinutes + durationMinutes;
-            const currentEndMinutes = ((endMinutesAbsolute % 1440) + 1440) % 1440;
-            const replaceMode = !!timeControllerTarget.replaceMode;
-            const triggerWidth = Number(timeControllerTarget.width || 0);
-            const triggerHeight = Number(timeControllerTarget.height || 0);
-            const desiredWidth = replaceMode ? triggerWidth : (triggerWidth + 520);
-            const panelWidth = replaceMode
-              ? Math.min(window.innerWidth - 24, Math.max(420, desiredWidth))
-              : Math.min(window.innerWidth - 24, Math.max(560, desiredWidth));
-            const panelHeight = replaceMode
-              ? Math.max(178, triggerHeight - 8)
-              : 220;
-            const left = Math.max(12, Math.min(window.innerWidth - panelWidth - 12, Number(timeControllerTarget.left || 0)));
-            const top = replaceMode
-              ? Math.max(12, Math.min(window.innerHeight - panelHeight - 12, Number(timeControllerTarget.top || 0) + 4))
-              : Math.max(12, Math.min(window.innerHeight - panelHeight - 12, Number(timeControllerTarget.top || 0) - 6));
-            const isAutoLocked = item.types?.includes('ship') || item._isBufferCoordinated;
-            const isEndTimeFixed = !!item.isEndTimeFixed;
-            const startHourValues = Array.from({ length: 24 }, (_, idx) => idx);
-            const currentStartHour = Math.floor(startMinutes / 60);
-            const currentStartMinute = startMinutes % 60;
-            const canWrapEndBeforeStart = isOvernightLodgeTimelineItem(item);
-            const currentDurationHour = Math.floor(durationMinutes / 60);
-            const currentDurationMinute = durationMinutes % 60;
-            const durationHourValues = Array.from({ length: canWrapEndBeforeStart ? 25 : 24 }, (_, idx) => idx);
-            const overnightEndAbsolute = Math.max(startMinutes, Math.min(startMinutes + 1440, endMinutesAbsolute));
-            const endHourValues = Array.from({ length: canWrapEndBeforeStart ? 48 : 24 }, (_, idx) => idx);
-            const currentEndHour = Math.floor((canWrapEndBeforeStart ? overnightEndAbsolute : currentEndMinutes) / 60);
-            const currentEndMinute = currentEndMinutes % 60;
-            const buildWrappedTotalMinutes = (baseHour, baseMinute, nextMinute) => {
-              let nextHour = baseHour;
-              const delta = nextMinute - baseMinute;
-              if (delta >= 30) nextHour -= 1;
-              if (delta <= -30) nextHour += 1;
-              return (nextHour * 60) + nextMinute;
-            };
-            const normalizeDayMinute = (value) => ((value % 1440) + 1440) % 1440;
-            const clampEndNotBeforeStart = (candidateMinutes) => {
-              if (canWrapEndBeforeStart) {
-                const raw = Math.max(0, Math.min(2879, Number(candidateMinutes) || 0));
-                const absolute = raw < startMinutes ? raw + 1440 : raw;
-                return Math.max(startMinutes, Math.min(startMinutes + 1440, absolute));
-              }
-              const normalized = normalizeDayMinute(candidateMinutes);
-              return Math.max(startMinutes, normalized);
-            };
-            const clampDurationMinutes = (candidateMinutes) => Math.max(0, Math.min(canWrapEndBeforeStart ? 1440 : 1439, Number(candidateMinutes) || 0));
-            const formatEndHourValue = (nextHour) => {
-              if (!canWrapEndBeforeStart) return String(nextHour).padStart(2, '0');
-              const clockHour = ((Number(nextHour) || 0) % 24 + 24) % 24;
-              return `${String(clockHour).padStart(2, '0')}${nextHour >= 24 ? '+' : ''}`;
-            };
-            return (
-              <div
-                data-time-modal="true"
-                data-no-drag="true"
-                className={`fixed z-[291] rounded-[24px] border border-slate-200 bg-white/96 p-2.5 backdrop-blur-xl animate-in ${replaceMode ? 'shadow-[0_12px_26px_-18px_rgba(15,23,42,0.26)]' : 'shadow-[0_24px_50px_-24px_rgba(15,23,42,0.45)]'}`}
-                style={{ left, top, width: panelWidth, height: panelHeight }}
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={bumpTimeControllerAutoClose}
-                onPointerMove={bumpTimeControllerAutoClose}
-                onTouchStart={bumpTimeControllerAutoClose}
-                onTouchMove={bumpTimeControllerAutoClose}
-                onWheel={bumpTimeControllerAutoClose}
-              >
-                <div className="grid h-full grid-cols-3 gap-1.5 items-stretch">
-                  <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
-                    <div className="flex h-full w-full flex-col items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => toggleTimeFix(dayIdx, pIdx, { skipHistory: true })}
-                        className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${item.isTimeFixed ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-300 bg-white text-slate-700'}`}
-                      >
-                        시작시간 잠금
-                      </button>
-                      <div className="flex w-full items-center justify-center gap-1">
-                        <TimeWheelColumn
-                          label=""
-                          value={currentStartHour}
-                          values={startHourValues}
-                          onInteract={bumpTimeControllerAutoClose}
-                          onDragStateChange={setIsTimeWheelDragging}
-                          onChange={(nextHour) => setStartTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(nextHour * 60 + currentStartMinute)), { skipHistory: true })}
-                          accentClass="text-slate-800"
-                        />
-                        <TimeWheelColumn
-                          label=""
-                          value={currentStartMinute}
-                          values={Array.from({ length: 60 }, (_, idx) => idx)}
-                          cyclic
-                          liveOnDrag
-                          onInteract={bumpTimeControllerAutoClose}
-                          onDragStateChange={setIsTimeWheelDragging}
-                          onChange={(nextMinute) => {
-                            const wrapped = buildWrappedTotalMinutes(currentStartHour, currentStartMinute, nextMinute);
-                            setStartTimeValue(dayIdx, pIdx, minutesToTime(normalizeDayMinute(wrapped)), { skipHistory: true });
-                          }}
-                          accentClass="text-slate-800"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
-                    <div className="flex h-full w-full flex-col items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => toggleDurationFix(dayIdx, pIdx, { skipHistory: true })}
-                        className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors ${item.isDurationFixed ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
-                      >
-                        소요시간 잠금
-                      </button>
-                      <div className="flex w-full items-center justify-center gap-1">
-                        <TimeWheelColumn
-                          label=""
-                          value={currentDurationHour}
-                          values={durationHourValues}
-                          liveOnDrag
-                          onInteract={bumpTimeControllerAutoClose}
-                          onDragStateChange={setIsTimeWheelDragging}
-                          onChange={(nextHour) => setDurationHourValue(dayIdx, pIdx, nextHour, { skipHistory: true })}
-                          accentClass="text-slate-800"
-                        />
-                        <TimeWheelColumn
-                          label=""
-                          value={currentDurationMinute}
-                          values={Array.from({ length: 60 }, (_, idx) => idx)}
-                          cyclic
-                          liveOnDrag
-                          onInteract={bumpTimeControllerAutoClose}
-                          onDragStateChange={setIsTimeWheelDragging}
-                          onChange={(nextMinute) => setDurationMinuteValue(dayIdx, pIdx, nextMinute, { skipHistory: true })}
-                          accentClass="text-slate-800"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="rounded-[20px] border border-slate-200 bg-slate-50/75 px-1.5 py-2">
-                    <div className="flex h-full w-full flex-col items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => { if (!isAutoLocked) toggleEndTimeFix(dayIdx, pIdx, { skipHistory: true }); }}
-                        disabled={isAutoLocked}
-                        className={`w-full rounded-[12px] border px-2 py-1.5 text-center text-[11px] font-black transition-colors disabled:opacity-50 ${isEndTimeFixed ? 'border-violet-500 bg-violet-500 text-white' : 'border-slate-300 bg-white text-slate-700'}`}
-                      >
-                        종료시간 잠금
-                      </button>
-                      <div className="flex w-full items-center justify-center gap-1">
-                        <TimeWheelColumn
-                          label=""
-                          value={currentEndHour}
-                          values={endHourValues}
-                          formatter={formatEndHourValue}
-                          onInteract={bumpTimeControllerAutoClose}
-                          onDragStateChange={setIsTimeWheelDragging}
-                          onChange={(nextHour) => {
-                            const nextTotal = clampEndNotBeforeStart((nextHour * 60) + currentEndMinute);
-                            if (canWrapEndBeforeStart) {
-                              setPlanEndAbsoluteMinutes(dayIdx, pIdx, nextTotal, { skipHistory: true });
-                            } else {
-                              setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
-                            }
-                          }}
-                          accentClass="text-slate-800"
-                        />
-                        <TimeWheelColumn
-                          label=""
-                          value={currentEndMinute}
-                          values={Array.from({ length: 60 }, (_, idx) => idx)}
-                          cyclic
-                          liveOnDrag
-                          onInteract={bumpTimeControllerAutoClose}
-                          onDragStateChange={setIsTimeWheelDragging}
-                          onChange={(nextMinute) => {
-                            const wrapped = buildWrappedTotalMinutes(currentEndHour, currentEndMinute, nextMinute);
-                            const nextTotal = clampEndNotBeforeStart(wrapped);
-                            if (canWrapEndBeforeStart) {
-                              setPlanEndAbsoluteMinutes(dayIdx, pIdx, nextTotal, { skipHistory: true });
-                            } else {
-                              setPlanEndTimeValue(dayIdx, pIdx, minutesToTime(nextTotal), { skipHistory: true });
-                            }
-                          }}
-                          accentClass="text-slate-800"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
+          <TimeControllerModal
+            timeControllerTarget={timeControllerTarget}
+            itinerary={itinerary}
+            setStartTimeValue={setStartTimeValue}
+            setPlanEndTimeValue={setPlanEndTimeValue}
+            setPlanEndAbsoluteMinutes={setPlanEndAbsoluteMinutes}
+            toggleTimeFix={toggleTimeFix}
+            toggleDurationFix={toggleDurationFix}
+            toggleEndTimeFix={toggleEndTimeFix}
+            setDurationHourValue={setDurationHourValue}
+            setDurationMinuteValue={setDurationMinuteValue}
+            bumpTimeControllerAutoClose={bumpTimeControllerAutoClose}
+            setIsTimeWheelDragging={setIsTimeWheelDragging}
+          />
         </div >
 
         <style>{`
@@ -11943,80 +11598,13 @@ const App = () => {
         }
       `}</style>
 
-      {/* 내장소 마커 카테고리 변경 모달 */}
-      {libraryTypeModal && (() => {
-        const longPressRef = { current: null, _fired: false };
-        const selectedTypes = libraryTypeModal.types;
-        return (
-          <div
-            className="fixed inset-0 z-[99999] flex items-end justify-center"
-            style={{ background: 'rgba(15,23,42,0.45)' }}
-            onClick={() => setLibraryTypeModal(null)}
-          >
-            <div
-              className="w-full max-w-sm rounded-t-[24px] bg-white px-5 pt-5 pb-8 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="mb-4 flex items-center justify-between">
-                <span className="text-[13px] font-black text-slate-800">카테고리 선택</span>
-                <button
-                  onClick={() => setLibraryTypeModal(null)}
-                  className="rounded-full p-1 text-slate-400 hover:bg-slate-100"
-                ><X size={14} /></button>
-              </div>
-              <div className="flex flex-wrap gap-2 mb-5">
-                {POPUP_TAG_OPTIONS.map(t => {
-                  const active = selectedTypes.includes(t.value);
-                  return (
-                    <button
-                      key={t.value}
-                      onMouseDown={(e) => {
-                        e.stopPropagation();
-                        longPressRef._fired = false;
-                        longPressRef.current = setTimeout(() => {
-                          longPressRef._fired = true;
-                          setLibraryTypeModal(prev => ({ ...prev, types: [t.value] }));
-                        }, 500);
-                      }}
-                      onMouseUp={() => clearTimeout(longPressRef.current)}
-                      onMouseLeave={() => clearTimeout(longPressRef.current)}
-                      onTouchStart={(e) => {
-                        e.stopPropagation();
-                        longPressRef._fired = false;
-                        longPressRef.current = setTimeout(() => {
-                          longPressRef._fired = true;
-                          setLibraryTypeModal(prev => ({ ...prev, types: [t.value] }));
-                        }, 500);
-                      }}
-                      onTouchEnd={() => clearTimeout(longPressRef.current)}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (longPressRef._fired) return;
-                        setLibraryTypeModal(prev => {
-                          const cur = prev.types;
-                          const removed = cur.filter(v => v !== t.value);
-                          const next = active ? (removed.length ? removed : cur) : [...cur.filter(v => v !== 'place'), t.value];
-                          return { ...prev, types: next };
-                        });
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-[11px] font-black border transition-all ${active ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
-                    >{t.label}</button>
-                  );
-                })}
-              </div>
-              <p className="text-[9px] text-slate-400 font-bold mb-4 text-center">길게 누르면 단독 선택</p>
-              <button
-                onClick={() => {
-                  const place = (itinerary.places || []).find(p => p?.id === libraryTypeModal.placeId);
-                  if (place) updatePlace(libraryTypeModal.placeId, { ...place, types: libraryTypeModal.types });
-                  setLibraryTypeModal(null);
-                }}
-                className="w-full rounded-2xl bg-[#3182F6] py-3 text-[13px] font-black text-white"
-              >완료</button>
-            </div>
-          </div>
-        );
-      })()}
+      <LibraryTypeModal
+        libraryTypeModal={libraryTypeModal}
+        setLibraryTypeModal={setLibraryTypeModal}
+        POPUP_TAG_OPTIONS={POPUP_TAG_OPTIONS}
+        itinerary={itinerary}
+        updatePlace={updatePlace}
+      />
 
       </div >
     </div >

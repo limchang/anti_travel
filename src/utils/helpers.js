@@ -82,9 +82,9 @@ export const isAutoStretchEligible = (item = {}) => {
 
 // ── Geo 관련 ──
 
-const getPlanItemPrimaryAddress = (item = {}) => String(item?.receipt?.address || item?.address || item?.sourceLodgeAddress || '').trim();
-const getShipStartAddress = (item = {}) => String(item?.receipt?.address || item?.startPoint || '').trim();
-const getShipEndAddress = (item = {}) => String(item?.endAddress || item?.endPoint || '').trim();
+export const getPlanItemPrimaryAddress = (item = {}) => String(item?.receipt?.address || item?.address || item?.sourceLodgeAddress || '').trim();
+export const getShipStartAddress = (item = {}) => String(item?.receipt?.address || item?.startPoint || '').trim();
+export const getShipEndAddress = (item = {}) => String(item?.endAddress || item?.endPoint || '').trim();
 
 export const applyGeoFieldsToRecord = (record = {}, forceRefresh = false) => {
   if (!record || typeof record !== 'object') return record;
@@ -121,7 +121,7 @@ export const cloneGeoForRecord = (record = {}) => {
 
 // ── Lodge segment time ──
 
-const normalizeLodgeSegmentTime = (raw, fallback = '18:00') => {
+export const normalizeLodgeSegmentTime = (raw, fallback = '18:00') => {
   const value = String(raw || '').trim();
   if (!value) return fallback;
   if (/^\d{1,2}:\d{1,2}$/.test(value)) {

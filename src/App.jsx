@@ -9564,12 +9564,12 @@ const App = () => {
         if (['마트', '편의점', '미용실'].includes(kw)) return 'place';
         return null;
       };
-      // 쉼표로 구분된 카테고리 접미사 분리: "통영식당해물,생선요리" → 이름 "통영식당해물" + 타입 ['food']
+      // 카테고리 분리: 쉼표 구분 + 끝에 붙은 키워드 모두 제거
+      // "통영식당해물,생선요리" → 쉼표 뒤 제거 → "통영식당해물" → 끝 키워드 "해물" 제거 → "통영식당"
       let cleanName = nameLine;
       let detectedTypes = [];
       const commaIdx = cleanName.indexOf(',');
-      const hasComma = commaIdx > 0;
-      if (hasComma) {
+      if (commaIdx > 0) {
         const suffixPart = cleanName.slice(commaIdx + 1);
         const suffixTokens = suffixPart.split(',').map(s => s.trim()).filter(Boolean);
         for (const token of suffixTokens) {
@@ -9578,19 +9578,17 @@ const App = () => {
         }
         cleanName = cleanName.slice(0, commaIdx).trim();
       }
-      // 쉼표가 없을 때만 끝에 붙은 카테고리 키워드 제거 (쉼표가 있으면 쉼표가 구분자이므로 이름 보존)
-      if (!hasComma) {
-        let changed = true;
-        while (changed) {
-          changed = false;
-          for (const kw of categoryKeywords) {
-            if (cleanName.endsWith(kw) && cleanName.length > kw.length) {
-              const mapped = kwToType(kw);
-              if (mapped && !detectedTypes.includes(mapped)) detectedTypes.push(mapped);
-              cleanName = cleanName.slice(0, -kw.length).trim();
-              changed = true;
-              break;
-            }
+      // 끝에 붙은 카테고리 키워드 반복 제거 (쉼표 유무 관계없이)
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const kw of categoryKeywords) {
+          if (cleanName.endsWith(kw) && cleanName.length > kw.length) {
+            const mapped = kwToType(kw);
+            if (mapped && !detectedTypes.includes(mapped)) detectedTypes.push(mapped);
+            cleanName = cleanName.slice(0, -kw.length).trim();
+            changed = true;
+            break;
           }
         }
       }
@@ -9600,22 +9598,14 @@ const App = () => {
       if (!nextIsAddress) { i++; continue; }
       const address = nextLine;
       // 주소 끝에서 상호명 역추출 시도: "경상남도 거제시 거제면 서정리 978 거제식물원" → "거제식물원"
-      // 주소의 마지막 토큰이 숫자가 아니고, cleanName에 포함되면 그것이 실제 상호명
+      // 주소 끝에서 상호명 역추출: "...978 거제식물원" → "거제식물원"
+      // 원본 상호줄(nameLine)에 주소 마지막 토큰이 포함되면 그것이 실제 상호명
       const addrTokens = address.split(/\s+/);
       const lastAddrToken = addrTokens[addrTokens.length - 1] || '';
       const isLastTokenNumeric = /^[산\d\-]+$/.test(lastAddrToken);
       let finalName = cleanName;
-      if (!isLastTokenNumeric && lastAddrToken.length >= 2 && cleanName.includes(lastAddrToken)) {
+      if (!isLastTokenNumeric && lastAddrToken.length >= 2 && nameLine.includes(lastAddrToken) && lastAddrToken.length >= cleanName.length) {
         finalName = lastAddrToken;
-        // 주소에서 추출한 이름으로부터 카테고리도 재감지
-        if (detectedTypes.length === 0) {
-          for (const kw of categoryKeywords) {
-            if (cleanName.includes(kw) && !finalName.includes(kw)) {
-              const mapped = kwToType(kw);
-              if (mapped && !detectedTypes.includes(mapped)) detectedTypes.push(mapped);
-            }
-          }
-        }
       }
       // 행정지명 카테고리가 붙은 항목은 실제 장소가 아니므로 제외
       const isAdminArea = /행정지명/.test(line);

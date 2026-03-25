@@ -254,11 +254,11 @@ export const normalizeLibraryPlace = (place, dayNumber = 1) => {
 
 // ── Business 관련 (순수 함수만) ──
 
-const isOvernightBusinessWindow = (business = {}) => {
+export const isOvernightBusinessWindow = (business = {}) => {
   if (!business?.open || !business?.close) return false;
   return timeToMinutes(business.close) <= timeToMinutes(business.open);
 };
-const isMinuteWithinBusinessWindow = (minute, business = {}) => {
+export const isMinuteWithinBusinessWindow = (minute, business = {}) => {
   if (!business?.open && !business?.close) return true;
   const openMinute = business?.open ? timeToMinutes(business.open) : null;
   const closeMinute = business?.close ? timeToMinutes(business.close) : null;

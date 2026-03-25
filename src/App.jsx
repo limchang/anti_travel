@@ -12765,56 +12765,49 @@ const App = () => {
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                   {bulkAddParsed.length === 0 ? (
                     <>
-                      {bulkAddText.trim() ? (
-                        <>
-                          <div className="w-full min-h-[180px] max-h-[300px] overflow-y-auto bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-[11px] font-bold leading-relaxed">
-                            {(() => {
-                              const addressRe = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|충청|전북|전남|전라|경북|경남|경상|제주특별자치도|서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도)/;
-                              const lines = bulkAddText.split('\n');
-                              let nameCount = 0;
-                              const els = lines.map((line, li) => {
-                                const trimmed = line.trim();
-                                const isAddr = addressRe.test(trimmed);
-                                const nextTrimmed = li < lines.length - 1 ? lines[li + 1]?.trim() : '';
-                                const isName = trimmed && !isAddr && addressRe.test(nextTrimmed || '');
-                                if (isName) nameCount++;
-                                if (isName) {
-                                  const commaPos = line.indexOf(',');
-                                  if (commaPos > 0) {
-                                    return <div key={li} className="border-l-2 border-[#3182F6]/40 pl-2 -ml-2 bg-blue-50/50 rounded-sm"><span className="text-[#3182F6] font-black">{line.slice(0, commaPos)}</span><span className="text-slate-400 font-bold text-[10px]">{line.slice(commaPos)}</span></div>;
-                                  }
-                                  return <div key={li} className="text-[#3182F6] font-black border-l-2 border-[#3182F6]/40 pl-2 -ml-2 bg-blue-50/50 rounded-sm">{line}</div>;
-                                }
-                                if (isAddr) return <div key={li} className="text-emerald-600 border-l-2 border-emerald-400/40 pl-2 -ml-2 bg-emerald-50/50 rounded-sm">{line}</div>;
-                                if (!trimmed) return <div key={li} className="h-3" />;
-                                return <div key={li} className="text-slate-400">{line}</div>;
-                              });
-                              return els;
-                            })()}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => { setBulkAddText(''); setBulkAddParsed([]); }}
-                              className="text-[10px] font-black text-slate-400 hover:text-slate-600 transition-colors"
-                            >
-                              다시 입력
-                            </button>
-                            <div className="flex items-center gap-2 ml-auto text-[9px] font-bold text-slate-400">
-                              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#3182F6]" /> 상호</span>
-                              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> 주소</span>
+                      <textarea
+                        value={bulkAddText}
+                        onChange={(e) => setBulkAddText(e.target.value)}
+                        placeholder={"카카오맵 공유 텍스트 또는\n장소명\n주소\n\n장소명\n주소\n\n형식으로 붙여넣기하세요"}
+                        className={`w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6] resize-none leading-relaxed ${bulkAddText.trim() ? 'h-[100px]' : 'h-[180px]'}`}
+                        autoFocus
+                      />
+                      {bulkAddText.trim() && (() => {
+                        const addressRe = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|충청|전북|전남|전라|경북|경남|경상|제주특별자치도|서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도)/;
+                        const lines = bulkAddText.split('\n');
+                        let nameCount = 0;
+                        const els = lines.map((line, li) => {
+                          const trimmed = line.trim();
+                          const isAddr = addressRe.test(trimmed);
+                          const nextTrimmed = li < lines.length - 1 ? lines[li + 1]?.trim() : '';
+                          const isName = trimmed && !isAddr && addressRe.test(nextTrimmed || '');
+                          if (isName) nameCount++;
+                          if (isName) {
+                            const commaPos = line.indexOf(',');
+                            if (commaPos > 0) {
+                              return <div key={li} className="border-l-2 border-[#3182F6]/40 pl-2 bg-blue-50/50 rounded-sm py-0.5"><span className="text-[#3182F6] font-black">{line.slice(0, commaPos)}</span><span className="text-slate-400 text-[10px]"> {line.slice(commaPos)}</span></div>;
+                            }
+                            return <div key={li} className="text-[#3182F6] font-black border-l-2 border-[#3182F6]/40 pl-2 bg-blue-50/50 rounded-sm py-0.5">{line}</div>;
+                          }
+                          if (isAddr) return <div key={li} className="text-emerald-600 border-l-2 border-emerald-400/40 pl-2 bg-emerald-50/50 rounded-sm py-0.5">{line}</div>;
+                          if (!trimmed) return null;
+                          return <div key={li} className="text-slate-400 py-0.5">{line}</div>;
+                        }).filter(Boolean);
+                        return (
+                          <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                            <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                              <span className="text-[10px] font-black text-slate-500">{nameCount}개 장소 감지</span>
+                              <div className="flex items-center gap-2 text-[9px] font-bold text-slate-400">
+                                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#3182F6]" /> 상호</span>
+                                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> 주소</span>
+                              </div>
+                            </div>
+                            <div className="max-h-[200px] overflow-y-auto px-2.5 py-2 text-[11px] font-bold leading-relaxed space-y-0.5">
+                              {els}
                             </div>
                           </div>
-                        </>
-                      ) : (
-                        <textarea
-                          value={bulkAddText}
-                          onChange={(e) => setBulkAddText(e.target.value)}
-                          placeholder={"카카오맵 공유 텍스트 또는\n장소명\n주소\n\n장소명\n주소\n\n형식으로 붙여넣기하세요"}
-                          className="w-full h-[180px] bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6] resize-none leading-relaxed"
-                          autoFocus
-                        />
-                      )}
+                        );
+                      })()}
                       <button
                         type="button"
                         onClick={async () => {

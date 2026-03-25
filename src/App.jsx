@@ -6868,6 +6868,30 @@ const App = () => {
                   showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));
                 }
               }}
+              onJinaSmartFill={async () => {
+                try {
+                  showInfoToast('v2: 네이버 지도 검색 + AI 분석 중...');
+                  const normalizedSettings = normalizeAiSmartFillConfig(aiSmartFillConfig);
+                  const result = await runJinaSmartFill({
+                    placeName: editPlaceDraft.name,
+                    regionHint: tripRegion,
+                    runGroqPostProcess: useAiSmartFill ? runGroqSmartFill : null,
+                    aiSettings: useAiSmartFill ? normalizedSettings : null,
+                    jinaApiKey: normalizedSettings.perplexityApiKey || '',
+                  });
+                  if (result) {
+                    setEditPlaceDraft((current) => createPlaceEditorDraft(current, {
+                      name: result.name || current.name,
+                      address: result.address || current.address,
+                      business: result.business ? normalizeBusiness({ ...current.business, ...result.business }) : current.business,
+                      receipt: { ...(current.receipt || {}), items: result.menus?.length ? result.menus : current.receipt?.items },
+                    }));
+                    showInfoToast(`v2: ${result.name || '장소'} 정보를 불러왔습니다.`);
+                  }
+                } catch (err) {
+                  showInfoToast(`v2 실패: ${err?.message || '알 수 없는 오류'}`);
+                }
+              }}
               onSmartPasteAddress={async () => {
                 try {
                   const result = await analyzeClipboardSmartFill({ mode: 'address', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
@@ -6987,6 +7011,30 @@ const App = () => {
                   }
                 } catch (error) {
                   showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill));
+                }
+              }}
+              onJinaSmartFill={async () => {
+                try {
+                  showInfoToast('v2: 네이버 지도 검색 + AI 분석 중...');
+                  const normalizedSettings = normalizeAiSmartFillConfig(aiSmartFillConfig);
+                  const result = await runJinaSmartFill({
+                    placeName: editPlanDraft.name,
+                    regionHint: tripRegion,
+                    runGroqPostProcess: useAiSmartFill ? runGroqSmartFill : null,
+                    aiSettings: useAiSmartFill ? normalizedSettings : null,
+                    jinaApiKey: normalizedSettings.perplexityApiKey || '',
+                  });
+                  if (result) {
+                    setEditPlanDraft((current) => createPlaceEditorDraft(current, {
+                      name: result.name || current.name,
+                      address: result.address || current.address,
+                      business: result.business ? normalizeBusiness({ ...current.business, ...result.business }) : current.business,
+                      receipt: { ...(current.receipt || {}), items: result.menus?.length ? result.menus : current.receipt?.items },
+                    }));
+                    showInfoToast(`v2: ${result.name || '장소'} 정보를 불러왔습니다.`);
+                  }
+                } catch (err) {
+                  showInfoToast(`v2 실패: ${err?.message || '알 수 없는 오류'}`);
                 }
               }}
               onSmartPasteAddress={async () => {

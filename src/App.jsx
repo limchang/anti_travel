@@ -8041,7 +8041,7 @@ const App = () => {
                           <button
                             type="button"
                             className="flex items-center gap-1 flex-wrap"
-                            onClick={(e) => { e.stopPropagation(); setLibraryTypeModal({ placeId: place.id, types: [...currentTypes] }); }}
+                            onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setLibraryTypeModal({ placeId: place.id, types: [...currentTypes], position: { x: r.left, y: r.bottom } }); }}
                             title="카테고리 변경"
                           >
                             {currentTypes.map(t => getCategoryBadge(t))}
@@ -10271,7 +10271,7 @@ const App = () => {
                                       type="button"
                                       className={`flex items-center gap-0.5 flex-nowrap shrink-0 cursor-pointer rounded-lg px-1 py-0.5 -ml-0.5 transition-colors border ${tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx ? 'bg-blue-50 border-[#3182F6]/30' : 'border-transparent hover:bg-slate-100/80 hover:border-slate-200'}`}
                                       title="클릭하여 태그 편집"
-                                      onClick={(e) => { e.stopPropagation(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx, types: [...(p.types || ['place'])] }); }}
+                                      onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx, types: [...(p.types || ['place'])], position: { x: r.left, y: r.bottom } }); }}
                                     >
                                       {mainChips.length > 0 || subChips.length > 0 ? <>{mainChips}{subChips}</> : <span className="text-[9px] font-black text-slate-300">태그</span>}
                                       <ChevronDown size={8} className="text-slate-300 ml-0.5" />
@@ -10868,6 +10868,7 @@ const App = () => {
         show={!!tagEditorTarget}
         types={tagEditorTarget?.types || ['place']}
         tagOptions={POPUP_TAG_OPTIONS}
+        position={tagEditorTarget?.position}
         onTypesChange={(next) => setTagEditorTarget(prev => prev ? { ...prev, types: next } : null)}
         onConfirm={() => {
           if (tagEditorTarget) {

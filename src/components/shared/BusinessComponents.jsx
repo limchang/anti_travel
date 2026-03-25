@@ -361,3 +361,321 @@ export const DateRangePicker = ({ startDate, endDate, onStartChange, onEndChange
   );
 };
 
+
+export const TIME_WHEEL_ITEM_HEIGHT = 28;
+
+export const TimeWheelColumn = ({
+  label = '',
+  value = 0,
+  values = [],
+  onChange,
+  onInteract,
+  formatter = (next) => String(next).padStart(2, '0'),
+  accentClass = 'text-slate-900',
+  cyclic = false,
+  onDragStateChange,
+  liveOnDrag = false,
+}) => {
+  const EDGE_PAD_COUNT = cyclic ? 0 : 2;
+  const listRef = React.useRef(null);
+  const settleTimerRef = React.useRef(null);
+  const isProgrammaticRef = React.useRef(false);
+  const pointerDragRef = React.useRef({ active: false, pointerId: null, startY: 0, startTop: 0, accY: 0 });
+  const touchDragRef = React.useRef({ active: false, startY: 0, startTop: 0 });
+  const dragMovedRef = React.useRef(false);
+  const lastEmittedValueRef = React.useRef(value);
+  const [isDragging, setIsDragging] = React.useState(false);
+
+  const renderedValues = React.useMemo(() => {
+    if (!cyclic) return values;
+    return [...values, ...values, ...values];
+  }, [cyclic, values]);
+  const renderedEntries = React.useMemo(() => {
+    if (cyclic) return renderedValues;
+    return [null, null, ...renderedValues, null, null];
+  }, [cyclic, renderedValues]);
+
+  React.useEffect(() => {
+    lastEmittedValueRef.current = value;
+  }, [value]);
+
+  React.useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    if (pointerDragRef.current.active || touchDragRef.current.active) return;
+    const baseIndex = Math.max(0, values.indexOf(value));
+    const currentIndex = cyclic ? (baseIndex + values.length) : (baseIndex + EDGE_PAD_COUNT);
+    const targetTop = currentIndex * TIME_WHEEL_ITEM_HEIGHT;
+    if (Math.abs(list.scrollTop - targetTop) < 2) return;
+    isProgrammaticRef.current = true;
+    // settle 타이머가 있으면 취소 — 프로그래매틱 스크롤 후 onChange 오발 방지
+    if (settleTimerRef.current) {
+      clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = null;
+    }
+    list.scrollTop = targetTop;
+    setTimeout(() => {
+      isProgrammaticRef.current = false;
+    }, 150);
+  }, [cyclic, value, values]);
+
+  React.useEffect(() => () => {
+    if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+  }, []);
+
+  const getClosestValue = React.useCallback(() => {
+    const list = listRef.current;
+    if (!list || !values.length) return null;
+    const renderedLength = renderedEntries.length;
+    if (!renderedLength) return null;
+    const rawIndex = Math.max(0, Math.min(renderedLength - 1, Math.round(list.scrollTop / TIME_WHEEL_ITEM_HEIGHT)));
+    const normalizedIndex = cyclic
+      ? ((rawIndex % values.length) + values.length) % values.length
+      : (rawIndex - EDGE_PAD_COUNT);
+    const nextIndex = Math.max(0, Math.min(values.length - 1, normalizedIndex));
+    return values[nextIndex];
+  }, [EDGE_PAD_COUNT, cyclic, renderedEntries.length, values]);
+
+  const commitClosestValue = React.useCallback(() => {
+    const list = listRef.current;
+    if (!list || !values.length) return;
+    const renderedLength = renderedEntries.length;
+    if (!renderedLength) return;
+    const hasZeroPriority = !cyclic && values[0] === 0;
+    if (hasZeroPriority) {
+      const zeroPriorityCutoff = (EDGE_PAD_COUNT + 1) * TIME_WHEEL_ITEM_HEIGHT;
+      if (list.scrollTop <= zeroPriorityCutoff) {
+        const centerIndex = EDGE_PAD_COUNT;
+        const targetTop = centerIndex * TIME_WHEEL_ITEM_HEIGHT;
+        if (Math.abs(list.scrollTop - targetTop) > 1) {
+          isProgrammaticRef.current = true;
+          list.scrollTo({ top: targetTop, behavior: 'smooth' });
+          setTimeout(() => {
+            isProgrammaticRef.current = false;
+          }, 140);
+        }
+        lastEmittedValueRef.current = values[0];
+        onChange?.(values[0]);
+        return;
+      }
+    }
+    const rawIndex = Math.max(0, Math.min(renderedLength - 1, Math.round(list.scrollTop / TIME_WHEEL_ITEM_HEIGHT)));
+    const normalizedIndex = cyclic
+      ? ((rawIndex % values.length) + values.length) % values.length
+      : (rawIndex - EDGE_PAD_COUNT);
+    let nextIndex = Math.max(0, Math.min(values.length - 1, normalizedIndex));
+    const centerIndex = cyclic ? (nextIndex + values.length) : (nextIndex + EDGE_PAD_COUNT);
+    const targetTop = centerIndex * TIME_WHEEL_ITEM_HEIGHT;
+    if (Math.abs(list.scrollTop - targetTop) > 1) {
+      isProgrammaticRef.current = true;
+      list.scrollTo({ top: targetTop, behavior: 'smooth' });
+      setTimeout(() => {
+        isProgrammaticRef.current = false;
+      }, 140);
+    }
+    lastEmittedValueRef.current = values[nextIndex];
+    onChange?.(values[nextIndex]);
+  }, [EDGE_PAD_COUNT, cyclic, onChange, renderedEntries.length, value, values]);
+
+  const commitSpecificValue = React.useCallback((nextValue) => {
+    if (!values.length) return;
+    const list = listRef.current;
+    const baseIndex = Math.max(0, values.indexOf(nextValue));
+    const centerIndex = cyclic ? (baseIndex + values.length) : (baseIndex + EDGE_PAD_COUNT);
+    const targetTop = centerIndex * TIME_WHEEL_ITEM_HEIGHT;
+    if (list) {
+      isProgrammaticRef.current = true;
+      list.scrollTo({ top: targetTop, behavior: 'smooth' });
+      setTimeout(() => {
+        isProgrammaticRef.current = false;
+      }, 140);
+    }
+    lastEmittedValueRef.current = nextValue;
+    onChange?.(nextValue);
+  }, [EDGE_PAD_COUNT, cyclic, onChange, values]);
+
+  const handleScroll = React.useCallback(() => {
+    if (pointerDragRef.current.active) return;
+    if (isProgrammaticRef.current) return;
+    if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+    settleTimerRef.current = setTimeout(commitClosestValue, 90);
+  }, [commitClosestValue]);
+
+  const handlePointerDown = React.useCallback((e) => {
+    if (e.pointerType === 'touch') return;
+    const list = listRef.current;
+    if (!list) return;
+    onInteract?.();
+    dragMovedRef.current = false;
+    pointerDragRef.current = {
+      active: true,
+      pointerId: e.pointerId,
+      startY: e.clientY,
+      startTop: list.scrollTop,
+      accY: 0,
+    };
+    try {
+      list.setPointerCapture(e.pointerId);
+    } catch {
+      // no-op
+    }
+    onDragStateChange?.(true);
+    setIsDragging(true);
+    e.stopPropagation();
+  }, [onDragStateChange, onInteract]);
+
+  const handlePointerMove = React.useCallback((e) => {
+    if (e.pointerType === 'touch') return;
+    const list = listRef.current;
+    const state = pointerDragRef.current;
+    if (!list || !state.active || state.pointerId !== e.pointerId) return;
+    onInteract?.();
+    // movementY는 OS 마우스 가속도 무관한 실제 물리 이동량
+    state.accY += e.movementY;
+    if (Math.abs(state.accY) >= 2) dragMovedRef.current = true;
+    list.scrollTop = state.startTop - state.accY;
+    if (liveOnDrag) {
+      const nextValue = getClosestValue();
+      if (nextValue !== null && nextValue !== lastEmittedValueRef.current) {
+        lastEmittedValueRef.current = nextValue;
+        onChange?.(nextValue);
+      }
+    }
+    e.preventDefault();
+    e.stopPropagation();
+  }, [getClosestValue, liveOnDrag, onChange, onInteract]);
+
+  const handlePointerUp = React.useCallback((e) => {
+    if (e.pointerType === 'touch') return;
+    const list = listRef.current;
+    const state = pointerDragRef.current;
+    if (!list || !state.active || state.pointerId !== e.pointerId) return;
+    onInteract?.();
+    pointerDragRef.current = { active: false, pointerId: null, startY: 0, startTop: 0, accY: 0 };
+    try {
+      list.releasePointerCapture(e.pointerId);
+    } catch {
+      // no-op
+    }
+    onDragStateChange?.(false);
+    setIsDragging(false);
+    commitClosestValue();
+    e.stopPropagation();
+  }, [commitClosestValue, onDragStateChange, onInteract]);
+
+  const handleTouchStart = React.useCallback((e) => {
+    const list = listRef.current;
+    if (!list) return;
+    const touch = e.touches?.[0];
+    if (!touch) return;
+    onInteract?.();
+    dragMovedRef.current = false;
+    touchDragRef.current = {
+      active: true,
+      startY: touch.clientY,
+      startTop: list.scrollTop,
+    };
+    onDragStateChange?.(true);
+    setIsDragging(true);
+    e.stopPropagation();
+  }, [onDragStateChange, onInteract]);
+
+  const handleTouchMove = React.useCallback((e) => {
+    const list = listRef.current;
+    const state = touchDragRef.current;
+    if (!list || !state.active) return;
+    const touch = e.touches?.[0];
+    if (!touch) return;
+    onInteract?.();
+    const deltaY = touch.clientY - state.startY;
+    if (Math.abs(deltaY) >= 2) dragMovedRef.current = true;
+    list.scrollTop = state.startTop - deltaY;
+    if (liveOnDrag && !touchDragRef.current.active) {
+      const nextValue = getClosestValue();
+      if (nextValue !== null && nextValue !== lastEmittedValueRef.current) {
+        lastEmittedValueRef.current = nextValue;
+        onChange?.(nextValue);
+      }
+    }
+    e.preventDefault();
+    e.stopPropagation();
+  }, [getClosestValue, liveOnDrag, onChange, onInteract]);
+
+  const handleTouchEnd = React.useCallback((e) => {
+    if (!touchDragRef.current.active) return;
+    onInteract?.();
+    touchDragRef.current = { active: false, startY: 0, startTop: 0 };
+    onDragStateChange?.(false);
+    setIsDragging(false);
+    commitClosestValue();
+    e.stopPropagation();
+  }, [commitClosestValue, onDragStateChange, onInteract]);
+
+  React.useEffect(() => {
+    const onWindowPointerMove = (e) => handlePointerMove(e);
+    const onWindowPointerUp = (e) => handlePointerUp(e);
+    window.addEventListener('pointermove', onWindowPointerMove, { passive: false });
+    window.addEventListener('pointerup', onWindowPointerUp, { passive: true });
+    window.addEventListener('pointercancel', onWindowPointerUp, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', onWindowPointerMove);
+      window.removeEventListener('pointerup', onWindowPointerUp);
+      window.removeEventListener('pointercancel', onWindowPointerUp);
+    };
+  }, [handlePointerMove, handlePointerUp]);
+
+  return (
+    <div
+      data-no-drag="true"
+      draggable={false}
+      className="flex-1 min-w-0 touch-none select-none"
+      onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      onDragStart={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
+      {label ? <p className="mb-0.5 text-center text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p> : null}
+      <div className="relative rounded-[18px] border border-slate-200 bg-white/92">
+        <div className="pointer-events-none absolute inset-x-1.5 top-1/2 h-[28px] -translate-y-1/2 rounded-[10px] border border-slate-300 bg-slate-100 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,0.95)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-5 rounded-t-[18px] bg-gradient-to-b from-white via-white/88 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-5 rounded-b-[18px] bg-gradient-to-t from-white via-white/88 to-transparent" />
+        <div
+          ref={listRef}
+          onScroll={handleScroll}
+          className={`relative h-[84px] overflow-y-auto no-scrollbar py-[28px] touch-pan-y ${isDragging ? 'snap-none' : 'snap-y snap-mandatory'}`}
+        >
+          {renderedEntries.map((entry, idx) => {
+            if (entry === null) {
+              return <div key={`${label}-pad-${idx}`} className="h-[28px] snap-start" aria-hidden="true" />;
+            }
+            const active = entry === value;
+            return (
+              <button
+                key={`${label}-${entry}-${idx}`}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (dragMovedRef.current) return;
+                  onInteract?.();
+                  commitSpecificValue(entry);
+                }}
+                className={`flex h-[28px] w-full snap-start items-center justify-center text-[18px] font-black tabular-nums ${isDragging ? 'transition-none' : 'transition-all'} ${active ? `${accentClass} scale-100` : 'scale-[0.9] text-slate-300/90'}`}
+              >
+                {formatter(entry)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};

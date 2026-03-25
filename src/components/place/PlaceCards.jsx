@@ -683,6 +683,7 @@ export const PlaceLibraryCard = ({
   highlighted = false,
   onJinaSmartFill,
 }) => {
+  const [jinaLoading, setJinaLoading] = React.useState(false);
   const visibleMenus = (place.receipt?.items || []).filter((menu) => menu && menu.selected !== false);
   const isCompact = viewMode === 'compact';
   const hasMemo = Boolean(String(place.memo || '').trim());
@@ -701,11 +702,16 @@ export const PlaceLibraryCard = ({
       {onJinaSmartFill && (
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); onJinaSmartFill(); }}
-          className="shrink-0 p-1 rounded-md border border-emerald-200 bg-white text-emerald-500 hover:border-emerald-400 hover:bg-emerald-50 transition-colors"
+          disabled={jinaLoading}
+          onClick={async (e) => {
+            e.stopPropagation();
+            setJinaLoading(true);
+            try { await onJinaSmartFill(); } finally { setJinaLoading(false); }
+          }}
+          className={`shrink-0 p-1 rounded-md border transition-colors ${jinaLoading ? 'border-emerald-300 bg-emerald-50 text-emerald-400' : 'border-emerald-200 bg-white text-emerald-500 hover:border-emerald-400 hover:bg-emerald-50'}`}
           title="v2 지도검색 자동채우기"
         >
-          <Search size={9} />
+          {jinaLoading ? <svg className="animate-spin" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> : <Search size={9} />}
         </button>
       )}
       <button
@@ -725,6 +731,14 @@ export const PlaceLibraryCard = ({
     data-map-focus-card="true"
     className={`w-full group relative overflow-hidden rounded-[24px] border bg-white shadow-[0_10px_28px_-14px_rgba(49,130,246,0.18)] ring-1 transition-all duration-300 ${highlighted ? 'border-[#3182F6] ring-[#3182F6]/30 shadow-[0_0_0_3px_rgba(49,130,246,0.18)]' : 'border-[#3182F6]/15 ring-[#3182F6]/6'} ${cardProps.className || ''}`.trim()}
   >
+    {jinaLoading && (
+      <div className="px-4 pt-3 pb-1">
+        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2">
+          <svg className="animate-spin shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+          <span className="text-[10px] font-bold text-emerald-600">v2 지도검색 중... 네이버 지도에서 정보를 가져오고 있습니다</span>
+        </div>
+      </div>
+    )}
     <div className="p-4 flex flex-col gap-2.5">
       <div className="flex items-center gap-1.5 flex-wrap pr-12" data-no-drag="true">
         {chips}

@@ -12751,7 +12751,7 @@ const App = () => {
           {showBulkAddModal && (
             <>
               <div className="fixed inset-0 z-[291] bg-black/30 backdrop-blur-sm" onClick={() => setShowBulkAddModal(false)} />
-              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl flex flex-col max-h-[85vh]">
+              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl flex flex-col" style={{ maxHeight: 'min(92vh, 900px)' }}>
                 <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
                   <div>
                     <p className="text-[14px] font-black text-slate-800">여러 장소 추가하기</p>
@@ -12775,7 +12775,13 @@ const App = () => {
                                 const nextTrimmed = li < lines.length - 1 ? lines[li + 1]?.trim() : '';
                                 const isName = trimmed && !isAddr && addressRe.test(nextTrimmed || '');
                                 if (isName) nameCount++;
-                                if (isName) return <div key={li} className="text-[#3182F6] font-black border-l-2 border-[#3182F6]/40 pl-2 -ml-2 bg-blue-50/50 rounded-sm">{line}</div>;
+                                if (isName) {
+                                  const commaPos = line.indexOf(',');
+                                  if (commaPos > 0) {
+                                    return <div key={li} className="border-l-2 border-[#3182F6]/40 pl-2 -ml-2 bg-blue-50/50 rounded-sm"><span className="text-[#3182F6] font-black">{line.slice(0, commaPos)}</span><span className="text-slate-400 font-bold text-[10px]">{line.slice(commaPos)}</span></div>;
+                                  }
+                                  return <div key={li} className="text-[#3182F6] font-black border-l-2 border-[#3182F6]/40 pl-2 -ml-2 bg-blue-50/50 rounded-sm">{line}</div>;
+                                }
                                 if (isAddr) return <div key={li} className="text-emerald-600 border-l-2 border-emerald-400/40 pl-2 -ml-2 bg-emerald-50/50 rounded-sm">{line}</div>;
                                 if (!trimmed) return <div key={li} className="h-3" />;
                                 return <div key={li} className="text-slate-400">{line}</div>;

@@ -9581,7 +9581,7 @@ const App = () => {
                 const focusedDayColor = ROUTE_PREVIEW_COLORS[dIdx % ROUTE_PREVIEW_COLORS.length];
 
                 let stateStyles;
-                if (isHome) stateStyles = 'bg-[linear-gradient(180deg,rgba(255,251,235,0.98),rgba(255,255,255,0.98))] border-amber-200 shadow-[0_10px_24px_-10px_rgba(180,131,9,0.14)]';
+                if (isHome) stateStyles = 'bg-[linear-gradient(180deg,rgba(255,252,240,0.98),rgba(255,255,255,0.98))] border-amber-200/70 shadow-[0_8px_24px_-8px_rgba(180,131,9,0.10)]';
                 else if (isLodge) stateStyles = 'bg-[linear-gradient(180deg,rgba(244,245,255,0.98),rgba(255,255,255,0.98))] border-indigo-200 shadow-[0_12px_28px_-12px_rgba(99,102,241,0.18)]';
                 else if (isLodgeTagged) stateStyles = 'bg-[linear-gradient(180deg,rgba(249,245,255,0.98),rgba(255,255,255,0.98))] border-violet-200 shadow-[0_12px_28px_-14px_rgba(139,92,246,0.16)]';
                 else if (isShip) stateStyles = 'bg-[#f4fafe] border-blue-200 shadow-[0_8px_24px_-8px_rgba(29,78,216,0.12)]';
@@ -10221,15 +10221,15 @@ const App = () => {
                               <div className="flex flex-col gap-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                                 {/* 집 이름 */}
                                 <div className="flex items-center gap-1.5">
-                                  <Home size={11} className="text-slate-400 shrink-0" />
+                                  <Home size={11} className="text-amber-500 shrink-0" />
                                   <input
                                     value={p.activity}
                                     onChange={(e) => updateActivityName(dIdx, pIdx, e.target.value)}
                                     onFocus={(e) => e.target.select()}
-                                    className="flex-1 min-w-0 bg-transparent text-[13px] font-black text-slate-800 outline-none placeholder:text-slate-300"
-                                    placeholder="집 이름"
+                                    className="flex-1 min-w-0 bg-transparent text-[15px] font-black text-slate-800 leading-tight outline-none placeholder:text-slate-300 focus:outline-none truncate"
+                                    placeholder="출발지 이름"
                                   />
-                                  <button onClick={(e) => { e.stopPropagation(); setEditingItemId(p.id); setEditDraft(createPlanEditorDraft(p)); }} className="shrink-0 p-1 rounded-lg text-slate-300 hover:text-[#3182F6] hover:bg-blue-50 transition-colors"><Pencil size={11} /></button>
+                                  <button onClick={(e) => { e.stopPropagation(); setEditingItemId(p.id); setEditDraft(createPlanEditorDraft(p)); }} className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors" title="일정 수정"><Pencil size={9} /></button>
                                 </div>
                                 {/* 주소 */}
                                 <SharedAddressRow
@@ -10250,16 +10250,21 @@ const App = () => {
                                   onStarClick={() => setBasePlanRef(p.receipt?.address ? { dayIdx: dIdx, pIdx, id: p.id, name: p.activity, address: p.receipt.address } : null)}
                                   isStarred={basePlanRef?.id === p.id}
                                 />
-                                {/* 출발 시간 */}
+                                {/* 출발 시간 배너 */}
                                 <div
                                   data-time-trigger="true"
                                   onClick={() => setTimeControllerTarget(prev => prev?.itemId === p.id && prev?.kind === 'plan-time' ? null : { kind: 'plan-time', dayIdx: dIdx, pIdx, itemId: p.id })}
-                                  className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 cursor-pointer transition-colors ${timeControllerTarget?.itemId === p.id && timeControllerTarget?.kind === 'plan-time' ? 'bg-slate-100 border-slate-300' : 'bg-slate-50/60 border-slate-200 hover:bg-slate-100/70'}`}
+                                  className={`flex items-stretch gap-2 rounded-2xl border p-2.5 cursor-pointer transition-colors ${timeControllerTarget?.itemId === p.id && timeControllerTarget?.kind === 'plan-time' ? 'bg-amber-50 border-amber-300' : 'bg-gradient-to-br from-amber-50/80 to-orange-50/50 border-amber-100 hover:border-amber-200'}`}
                                 >
-                                  <span className="text-[9px] font-bold tracking-wide text-slate-400">출발</span>
-                                  <span className={`text-[18px] font-black tabular-nums tracking-tight ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-700'}`}>
-                                    {String(p.time || '00:00').split(':')[0]}:{String(p.time || '00:00').split(':')[1]}
-                                  </span>
+                                  <div className="flex flex-col items-center justify-center rounded-xl bg-white/80 border border-amber-100 px-4 py-2 shadow-sm">
+                                    <span className="text-[8px] font-bold tracking-widest uppercase text-amber-400">Departure</span>
+                                    <span className={`text-[20px] font-black tabular-nums tracking-tight mt-0.5 ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-amber-800'}`}>
+                                      {String(p.time || '00:00').split(':')[0]}:{String(p.time || '00:00').split(':')[1]}
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-1 items-center justify-center">
+                                    <span className="text-[10px] font-bold text-amber-400/70">클릭하여 출발 시간 변경</span>
+                                  </div>
                                 </div>
                                 {/* 메모 */}
                                 {String(p.memo || '').trim() ? (

@@ -316,11 +316,13 @@ export const PlaceAddForm = ({
         onJinaSmartFill={runJinaSmartFill ? async () => {
           try {
             onNotify?.('v2: 네이버 지도 검색 + AI 분석 중...');
+            const normalizedSettings = normalizeAiSmartFillConfig(aiSettings);
             const result = await runJinaSmartFill({
               placeName: draft.name || newPlaceName,
               regionHint,
               runGroqPostProcess: aiEnabled ? runGroqSmartFill : null,
-              aiSettings: aiEnabled ? normalizeAiSmartFillConfig(aiSettings) : null,
+              aiSettings: aiEnabled ? normalizedSettings : null,
+              jinaApiKey: normalizedSettings.perplexityApiKey || '',
             });
             if (result) {
               setDraft((current) => createPlaceEditorDraft({

@@ -3591,7 +3591,7 @@ const App = () => {
     const nextGeminiKey = String(aiSmartFillConfig.geminiApiKey || '').trim();
     const nextPerplexityKey = String(aiSmartFillConfig.perplexityApiKey || '').trim();
     if (!nextGroqKey && !nextGeminiKey && !nextPerplexityKey) {
-      showInfoToast('저장할 Groq, Gemini 또는 Perplexity API Key를 먼저 입력해 주세요.');
+      showInfoToast('저장할 Groq, Gemini 또는 Jina API Key를 먼저 입력해 주세요.');
       return;
     }
     if (!auth.currentUser || auth.currentUser.isGuest) {
@@ -3618,7 +3618,7 @@ const App = () => {
       showInfoToast([
         nextGroqKey ? 'Groq API Key 저장 완료' : '',
         nextGeminiKey ? 'Gemini API Key 저장 완료' : '',
-        nextPerplexityKey ? 'Perplexity API Key 저장 완료' : '',
+        nextPerplexityKey ? 'Jina API Key 저장 완료' : '',
       ].filter(Boolean).join(' / '));
       void fetchServerAiKeyStatus();
     } catch (error) {
@@ -3638,7 +3638,7 @@ const App = () => {
         token,
       });
       setServerAiKeyStatus({ hasStoredKey: false, hasStoredGroqKey: false, hasStoredGeminiKey: false, hasStoredPerplexityKey: false, updatedAt: null, loading: false });
-      showInfoToast('저장된 Groq / Gemini / Perplexity API Key를 삭제했습니다.');
+      showInfoToast('저장된 Groq / Gemini / Jina API Key를 삭제했습니다.');
     } catch (error) {
       showInfoToast(`저장된 AI 키 삭제 실패: ${error?.message || '알 수 없는 오류'}`);
     }
@@ -8889,21 +8889,21 @@ const App = () => {
                     <p className="mt-1 text-[9px] font-bold text-slate-400">Gemini는 링크 기반 정보 추출 전용이며, 텍스트/이미지 자동채우기는 계속 Groq를 사용합니다.</p>
                   </label>
                   <label className="block">
-                    <span className="text-[10px] font-black text-slate-500">Perplexity API Key (선택, 있으면 우선 사용)</span>
+                    <span className="text-[10px] font-black text-slate-500">Jina API Key (선택, v2 지도검색 속도/안정성 향상)</span>
                     <input
                       type="password"
                       value={aiSmartFillConfig.perplexityApiKey}
                       onChange={(e) => setAiSmartFillConfig((prev) => normalizeAiSmartFillConfig({ ...prev, perplexityApiKey: e.target.value }))}
-                      placeholder={serverAiKeyStatus.hasStoredPerplexityKey ? '새 Perplexity 키로 교체하려면 다시 입력' : '암호화 저장할 Perplexity API 키 입력'}
+                      placeholder={serverAiKeyStatus.hasStoredPerplexityKey ? '새 Jina 키로 교체하려면 다시 입력' : 'jina.ai에서 발급한 API 키 입력 (없어도 동작)'}
                       className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
                     />
-                    <p className="mt-1 text-[9px] font-bold text-slate-400">없으면 Gemini 키로 무료 AI 추천을 시도하고, 있으면 Perplexity를 우선 사용합니다.</p>
+                    <p className="mt-1 text-[9px] font-bold text-slate-400">없어도 v2 지도검색이 무료로 동작합니다. 키가 있으면 속도와 안정성이 향상됩니다.</p>
                   </label>
                   <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-bold text-slate-500 leading-relaxed">
                     {auth.currentUser && !auth.currentUser.isGuest ? (
                       <>
                         <div className="flex items-center justify-between gap-2">
-                          <span>{serverAiKeyStatus.loading ? '저장 상태 확인 중...' : `Groq ${serverAiKeyStatus.hasStoredGroqKey ? '저장됨' : '없음'} · Gemini ${serverAiKeyStatus.hasStoredGeminiKey ? '저장됨' : '없음'} · Perplexity ${serverAiKeyStatus.hasStoredPerplexityKey ? '저장됨' : '없음'}`}</span>
+                          <span>{serverAiKeyStatus.loading ? '저장 상태 확인 중...' : `Groq ${serverAiKeyStatus.hasStoredGroqKey ? '저장됨' : '없음'} · Gemini ${serverAiKeyStatus.hasStoredGeminiKey ? '저장됨' : '없음'} · Jina ${serverAiKeyStatus.hasStoredPerplexityKey ? '저장됨' : '없음'}`}</span>
                           <button
                             type="button"
                             onClick={() => { void fetchServerAiKeyStatus(); }}

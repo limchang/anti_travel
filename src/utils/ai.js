@@ -757,10 +757,10 @@ export const searchAddressFromPlaceName = async (keyword, regionHint = '', kakao
 
 const JINA_READER_PREFIX = 'https://r.jina.ai/';
 
-const fetchJinaReader = async (targetUrl) => {
-  const res = await fetch(`${JINA_READER_PREFIX}${targetUrl}`, {
-    headers: { Accept: 'text/plain' },
-  });
+const fetchJinaReader = async (targetUrl, jinaApiKey = '') => {
+  const headers = { Accept: 'text/plain' };
+  if (jinaApiKey) headers.Authorization = `Bearer ${jinaApiKey}`;
+  const res = await fetch(`${JINA_READER_PREFIX}${targetUrl}`, { headers });
   if (!res.ok) throw new Error(`Jina Reader HTTP ${res.status}`);
   return res.text();
 };
@@ -844,14 +844,14 @@ const parseJinaPlaceDetail = (text) => {
   return result;
 };
 
-export const runJinaSmartFill = async ({ placeName, regionHint = '', runGroqPostProcess = null, aiSettings = null }) => {
+export const runJinaSmartFill = async ({ placeName, regionHint = '', runGroqPostProcess = null, aiSettings = null, jinaApiKey = '' }) => {
   if (!placeName?.trim()) throw new Error('장소 이름을 입력해주세요.');
 
   const query = regionHint ? `${regionHint} ${placeName.trim()}` : placeName.trim();
   const searchUrl = `https://m.map.naver.com/search?query=${encodeURIComponent(query)}`;
 
   // 1단계: 검색 결과에서 장소 링크 추출
-  const searchText = await fetchJinaReader(searchUrl);
+  const searchText = await fetchJinaReader(searchUrl, jinaApiKey);
   const places = parseJinaSearchResults(searchText);
 
   if (!places.length) throw new Error('네이버 지도에서 검색 결과를 찾지 못했습니다.');
@@ -860,7 +860,7 @@ export const runJinaSmartFill = async ({ placeName, regionHint = '', runGroqPost
   const target = places.find(p => p.name.includes(placeName.trim()) || placeName.trim().includes(p.name)) || places[0];
 
   // 2단계: 상세 페이지 파싱
-  const detailText = await fetchJinaReader(target.url);
+  const detailText = await fetchJinaReader(target.url, jinaApiKey);
 
   // 3단계: Groq AI 후처리 (사용 가능한 경우)
   if (typeof runGroqPostProcess === 'function') {

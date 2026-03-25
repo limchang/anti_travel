@@ -240,8 +240,7 @@ const SharedBusinessRow = ({
 }) => (
   <div className="w-full bg-slate-50/60 border border-slate-200 rounded-lg py-1.5 px-2.5" onClick={onContainerClick}>
     <div className="w-full flex items-center gap-2">
-      <button
-        type="button"
+      <div role="button" tabIndex={0}
         onClick={(event) => {
           event.stopPropagation();
           onToggle?.(event);
@@ -271,7 +270,7 @@ const SharedBusinessRow = ({
         ) : (
           <span className="text-[10px] font-bold text-slate-600 truncate flex-1">{summary}</span>
         )}
-      </button>
+      </div>
       {actionButton ? <div className={ACTION_SLOT_CLASS}>{actionButton}</div> : null}
     </div>
     {expanded}

@@ -789,7 +789,7 @@ const App = () => {
   const [showOverviewMapModal, setShowOverviewMapModal] = useState(false);
   const [showPlaceMapModal, setShowPlaceMapModal] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
-  const [placeLibraryViewMode, setPlaceLibraryViewMode] = useState('single');
+  const [placeLibraryViewMode, setPlaceLibraryViewMode] = useState(() => safeLocalStorageGet('placeLibraryViewMode', 'single') || 'single');
   const [libraryGeoMap, setLibraryGeoMap] = useState({});
   const [recommendationGeoMap, setRecommendationGeoMap] = useState({});
   const routeRetryCooldownMs = 45000;
@@ -939,6 +939,7 @@ const App = () => {
     if (placeLibraryViewMode === 'compact' || placeLibraryViewMode === 'single') {
       setExpandedPlaceId(null);
     }
+    safeLocalStorageSet('placeLibraryViewMode', placeLibraryViewMode);
   }, [placeLibraryViewMode]);
 
   useEffect(() => () => {

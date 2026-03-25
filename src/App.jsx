@@ -20,6 +20,8 @@ import { parseBulkPlaceText } from './utils/parse.js';
 import BulkAddModal from './components/shared/BulkAddModal.jsx';
 import TimeControllerModal from './components/shared/TimeControllerModal.jsx';
 import LibraryTypeModal from './components/shared/LibraryTypeModal.jsx';
+import { MobileTabBar, DragActionBar, DragGhost } from './components/shared/DragOverlays.jsx';
+import HeroSummaryModal from './components/shared/HeroSummaryModal.jsx';
 import { OrderedTagPicker, SharedNameRow, SharedAddressRow, SharedBusinessRow, SharedMemoRow, MenuPriceInput, SharedTotalFooter, parseChecklistLines, toggleChecklistLine, hasChecklistItems, createPlaceEditorDraft, buildSmartFillMenuItems, getCustomTagLabel, ACTION_SLOT_CLASS } from './components/shared/SharedComponents.jsx';
 import { TimeInput, buildBusinessQuickEditSegments, BusinessHoursEditor, DateRangePicker, TimeWheelColumn } from './components/shared/BusinessComponents.jsx';
 import { loadKakaoMapSdk, ROUTE_PREVIEW_DEFAULT_CENTER, toLeafletLatLng, getMapCategoryColor, getMapCategoryLabel, MAP_CATEGORY_EMOJI, getMapCategoryEmoji, buildTimelineMarkerIcon, buildGroupedTimelineMarkerIcon, buildLibraryMarkerIcon, buildOverlayMarkerIcon, buildSegmentLabelIcon, calcBearingDeg, buildArrowIcon, sampleRouteArrows, LeafletMapViewportController, LeafletMapBackgroundClickHandler, LeafletMapContextMenuHandler, POPUP_TAG_OPTIONS, RoutePreviewCanvas } from './components/map/MapComponents.jsx';
@@ -9708,63 +9710,15 @@ const App = () => {
                           </div>
                         )}
 
-                        {showHeroSummaryModal && (
-                          <div className="fixed inset-0 z-[297] flex items-center justify-center bg-slate-950/36 px-4 py-6 backdrop-blur-sm" onClick={() => setShowHeroSummaryModal(false)}>
-                            <div className="w-full max-w-[560px] rounded-[28px] border border-white/70 bg-white/96 p-4 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)]" onClick={(event) => event.stopPropagation()}>
-                              <div className="flex items-center justify-between gap-3">
-                                <div>
-                                  <p className="text-[15px] font-black tracking-tight text-slate-900">여행 요약</p>
-                                  <p className="mt-1 text-[11px] font-bold text-slate-400">일정 흐름과 예산 분포를 한 번에 확인</p>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => setShowHeroSummaryModal(false)}
-                                  className="shrink-0 rounded-2xl border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:border-[#3182F6] hover:text-[#3182F6]"
-                                  title="여행 요약 닫기"
-                                >
-                                  <X size={16} />
-                                </button>
-                              </div>
-                              <div className="mt-4 w-full rounded-[24px] border border-slate-200 bg-white/92 p-4 text-left shadow-[0_16px_32px_-24px_rgba(15,23,42,0.24)]">
-                                <p className="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">신규 / 재방문 비율 비교</p>
-                                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden flex">
-                                  <div className="h-full bg-emerald-400" style={{ width: `${newPct}%` }} />
-                                  <div className="h-full bg-blue-400" style={{ width: `${revisitPct}%` }} />
-                                </div>
-                                <div className="mt-2 grid grid-cols-2 gap-2">
-                                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-2">
-                                    <p className="text-[9px] font-black text-emerald-600">신규</p>
-                                    <p className="text-[14px] font-black text-emerald-700 tabular-nums">{newCount}개 ({newPct}%)</p>
-                                  </div>
-                                  <div className="rounded-xl border border-blue-200 bg-blue-50 px-2.5 py-2">
-                                    <p className="text-[9px] font-black text-blue-600">재방문</p>
-                                    <p className="text-[14px] font-black text-blue-700 tabular-nums">{revisitCount}개 ({revisitPct}%)</p>
-                                  </div>
-                                </div>
-                                <div className="mt-3 pt-3 border-t border-slate-200">
-                                  <p className="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-widest">카테고리별 지출 비율</p>
-                                  {categorySpendRows.length === 0 ? (
-                                    <p className="text-[10px] font-bold text-slate-400">지출 데이터가 없습니다.</p>
-                                  ) : (
-                                    <div className="space-y-1.5">
-                                      {categorySpendRows.map((row) => (
-                                        <div key={row.key} className="rounded-xl border border-slate-200 bg-white px-2.5 py-2">
-                                          <div className="flex items-center justify-between mb-1">
-                                            <span className="text-[10px] font-black text-slate-700">{row.label}</span>
-                                            <span className="text-[10px] font-black text-[#3182F6] tabular-nums">₩{row.amount.toLocaleString()} · {row.pct}%</span>
-                                          </div>
-                                          <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                                            <div className="h-full rounded-full bg-gradient-to-r from-[#3182F6] to-indigo-500" style={{ width: `${row.pct}%` }} />
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                        <HeroSummaryModal
+                          show={showHeroSummaryModal}
+                          onClose={() => setShowHeroSummaryModal(false)}
+                          newPct={newPct}
+                          newCount={newCount}
+                          revisitPct={revisitPct}
+                          revisitCount={revisitCount}
+                          categorySpendRows={categorySpendRows}
+                        />
                       </div>
                     </div>
                   </section>
@@ -11441,130 +11395,25 @@ const App = () => {
           }
 
 
-          {/* ── 모바일 하단 탭 바 ── */}
-          {isMobileLayout && (
-            <div className="fixed inset-x-0 bottom-0 z-[230] flex h-14 items-stretch border-t border-slate-200 bg-white/97 backdrop-blur-xl shadow-[0_-6px_20px_-10px_rgba(15,23,42,0.12)]">
-              <button
-                type="button"
-                onClick={() => { setCol1Collapsed(true); setCol2Collapsed(true); }}
-                className={`flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors ${col1Collapsed && col2Collapsed ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                <CalendarDays size={18} strokeWidth={col1Collapsed && col2Collapsed ? 2.5 : 2} />
-                <span className={`text-[10px] font-black ${col1Collapsed && col2Collapsed ? 'text-[#3182F6]' : 'text-slate-400'}`}>일정</span>
-                {col1Collapsed && col2Collapsed && <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[#3182F6]" />}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setCol1Collapsed(false); setCol2Collapsed(true); }}
-                className={`flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors ${!col1Collapsed ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                <MapIcon size={18} strokeWidth={!col1Collapsed ? 2.5 : 2} />
-                <span className={`text-[10px] font-black ${!col1Collapsed ? 'text-[#3182F6]' : 'text-slate-400'}`}>네비</span>
-                {!col1Collapsed && <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[#3182F6]" />}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setCol1Collapsed(true); setCol2Collapsed(false); }}
-                className={`flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors ${!col2Collapsed ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                <Package size={18} strokeWidth={!col2Collapsed ? 2.5 : 2} />
-                <span className={`text-[10px] font-black ${!col2Collapsed ? 'text-[#3182F6]' : 'text-slate-400'}`}>내 장소</span>
-                {!col2Collapsed && <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[#3182F6]" />}
-              </button>
-            </div>
-          )}
+          <MobileTabBar isMobileLayout={isMobileLayout} col1Collapsed={col1Collapsed} col2Collapsed={col2Collapsed} setCol1Collapsed={setCol1Collapsed} setCol2Collapsed={setCol2Collapsed} />
 
-          {
-            draggingFromTimeline && (
-              <div className="fixed left-1/2 -translate-x-1/2 bottom-16 z-[231] w-[min(680px,94vw)]">
-                <div className="grid grid-cols-3 gap-2">
-                  <div
-                    data-drag-action="move_to_library"
-                    onDragOver={(e) => { e.preventDefault(); setDragBottomTarget('move_to_library'); }}
-                    onDragLeave={() => setDragBottomTarget(prev => (prev === 'move_to_library' ? '' : prev))}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const payload = getActiveTimelineDragPayload();
-                      if (!payload) return;
-                      const changed = applyTimelineBottomAction('move_to_library', payload);
-                      if (changed) triggerUndoToast();
-                      setDragBottomTarget('');
-                      setDraggingFromTimeline(null);
-                      desktopDragRef.current = null;
-                    }}
-                    className={`h-16 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-[11px] font-black transition-all ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-500'}`}
-                  >
-                    <Package size={13} />
-                    <span>내장소로 이동</span>
-                    <span className="text-[9px] font-bold opacity-70">여기에 드래그</span>
-                  </div>
-                  <div
-                    data-drag-action="delete"
-                    onDragOver={(e) => { e.preventDefault(); setDragBottomTarget('delete'); }}
-                    onDragLeave={() => setDragBottomTarget(prev => (prev === 'delete' ? '' : prev))}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const payload = getActiveTimelineDragPayload();
-                      if (!payload) return;
-                      const changed = applyTimelineBottomAction('delete', payload);
-                      if (changed) triggerUndoToast();
-                      setDragBottomTarget('');
-                      setDraggingFromTimeline(null);
-                      desktopDragRef.current = null;
-                    }}
-                    className={`h-16 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-[11px] font-black transition-all ${dragBottomTarget === 'delete' ? 'border-red-400 bg-red-50 text-red-500' : 'border-slate-200 bg-white text-slate-500'}`}
-                  >
-                    <Trash2 size={13} />
-                    <span>삭제</span>
-                    <span className="text-[9px] font-bold opacity-70">여기에 드래그</span>
-                  </div>
-                  <div
-                    data-drag-action="copy_to_library"
-                    onDragOver={(e) => { e.preventDefault(); setDragBottomTarget('copy_to_library'); }}
-                    onDragLeave={() => setDragBottomTarget(prev => (prev === 'copy_to_library' ? '' : prev))}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const payload = getActiveTimelineDragPayload();
-                      if (!payload) return;
-                      const changed = applyTimelineBottomAction('copy_to_library', payload);
-                      if (changed) triggerUndoToast();
-                      setDragBottomTarget('');
-                      setDraggingFromTimeline(null);
-                      desktopDragRef.current = null;
-                    }}
-                    className={`h-16 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-[11px] font-black transition-all ${dragBottomTarget === 'copy_to_library' ? 'border-emerald-400 bg-emerald-50 text-emerald-600' : 'border-slate-200 bg-white text-slate-500'}`}
-                  >
-                    <PlusCircle size={13} />
-                    <span>내장소로 복제</span>
-                    <span className="text-[9px] font-bold opacity-70">여기에 드래그</span>
-                  </div>
-                </div>
-              </div>
-            )
-          }
-
-          {/* ── 드래그 프리뷰 고스트 (모바일용) ── */}
-          {
-            (draggingFromLibrary || draggingFromTimeline) && (
-              <div
-                ref={dragGhostRef}
-                className="fixed pointer-events-none z-[9999] bg-white/96 backdrop-blur-xl border border-[#3182F6]/25 rounded-full px-3.5 py-2 shadow-[0_12px_28px_rgba(49,130,246,0.22)] flex items-center gap-2.5 animate-in fade-in zoom-in duration-150"
-                style={{
-                  left: 0,
-                  top: 0,
-                  transform: `translate3d(${dragCoord.x}px, ${dragCoord.y}px, 0) translate(-50%, -120%)`,
-                  willChange: 'transform'
-                }}
-              >
-                <Move size={12} className="text-[#3182F6] shrink-0" />
-                <span className="text-[12px] font-black text-slate-800 truncate max-w-[180px]">
-                  {draggingFromLibrary?.name ||
-                    (itinerary.days?.[draggingFromTimeline?.dayIdx]?.plan?.[draggingFromTimeline?.pIdx]?.activity) ||
-                    '일정 이동 중'}
-                </span>
-              </div>
-            )
-          }
+          <DragActionBar
+            draggingFromTimeline={draggingFromTimeline}
+            dragBottomTarget={dragBottomTarget}
+            setDragBottomTarget={setDragBottomTarget}
+            getActiveTimelineDragPayload={getActiveTimelineDragPayload}
+            applyTimelineBottomAction={applyTimelineBottomAction}
+            triggerUndoToast={triggerUndoToast}
+            setDraggingFromTimeline={setDraggingFromTimeline}
+            desktopDragRef={desktopDragRef}
+          />
+          <DragGhost
+            draggingFromLibrary={draggingFromLibrary}
+            draggingFromTimeline={draggingFromTimeline}
+            dragCoord={dragCoord}
+            dragGhostRef={dragGhostRef}
+            itinerary={itinerary}
+          />
 
           <TimeControllerModal
             timeControllerTarget={timeControllerTarget}

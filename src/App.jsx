@@ -15,6 +15,8 @@ import { timeToMinutes, minutesToTime, getNextDayClockMinutes, fmtMinutesLabel, 
 import { PLACE_TYPES, TAG_OPTIONS, TAG_VALUES, MODIFIER_TAGS, getPreferredMapCategory, normalizeTagOrder, toggleTagSelection, getTagButtonClass, WEEKDAY_OPTIONS, formatClosedDaysSummary, EMPTY_BUSINESS, BUSINESS_PRESETS, DEFAULT_BUSINESS, KAKAO_API_KEY, ADDRESS_REGEX, NAVER_PARSE_STOP_WORDS, bulkKwToType } from './utils/constants.js';
 import { parseBusinessHoursText, isLikelyParsedAddress, isLikelyMenuPriceLine, isLikelyMenuNameLine } from './utils/parse.js';
 import { extractPlaceNameFromLines, extractMenusFromNaverLines, parseNaverMapText, normalizeSmartFillResult, DEFAULT_AI_SMART_FILL_CONFIG, GEMINI_LINK_MODEL, GEMINI_LINK_SYSTEM_PROMPT, normalizeAiSmartFillConfig, sanitizeAiSmartFillConfigForStorage, isLocalNetworkHost, getAiKeyEndpoint, getAiKeyEndpointCandidates, getPerplexityNearbyEndpoint, getRouteVerifyEndpointCandidates, getSmartFillErrorMessage, isAiSmartFillSource, shouldUseReasoningEffort, extractNaverMapLink, normalizeClosedDaysInput, normalizeGeminiLinkResult, fetchGeminiPlaceInfoFromMapLink, scrapePlaceFromMapLinkUrl, extractJsonPayload, blobToDataUrl, readClipboardPayload, getCurrentUserBearerToken, runGroqSmartFill, analyzeClipboardSmartFill, searchAddressFromPlaceName } from './utils/ai.js';
+import { ensureShipItemDefaults, normalizeLibraryPlace } from './utils/helpers.js';
+import { parseBulkPlaceText } from './utils/parse.js';
 import { OrderedTagPicker, SharedNameRow, SharedAddressRow, SharedBusinessRow, SharedMemoRow, MenuPriceInput, SharedTotalFooter, parseChecklistLines, toggleChecklistLine, hasChecklistItems, createPlaceEditorDraft, buildSmartFillMenuItems, getCustomTagLabel, ACTION_SLOT_CLASS } from './components/shared/SharedComponents.jsx';
 import { TimeInput, buildBusinessQuickEditSegments, BusinessHoursEditor, DateRangePicker, TimeWheelColumn } from './components/shared/BusinessComponents.jsx';
 import { loadKakaoMapSdk, ROUTE_PREVIEW_DEFAULT_CENTER, toLeafletLatLng, getMapCategoryColor, getMapCategoryLabel, MAP_CATEGORY_EMOJI, getMapCategoryEmoji, buildTimelineMarkerIcon, buildGroupedTimelineMarkerIcon, buildLibraryMarkerIcon, buildOverlayMarkerIcon, buildSegmentLabelIcon, calcBearingDeg, buildArrowIcon, sampleRouteArrows, LeafletMapViewportController, LeafletMapBackgroundClickHandler, LeafletMapContextMenuHandler, POPUP_TAG_OPTIONS, RoutePreviewCanvas } from './components/map/MapComponents.jsx';
@@ -1157,43 +1159,6 @@ const App = () => {
     };
   };
 
-  const ensureShipItemDefaults = (item, dayNumber = 1) => {
-    if (!item || !Array.isArray(item.types) || !item.types.includes('ship')) return item;
-    const isOutbound = Number(dayNumber || 1) === 1;
-    const defaultLoadStart = isOutbound ? '22:30' : '14:45';
-    item.activity = String(item.activity || '').trim() || '새 페리 일정';
-    item.startPoint = item.startPoint || (isOutbound ? '목포항' : '제주항');
-    item.endPoint = item.endPoint || (isOutbound ? '제주항' : '목포항');
-    item.time = String(item.time || defaultLoadStart).trim() || defaultLoadStart;
-    item.loadEndTime = String(item.loadEndTime || minutesToTime(timeToMinutes(item.time) + 90)).trim() || minutesToTime(timeToMinutes(item.time) + 90);
-    item.boardTime = String(getShipBoardTimeValue(item) || minutesToTime(timeToMinutes(item.loadEndTime) + 60)).trim() || minutesToTime(timeToMinutes(item.loadEndTime) + 60);
-    item.sailDuration = Math.max(30, Number(item.sailDuration) || 240);
-    item.isTimeFixed = true;
-    item.travelTimeOverride = item.travelTimeOverride || '15분';
-    item.bufferTimeOverride = item.bufferTimeOverride || '10분';
-    if (!item.receipt) item.receipt = { address: '', items: [] };
-    if (!Array.isArray(item.receipt.items)) item.receipt.items = [];
-    item.receipt.address = item.receipt.address || item.startPoint;
-    item.receipt.shipDetails = {
-      ...(item.receipt.shipDetails || {}),
-      depart: item.boardTime,
-      loading: `${item.time} ~ ${item.loadEndTime}`,
-    };
-    const shipTimeline = getShipTimeline(item);
-    item.time = shipTimeline.loadStartLabel;
-    item.loadEndTime = shipTimeline.loadEndLabel;
-    item.boardTime = shipTimeline.boardLabel;
-    item.sailDuration = shipTimeline.sailDuration;
-    item.duration = Math.max(0, shipTimeline.board - shipTimeline.loadStart) + shipTimeline.sailDuration;
-    if (item.receipt?.shipDetails) {
-      item.receipt.shipDetails.depart = shipTimeline.boardLabel;
-      item.receipt.shipDetails.loading = `${shipTimeline.loadStartLabel} ~ ${shipTimeline.loadEndLabel}`;
-    }
-    if (Array.isArray(item.receipt?.items)) {
-      item.price = item.receipt.items.reduce((sum, menu) => sum + (menu?.selected === false ? 0 : getMenuLineTotal(menu)), 0);
-    }
-    return item;
-  };
 
   const normalizeLodgeSegmentTime = (raw, fallback = '18:00') => {
     const value = String(raw || '').trim();
@@ -1375,55 +1340,6 @@ const App = () => {
     return { geo: normalizeGeoPoint(record.geo, getPlanItemPrimaryAddress(record)) };
   };
 
-  const normalizeLibraryPlace = (place, dayNumber = 1) => {
-    if (!place) return place;
-    place.types = normalizeTagOrder(Array.isArray(place.types) && place.types.length ? place.types : ['place']);
-    place.business = normalizeBusiness(place.business || {});
-    if (!place.receipt) place.receipt = { address: place.address || '', items: [] };
-    if (!Array.isArray(place.receipt.items)) place.receipt.items = [];
-    place.receipt.items = place.receipt.items
-      .filter(Boolean)
-      .map((item) => ({
-        ...item,
-        name: String(item?.name || '').trim(),
-        price: Number(item?.price) || 0,
-        qty: Math.max(1, Number(item?.qty) || 1),
-        selected: item?.selected !== false,
-      }));
-
-    if (place.types.includes('ship')) {
-      const shipItem = ensureShipItemDefaults({
-        ...place,
-        activity: place.name || place.activity || '',
-        receipt: deepClone(place.receipt),
-      }, dayNumber);
-      place.name = shipItem.activity;
-      place.time = shipItem.time;
-      place.loadEndTime = shipItem.loadEndTime;
-      place.boardTime = shipItem.boardTime;
-      place.sailDuration = shipItem.sailDuration;
-      place.duration = shipItem.duration;
-      place.startPoint = shipItem.startPoint;
-      place.endPoint = shipItem.endPoint;
-      place.endAddress = shipItem.endAddress || place.endAddress || '';
-      place.isTimeFixed = true;
-      place.travelTimeOverride = shipItem.travelTimeOverride;
-      place.bufferTimeOverride = shipItem.bufferTimeOverride;
-      place.receipt = shipItem.receipt;
-      place.address = shipItem.receipt?.address || place.address || shipItem.startPoint || '';
-      place.price = Number(shipItem.price) || 0;
-      applyGeoFieldsToRecord(place);
-      return place;
-    }
-
-    place.name = String(place.name || place.activity || '').trim();
-    place.address = String(place.address || place.receipt.address || '').trim();
-    place.receipt.address = place.address || place.receipt.address || '';
-    place.price = place.receipt.items.reduce((sum, item) => sum + (item.selected === false ? 0 : getMenuLineTotal(item)), 0);
-    if (isFullLodgeStayItem(place)) ensureLodgeStaySegments(place);
-    applyGeoFieldsToRecord(place);
-    return place;
-  };
 
   const createTimelineItem = ({ dayNumber = 1, baseTime = '09:00', types = ['place'], placeData = null, fallbackLabel = '장소' }) => {
     const normalizedTypes = normalizeTagOrder(placeData?.types || types);
@@ -2389,7 +2305,6 @@ const App = () => {
   const geoSyncRequestKeyRef = useRef('');
   const geoSyncLastRunRef = useRef(0);
 
-  const deepClone = (value) => JSON.parse(JSON.stringify(value));
   const routePreviewEndpointActions = useMemo(() => {
     const allShips = (itinerary.days || []).flatMap((day, dayIdx) => (
       (day.plan || [])
@@ -6049,49 +5964,6 @@ const App = () => {
 
 
   // 여러 장소 텍스트 파싱 (카카오맵 공유 텍스트 등)
-  const parseBulkPlaceText = (text) => {
-    if (!text?.trim()) return [];
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    const results = [];
-    let i = 0;
-    while (i < lines.length) {
-      const line = lines[i];
-      // 주소 줄 패턴: "제주특별자치도" 또는 "서울" 등으로 시작하는 행
-      const isAddressLine = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|충청|전북|전남|전라|경북|경남|경상|제주특별자치도|서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도)/.test(line);
-      if (isAddressLine) { i++; continue; }
-      // 이름+카테고리 줄 패턴 파싱
-      // 예: "스무돈가스" / "말고기연구소 제주공항점육류,고기요리" / "🏡 키즈펜션 로그밸리펜션펜션"
-      const nameLine = line.replace(/^[^\w가-힣a-zA-Z0-9]+/, ''); // 앞 이모지 제거
-      // 쉼표 앞까지가 이름 원본, 쉼표 뒤는 카테고리 참고용 (이름 자동 편집 없음)
-      const commaIdx = nameLine.indexOf(',');
-      const rawName = commaIdx > 0 ? nameLine.slice(0, commaIdx).trim() : nameLine.trim();
-      let detectedTypes = [];
-      if (commaIdx > 0) {
-        const suffixTokens = nameLine.slice(commaIdx + 1).split(',').map(s => s.trim()).filter(Boolean);
-        for (const token of suffixTokens) {
-          const mapped = bulkKwToType(token);
-          if (mapped) detectedTypes.push(mapped);
-        }
-      }
-      // 학습 데이터 적용: 이전에 사용자가 수정한 패턴이 있으면 적용
-      const corrections = JSON.parse(safeLocalStorageGet('bulk_name_corrections', '{}'));
-      const finalName = corrections[rawName] || rawName;
-      // 다음 줄이 주소인지 확인
-      const nextLine = lines[i + 1] || '';
-      const nextIsAddress = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|충청|전북|전남|전라|경북|경남|경상|제주특별자치도|서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도)/.test(nextLine);
-      if (!nextIsAddress) { i++; continue; }
-      const address = nextLine;
-      if (finalName.length >= 1) {
-        const types = detectedTypes.length > 0 ? [...new Set(detectedTypes)] : ['place'];
-        const dupKey = `${finalName.toLowerCase()}::${address.toLowerCase()}`;
-        if (!results.some(r => `${r.name.toLowerCase()}::${r.address.toLowerCase()}` === dupKey)) {
-          results.push({ name: finalName, address, types, selected: true, _rawName: rawName });
-        }
-      }
-      i += 2;
-    }
-    return results;
-  };
 
   const deletePlacePermanently = (placeId) => {
     const targetPlace = (itinerary.placeTrash || []).find((place) => place.id === placeId);

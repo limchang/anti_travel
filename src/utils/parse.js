@@ -1,5 +1,6 @@
 import { extractTimesFromText, normalizeTimeToken } from './time.js';
-import { NAVER_PARSE_STOP_WORDS, WEEKDAY_OPTIONS } from './constants.js';
+import { NAVER_PARSE_STOP_WORDS, WEEKDAY_OPTIONS, bulkKwToType, ADDRESS_REGEX } from './constants.js';
+import { safeLocalStorageGet } from './storage.js';
 
 // 영업시간 텍스트 파싱
 export const parseBusinessHoursText = (text = '') => {
@@ -98,4 +99,48 @@ export const isLikelyMenuNameLine = (line = '', stopWords = NAVER_PARSE_STOP_WOR
   if (/^(http|www\.|ftp:)/i.test(trimmed)) return false;
   if (/^[#@]/.test(trimmed)) return false;
   return true;
+};
+
+export const parseBulkPlaceText = (text) => {
+  if (!text?.trim()) return [];
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const results = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    // 주소 줄 패턴: "제주특별자치도" 또는 "서울" 등으로 시작하는 행
+    const isAddressLine = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|충청|전북|전남|전라|경북|경남|경상|제주특별자치도|서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도)/.test(line);
+    if (isAddressLine) { i++; continue; }
+    // 이름+카테고리 줄 패턴 파싱
+    // 예: "스무돈가스" / "말고기연구소 제주공항점육류,고기요리" / "🏡 키즈펜션 로그밸리펜션펜션"
+    const nameLine = line.replace(/^[^\w가-힣a-zA-Z0-9]+/, ''); // 앞 이모지 제거
+    // 쉼표 앞까지가 이름 원본, 쉼표 뒤는 카테고리 참고용 (이름 자동 편집 없음)
+    const commaIdx = nameLine.indexOf(',');
+    const rawName = commaIdx > 0 ? nameLine.slice(0, commaIdx).trim() : nameLine.trim();
+    let detectedTypes = [];
+    if (commaIdx > 0) {
+      const suffixTokens = nameLine.slice(commaIdx + 1).split(',').map(s => s.trim()).filter(Boolean);
+      for (const token of suffixTokens) {
+        const mapped = bulkKwToType(token);
+        if (mapped) detectedTypes.push(mapped);
+      }
+    }
+    // 학습 데이터 적용: 이전에 사용자가 수정한 패턴이 있으면 적용
+    const corrections = JSON.parse(safeLocalStorageGet('bulk_name_corrections', '{}'));
+    const finalName = corrections[rawName] || rawName;
+    // 다음 줄이 주소인지 확인
+    const nextLine = lines[i + 1] || '';
+    const nextIsAddress = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|충청|전북|전남|전라|경북|경남|경상|제주특별자치도|서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도)/.test(nextLine);
+    if (!nextIsAddress) { i++; continue; }
+    const address = nextLine;
+    if (finalName.length >= 1) {
+      const types = detectedTypes.length > 0 ? [...new Set(detectedTypes)] : ['place'];
+      const dupKey = `${finalName.toLowerCase()}::${address.toLowerCase()}`;
+      if (!results.some(r => `${r.name.toLowerCase()}::${r.address.toLowerCase()}` === dupKey)) {
+        results.push({ name: finalName, address, types, selected: true, _rawName: rawName });
+      }
+    }
+    i += 2;
+  }
+  return results;
 };

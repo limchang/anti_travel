@@ -10221,7 +10221,7 @@ const App = () => {
                               <div className="flex flex-col gap-2 py-0.5" onClick={(e) => e.stopPropagation()}>
                                 {/* 집 이름 */}
                                 <div className="flex items-center gap-1.5">
-                                  <Home size={11} className="text-amber-600 shrink-0" />
+                                  <Home size={11} className="text-slate-400 shrink-0" />
                                   <input
                                     value={p.activity}
                                     onChange={(e) => updateActivityName(dIdx, pIdx, e.target.value)}
@@ -10251,18 +10251,15 @@ const App = () => {
                                   isStarred={basePlanRef?.id === p.id}
                                 />
                                 {/* 출발 시간 */}
-                                <div className="flex gap-2">
-                                  <div
-                                    data-time-trigger="true"
-                                    onClick={() => setTimeControllerTarget(prev => prev?.itemId === p.id && prev?.kind === 'plan-time' ? null : { kind: 'plan-time', dayIdx: dIdx, pIdx, itemId: p.id })}
-                                    className={`relative overflow-hidden flex-1 rounded-xl border p-3 flex flex-col items-center justify-center gap-2 min-h-[80px] cursor-pointer transition-colors ${timeControllerTarget?.itemId === p.id && timeControllerTarget?.kind === 'plan-time' ? 'bg-amber-100/80 border-amber-300' : 'bg-amber-50/70 border-amber-100 hover:bg-amber-100/60'}`}
-                                  >
-                                    <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[48px] font-black tracking-[0.08em] text-amber-200/55 select-none">GO</span>
-                                    <span className="text-[8px] font-black tracking-[0.18em] text-amber-500">출발</span>
-                                    <span className={`text-[22px] font-black tabular-nums tracking-tight ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-amber-900'}`}>
-                                      {String(p.time || '00:00').split(':')[0]}:{String(p.time || '00:00').split(':')[1]}
-                                    </span>
-                                  </div>
+                                <div
+                                  data-time-trigger="true"
+                                  onClick={() => setTimeControllerTarget(prev => prev?.itemId === p.id && prev?.kind === 'plan-time' ? null : { kind: 'plan-time', dayIdx: dIdx, pIdx, itemId: p.id })}
+                                  className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 cursor-pointer transition-colors ${timeControllerTarget?.itemId === p.id && timeControllerTarget?.kind === 'plan-time' ? 'bg-slate-100 border-slate-300' : 'bg-slate-50/60 border-slate-200 hover:bg-slate-100/70'}`}
+                                >
+                                  <span className="text-[9px] font-bold tracking-wide text-slate-400">출발</span>
+                                  <span className={`text-[18px] font-black tabular-nums tracking-tight ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-700'}`}>
+                                    {String(p.time || '00:00').split(':')[0]}:{String(p.time || '00:00').split(':')[1]}
+                                  </span>
                                 </div>
                                 {/* 메모 */}
                                 {String(p.memo || '').trim() ? (

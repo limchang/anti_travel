@@ -1,6 +1,11 @@
 {
   "lastUpdates": [
     {
+      "version": "1.3.365",
+      "timestamp": "2026-03-25T20:43:04+09:00",
+      "message": "build: 자동 빌드 타임스탬프 갱신"
+    },
+    {
       "version": "1.3.364",
       "timestamp": "2026-03-25T20:42:33+09:00",
       "message": "build: 자동 빌드 타임스탬프 갱신"
@@ -143,11 +148,6 @@
     {
       "version": "1.3.336",
       "timestamp": "2026-03-25T15:41:03+09:00",
-      "message": "build: 자동 빌드 타임스탬프 갱신"
-    },
-    {
-      "version": "1.3.335",
-      "timestamp": "2026-03-25T15:34:44+09:00",
       "message": "build: 자동 빌드 타임스탬프 갱신"
     }
   ]

@@ -843,7 +843,7 @@ const parseJinaPlaceDetail = (text) => {
   return result;
 };
 
-export const runJinaSmartFill = async ({ placeName, regionHint = '' }) => {
+export const runJinaSmartFill = async ({ placeName, regionHint = '', runGroqPostProcess = null, aiSettings = null }) => {
   if (!placeName?.trim()) throw new Error('장소 이름을 입력해주세요.');
 
   const query = regionHint ? `${regionHint} ${placeName.trim()}` : placeName.trim();
@@ -860,8 +860,44 @@ export const runJinaSmartFill = async ({ placeName, regionHint = '' }) => {
 
   // 2단계: 상세 페이지 파싱
   const detailText = await fetchJinaReader(target.url);
-  const detail = parseJinaPlaceDetail(detailText);
 
+  // 3단계: Groq AI 후처리 (사용 가능한 경우)
+  if (typeof runGroqPostProcess === 'function') {
+    try {
+      const groqResult = await runGroqPostProcess({
+        mode: 'all',
+        text: [
+          '네이버 지도 장소 상세 페이지에서 추출한 텍스트입니다. 장소 정보를 정리해주세요.',
+          `장소 URL: ${target.url}`,
+          `검색어: ${query}`,
+          '---',
+          detailText.slice(0, 4000),
+        ].join('\n\n'),
+        imageDataUrl: '',
+        aiSettings,
+        inputType: 'text',
+      });
+      if (groqResult?.parsed) {
+        const parsed = groqResult.parsed;
+        return {
+          name: parsed.name || target.name,
+          address: parsed.address || '',
+          phone: parsed.phone || '',
+          business: parsed.business || {},
+          menus: parsed.menus || [],
+          rating: parsed.rating,
+          placeId: target.placeId,
+          placeUrl: target.url,
+          source: 'jina-groq',
+        };
+      }
+    } catch (_) {
+      // Groq 실패 시 regex 파싱으로 폴백
+    }
+  }
+
+  // 폴백: regex 파싱
+  const detail = parseJinaPlaceDetail(detailText);
   return {
     name: detail.name || target.name,
     address: detail.address,

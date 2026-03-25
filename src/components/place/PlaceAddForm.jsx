@@ -315,8 +315,13 @@ export const PlaceAddForm = ({
         onSuperSmartPaste={() => runSuperFill(draft)}
         onJinaSmartFill={runJinaSmartFill ? async () => {
           try {
-            onNotify?.('Jina v2: 네이버 지도 검색 중...');
-            const result = await runJinaSmartFill({ placeName: draft.name || newPlaceName, regionHint });
+            onNotify?.('v2: 네이버 지도 검색 + AI 분석 중...');
+            const result = await runJinaSmartFill({
+              placeName: draft.name || newPlaceName,
+              regionHint,
+              runGroqPostProcess: aiEnabled ? runGroqSmartFill : null,
+              aiSettings: aiEnabled ? normalizeAiSmartFillConfig(aiSettings) : null,
+            });
             if (result) {
               setDraft((current) => createPlaceEditorDraft({
                 ...current,

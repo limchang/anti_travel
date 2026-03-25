@@ -300,6 +300,57 @@ export const formatBusinessSummary = (businessRaw, context = null) => {
 
 // ── Schedule 계산 ──
 
+// 역방향 압축: 시작/종료 고정 아이템 앞에서 초과분을 보정(1순위)→소요(2순위) 순으로 깍기
+export const compressBeforeFixedItems = (dayPlan) => {
+  if (!Array.isArray(dayPlan)) return;
+  const mainIndices = [];
+  for (let idx = 0; idx < dayPlan.length; idx += 1) {
+    const it = dayPlan[idx];
+    if (it && it.type !== 'backup') mainIndices.push(idx);
+  }
+  if (mainIndices.length < 2) return;
+  if (!mainIndices.some(idx => { const it = dayPlan[idx]; return it && (it.isTimeFixed || (it.isEndTimeFixed && it._fixedEndMinutes != null)); })) return;
+
+  for (let seq = 1; seq < mainIndices.length; seq += 1) {
+    const item = dayPlan[mainIndices[seq]];
+    if (!item) continue;
+    const deadline = item.isTimeFixed ? timeToMinutes(item.time || '00:00')
+      : (item.isEndTimeFixed && item._fixedEndMinutes != null) ? item._fixedEndMinutes : null;
+    if (deadline == null) continue;
+
+    let needed = 0;
+    for (let k = seq - 1; k >= 0; k -= 1) {
+      const prev = dayPlan[mainIndices[k]];
+      if (!prev) break;
+      const nextItem = dayPlan[mainIndices[k + 1]];
+      needed += Math.max(0, Number(prev.duration) || 0)
+        + parseMinsLabel(nextItem?.travelTimeOverride, DEFAULT_TRAVEL_MINS)
+        + parseMinsLabel(nextItem?.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+
+      const overflow = needed - (deadline - timeToMinutes(prev.time || '00:00'));
+      if (overflow <= 0) break;
+
+      let rem = overflow;
+      for (let j = k + 1; j <= seq && rem > 0; j += 1) {
+        const t = dayPlan[mainIndices[j]];
+        if (!t || t.isTimeFixed) continue;
+        const buf = parseMinsLabel(t.bufferTimeOverride, DEFAULT_BUFFER_MINS);
+        const cut = Math.min(rem, buf);
+        if (cut > 0) { t.bufferTimeOverride = `${buf - cut}분`; if (!t._isBufferCoordinated) t._manualBufferTimeOverride = t.bufferTimeOverride; rem -= cut; needed -= cut; }
+      }
+      for (let j = k; j < seq && rem > 0; j += 1) {
+        const t = dayPlan[mainIndices[j]];
+        if (!t || t.isDurationFixed || t.isEndTimeFixed) continue;
+        if (t.types?.includes('ship') || isOvernightLodgeTimelineItem(t)) continue;
+        const dur = Math.max(0, Number(t.duration) || 0);
+        const cut = Math.min(rem, dur - 5);
+        if (cut > 0) { t.duration = dur - cut; syncBaseDuration(t, t.duration); rem -= cut; needed -= cut; }
+      }
+      if (rem <= 0) break;
+    }
+  }
+};
+
 export const runSchedulePass = (dayPlan) => {
   if (!Array.isArray(dayPlan)) return dayPlan;
   const mainIndices = [];
@@ -310,67 +361,7 @@ export const runSchedulePass = (dayPlan) => {
   }
   if (!mainIndices.length) return dayPlan;
 
-  // ── 역방향 압축: 시작/종료 고정 아이템 앞에서 초과분을 보정→소요 순으로 깍기 ──
-  for (let seq = 1; seq < mainIndices.length; seq += 1) {
-    const item = dayPlan[mainIndices[seq]];
-    if (!item) continue;
-    const fixedStart = item.isTimeFixed ? timeToMinutes(item.time || '00:00') : null;
-    const fixedEnd = (item.isEndTimeFixed && item._fixedEndMinutes != null) ? item._fixedEndMinutes : null;
-    const deadline = fixedStart ?? fixedEnd;
-    if (deadline == null) continue;
-
-    // 이 고정 아이템까지의 소요시간을 누적 계산
-    let needed = 0;
-    for (let k = seq - 1; k >= 0; k -= 1) {
-      const prev = dayPlan[mainIndices[k]];
-      if (!prev) break;
-      const dur = Math.max(0, Number(prev.duration) || 0);
-      const nextItem = dayPlan[mainIndices[k + 1]];
-      const travel = parseMinsLabel(nextItem?.travelTimeOverride, DEFAULT_TRAVEL_MINS);
-      const buffer = parseMinsLabel(nextItem?.bufferTimeOverride, DEFAULT_BUFFER_MINS);
-      needed += dur + travel + buffer;
-
-      const prevStart = timeToMinutes(prev.time || '00:00');
-      const available = deadline - prevStart;
-      let overflow = needed - available;
-      if (overflow <= 0) break;
-
-      // 이 overflow를 k+1..seq-1 사이 아이템들에서 깍기
-      // 1순위: 고정 안 된 보정시간
-      for (let j = k + 1; j <= seq && overflow > 0; j += 1) {
-        const target = dayPlan[mainIndices[j]];
-        if (!target || target.isTimeFixed) continue;
-        const curBuf = parseMinsLabel(target.bufferTimeOverride, DEFAULT_BUFFER_MINS);
-        const minBuf = 0;
-        const canReduce = Math.min(overflow, curBuf - minBuf);
-        if (canReduce > 0) {
-          target.bufferTimeOverride = `${curBuf - canReduce}분`;
-          if (!target._isBufferCoordinated) target._manualBufferTimeOverride = target.bufferTimeOverride;
-          overflow -= canReduce;
-          needed -= canReduce;
-        }
-      }
-      // 2순위: 고정 안 된 소요시간
-      for (let j = k; j < seq && overflow > 0; j += 1) {
-        const target = dayPlan[mainIndices[j]];
-        if (!target) continue;
-        if (target.isDurationFixed || target.isEndTimeFixed) continue;
-        if (target.types?.includes('ship') || isOvernightLodgeTimelineItem(target)) continue;
-        const curDur = Math.max(0, Number(target.duration) || 0);
-        const minDur = 5; // 최소 5분 유지
-        const canReduce = Math.min(overflow, curDur - minDur);
-        if (canReduce > 0) {
-          target.duration = curDur - canReduce;
-          syncBaseDuration(target, target.duration);
-          overflow -= canReduce;
-          needed -= canReduce;
-        }
-      }
-      if (overflow <= 0) break;
-    }
-  }
-
-  // ── 정방향 계산 (기존 로직) ──
+  // ── 정방향 계산 ──
   let prevEndMinutes = 0;
   for (let seq = 0; seq < mainIndices.length; seq += 1) {
     const planIdx = mainIndices[seq];

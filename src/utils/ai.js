@@ -875,14 +875,30 @@ export const runJinaSmartFill = async ({ placeName, regionHint = '', runGroqPost
 
   // 1단계: 네이버 로컬 검색으로 Place ID 찾기 (레퍼런스 기반 m_local)
   const searchUrl = `https://m.search.naver.com/search.naver?query=${encodeURIComponent(query)}&where=m_local`;
-  const searchText = await fetchJinaReader(searchUrl, jinaApiKey);
+  console.log('[Jina v2] 1단계 검색 URL:', searchUrl);
+  let searchText;
+  try {
+    searchText = await fetchJinaReader(searchUrl, jinaApiKey);
+    console.log('[Jina v2] 검색 결과 길이:', searchText.length, '처음 200자:', searchText.slice(0, 200));
+  } catch (fetchErr) {
+    console.error('[Jina v2] 1단계 fetch 실패:', fetchErr);
+    throw new Error(`Jina 검색 실패: ${fetchErr.message}`);
+  }
   let places = extractPlaceIdFromSearch(searchText);
+  console.log('[Jina v2] 추출된 Place ID 수:', places.length, places.slice(0, 3));
 
   // m_local 실패 시 m.map.naver.com 폴백
   if (!places.length) {
     const fallbackUrl = `https://m.map.naver.com/search?query=${encodeURIComponent(query)}`;
-    const fallbackText = await fetchJinaReader(fallbackUrl, jinaApiKey);
-    places = extractPlaceIdFromSearch(fallbackText);
+    console.log('[Jina v2] 폴백 검색 URL:', fallbackUrl);
+    try {
+      const fallbackText = await fetchJinaReader(fallbackUrl, jinaApiKey);
+      console.log('[Jina v2] 폴백 결과 길이:', fallbackText.length);
+      places = extractPlaceIdFromSearch(fallbackText);
+      console.log('[Jina v2] 폴백 Place ID 수:', places.length);
+    } catch (fallbackErr) {
+      console.error('[Jina v2] 폴백 fetch 실패:', fallbackErr);
+    }
   }
 
   if (!places.length) throw new Error('네이버 지도에서 검색 결과를 찾지 못했습니다.');

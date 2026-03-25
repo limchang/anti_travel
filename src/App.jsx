@@ -354,7 +354,6 @@ const App = () => {
   const [bulkAddText, setBulkAddText] = useState('');
   const [bulkAddParsed, setBulkAddParsed] = useState([]); // [{ name, address, types, selected }]
   const [bulkAddLoading, setBulkAddLoading] = useState(false);
-  const [placeTypesPopoverId, setPlaceTypesPopoverId] = useState(null); // 카테고리 팝오버 열린 place id
   const [newPlaceName, setNewPlaceName] = useState('');
   const [newPlaceTypes, setNewPlaceTypes] = useState(['food']);
   const resetNewPlaceDraft = useCallback(() => {
@@ -8036,67 +8035,18 @@ const App = () => {
                     )}
                     <div className={`grid gap-2.5 ${placeLibraryViewMode === 'single' ? 'grid-cols-1' : 'grid-cols-2'}`}>
                     {visiblePlaces.filter(place => place && (place.id || place.name)).map(place => {
-                      const isTypePopoverOpen = placeTypesPopoverId === place.id;
                       const currentTypes = place.types?.length ? place.types : ['place'];
-                      const typePopoverLongPressRef = { current: null, _fired: false };
-                      const POPOVER_TAG_OPTIONS = TAG_OPTIONS.filter(t => !['new','revisit'].includes(t.value));
                       const chips = (
-                        <div className="relative" data-no-drag="true" onClick={(e) => e.stopPropagation()}>
+                        <div data-no-drag="true" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
                             className="flex items-center gap-1 flex-wrap"
-                            onClick={(e) => { e.stopPropagation(); setPlaceTypesPopoverId(isTypePopoverOpen ? null : place.id); }}
+                            onClick={(e) => { e.stopPropagation(); setLibraryTypeModal({ placeId: place.id, types: [...currentTypes] }); }}
                             title="카테고리 변경"
                           >
                             {currentTypes.map(t => getCategoryBadge(t))}
+                            <ChevronDown size={8} className="text-slate-300" />
                           </button>
-                          {isTypePopoverOpen && (
-                            <div className="absolute left-0 top-full mt-1 z-[9999] bg-white border border-slate-200 rounded-[14px] shadow-[0_8px_24px_-8px_rgba(15,23,42,0.2)] p-2 flex flex-wrap gap-1 w-48">
-                              {POPOVER_TAG_OPTIONS.map(t => {
-                                const active = currentTypes.includes(t.value);
-                                return (
-                                  <button
-                                    key={t.value}
-                                    type="button"
-                                    onMouseDown={(e) => {
-                                      e.stopPropagation();
-                                      typePopoverLongPressRef._fired = false;
-                                      typePopoverLongPressRef.current = setTimeout(() => {
-                                        typePopoverLongPressRef._fired = true;
-                                        // 길게 누르면 이 카테고리 단독 활성화
-                                        updatePlace(place.id, { ...place, types: [t.value] });
-                                        setPlaceTypesPopoverId(null);
-                                      }, 500);
-                                    }}
-                                    onMouseUp={() => clearTimeout(typePopoverLongPressRef.current)}
-                                    onMouseLeave={() => clearTimeout(typePopoverLongPressRef.current)}
-                                    onTouchStart={(e) => {
-                                      e.stopPropagation();
-                                      typePopoverLongPressRef._fired = false;
-                                      typePopoverLongPressRef.current = setTimeout(() => {
-                                        typePopoverLongPressRef._fired = true;
-                                        updatePlace(place.id, { ...place, types: [t.value] });
-                                        setPlaceTypesPopoverId(null);
-                                      }, 500);
-                                    }}
-                                    onTouchEnd={() => clearTimeout(typePopoverLongPressRef.current)}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (typePopoverLongPressRef._fired) return;
-                                      // 짧게 누르면 토글 (마지막 하나는 제거 불가)
-                                      const removed = currentTypes.filter(v => v !== t.value);
-                                      const next = active
-                                        ? (removed.length ? removed : currentTypes)
-                                        : [...currentTypes.filter(v => v !== 'place'), t.value];
-                                      updatePlace(place.id, { ...place, types: next });
-                                    }}
-                                    className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all select-none ${active ? 'bg-[#3182F6] border-[#3182F6] text-white' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
-                                  >{t.label}</button>
-                                );
-                              })}
-                              <p className="w-full text-[8px] text-slate-300 font-bold mt-0.5 px-0.5">길게 누르면 단독 선택</p>
-                            </div>
-                          )}
                         </div>
                       );
                       const isPlaceExpanded = expandedPlaceId === place.id;

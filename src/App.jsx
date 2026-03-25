@@ -794,6 +794,8 @@ const App = () => {
   const routeRetryCooldownMs = 45000;
   const autoRouteQueuedRef = useRef(new Set());
   const [showTravelIntensityInfo, setShowTravelIntensityInfo] = useState(false);
+  const [showBudgetEdit, setShowBudgetEdit] = useState(false);
+  const [budgetEditValue, setBudgetEditValue] = useState('');
   const dashboardRef = useRef(null);
   const heroSpacerRef = useRef(null);
   const [heroPinnedCompact, setHeroPinnedCompact] = useState(false);
@@ -9391,12 +9393,40 @@ const App = () => {
                           <div className={`w-full mx-auto ${timelineMaxClass}`}>
                           <div className="rounded-[24px] border border-slate-200 bg-white/95 shadow-[0_10px_32px_-16px_rgba(15,23,42,0.18)] p-3">
                           <div className="grid grid-cols-3 gap-3 sm:gap-3">
-                            <div className="rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4">
+                            <div className="relative rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4 cursor-pointer hover:border-blue-300 transition-colors" onClick={() => { setShowBudgetEdit(true); setBudgetEditValue(String(MAX_BUDGET)); }}>
                               <div className="flex h-full flex-col items-center justify-center text-center">
                                 <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
                                 <p className="mt-2 text-[22px] leading-none font-black text-[#3182F6] tabular-nums sm:text-[31px]">{usedPct}%</p>
                                 <p className="mt-2 text-[10px] font-bold text-slate-500 tabular-nums sm:text-[11px]">총 예상 ₩{MAX_BUDGET.toLocaleString()}</p>
                               </div>
+                              {showBudgetEdit && (
+                                <div className="absolute left-1/2 top-[calc(100%+6px)] z-50 -translate-x-1/2 w-[220px] rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_16px_30px_-10px_rgba(15,23,42,0.25)]" onClick={(e) => e.stopPropagation()}>
+                                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">총 예산 설정</p>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[12px] font-bold text-slate-500">₩</span>
+                                    <input
+                                      type="text"
+                                      inputMode="numeric"
+                                      autoFocus
+                                      value={Number(budgetEditValue || 0).toLocaleString()}
+                                      onChange={(e) => setBudgetEditValue(e.target.value.replace(/[^0-9]/g, ''))}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          setItinerary(prev => ({ ...prev, maxBudget: Number(budgetEditValue) || 0 }));
+                                          setShowBudgetEdit(false);
+                                        } else if (e.key === 'Escape') {
+                                          setShowBudgetEdit(false);
+                                        }
+                                      }}
+                                      className="flex-1 min-w-0 rounded-lg border border-slate-300 px-2 py-1.5 text-[13px] font-bold text-right tabular-nums focus:border-[#3182F6] focus:outline-none"
+                                    />
+                                  </div>
+                                  <div className="flex gap-1.5 mt-2">
+                                    <button type="button" onClick={() => setShowBudgetEdit(false)} className="flex-1 py-1.5 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-500 hover:bg-slate-50">취소</button>
+                                    <button type="button" onClick={() => { setItinerary(prev => ({ ...prev, maxBudget: Number(budgetEditValue) || 0 })); setShowBudgetEdit(false); }} className="flex-1 py-1.5 rounded-lg bg-[#3182F6] text-[10px] font-bold text-white">완료</button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                             <div className="relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] px-3 py-4 sm:px-4">
                               <div className="flex h-full flex-col items-center justify-center text-center">

@@ -209,7 +209,7 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused) => {
   });
 };
 
-export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0, clusterColors = [], categoryType = '', clusterTypes = []) => {
+export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0, clusterColors = [], categoryType = '', clusterTypes = [], placeName = '', clusterNames = []) => {
   const isCluster = clusterCount > 1;
   const sz = isFocused ? 36 : 28;
   const shadow = isFocused
@@ -230,17 +230,16 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
     const tailH = isFocused ? 7 : 6;
     const totalH = h + tailH;
     const colors = clusterColors.length ? clusterColors : [categoryColor];
-    const types = clusterTypes.length ? clusterTypes : [categoryType || categoryLabel];
+    const names = clusterNames.length ? clusterNames : [];
     const cells = Array.from({ length: visibleN }, (_, i) => {
       const isFirst = i === 0;
       const isLast = i === visibleN - 1;
       const isOverflow = !showAll && isLast;
       const color = isOverflow ? '#475569' : (colors[i] || colors[colors.length - 1] || categoryColor);
-      const emoji = isOverflow ? '' : getMapCategoryEmoji(types[i] || categoryType || categoryLabel);
-      const label = isOverflow ? `+${clusterCount - 2}` : emoji;
+      const charLabel = isOverflow ? `+${clusterCount - 2}` : ((names[i] || '').trim().charAt(0) || '?');
       const br = `border-radius:${isFirst ? `${cRadius}px 0 0 ${cRadius}px` : isLast ? `0 ${cRadius}px ${cRadius}px 0` : '0'};`;
       return `<div data-cluster-idx="${i}" data-cluster-overflow="${isOverflow}" style="width:${cellW}px;height:${h}px;${br}background:${color};display:flex;align-items:center;justify-content:center;cursor:pointer;${i > 0 ? `border-left:${dividerW}px solid rgba(255,255,255,0.5);` : ''}">
-        <span style="font-size:${isOverflow ? (isFocused?'11px':'9px') : (isFocused?'13px':'11px')};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.3);">${label}</span>
+        <span style="font-size:${isOverflow ? (isFocused?'11px':'9px') : (isFocused?'13px':'11px')};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.3);">${charLabel}</span>
       </div>`;
     }).join('');
     const tailColor = colors[0] || categoryColor;
@@ -259,7 +258,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
     });
   }
 
-  const emojiLabel = getMapCategoryEmoji(categoryType || categoryLabel);
+  const displayChar = (placeName || '').trim().charAt(0) || getMapCategoryEmoji(categoryType || categoryLabel);
   const tailW = isFocused ? 6 : 5;
   const tailH = isFocused ? 7 : 6;
   const totalH = sz + tailH;
@@ -273,7 +272,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
           box-shadow:0 0 0 1.5px ${categoryColor};
           display:flex;align-items:center;justify-content:center;
         ">
-          <span style="font-size:${isFocused?'14px':'11px'};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.3);">${emojiLabel}</span>
+          <span style="font-size:${isFocused?'14px':'11px'};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.3);">${displayChar}</span>
         </div>
         <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${categoryColor};margin-top:-1px;"></div>
       </div>
@@ -1047,6 +1046,7 @@ export const RoutePreviewCanvas = ({
             const clusterCount = isCluster ? point._clusterCount : 0;
             const clusterColors = isCluster ? (point._clusterItems || []).map((e) => e.categoryColor || '#2563EB') : [];
             const clusterTypes = isCluster ? (point._clusterItems || []).map((e) => e.primaryType || '') : [];
+            const clusterNames = isCluster ? (point._clusterItems || []).map((e) => e.label || '') : [];
             const isFocusedLibrary = point.kind === 'place' && focusedLibraryMarkerId === point.id;
             // 클러스터 팝업에 표시할 아이템들
             const clusterItems = isCluster ? (point._clusterItems || []) : [];
@@ -1056,7 +1056,7 @@ export const RoutePreviewCanvas = ({
                 position={point.position}
                 bubblingMouseEvents={false}
                 icon={point.kind === 'place'
-                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors, point.primaryType || '', clusterTypes)
+                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors, point.primaryType || '', clusterTypes, point.label || '', clusterNames)
                   : buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
                 eventHandlers={interactive ? {
                   click: (e) => {

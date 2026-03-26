@@ -377,23 +377,44 @@ const BulkAddModal = ({
                               )}
                               {item.address && <p className="text-[10px] font-bold text-slate-400 mt-0.5 truncate">{item.address}</p>}
                               <div className="flex flex-wrap gap-1 mt-1.5" onClick={(e) => e.stopPropagation()}>
-                                {TAG_OPTIONS.filter(t => !['place', 'new', 'revisit', 'quick'].includes(t.value)).map(t => {
-                                  const active = item.types.includes(t.value);
+                                {/* 선택된 태그만 표시 + 클릭으로 해제 */}
+                                {item.types.filter(v => v !== 'place').map(v => {
+                                  const t = TAG_OPTIONS.find(o => o.value === v);
+                                  if (!t) return null;
                                   return (
                                     <button
-                                      key={t.value}
+                                      key={v}
                                       type="button"
                                       onClick={() => setBulkAddParsed(prev => prev.map((p, i) => {
                                         if (i !== idx) return p;
-                                        const nextTypes = active ? p.types.filter(v => v !== t.value) : [...p.types.filter(v => v !== 'place'), t.value];
+                                        const nextTypes = p.types.filter(x => x !== v);
                                         return { ...p, types: nextTypes.length ? nextTypes : ['place'] };
                                       }))}
-                                      className={`px-1.5 py-0.5 rounded text-[9px] font-black border transition-colors ${active ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300'}`}
+                                      className="px-1.5 py-0.5 rounded text-[9px] font-black border border-[#3182F6] bg-blue-50 text-[#3182F6]"
                                     >
-                                      {t.label}
+                                      {t.label} ✕
                                     </button>
                                   );
                                 })}
+                                {/* + 버튼으로 태그 추가 */}
+                                <div className="relative group/tag">
+                                  <button type="button" className="px-1.5 py-0.5 rounded text-[9px] font-black border border-slate-200 bg-white text-slate-400 hover:border-slate-300">+</button>
+                                  <div className="hidden group-hover/tag:flex absolute left-0 top-full z-10 mt-1 flex-wrap gap-1 p-1.5 rounded-lg border border-slate-200 bg-white shadow-lg max-w-[200px]">
+                                    {TAG_OPTIONS.filter(t => !['place', 'new', 'revisit', 'quick'].includes(t.value) && !item.types.includes(t.value)).map(t => (
+                                      <button
+                                        key={t.value}
+                                        type="button"
+                                        onClick={() => setBulkAddParsed(prev => prev.map((p, i) => {
+                                          if (i !== idx) return p;
+                                          return { ...p, types: [...p.types.filter(v => v !== 'place'), t.value] };
+                                        }))}
+                                        className="px-1.5 py-0.5 rounded text-[9px] font-black border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6]"
+                                      >
+                                        {t.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>

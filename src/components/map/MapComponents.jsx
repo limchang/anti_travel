@@ -1056,9 +1056,9 @@ export const RoutePreviewCanvas = ({
             const clusterColors = isCluster ? (point._clusterItems || []).map((e) => e.categoryColor || '#2563EB') : [];
             const clusterTypes = isCluster ? (point._clusterItems || []).map((e) => e.primaryType || '') : [];
             const clusterNames = isCluster ? (point._clusterItems || []).map((e) => e.label || '') : [];
-            const isFocusedLibrary = point.kind === 'place' && (focusedLibraryMarkerId === point.id || String(focusedLibraryMarkerId || '').startsWith(point.id) || (isCluster && clusterItems.some(item => item.id === focusedLibraryMarkerId)));
             // 클러스터 팝업에 표시할 아이템들
             const clusterItems = isCluster ? (point._clusterItems || []) : [];
+            const isFocusedLibrary = point.kind === 'place' && (focusedLibraryMarkerId === point.id || String(focusedLibraryMarkerId || '').startsWith(point.id) || (isCluster && clusterItems.some(item => item.id === focusedLibraryMarkerId)));
             return (
               <Marker
                 key={`overlay-point-${point.kind}-${point.id}`}

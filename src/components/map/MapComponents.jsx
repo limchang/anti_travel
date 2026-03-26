@@ -617,12 +617,17 @@ export const RoutePreviewCanvas = ({
   ), [focusedOverlayKey, libraryPoints, recommendationPoints]);
   // boundsPoints: 일정(timeline+segment)만 기준 — 내장소(overlay) 제외하여 지도 범위가 내장소에 의해 축소되지 않도록
   // 단, 일정 포인트가 없으면 내장소 밀집 지역으로 fallback
+  const boundsSegments = useMemo(() => (
+    showRouteLines
+      ? (hideLongSegments ? segmentEntries.filter((s) => !(s.durationMins != null && s.durationMins >= 60)) : segmentEntries)
+      : []
+  ), [hideLongSegments, segmentEntries, showRouteLines]);
   const timelineBoundsPoints = useMemo(() => (
     [
-      ...(showRouteLines ? segmentEntries.flatMap((segment) => segment.positions) : []),
+      ...boundsSegments.flatMap((segment) => segment.positions),
       ...(showTimelineMarkers ? timelineEntries.map((point) => point.position) : []),
     ]
-  ), [segmentEntries, showRouteLines, showTimelineMarkers, timelineEntries]);
+  ), [boundsSegments, showTimelineMarkers, timelineEntries]);
   const allBoundsPoints = useMemo(() => (
     timelineBoundsPoints.length > 0
       ? timelineBoundsPoints

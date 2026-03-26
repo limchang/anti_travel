@@ -159,7 +159,7 @@ const BulkAddModal = ({
                           <input
                             id="naver-share-link-input"
                             type="text"
-                            placeholder="naver.me/... 또는 map.naver.com/p/favorite/... 링크 붙여넣기"
+                            placeholder="naver.me/... 또는 map.naver.com/.../folder/... 링크"
                             className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-emerald-400"
                           />
                           <button
@@ -177,39 +177,46 @@ const BulkAddModal = ({
                                 if (directMatch) {
                                   folderId = directMatch[1];
                                 }
-                                // 2. naver.me 단축 URL → 리다이렉트로 폴더 ID 추출
+                                // 2. naver.me 단축 URL → 리다이렉트 최종 URL에서 폴더 ID 추출
                                 if (!folderId && /naver\.me\//.test(url)) {
+                                  // 방법 A: HEAD 요청으로 리다이렉트 따라가기
                                   try {
-                                    // fetch로 리다이렉트 따라가서 최종 URL에서 폴더 ID 추출
-                                    const redirectRes = await fetch(url, { redirect: 'follow', mode: 'no-cors' }).catch(() => null);
-                                    const finalUrl = redirectRes?.url || '';
-                                    const redirectMatch = finalUrl.match(/folder\/([a-f0-9]{32})/);
-                                    if (redirectMatch) folderId = redirectMatch[1];
+                                    const res = await fetch(url, { method: 'HEAD', redirect: 'follow' });
+                                    const finalUrl = res.url || '';
+                                    const m = finalUrl.match(/folder\/([a-f0-9]{32})/);
+                                    if (m) folderId = m[1];
                                   } catch {}
-                                  // no-cors로 못 가져오면 Jina URL Source에서 추출
+                                  // 방법 B: GET으로 재시도
+                                  if (!folderId) {
+                                    try {
+                                      const res = await fetch(url, { redirect: 'follow' });
+                                      const finalUrl = res.url || '';
+                                      const m = finalUrl.match(/folder\/([a-f0-9]{32})/);
+                                      if (m) folderId = m[1];
+                                    } catch {}
+                                  }
+                                  // 방법 C: Jina로 시도
                                   if (!folderId) {
                                     try {
                                       const jinaText = await (await fetch(`https://r.jina.ai/${url}`)).text();
-                                      const srcMatch = jinaText.match(/URL Source:\s*(https?:\/\/[^\n]+)/);
-                                      const srcUrl = srcMatch?.[1] || '';
-                                      const srcFolderMatch = srcUrl.match(/folder\/([a-f0-9]{32})/);
-                                      if (srcFolderMatch) folderId = srcFolderMatch[1];
-                                      // Jina 본문에서도 시도
-                                      if (!folderId) {
-                                        const bodyMatch = jinaText.match(/folder\/([a-f0-9]{32})/);
-                                        if (bodyMatch) folderId = bodyMatch[1];
-                                      }
+                                      const m = jinaText.match(/folder\/([a-f0-9]{32})/);
+                                      if (m) folderId = m[1];
                                     } catch {}
                                   }
                                 }
                                 // 3. map.naver.com/p/favorite 형식
                                 if (!folderId && /map\.naver\.com\/p\/favorite/.test(url)) {
-                                  const favMatch = url.match(/folder\/([a-f0-9]{32})/);
-                                  if (favMatch) folderId = favMatch[1];
+                                  const m = url.match(/folder\/([a-f0-9]{32})/);
+                                  if (m) folderId = m[1];
+                                }
+                                // 4. pages.map.naver.com 직접 입력
+                                if (!folderId && /pages\.map\.naver\.com/.test(url)) {
+                                  const m = url.match(/detail-list\/([a-f0-9]{32})/);
+                                  if (m) folderId = m[1];
                                 }
 
                                 if (!folderId) {
-                                  showInfoToast('폴더 ID를 추출할 수 없습니다. 긴 URL을 직접 붙여넣어주세요.');
+                                  showInfoToast('단축 URL은 브라우저에서 열어 주소창의 긴 URL을 붙여넣어주세요.');
                                   setBulkAddLoading(false);
                                   return;
                                 }

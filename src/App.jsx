@@ -9974,7 +9974,7 @@ const App = () => {
                           {!isShip && !isLodge && !isHome && (
                             <div
                               data-no-drag="true"
-                              className={`flex flex-col group/tower transition-all duration-300 ease-out ${isTimeCellExpanded ? 'overflow-visible z-20 py-2 px-2 sm:px-2.5' : 'w-full border-b border-slate-100 overflow-hidden'} ${!isTimeCellExpanded ? 'py-1.5 px-2 sm:px-2.5' : ''} bg-transparent`}
+                              className={`flex flex-col group/tower transition-all duration-300 ease-out ${isTimeCellExpanded ? 'overflow-visible z-20 py-2 px-2 sm:px-2.5' : 'w-full border-b border-slate-100 overflow-hidden'} ${!isTimeCellExpanded ? 'py-1.5 px-2 sm:px-2.5' : ''} bg-slate-50/80`}
                             >
                               <InlineTimeController
                                 p={p} dIdx={dIdx} pIdx={pIdx}
@@ -10000,9 +10000,9 @@ const App = () => {
                           )}
 
                           {/* 🟢 내용 영역 */}
-                          <div className={`${isTimeCellExpanded && !isShip && !isLodge && !isHome ? 'hidden' : ''} w-full min-w-0 flex flex-col justify-start transition-all duration-500 overflow-hidden ${isTimelineDragActive ? 'gap-1.5 p-2.5 sm:p-3' : isCompactTimeline ? 'gap-2 p-2.5 sm:p-3' : 'gap-2 p-3 sm:p-4'}`}>
+                          <div className={`${isTimeCellExpanded && !isShip && !isLodge && !isHome ? 'hidden' : ''} w-full min-w-0 flex flex-col justify-start transition-all duration-500 overflow-hidden ${isTimelineDragActive ? 'gap-2 p-3 sm:p-4' : isCompactTimeline ? 'gap-2.5 p-3.5 sm:p-5' : 'gap-2.5 p-4 sm:p-5'}`}>
                             {isShip ? (
-                              <div className="flex flex-col gap-2 py-0.5" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex flex-col gap-2.5" onClick={(e) => e.stopPropagation()}>
                                 {(() => {
                                   const shipStartAddress = getShipStartAddress(p);
                                   const shipEndAddress = getShipEndAddress(p);
@@ -10156,7 +10156,7 @@ const App = () => {
                                 })()}
                               </div>
                             ) : isLodge ? (
-                              <div className="flex flex-col gap-2 py-0.5" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex flex-col gap-2.5" onClick={(e) => e.stopPropagation()}>
                                 <div className="flex items-center gap-1.5">
                                   <Bed size={11} className="text-indigo-400 shrink-0" />
                                   <input
@@ -10363,7 +10363,7 @@ const App = () => {
                                 ) : null}
                               </div>
                             ) : isHome ? (
-                              <div className="flex flex-col gap-2 py-0.5" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex flex-col gap-2.5" onClick={(e) => e.stopPropagation()}>
                                 {(() => {
                                   const nextItem = nextMainItem;
                                   const nextTravel = nextItem ? (nextItem.travelTimeOverride || nextItem.travelTimeAuto || '') : '';
@@ -10755,7 +10755,7 @@ const App = () => {
                         {/* 🟩 하단 영수증 영역 (전체 너비 100%) */}
                         {
                           p.type !== 'backup' && (
-                            <div className="mx-3 mb-2 mt-1 rounded-2xl overflow-hidden border border-slate-100/80" onClick={(e) => e.stopPropagation()}>
+                            <div className="overflow-hidden border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
                               {isExpanded && (
                                 <div className="px-5 py-4 animate-in slide-in-from-top-1 bg-white border-b border-slate-100 border-dashed">
                                   <div className="space-y-3 mb-3">

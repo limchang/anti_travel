@@ -34,7 +34,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw, AlignLeft, Zap, Home
+  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw, AlignLeft, Zap, Home, Clock
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -577,6 +577,21 @@ const App = () => {
       }
     }
 
+    // 지도 편집 모드: 스크롤 대신 퀵뷰 모달
+    if (mapEditMode && targetItemId) {
+      let foundDayIdx = -1, foundPIdx = -1;
+      (itinerary.days || []).forEach((d, dI) => {
+        (d.plan || []).forEach((item, pI) => {
+          if (item?.id === targetItemId) { foundDayIdx = dI; foundPIdx = pI; }
+        });
+      });
+      if (foundDayIdx >= 0 && foundPIdx >= 0) {
+        setMapQuickViewItem({ dayIdx: foundDayIdx, pIdx: foundPIdx });
+      }
+      navScrollTimeout.current = setTimeout(() => { isNavScrolling.current = false; }, 500);
+      return;
+    }
+
     const resolveTargetElement = () => {
       if (scrollTargetId) {
         const byScrollTarget = document.getElementById(scrollTargetId);
@@ -730,6 +745,7 @@ const App = () => {
   const [col1Collapsed, setCol1Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
   const [col2Collapsed, setCol2Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
   const [mapEditMode, setMapEditMode] = useState(false);
+  const [mapQuickViewItem, setMapQuickViewItem] = useState(null); // { dayIdx, pIdx }
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));
   const [leftPanelW, setLeftPanelW] = useState(() => { try { return Number(localStorage.getItem('leftPanelW')) || 280; } catch { return 280; } });
   const [rightPanelW, setRightPanelW] = useState(() => { try { return Number(localStorage.getItem('rightPanelW')) || 440; } catch { return 440; } });
@@ -11098,6 +11114,85 @@ const App = () => {
         }}
         onClose={() => setTagEditorTarget(null)}
       />
+
+      {/* ── 지도 편집 모드 퀵뷰 모달 ── */}
+      {mapEditMode && mapQuickViewItem && (() => {
+        const qvDay = itinerary.days?.[mapQuickViewItem.dayIdx];
+        const qvItem = qvDay?.plan?.[mapQuickViewItem.pIdx];
+        if (!qvItem) return null;
+        const qvTypes = Array.isArray(qvItem.types) ? qvItem.types : ['place'];
+        const qvPrimaryType = getPreferredNavCategory(qvTypes, qvItem.type || 'place');
+        const qvBizSummary = formatBusinessSummary(qvItem.business, qvItem);
+        const qvBizWarn = getBusinessWarning(qvItem, mapQuickViewItem.dayIdx);
+        const qvAddr = qvItem.receipt?.address || qvItem.address || '';
+        const qvTotal = qvItem.price || (qvItem.receipt?.items || []).reduce((s, m) => s + (m?.selected !== false ? (Number(m?.price) || 0) * Math.max(1, Number(m?.qty) || 1) : 0), 0);
+        const qvTime = qvItem.time || '--:--';
+        const qvEndMins = timeToMinutes(qvTime) + (Number(qvItem.duration) || 0);
+        const qvEndTime = `${String(Math.floor(qvEndMins / 60) % 24).padStart(2, '0')}:${String(qvEndMins % 60).padStart(2, '0')}`;
+        return (
+          <>
+            <div className="fixed inset-0 z-[300] bg-black/20 backdrop-blur-[1px]" onClick={() => setMapQuickViewItem(null)} />
+            <div className="fixed z-[301] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(480px,92vw)] rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_48px_-16px_rgba(15,23,42,0.3)] overflow-hidden">
+              {/* 시간 바 */}
+              <div className="flex items-center justify-between gap-3 px-5 py-3 bg-slate-50 border-b border-slate-100">
+                <div className="flex flex-col items-center gap-0.5">
+                  <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">Start</span>
+                  <span className={`text-[16px] font-black tabular-nums ${qvItem.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{qvTime}</span>
+                </div>
+                <div className="flex flex-col items-center gap-0.5">
+                  <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">Duration</span>
+                  <span className="text-[13px] font-black text-slate-500">{fmtDur(qvItem.duration || 0)}</span>
+                </div>
+                <div className="flex flex-col items-center gap-0.5">
+                  <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">End</span>
+                  <span className="text-[16px] font-black tabular-nums text-slate-800">{qvEndTime}</span>
+                </div>
+              </div>
+              {/* 본체 */}
+              <div className="p-5 flex flex-col gap-2.5">
+                {/* 카테고리 + 이름 */}
+                <div className="flex items-center gap-2">
+                  <div className="shrink-0">{getCategoryBadge(qvPrimaryType)}</div>
+                  <span className="text-[15px] font-black text-slate-800 truncate flex-1">{qvItem.activity || '이름 없음'}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setMapQuickViewItem(null); openPlanEditModal(mapQuickViewItem.dayIdx, mapQuickViewItem.pIdx); }}
+                    className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                    title="일정 수정"
+                  ><Pencil size={12} /></button>
+                </div>
+                {/* 주소 */}
+                {qvAddr && (
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <MapPin size={12} className="text-[#3182F6] shrink-0" />
+                    <span className="text-[11px] font-bold truncate">{qvAddr}</span>
+                  </div>
+                )}
+                {/* 영업 정보 */}
+                {qvBizSummary && qvBizSummary !== '미설정' && (
+                  <div className="flex items-center gap-2">
+                    <Clock size={12} className="text-slate-400 shrink-0" />
+                    <span className={`text-[11px] font-bold ${qvBizWarn ? 'text-red-500' : 'text-slate-500'}`}>
+                      {qvBizWarn ? `⚠ ${qvBizWarn}` : qvBizSummary}
+                    </span>
+                  </div>
+                )}
+                {/* 메모 */}
+                {String(qvItem.memo || '').trim() && (
+                  <p className="text-[11px] font-medium text-slate-500 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">{qvItem.memo}</p>
+                )}
+              </div>
+              {/* 가격 푸터 */}
+              {qvTotal > 0 && (
+                <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/50">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total</span>
+                  <span className="text-[16px] font-black text-[#3182F6]">₩{qvTotal.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+          </>
+        );
+      })()}
 
       </div >
     </div >

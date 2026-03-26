@@ -95,25 +95,27 @@ export const getMapCategoryLabel = (type = 'place') => {
   const found = TAG_OPTIONS.find((tag) => tag.value === type);
   return found?.label || '장소';
 };
-export const MAP_CATEGORY_EMOJI = {
-  food: '밥',
-  cafe: '차',
-  tour: '📸',
-  lodge: '🏨',
-  stay: '🌙',
-  ship: '⛴️',
-  rest: '💤',
-  pickup: '📦',
-  openrun: '⏰',
-  view: '🌅',
-  experience: '⭐',
-  souvenir: '🛍️',
-  snack: '참',
-  home: '🏠',
-  place: '📍',
-  quick: '⚡',
+// SVG 미니 아이콘 (흰색 실루엣, viewBox 0 0 24 24)
+const MAP_CATEGORY_SVG = {
+  food: '<path d="M3 3h3v12H3zm6 0c0 3.31 2.69 6 6 6v6h-3V9.5C9.5 9.5 9 6.58 9 3zm9 0v18h-3V3z" fill="white"/>',                        // 포크+나이프
+  cafe: '<path d="M2 21h18v-2H2zm2-4h14c1.1 0 2-.9 2-2V7h-2c0 1.1-.9 2-2 2h-2c-1.1 0-2-.9-2-2H4v8c0 1.1.9 2 2 2zm16-12h-2V3h-2v2h-2l1.5 4H20z" fill="white"/>',  // 커피잔
+  tour: '<circle cx="12" cy="12" r="3.5" fill="white"/><path d="M12 2L9 5H5v4l-3 3 3 3v4h4l3 3 3-3h4v-4l3-3-3-3V5h-4z" fill="none" stroke="white" stroke-width="1.5"/>', // 카메라/별
+  lodge: '<path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2V10c0-2.21-1.79-4-4-4z" fill="white"/>', // 침대
+  stay: '<path d="M12.1 2.9c-5 .5-9 4.8-9 9.8v.3c.1 5 4.2 9 9.2 9 5.5 0 10-4.5 9.7-10.1-.3-4.8-4.5-8.8-9.3-9h-.6zM9 16.6c-2-1.4-3.3-3.8-3.3-6.4 0-.5 0-.9.1-1.4 2.6 1 4.7 3.1 5.7 5.7-1 .5-1.8 1.2-2.5 2.1z" fill="white"/>', // 달
+  ship: '<path d="M20 21c-1.4 0-2.8-.5-4-1.5-2.3 2-5.6 2-8 0C6.8 20.5 5.4 21 4 21H2v2h2c1.4 0 2.8-.4 4-1.1 2.4 1.5 5.6 1.5 8 0 1.2.7 2.6 1.1 4 1.1h2v-2h-2zM3.95 19H4c1.6 0 3.1-.8 4-2 .9 1.2 2.4 2 4 2s3.1-.8 4-2c.9 1.2 2.4 2 4 2h.05l1.9-6.3-1.9-.6V8h-2V6h-4V4h-4v2H6v2H4v4.1l-1.9.6L3.95 19zM6 8h12v3.97L12 10 6 11.97V8z" fill="white"/>', // 배
+  rest: '<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm-1-6h2v2h-2zm0-8h2v6h-2z" fill="white"/>', // 시계/휴식
+  pickup: '<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z" fill="white"/>', // 박스+
+  openrun: '<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z" fill="white"/>', // 시계
+  view: '<path d="M12 4.5C7 4.5 2.7 7.6 1 12c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5C21.3 7.6 17 4.5 12 4.5zM12 17c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5zm0-8c-1.7 0-3 1.3-3 3s1.3 3 3 3 3-1.3 3-3-1.3-3-3-3z" fill="white"/>', // 눈
+  experience: '<path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 18l-6.2 3 1.2-6.8-5-4.9 6.9-1z" fill="white"/>', // 별
+  souvenir: '<path d="M20 6h-2.2L15 2.2 13.6 3.6 16.2 6H7.8l2.6-2.4L9 2.2 6.2 6H4c-1.1 0-2 .9-2 2v3h2v9c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-9h2V8c0-1.1-.9-2-2-2zm-5 14h-2V11h2v9zm-6 0H7V11h2v9z" fill="white"/>', // 선물
+  snack: '<path d="M8.1 13.3l2.1-2.1-5.3-5.3-2.1 2.1L8.1 13.3zm6.3-6.3l2.1-2.1-1.4-1.4-2.1 2.1 1.4 1.4zM12 17.5L7.5 13 6 14.5l6 6 6-6-1.5-1.5L12 17.5zm0-12L8.5 9 10 10.5 12 8.5l2 2L15.5 9 12 5.5z" fill="white"/>', // 분식/꼬치
+  home: '<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="white"/>', // 집
+  place: '<path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5S10.6 6.5 12 6.5s2.5 1.1 2.5 2.5S13.4 11.5 12 11.5z" fill="white"/>', // 핀
+  quick: '<path d="M7 2v11h3v9l7-12h-4l4-8z" fill="white"/>', // 번개
 };
-export const getMapCategoryEmoji = (type = 'place') => MAP_CATEGORY_EMOJI[type] || '📍';
+export const MAP_CATEGORY_EMOJI = MAP_CATEGORY_SVG; // 하위 호환
+export const getMapCategoryEmoji = (type = 'place') => MAP_CATEGORY_SVG[type] || MAP_CATEGORY_SVG.place;
 
 export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#FFFFFF', categoryLabel = '', isFirst = false, isLast = false, extraTailH = 0) => {
   // 일정 마커: 단색 배경 + 흰 번호 — 선명하고 진하게
@@ -230,16 +232,20 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
     const tailH = isFocused ? 7 : 6;
     const totalH = h + tailH;
     const colors = clusterColors.length ? clusterColors : [categoryColor];
-    const names = clusterNames.length ? clusterNames : [];
+    const types = clusterTypes.length ? clusterTypes : [categoryType || categoryLabel];
+    const clusterIconSz = isFocused ? 16 : 13;
     const cells = Array.from({ length: visibleN }, (_, i) => {
       const isFirst = i === 0;
       const isLast = i === visibleN - 1;
       const isOverflow = !showAll && isLast;
       const color = isOverflow ? '#475569' : (colors[i] || colors[colors.length - 1] || categoryColor);
-      const charLabel = isOverflow ? `+${clusterCount - 2}` : ((names[i] || '').trim().charAt(0) || '?');
+      const cellSvg = isOverflow ? '' : getMapCategoryEmoji(types[i] || categoryType || categoryLabel);
+      const cellContent = isOverflow
+        ? `<span style="font-size:${isFocused?'11px':'9px'};font-weight:900;color:#fff;line-height:1;">+${clusterCount - 2}</span>`
+        : `<svg width="${clusterIconSz}" height="${clusterIconSz}" viewBox="0 0 24 24" fill="none">${cellSvg}</svg>`;
       const br = `border-radius:${isFirst ? `${cRadius}px 0 0 ${cRadius}px` : isLast ? `0 ${cRadius}px ${cRadius}px 0` : '0'};`;
       return `<div data-cluster-idx="${i}" data-cluster-overflow="${isOverflow}" style="width:${cellW}px;height:${h}px;${br}background:${color};display:flex;align-items:center;justify-content:center;cursor:pointer;${i > 0 ? `border-left:${dividerW}px solid rgba(255,255,255,0.5);` : ''}">
-        <span style="font-size:${isOverflow ? (isFocused?'11px':'9px') : (isFocused?'13px':'11px')};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.3);">${charLabel}</span>
+        ${cellContent}
       </div>`;
     }).join('');
     const tailColor = colors[0] || categoryColor;
@@ -258,7 +264,8 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
     });
   }
 
-  const displayChar = (placeName || '').trim().charAt(0) || getMapCategoryEmoji(categoryType || categoryLabel);
+  const svgIcon = getMapCategoryEmoji(categoryType || categoryLabel);
+  const iconSz = isFocused ? 18 : 14;
   const tailW = isFocused ? 6 : 5;
   const tailH = isFocused ? 7 : 6;
   const totalH = sz + tailH;
@@ -272,7 +279,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
           box-shadow:0 0 0 1.5px ${categoryColor};
           display:flex;align-items:center;justify-content:center;
         ">
-          <span style="font-size:${isFocused?'14px':'11px'};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.3);">${displayChar}</span>
+          <svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none">${svgIcon}</svg>
         </div>
         <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${categoryColor};margin-top:-1px;"></div>
       </div>

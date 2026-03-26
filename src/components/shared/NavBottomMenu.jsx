@@ -94,12 +94,12 @@ const NavBottomMenu = ({
                   />
                 </label>
                 <label className="block">
-                  <span className="text-[10px] font-black text-slate-500">Perplexity API Key (선택)</span>
+                  <span className="text-[10px] font-black text-slate-500">Jina API Key (선택, v2 지도검색 속도/안정성 향상)</span>
                   <input
                     type="password"
                     value={aiSmartFillConfig.perplexityApiKey}
                     onChange={(e) => setAiSmartFillConfig((prev) => normalizeAiSmartFillConfig({ ...prev, perplexityApiKey: e.target.value }))}
-                    placeholder={serverAiKeyStatus.hasStoredPerplexityKey ? '새 Perplexity 키로 교체' : 'Perplexity API 키 입력'}
+                    placeholder={serverAiKeyStatus.hasStoredPerplexityKey ? '새 Jina 키로 교체' : 'jina.ai에서 발급한 API 키 입력 (없어도 동작)'}
                     className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
                   />
                 </label>
@@ -128,7 +128,7 @@ const NavBottomMenu = ({
                 </div>
                 <div className="text-[9px] font-bold text-slate-400 leading-relaxed">
                   {auth.currentUser && !auth.currentUser.isGuest
-                    ? `Groq ${serverAiKeyStatus.hasStoredGroqKey ? '✓' : '✗'} · Gemini ${serverAiKeyStatus.hasStoredGeminiKey ? '✓' : '✗'} · Perplexity ${serverAiKeyStatus.hasStoredPerplexityKey ? '✓' : '✗'}`
+                    ? `Groq ${serverAiKeyStatus.hasStoredGroqKey ? '✓' : '✗'} · Gemini ${serverAiKeyStatus.hasStoredGeminiKey ? '✓' : '✗'} · Jina ${serverAiKeyStatus.hasStoredPerplexityKey ? '✓' : '✗'}`
                     : '비로그인: 현재 세션에서만 유지'}
                 </div>
               </div>

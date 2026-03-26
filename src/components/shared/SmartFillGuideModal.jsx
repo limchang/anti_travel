@@ -1,7 +1,7 @@
 import React from 'react';
 import { db } from '../../firebase.js';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { X } from 'lucide-react';
+import { X, Pencil } from 'lucide-react';
 
 export const GUIDE_DOC_PATH = 'meta/smartFillGuide';
 export const isLegacySmartFillGuideContent = (content = '') => {

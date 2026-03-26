@@ -74,7 +74,7 @@ export const toLeafletLatLng = (point) => {
 export const getMapCategoryColor = (type = 'place') => {
   switch (type) {
     case 'food': return '#F43F5E';
-    case 'cafe': return '#78350F';
+    case 'cafe': return '#D97706';
     case 'tour': return '#8B5CF6';
     case 'lodge': return '#4F46E5';
     case 'stay': return '#7C3AED';

@@ -86,9 +86,11 @@ export const toggleTagSelection = (current, tagValue) => {
 export const getTagButtonClass = (value, active) => {
   if (!active) return 'bg-white text-slate-400 border-slate-200 hover:border-slate-300';
   if (value === 'food') return 'text-rose-500 bg-red-50 border-red-200';
+  if (value === 'snack') return 'text-yellow-600 bg-yellow-50 border-yellow-200';
   if (value === 'cafe') return 'text-amber-600 bg-amber-50 border-amber-200';
   if (value === 'tour') return 'text-purple-600 bg-purple-50 border-purple-200';
   if (value === 'lodge') return 'text-indigo-600 bg-indigo-50 border-indigo-200';
+  if (value === 'stay') return 'text-violet-600 bg-violet-50 border-violet-200';
   if (value === 'ship') return 'text-blue-600 bg-blue-50 border-blue-200';
   if (value === 'rest') return 'text-cyan-600 bg-cyan-50 border-cyan-200';
   if (value === 'pickup') return 'text-orange-500 bg-orange-50 border-orange-200';
@@ -96,6 +98,7 @@ export const getTagButtonClass = (value, active) => {
   if (value === 'view') return 'text-sky-600 bg-sky-50 border-sky-200';
   if (value === 'experience') return 'text-emerald-600 bg-emerald-50 border-emerald-200';
   if (value === 'souvenir') return 'text-teal-600 bg-teal-50 border-teal-200';
+  if (value === 'home') return 'text-amber-700 bg-amber-50 border-amber-200';
   if (value === 'new') return 'text-emerald-600 bg-emerald-50 border-emerald-200';
   if (value === 'revisit') return 'text-blue-600 bg-blue-50 border-blue-200';
   return 'text-slate-500 bg-slate-100 border-slate-200';

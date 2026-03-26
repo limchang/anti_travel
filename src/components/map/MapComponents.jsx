@@ -1056,7 +1056,7 @@ export const RoutePreviewCanvas = ({
             const clusterColors = isCluster ? (point._clusterItems || []).map((e) => e.categoryColor || '#2563EB') : [];
             const clusterTypes = isCluster ? (point._clusterItems || []).map((e) => e.primaryType || '') : [];
             const clusterNames = isCluster ? (point._clusterItems || []).map((e) => e.label || '') : [];
-            const isFocusedLibrary = point.kind === 'place' && focusedLibraryMarkerId === point.id;
+            const isFocusedLibrary = point.kind === 'place' && (focusedLibraryMarkerId === point.id || String(focusedLibraryMarkerId || '').startsWith(point.id) || (isCluster && clusterItems.some(item => item.id === focusedLibraryMarkerId)));
             // 클러스터 팝업에 표시할 아이템들
             const clusterItems = isCluster ? (point._clusterItems || []) : [];
             return (
@@ -1077,13 +1077,13 @@ export const RoutePreviewCanvas = ({
                         const isOverflow = cell?.getAttribute('data-cluster-overflow') === 'true';
                         const idx = cell ? parseInt(cell.getAttribute('data-cluster-idx'), 10) : -1;
                         if (isOverflow) {
-                          // +N 셀 클릭 → 전체 팝업
-                          if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(point.id);
+                          // +N 셀 클릭 → 전체 팝업 (특별 접미사로 구분)
+                          if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(`${point.id}:cluster-all`);
                         } else if (idx >= 0 && clusterItems[idx]) {
                           // 개별 셀 클릭 → 해당 장소만 포커스
                           if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(clusterItems[idx].id);
                         } else {
-                          if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(point.id);
+                          if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(`${point.id}:cluster-all`);
                         }
                       } else {
                         if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(point.id);
@@ -1104,12 +1104,14 @@ export const RoutePreviewCanvas = ({
                     <div style={{ minWidth: '160px', maxWidth: '220px', padding: '0', fontFamily: 'inherit' }}>
                       {(() => {
                         // 클러스터 내 개별 아이템이 포커스된 경우 해당 아이템만 단일 팝업
-                        const focusedClusterItem = isCluster && focusedLibraryMarkerId !== point.id
+                        const isClusterAllMode = isCluster && String(focusedLibraryMarkerId || '').endsWith(':cluster-all');
+                        const focusedClusterItem = isCluster && !isClusterAllMode
                           ? clusterItems.find((item) => item.id === focusedLibraryMarkerId)
                           : null;
+                        const showFullList = isCluster && !focusedClusterItem;
                         const singleItem = focusedClusterItem || (!isCluster ? point : null);
 
-                        if (isCluster && !focusedClusterItem) {
+                        if (showFullList) {
                           // 전체 클러스터 팝업 (+N 클릭)
                           return (
                             <div>

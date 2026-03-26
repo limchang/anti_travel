@@ -10455,12 +10455,10 @@ const App = () => {
                                       {/* 시간 정보 행 */}
                                       <div
                                         data-time-trigger="true"
-                                        className="flex gap-2 select-none"
+                                        className="flex items-center justify-between gap-3 px-4 py-2.5 bg-slate-50/80 rounded-xl select-none"
                                       >
-                                        <div
-                                          className="flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border py-2.5 transition-colors bg-slate-50/60 border-slate-200 focus-within:bg-amber-50 focus-within:border-amber-300"
-                                        >
-                                          <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">출발</span>
+                                        <div className="flex flex-col items-center gap-0.5 flex-1">
+                                          <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">Start</span>
                                           <input
                                             type="text"
                                             inputMode="numeric"
@@ -10510,8 +10508,8 @@ const App = () => {
                                           />
                                         </div>
                                         {nextItem && (
-                                          <div className="flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50/60 py-2.5">
-                                            <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">도착예정</span>
+                                          <div className="flex flex-col items-center gap-0.5 flex-1">
+                                            <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">End</span>
                                             <span className="text-[16px] font-black tabular-nums text-slate-800">{arrivalTime}</span>
                                           </div>
                                         )}

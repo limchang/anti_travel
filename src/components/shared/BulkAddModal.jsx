@@ -168,7 +168,6 @@ const BulkAddModal = ({
                                     setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, name: newName }));
                                   }}
                                   onBlur={() => {
-                                    // 이름이 원본과 다르면 학습 데이터 저장
                                     if (item._rawName && item.name !== item._rawName) {
                                       try {
                                         const corrections = JSON.parse(safeLocalStorageGet('bulk_name_corrections', '{}'));
@@ -177,8 +176,16 @@ const BulkAddModal = ({
                                       } catch {}
                                     }
                                   }}
-                                  className="text-[11px] font-black text-slate-800 bg-transparent outline-none border-b border-transparent focus:border-[#3182F6] min-w-0 w-full"
+                                  className="text-[11px] font-black text-slate-800 bg-transparent outline-none border-b border-transparent focus:border-[#3182F6] min-w-0 flex-1"
                                 />
+                                {cleanCategorySuffix(item.name) !== item.name && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, name: cleanCategorySuffix(p.name) }))}
+                                    className="shrink-0 px-1.5 py-0.5 rounded text-[8px] font-black text-orange-500 border border-orange-200 bg-orange-50 hover:bg-orange-100 transition-colors"
+                                    title="카테고리 키워드 제거"
+                                  >제거</button>
+                                )}
                               </div>
                               {item.address && <p className="text-[10px] font-bold text-slate-400 mt-0.5 truncate">{item.address}</p>}
                               <div className="flex flex-wrap gap-1 mt-1.5" onClick={(e) => e.stopPropagation()}>

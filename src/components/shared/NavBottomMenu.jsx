@@ -92,6 +92,9 @@ const NavBottomMenu = ({
                     placeholder={serverAiKeyStatus.hasStoredGeminiKey ? '새 Gemini 키로 교체' : 'Gemini API 키 입력'}
                     className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
                   />
+                  <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-[#3182F6] hover:underline">
+                    Gemini API 키 발급받기 →
+                  </a>
                 </label>
                 <label className="block">
                   <span className="text-[10px] font-black text-slate-500">Jina API Key (선택, v2 지도검색 속도/안정성 향상)</span>
@@ -102,6 +105,9 @@ const NavBottomMenu = ({
                     placeholder={serverAiKeyStatus.hasStoredPerplexityKey ? '새 Jina 키로 교체' : 'jina.ai에서 발급한 API 키 입력 (없어도 동작)'}
                     className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
                   />
+                  <a href="https://jina.ai/reader/#apiform" target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-emerald-500 hover:underline">
+                    Jina API 키 발급받기 →
+                  </a>
                 </label>
                 <div className="flex items-center gap-2">
                   <button

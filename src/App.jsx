@@ -8160,17 +8160,15 @@ const App = () => {
                     {visiblePlaces.filter(place => place && (place.id || place.name)).map(place => {
                       const currentTypes = place.types?.length ? place.types : ['place'];
                       const chips = (
-                        <div data-no-drag="true" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            type="button"
-                            className="flex items-center gap-1 flex-wrap"
-                            onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setLibraryTypeModal({ placeId: place.id, types: [...currentTypes], position: { x: r.left, y: r.bottom } }); }}
-                            title="카테고리 변경"
-                          >
-                            {currentTypes.map(t => getCategoryBadge(t))}
-                            <ChevronDown size={8} className="text-slate-300" />
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          data-no-drag="true"
+                          className="shrink-0 flex items-center gap-1 cursor-pointer"
+                          onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setLibraryTypeModal({ placeId: place.id, types: [...currentTypes], position: { x: r.left, y: r.bottom } }); }}
+                          title="카테고리 변경"
+                        >
+                          {currentTypes.map(t => getCategoryBadge(t))}
+                        </button>
                       );
                       const isPlaceExpanded = expandedPlaceId === place.id;
                       const isMobilePlaceSelected = isMobileLayout && mobileSelectedLibraryPlace?.id === place.id;

@@ -729,6 +729,7 @@ const App = () => {
   const [placeDistanceSync, setPlaceDistanceSync] = useState({ active: false, total: 0, done: 0, percent: 0, baseName: '' });
   const [col1Collapsed, setCol1Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
   const [col2Collapsed, setCol2Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
+  const [mapEditMode, setMapEditMode] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));
   const [leftPanelW, setLeftPanelW] = useState(() => { try { return Number(localStorage.getItem('leftPanelW')) || 280; } catch { return 280; } });
   const [rightPanelW, setRightPanelW] = useState(() => { try { return Number(localStorage.getItem('rightPanelW')) || 440; } catch { return 440; } });
@@ -854,7 +855,7 @@ const App = () => {
     }));
   }, [itinerary.days, itinerary.places]);
   const isMobileLayout = viewportWidth < 1100;
-  const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : rightPanelW;
+  const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : mapEditMode ? Math.max(rightPanelW, viewportWidth - leftPanelW) : rightPanelW;
   const leftExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : leftPanelW;
   const leftCollapsedWidth = 0;
   const rightCollapsedWidth = 0;
@@ -7581,6 +7582,17 @@ const App = () => {
                   <Package size={14} className="text-[#3182F6]" />
                 </div>
                 <p className="text-[14px] font-black text-slate-800 tracking-tight flex-1">내 장소</p>
+                {!isMobileLayout && (
+                  <button
+                    type="button"
+                    onClick={() => setMapEditMode(prev => !prev)}
+                    className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-black transition-all ${mapEditMode ? 'border-[#3182F6] bg-[#3182F6] text-white shadow-[0_2px_8px_rgba(49,130,246,0.3)]' : 'border-slate-200 bg-white text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+                    title={mapEditMode ? '일정 편집 모드로 돌아가기' : '지도 편집 모드 — 일정 영역을 닫고 지도+내장소 확장'}
+                  >
+                    <MapIcon size={11} />
+                    {mapEditMode ? '일정 보기' : '지도 편집'}
+                  </button>
+                )}
                 {(() => {
                   const { refTime } = getActiveRefContext();
                   return refTime ? (
@@ -8386,8 +8398,8 @@ const App = () => {
       </div>
 
       <div
-        className="flex-1 flex flex-col items-center w-full bg-slate-50 min-h-screen"
-        style={{ marginLeft: mainContentLeftInset, marginRight: mainContentRightInset }}
+        className={`flex-1 flex flex-col items-center w-full bg-slate-50 min-h-screen transition-all duration-300 ${mapEditMode && !isMobileLayout ? 'opacity-0 pointer-events-none overflow-hidden max-w-0' : ''}`}
+        style={{ marginLeft: mapEditMode && !isMobileLayout ? leftExpandedWidth : mainContentLeftInset, marginRight: mapEditMode && !isMobileLayout ? 0 : mainContentRightInset }}
       >
         {/* 일정 목록 */}
         <div

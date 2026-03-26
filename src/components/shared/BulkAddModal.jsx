@@ -184,9 +184,44 @@ const BulkAddModal = ({
                                     onClick={() => setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, name: cleanCategorySuffix(p.name) }))}
                                     className="shrink-0 px-1.5 py-0.5 rounded text-[8px] font-black text-orange-500 border border-orange-200 bg-orange-50 hover:bg-orange-100 transition-colors"
                                     title="카테고리 키워드 제거"
-                                  >제거</button>
+                                  >카테고리 제거</button>
+                                )}
+                                {runJinaSmartFill && (
+                                  <button
+                                    type="button"
+                                    disabled={item._jinaLoading}
+                                    onClick={async () => {
+                                      setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, _jinaLoading: true }));
+                                      try {
+                                        const result = await runJinaSmartFill({ placeName: item.name });
+                                        if (result) {
+                                          setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : {
+                                            ...p,
+                                            _jinaLoading: false,
+                                            address: result.address || p.address,
+                                            business: result.business || p.business,
+                                            menus: result.menus?.length ? result.menus : p.menus,
+                                          }));
+                                          showInfoToast(`${result.name || item.name} 정보 채움`);
+                                        } else {
+                                          setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, _jinaLoading: false }));
+                                        }
+                                      } catch (err) {
+                                        setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, _jinaLoading: false }));
+                                        showInfoToast(`v2 실패: ${err?.message || '오류'}`);
+                                      }
+                                    }}
+                                    className={`shrink-0 px-1.5 py-0.5 rounded text-[8px] font-black border transition-colors ${item._jinaLoading ? 'text-emerald-400 border-emerald-200 bg-emerald-50' : 'text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'}`}
+                                    title="v2 지도검색 자동채우기"
+                                  >{item._jinaLoading ? '검색중...' : 'v2 채우기'}</button>
                                 )}
                               </div>
+                              {item._jinaLoading && (
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <svg className="animate-spin shrink-0" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                                  <span className="text-[9px] font-bold text-emerald-500">네이버 지도에서 정보 가져오는 중...</span>
+                                </div>
+                              )}
                               {item.address && <p className="text-[10px] font-bold text-slate-400 mt-0.5 truncate">{item.address}</p>}
                               <div className="flex flex-wrap gap-1 mt-1.5" onClick={(e) => e.stopPropagation()}>
                                 {TAG_OPTIONS.filter(t => !['place', 'new', 'revisit', 'quick'].includes(t.value)).map(t => {
@@ -233,7 +268,7 @@ const BulkAddModal = ({
                               setItinerary(prev => ({ ...prev, placeTrash: [...(prev.placeTrash || []), trashPlace] }));
                               dupCount++;
                             } else {
-                              addPlace({ name: item.name, types: item.types, address: item.address, memo: '', menus: [], business: {} }, { unselectedMenus: true });
+                              addPlace({ name: item.name, types: item.types, address: item.address, memo: '', menus: item.menus || [], business: item.business || {} }, { unselectedMenus: true });
                               existingNames.add(normalizedName);
                               addedCount++;
                             }

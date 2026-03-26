@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 폰트 통일 */
+html, body, input, textarea, button, select {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.02em;
+}
+
 /* 가로 스크롤 방지 */
 html, body {
   overflow-x: hidden;

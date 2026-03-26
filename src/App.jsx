@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars, react-hooks/exhaustive-deps, no-useless-escape */
 import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import L from 'leaflet';
 import { MapContainer, Marker, Pane, Polyline, Popup, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import { db, auth, messaging } from './firebase';
@@ -7902,7 +7903,7 @@ const App = () => {
                     {/* ── 고정 영역: 지도 + 카테고리 필터 ── */}
                     <div className="shrink-0 px-5 pt-0 flex flex-col gap-1.5">
                     {/* 지도 뷰 - 목록 위 고정 */}
-                    <div id="right-panel-map-overview" className="shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-visible shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2">
+                    <div id="right-panel-map-overview" className="shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-visible shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2" style={{ isolation: 'isolate' }}>
                       {/* 지도 본체 + 오버레이 버튼 */}
                       <div style={{ aspectRatio: mapEditMode ? '16 / 9' : '1 / 1' }} className="relative overflow-visible transition-all duration-300">
                         <RoutePreviewCanvas
@@ -11138,7 +11139,7 @@ const App = () => {
       />
 
       {/* ── 지도 편집 모드 퀵뷰 모달 ── */}
-      {mapEditMode && mapQuickViewItem && (() => {
+      {mapEditMode && mapQuickViewItem && createPortal((() => {
         const qvDay = itinerary.days?.[mapQuickViewItem.dayIdx];
         const qvItem = qvDay?.plan?.[mapQuickViewItem.pIdx];
         if (!qvItem) return null;
@@ -11214,7 +11215,7 @@ const App = () => {
             </div>
           </>
         );
-      })()}
+      })(), document.body)}
 
       </div >
     </div >

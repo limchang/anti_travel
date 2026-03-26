@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 // 범용 태그 선택 팝오버 — 클릭 위치 근처에 표시
@@ -15,7 +16,7 @@ const TagPickerModal = ({ show, types, tagOptions, onTypesChange, onConfirm, onC
   const left = Math.max(12, Math.min(window.innerWidth - panelW - 12, (pos.x || window.innerWidth / 2) - panelW / 2));
   const top = Math.max(12, Math.min(window.innerHeight - panelH - 12, (pos.y || window.innerHeight / 2) + 8));
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[99999]"
       onClick={onClose}
@@ -76,7 +77,8 @@ const TagPickerModal = ({ show, types, tagOptions, onTypesChange, onConfirm, onC
           className="w-full rounded-xl bg-[#3182F6] py-2 text-[11px] font-black text-white"
         >완료</button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

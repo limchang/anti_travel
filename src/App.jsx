@@ -10276,14 +10276,13 @@ const App = () => {
                                         )}
                                         <div
                                           data-time-trigger="true"
-                                          className={`relative overflow-hidden flex-1 rounded-xl border p-3 flex flex-col items-center justify-center gap-2 min-h-[96px] cursor-pointer transition-colors ${checkinTarget ? 'bg-indigo-100/80 border-indigo-300' : 'bg-indigo-50/70 border-indigo-100'}`}
+                                          className={`relative overflow-hidden flex-1 rounded-xl border p-3 flex flex-col items-center justify-center gap-2 min-h-[64px] cursor-pointer transition-colors ${checkinTarget ? 'bg-indigo-100/80 border-indigo-300' : 'bg-indigo-50/70 border-indigo-100'}`}
                                           onClick={() => setTimeControllerTarget(prev => prev?.key === lodgeCheckinKey ? null : { key: lodgeCheckinKey })}
                                         >
-                                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[56px] font-black tracking-[0.08em] text-indigo-200/55 select-none">IN</span>
                                           <div className="flex flex-col items-center gap-1 relative z-10">
                                             <span className="text-[8px] font-black tracking-[0.18em] text-indigo-400">CHECK-IN</span>
                                             {!checkinTarget && (
-                                              <span className={`text-[22px] font-black tabular-nums tracking-tight ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-indigo-900'}`}>{checkinHour}:{checkinMinute}</span>
+                                              <span className={`text-[16px] font-black tabular-nums ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-indigo-900'}`}>{checkinHour}:{checkinMinute}</span>
                                             )}
                                           </div>
                                           {checkinTarget && (
@@ -10312,14 +10311,13 @@ const App = () => {
                                         {/* 체크아웃 셀 */}
                                         <div
                                           data-time-trigger="true"
-                                          className={`relative overflow-hidden flex-1 rounded-xl border p-3 flex flex-col items-center justify-center gap-2 min-h-[96px] cursor-pointer transition-colors ${checkoutTarget ? 'bg-violet-100/80 border-violet-300' : 'bg-violet-50/70 border-violet-100'}`}
+                                          className={`relative overflow-hidden flex-1 rounded-xl border p-3 flex flex-col items-center justify-center gap-2 min-h-[64px] cursor-pointer transition-colors ${checkoutTarget ? 'bg-violet-100/80 border-violet-300' : 'bg-violet-50/70 border-violet-100'}`}
                                           onClick={() => setTimeControllerTarget(prev => prev?.key === lodgeCheckoutKey ? null : { key: lodgeCheckoutKey })}
                                         >
-                                          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[52px] font-black tracking-[0.06em] text-violet-200/55 select-none">OUT</span>
                                           <div className="flex flex-col items-center gap-1 relative z-10">
                                             <span className="text-[8px] font-black tracking-[0.18em] text-violet-500">CHECK-OUT</span>
                                             {!checkoutTarget && (
-                                              <span className={`text-[22px] font-black tabular-nums tracking-tight ${p.lodgeCheckoutFixed ? 'text-violet-600' : 'text-violet-900'}`}>{checkoutHour}:{checkoutMinute}</span>
+                                              <span className={`text-[16px] font-black tabular-nums ${p.lodgeCheckoutFixed ? 'text-violet-600' : 'text-violet-900'}`}>{checkoutHour}:{checkoutMinute}</span>
                                             )}
                                           </div>
                                           {checkoutTarget && (
@@ -10344,7 +10342,7 @@ const App = () => {
                                                 }}
                                                 title="체크아웃 시간 직접 입력"
                                                 placeholder="01:00"
-                                                className="w-[112px] rounded-xl border border-violet-200 bg-white/90 px-3 py-2 text-center text-[24px] font-black tracking-tight tabular-nums text-violet-700 outline-none focus:border-violet-400"
+                                                className="w-[100px] rounded-xl border border-violet-200 bg-white/90 px-3 py-1.5 text-center text-[16px] font-black tabular-nums text-violet-700 outline-none focus:border-violet-400"
                                               />
                                               <div className="text-[10px] font-bold text-violet-400">종료시간을 다시 입력하면 시작 기준으로 자동 재계산됩니다.</div>
                                             </div>
@@ -10516,13 +10514,13 @@ const App = () => {
                                             onClick={(e) => e.stopPropagation()}
                                             placeholder="HH:MM"
                                             maxLength={5}
-                                            className={`bg-transparent text-center text-[13px] font-black tabular-nums outline-none w-[5rem] ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}
+                                            className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[5rem] ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}
                                           />
                                         </div>
                                         {nextItem && (
                                           <div className="flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50/60 py-2.5">
                                             <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">도착예정</span>
-                                            <span className="text-[13px] font-black tabular-nums text-slate-800">{arrivalTime}</span>
+                                            <span className="text-[16px] font-black tabular-nums text-slate-800">{arrivalTime}</span>
                                           </div>
                                         )}
                                       </div>

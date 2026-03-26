@@ -622,17 +622,20 @@ export const RoutePreviewCanvas = ({
       ? (hideLongSegments ? segmentEntries.filter((s) => !(s.durationMins != null && s.durationMins >= 60)) : segmentEntries)
       : []
   ), [hideLongSegments, segmentEntries, showRouteLines]);
+  const segmentBoundsPoints = useMemo(() => (
+    boundsSegments.flatMap((segment) => segment.positions)
+  ), [boundsSegments]);
   const timelineBoundsPoints = useMemo(() => (
-    [
-      ...boundsSegments.flatMap((segment) => segment.positions),
-      ...(showTimelineMarkers ? timelineEntries.map((point) => point.position) : []),
-    ]
-  ), [boundsSegments, showTimelineMarkers, timelineEntries]);
+    showTimelineMarkers ? timelineEntries.map((point) => point.position) : []
+  ), [showTimelineMarkers, timelineEntries]);
+  // 경로가 있으면 경로 영역만, 없으면 마커 → 내장소 순서로 fallback
   const allBoundsPoints = useMemo(() => (
-    timelineBoundsPoints.length > 0
-      ? timelineBoundsPoints
-      : overlayEntries.map((e) => e.position)
-  ), [timelineBoundsPoints, overlayEntries]);
+    segmentBoundsPoints.length > 0
+      ? segmentBoundsPoints
+      : timelineBoundsPoints.length > 0
+        ? timelineBoundsPoints
+        : overlayEntries.map((e) => e.position)
+  ), [segmentBoundsPoints, timelineBoundsPoints, overlayEntries]);
   const focusedViewportPoints = useMemo(() => {
     if (focusedTarget?.kind === 'timeline') {
       const focusedTimelinePoints = (showTimelineMarkers ? timelineEntries : [])

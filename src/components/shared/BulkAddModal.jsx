@@ -1,9 +1,14 @@
 import React from 'react';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Sparkles } from 'lucide-react';
 import { TAG_OPTIONS, ADDRESS_REGEX, normalizeTagOrder, bulkKwToType } from '../../utils/constants.js';
 import { normalizeLibraryPlace } from '../../utils/helpers.js';
 import { parseBulkPlaceText } from '../../utils/parse.js';
 import { safeLocalStorageGet, safeLocalStorageSet } from '../../utils/storage.js';
+
+// 이름 뒤에 붙는 카테고리 키워드 제거
+const CATEGORY_SUFFIXES = /[,\s]*(지역명소|베이커리|카페|디저트|한식|중식|양식|일식|분식|육류|고기요리|해산물|국밥|찌개|탕|면요리|패스트푸드|뷔페|포장마차|바\(BAR\)|펍|호프|이자카야|스시|라멘|돈가스|브런치|스테이크|피자|치킨|햄버거|수제버거|와인바|칵테일바|전통찻집|빙수|마카롱|케이크|도너츠|베이글|샌드위치|떡집|떡카페|수목원|식물원|관광|명소|맛집|음식점|레스토랑|식당)[\s,]*$/g;
+
+const cleanCategorySuffix = (name) => String(name || '').replace(CATEGORY_SUFFIXES, '').trim();
 
 const BulkAddModal = ({
   showBulkAddModal, setShowBulkAddModal,
@@ -11,12 +16,13 @@ const BulkAddModal = ({
   bulkAddParsed, setBulkAddParsed,
   bulkAddLoading, setBulkAddLoading,
   showInfoToast, addPlace, itinerary, setItinerary,
+  runJinaSmartFill,
 }) => {
   if (!showBulkAddModal) return null;
   return (
             <>
               <div className="fixed inset-0 z-[291] bg-black/30 backdrop-blur-sm" onClick={() => setShowBulkAddModal(false)} />
-              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl flex flex-col" style={{ maxHeight: 'min(92vh, 900px)' }}>
+              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl flex flex-col" style={{ maxHeight: 'min(96vh, 1100px)' }}>
                 <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
                   <div>
                     <p className="text-[14px] font-black text-slate-800">여러 장소 추가하기</p>
@@ -130,13 +136,20 @@ const BulkAddModal = ({
                     <>
                       <div className="flex items-center justify-between mb-1">
                         <p className="text-[11px] font-black text-slate-700">{bulkAddParsed.length}개 장소 감지됨</p>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
+                          <button type="button" onClick={() => {
+                            setBulkAddParsed(prev => prev.map(p => {
+                              const cleaned = cleanCategorySuffix(p.name);
+                              return cleaned !== p.name ? { ...p, name: cleaned } : p;
+                            }));
+                            showInfoToast('카테고리 키워드를 제거했습니다.');
+                          }} className="text-[10px] font-black text-orange-500 hover:underline">카테고리 제거</button>
                           <button type="button" onClick={() => setBulkAddParsed(prev => prev.map(p => ({ ...p, selected: true })))} className="text-[10px] font-black text-[#3182F6] hover:underline">전체선택</button>
                           <button type="button" onClick={() => setBulkAddParsed(prev => prev.map(p => ({ ...p, selected: false })))} className="text-[10px] font-black text-slate-400 hover:underline">전체해제</button>
                           <button type="button" onClick={() => { setBulkAddParsed([]); setBulkAddText(''); }} className="text-[10px] font-black text-slate-400 hover:underline">다시 입력</button>
                         </div>
                       </div>
-                      <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+                      <div className="space-y-1.5 max-h-[500px] overflow-y-auto">
                         {bulkAddParsed.map((item, idx) => (
                           <div
                             key={idx}

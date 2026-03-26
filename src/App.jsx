@@ -5489,26 +5489,27 @@ const App = () => {
 
 
   const getCategoryBadge = (type) => {
-    const style = "flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0";
+    const style = "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-black border shrink-0";
+    const ic = 14;
     switch (type) {
-      case 'food': return <div key={type} className={`${style} text-rose-500 bg-red-50 border-red-100`}><Utensils size={10} /> 식당</div>;
-      case 'cafe': return <div key={type} className={`${style} text-amber-600 bg-amber-50 border-amber-100`}><Coffee size={10} /> 카페</div>;
-      case 'tour': return <div key={type} className={`${style} text-purple-600 bg-purple-50 border-purple-100`}><Camera size={10} /> 관광</div>;
-      case 'lodge': return <div key={type} className={`${style} text-indigo-600 bg-indigo-50 border-indigo-100`}><Bed size={10} /> 숙소</div>;
-      case 'stay': return <div key={type} className={`${style} text-violet-600 bg-violet-50 border-violet-100`}><MoonStar size={10} /> 숙박</div>;
-      case 'rest': return <div key={type} className={`${style} text-cyan-600 bg-cyan-50 border-cyan-100`}><Hourglass size={10} /> 휴식</div>;
-      case 'ship': return <div key={type} className={`${style} text-blue-600 bg-blue-50 border-blue-100`}><Anchor size={10} /> 페리</div>;
-      case 'openrun': return <div key={type} className={`${style} text-red-500 bg-red-50 border-red-100`}><Timer size={10} /> 오픈런</div>;
-      case 'view': return <div key={type} className={`${style} text-sky-600 bg-sky-50 border-sky-100`}><Eye size={10} /> 뷰맛집</div>;
-      case 'experience': return <div key={type} className={`${style} text-emerald-600 bg-emerald-50 border-emerald-100`}><Star size={10} /> 체험</div>;
-      case 'souvenir': return <div key={type} className={`${style} text-teal-600 bg-teal-50 border-teal-100`}><Gift size={10} /> 기념품샵</div>;
-      case 'snack': return <div key={type} className={`${style} text-pink-500 bg-pink-50 border-pink-100`}><Soup size={10} /> 분식</div>;
-      case 'pickup': return <div key={type} className={`${style} text-orange-500 bg-orange-50 border-orange-100`}><Package size={10} /> 픽업</div>;
-      case 'home': return <div key={type} className={`${style} text-amber-700 bg-amber-50 border-amber-100`}><Home size={10} /> 집</div>;
-      case 'quick': return <div key={type} className={`${style} text-yellow-600 bg-yellow-50 border-yellow-200`}><Zap size={10} /> 퀵등록</div>;
+      case 'food': return <div key={type} className={`${style} text-rose-500 bg-red-50 border-red-100`}><Utensils size={ic} /> 식당</div>;
+      case 'cafe': return <div key={type} className={`${style} text-amber-600 bg-amber-50 border-amber-100`}><Coffee size={ic} /> 카페</div>;
+      case 'tour': return <div key={type} className={`${style} text-purple-600 bg-purple-50 border-purple-100`}><Camera size={ic} /> 관광</div>;
+      case 'lodge': return <div key={type} className={`${style} text-indigo-600 bg-indigo-50 border-indigo-100`}><Bed size={ic} /> 숙소</div>;
+      case 'stay': return <div key={type} className={`${style} text-violet-600 bg-violet-50 border-violet-100`}><MoonStar size={ic} /> 숙박</div>;
+      case 'rest': return <div key={type} className={`${style} text-cyan-600 bg-cyan-50 border-cyan-100`}><Hourglass size={ic} /> 휴식</div>;
+      case 'ship': return <div key={type} className={`${style} text-blue-600 bg-blue-50 border-blue-100`}><Anchor size={ic} /> 페리</div>;
+      case 'openrun': return <div key={type} className={`${style} text-red-500 bg-red-50 border-red-100`}><Timer size={ic} /> 오픈런</div>;
+      case 'view': return <div key={type} className={`${style} text-sky-600 bg-sky-50 border-sky-100`}><Eye size={ic} /> 뷰맛집</div>;
+      case 'experience': return <div key={type} className={`${style} text-emerald-600 bg-emerald-50 border-emerald-100`}><Star size={ic} /> 체험</div>;
+      case 'souvenir': return <div key={type} className={`${style} text-teal-600 bg-teal-50 border-teal-100`}><Gift size={ic} /> 기념품샵</div>;
+      case 'snack': return <div key={type} className={`${style} text-pink-500 bg-pink-50 border-pink-100`}><Soup size={ic} /> 분식</div>;
+      case 'pickup': return <div key={type} className={`${style} text-orange-500 bg-orange-50 border-orange-100`}><Package size={ic} /> 픽업</div>;
+      case 'home': return <div key={type} className={`${style} text-amber-700 bg-amber-50 border-amber-100`}><Home size={ic} /> 집</div>;
+      case 'quick': return <div key={type} className={`${style} text-yellow-600 bg-yellow-50 border-yellow-200`}><Zap size={ic} /> 퀵등록</div>;
       case 'new': return <span key="new" className={style + ' text-emerald-600 bg-emerald-50 border-emerald-200'}>신규</span>;
       case 'revisit': return <span key="revisit" className={style + ' text-blue-600 bg-blue-50 border-blue-200'}>재방문</span>;
-      case 'place': return <div key={type} className={`${style} text-slate-500 bg-slate-100 border-slate-200`}><MapIcon size={10} /> 장소</div>;
+      case 'place': return <div key={type} className={`${style} text-slate-500 bg-slate-100 border-slate-200`}><MapIcon size={ic} /> 장소</div>;
       default: return <div key={type} className={`${style} text-slate-500 bg-slate-100 border-slate-200`}>{getCustomTagLabel(type)}</div>;
     }
   };

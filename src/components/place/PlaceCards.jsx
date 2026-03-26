@@ -790,10 +790,6 @@ export const PlaceLibraryCard = ({
       </div>
     )}
     {showPrice && !isCompact && <SharedTotalFooter expanded={isExpanded} total={place.price} onToggle={onToggleExpand} />}
-    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-      <button onClick={onEdit} className="p-1.5 hover:text-[#3182F6] hover:bg-blue-50 text-slate-300 rounded-md transition-all"><Pencil size={11} /></button>
-      <button onClick={onDelete} className="p-1.5 hover:text-red-500 hover:bg-red-50 text-slate-300 rounded-md transition-all"><Trash2 size={11} /></button>
-    </div>
   </div>
   );
 };

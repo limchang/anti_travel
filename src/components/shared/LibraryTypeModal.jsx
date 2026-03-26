@@ -44,7 +44,7 @@ const TagPickerModal = ({ show, types, tagOptions, onTypesChange, onConfirm, onC
                   longPressRef.current = setTimeout(() => {
                     longPressRef._fired = true;
                     onTypesChange([t.value]);
-                  }, 500);
+                  }, 250);
                 }}
                 onMouseUp={() => clearTimeout(longPressRef.current)}
                 onMouseLeave={() => clearTimeout(longPressRef.current)}
@@ -54,7 +54,7 @@ const TagPickerModal = ({ show, types, tagOptions, onTypesChange, onConfirm, onC
                   longPressRef.current = setTimeout(() => {
                     longPressRef._fired = true;
                     onTypesChange([t.value]);
-                  }, 500);
+                  }, 250);
                 }}
                 onTouchEnd={() => clearTimeout(longPressRef.current)}
                 onClick={(e) => {

@@ -188,19 +188,33 @@ const BulkAddModal = ({
                                   // 직접 Jina로 파싱 시도
                                   folderContent = await (await fetch(`https://r.jina.ai/${url}`)).text();
                                 }
-                                // 장소 이름 + 카테고리 추출
+                                // 장소 이름 + 카테고리 + 주소 추출
+                                // 패턴: *   **장소명**  →  카테고리  →  주소
                                 const lines = folderContent.split('\n');
                                 const places = [];
                                 for (let i = 0; i < lines.length; i++) {
                                   const line = lines[i].trim();
-                                  // "## 장소명" 또는 "### 장소명" 패턴
-                                  const headingMatch = line.match(/^#{1,3}\s+(.+)$/);
-                                  if (headingMatch) {
-                                    const name = headingMatch[1].replace(/\s*\(.*?\)\s*$/, '').trim();
-                                    if (name && !/저장한\s*장소|내\s*장소|폴더|Naver|naver|save-pages|detail-list/.test(name)) {
-                                      places.push({ name: cleanCategorySuffix(name), types: ['place'], address: '', selected: true });
+                                  const boldMatch = line.match(/\*\s+\*\*(.+?)\*\*/);
+                                  if (!boldMatch) continue;
+                                  const name = boldMatch[1].trim();
+                                  if (!name || /네이버지도|저장한\s*장소|내\s*장소|Naver|save-pages/.test(name)) continue;
+                                  // 다음 줄들에서 카테고리와 주소 찾기
+                                  let category = '';
+                                  let address = '';
+                                  for (let j = i + 1; j < Math.min(i + 6, lines.length); j++) {
+                                    const next = lines[j].trim();
+                                    if (!next || /^!\[/.test(next)) continue; // 빈 줄이나 이미지 스킵
+                                    if (/^(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주|경상)/.test(next)) {
+                                      address = next;
+                                      break;
+                                    }
+                                    if (!category && !next.startsWith('*') && !next.startsWith('#')) {
+                                      category = next;
                                     }
                                   }
+                                  // 카테고리로 태그 매핑
+                                  const types = category ? (bulkKwToType(category) || ['place']) : ['place'];
+                                  places.push({ name, types, address, selected: true });
                                 }
                                 if (places.length) {
                                   setBulkAddParsed(places);

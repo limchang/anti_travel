@@ -378,7 +378,7 @@ const BulkAddModal = ({
                               )}
                               {item.address && <p className="text-[10px] font-bold text-slate-400 mt-0.5 truncate">{item.address}</p>}
                               <div className="flex flex-wrap gap-1 mt-1.5" onClick={(e) => e.stopPropagation()}>
-                                {TAG_OPTIONS.filter(t => !['place', 'new', 'revisit', 'quick'].includes(t.value)).map(t => {
+                                {TAG_OPTIONS.filter(t => !['place', 'new', 'revisit', 'quick', 'lodge', 'ship', 'rest', 'openrun', 'view', 'home'].includes(t.value)).map(t => {
                                   const safeTypes = Array.isArray(item.types) ? item.types : [];
                                   const active = safeTypes.includes(t.value);
                                   return (

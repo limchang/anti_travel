@@ -95,27 +95,28 @@ export const getMapCategoryLabel = (type = 'place') => {
   const found = TAG_OPTIONS.find((tag) => tag.value === type);
   return found?.label || '장소';
 };
-// SVG 미니 아이콘 (흰색 실루엣, viewBox 0 0 24 24)
-const MAP_CATEGORY_SVG = {
-  food: '<path d="M3 3h3v12H3zm6 0c0 3.31 2.69 6 6 6v6h-3V9.5C9.5 9.5 9 6.58 9 3zm9 0v18h-3V3z" fill="white"/>',                        // 포크+나이프
-  cafe: '<path d="M2 21h18v-2H2zm2-4h14c1.1 0 2-.9 2-2V7h-2c0 1.1-.9 2-2 2h-2c-1.1 0-2-.9-2-2H4v8c0 1.1.9 2 2 2zm16-12h-2V3h-2v2h-2l1.5 4H20z" fill="white"/>',  // 커피잔
-  tour: '<circle cx="12" cy="12" r="3.5" fill="white"/><path d="M12 2L9 5H5v4l-3 3 3 3v4h4l3 3 3-3h4v-4l3-3-3-3V5h-4z" fill="none" stroke="white" stroke-width="1.5"/>', // 카메라/별
-  lodge: '<path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2V10c0-2.21-1.79-4-4-4z" fill="white"/>', // 침대
-  stay: '<path d="M12.1 2.9c-5 .5-9 4.8-9 9.8v.3c.1 5 4.2 9 9.2 9 5.5 0 10-4.5 9.7-10.1-.3-4.8-4.5-8.8-9.3-9h-.6zM9 16.6c-2-1.4-3.3-3.8-3.3-6.4 0-.5 0-.9.1-1.4 2.6 1 4.7 3.1 5.7 5.7-1 .5-1.8 1.2-2.5 2.1z" fill="white"/>', // 달
-  ship: '<path d="M20 21c-1.4 0-2.8-.5-4-1.5-2.3 2-5.6 2-8 0C6.8 20.5 5.4 21 4 21H2v2h2c1.4 0 2.8-.4 4-1.1 2.4 1.5 5.6 1.5 8 0 1.2.7 2.6 1.1 4 1.1h2v-2h-2zM3.95 19H4c1.6 0 3.1-.8 4-2 .9 1.2 2.4 2 4 2s3.1-.8 4-2c.9 1.2 2.4 2 4 2h.05l1.9-6.3-1.9-.6V8h-2V6h-4V4h-4v2H6v2H4v4.1l-1.9.6L3.95 19zM6 8h12v3.97L12 10 6 11.97V8z" fill="white"/>', // 배
-  rest: '<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm-1-6h2v2h-2zm0-8h2v6h-2z" fill="white"/>', // 시계/휴식
-  pickup: '<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z" fill="white"/>', // 박스+
-  openrun: '<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z" fill="white"/>', // 시계
-  view: '<path d="M12 4.5C7 4.5 2.7 7.6 1 12c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5C21.3 7.6 17 4.5 12 4.5zM12 17c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5zm0-8c-1.7 0-3 1.3-3 3s1.3 3 3 3 3-1.3 3-3-1.3-3-3-3z" fill="white"/>', // 눈
-  experience: '<path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 18l-6.2 3 1.2-6.8-5-4.9 6.9-1z" fill="white"/>', // 별
-  souvenir: '<path d="M20 6h-2.2L15 2.2 13.6 3.6 16.2 6H7.8l2.6-2.4L9 2.2 6.2 6H4c-1.1 0-2 .9-2 2v3h2v9c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-9h2V8c0-1.1-.9-2-2-2zm-5 14h-2V11h2v9zm-6 0H7V11h2v9z" fill="white"/>', // 선물
-  snack: '<path d="M8.1 13.3l2.1-2.1-5.3-5.3-2.1 2.1L8.1 13.3zm6.3-6.3l2.1-2.1-1.4-1.4-2.1 2.1 1.4 1.4zM12 17.5L7.5 13 6 14.5l6 6 6-6-1.5-1.5L12 17.5zm0-12L8.5 9 10 10.5 12 8.5l2 2L15.5 9 12 5.5z" fill="white"/>', // 분식/꼬치
-  home: '<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="white"/>', // 집
-  place: '<path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5S10.6 6.5 12 6.5s2.5 1.1 2.5 2.5S13.4 11.5 12 11.5z" fill="white"/>', // 핀
-  quick: '<path d="M7 2v11h3v9l7-12h-4l4-8z" fill="white"/>', // 번개
+// Lucide 스타일 선형 아이콘 (stroke white, viewBox 0 0 24 24)
+const _s = 'stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"';
+const MAP_CATEGORY_ICON = {
+  food: `<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2M7 2v20M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" ${_s}/>`,
+  cafe: `<path d="M17 8h1a4 4 0 010 8h-1M3 8h14v9a4 4 0 01-4 4H7a4 4 0 01-4-4V8zM6 2v4M10 2v4M14 2v4" ${_s}/>`,
+  tour: `<path d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3l-2.5-3z" ${_s}/><circle cx="12" cy="13" r="3" ${_s}/>`,
+  lodge: `<path d="M2 4v16M2 8h18a2 2 0 012 2v10M2 17h20M6 8v9" ${_s}/>`,
+  stay: `<path d="M12 3a6 6 0 019 9 9 9 0 11-9-9z" ${_s}/>`,
+  ship: `<path d="M2 20a7 7 0 0010 0 7 7 0 0010 0M4 18l2-6h12l2 6M12 2v10M8 6h8" ${_s}/>`,
+  rest: `<path d="M18 2H6v7a6 6 0 0012 0V2zM6 2H2M22 2h-4M9 22h6M12 15v7" ${_s}/>`,
+  pickup: `<path d="M21 8l-2-4H5L3 8M3 8v10a1 1 0 001 1h1M3 8h18M21 8v10a1 1 0 01-1 1h-1M7.5 19a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM16.5 19a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" ${_s}/>`,
+  openrun: `<circle cx="12" cy="12" r="10" ${_s}/><path d="M12 6v6l4 2" ${_s}/>`,
+  view: `<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12z" ${_s}/><circle cx="12" cy="12" r="3" ${_s}/>`,
+  experience: `<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" ${_s}/>`,
+  souvenir: `<path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 110-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" ${_s}/>`,
+  snack: `<path d="M15 11h.01M11 15h.01M16 16s1.5-2 1.5-3.5S16 9 16 9M2 16l20 6-6-20L8 8z" ${_s}/>`,
+  home: `<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" ${_s}/><path d="M9 22V12h6v10" ${_s}/>`,
+  place: `<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" ${_s}/><circle cx="12" cy="10" r="3" ${_s}/>`,
+  quick: `<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" ${_s}/>`,
 };
-export const MAP_CATEGORY_EMOJI = MAP_CATEGORY_SVG; // 하위 호환
-export const getMapCategoryEmoji = (type = 'place') => MAP_CATEGORY_SVG[type] || MAP_CATEGORY_SVG.place;
+export const MAP_CATEGORY_EMOJI = MAP_CATEGORY_ICON; // 하위 호환
+export const getMapCategoryEmoji = (type = 'place') => MAP_CATEGORY_ICON[type] || MAP_CATEGORY_ICON.place;
 
 export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#FFFFFF', categoryLabel = '', isFirst = false, isLast = false, extraTailH = 0) => {
   // 일정 마커: 단색 배경 + 흰 번호 — 선명하고 진하게

@@ -5489,8 +5489,8 @@ const App = () => {
 
 
   const getCategoryBadge = (type) => {
-    const style = "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-black border shrink-0";
-    const ic = 14;
+    const style = "flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0";
+    const ic = 10;
     switch (type) {
       case 'food': return <div key={type} className={`${style} text-rose-500 bg-red-50 border-red-100`}><Utensils size={ic} /> 식당</div>;
       case 'cafe': return <div key={type} className={`${style} text-amber-600 bg-amber-50 border-amber-100`}><Coffee size={ic} /> 카페</div>;
@@ -8035,26 +8035,12 @@ const App = () => {
                               setPlaceFilterTags([]);
                             }
                           }}
-                          className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${placeFilterTags.length === 0 ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
+                          className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 transition-all ${placeFilterTags.length === 0 ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
                         >전체</button>
                         {filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0).map(t => {
                             const excluded = placeFilterTags.includes(t.value);
-                            const activeColor = {
-                              food: 'bg-rose-500 border-rose-500 text-white',
-                              cafe: 'bg-amber-500 border-amber-500 text-white',
-                              tour: 'bg-purple-500 border-purple-500 text-white',
-                              lodge: 'bg-indigo-500 border-indigo-500 text-white',
-                              stay: 'bg-violet-500 border-violet-500 text-white',
-                              rest: 'bg-cyan-500 border-cyan-500 text-white',
-                              ship: 'bg-blue-500 border-blue-500 text-white',
-                              openrun: 'bg-red-500 border-red-500 text-white',
-                              view: 'bg-sky-500 border-sky-500 text-white',
-                              experience: 'bg-emerald-500 border-emerald-500 text-white',
-                              souvenir: 'bg-teal-500 border-teal-500 text-white',
-                              pickup: 'bg-orange-500 border-orange-500 text-white',
-                              quick: 'bg-yellow-500 border-yellow-500 text-white',
-                            }[t.value] || 'bg-[#3182F6] border-[#3182F6] text-white';
                             const allActive = filterTagOptions.filter(x => (categoryCounts[x.value] || 0) > 0);
+                            const badge = getCategoryBadge(t.value);
                             return (
                               <button
                                 key={t.value}
@@ -8081,10 +8067,12 @@ const App = () => {
                                   if (filterLongPressFiredRef.current) return;
                                   setPlaceFilterTags(prev => excluded ? prev.filter(v => v !== t.value) : [...prev, t.value]);
                                 }}
-                                className={`px-2 py-0.5 rounded-lg text-[9px] font-black border transition-all ${excluded ? 'bg-slate-100 text-slate-300 border-slate-200 line-through' : activeColor}`}
+                                className={`transition-all ${excluded ? 'opacity-30 grayscale' : ''}`}
                               >
-                                {t.label}
-                                <span className={`ml-1 px-0.5 rounded text-[8px] font-black ${excluded ? 'text-slate-300' : 'text-white/80'}`}>{categoryCounts[t.value]}</span>
+                                <div className="flex items-center">
+                                  {badge}
+                                  <span className={`ml-1 text-[9px] font-black ${excluded ? 'text-slate-300' : 'text-slate-500'}`}>{categoryCounts[t.value]}</span>
+                                </div>
                               </button>
                             );
                           })}

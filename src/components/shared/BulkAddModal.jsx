@@ -238,7 +238,8 @@ const BulkAddModal = ({
                                     }
                                   }
                                   // 카테고리로 태그 매핑
-                                  const types = category ? (bulkKwToType(category) || ['place']) : ['place'];
+                                  const mappedType = category ? bulkKwToType(category) : null;
+                                  const types = mappedType ? [mappedType] : ['place'];
                                   places.push({ name, types, address, selected: true });
                                 }
                                 if (places.length) {
@@ -378,7 +379,7 @@ const BulkAddModal = ({
                               {item.address && <p className="text-[10px] font-bold text-slate-400 mt-0.5 truncate">{item.address}</p>}
                               <div className="flex flex-wrap gap-1 mt-1.5" onClick={(e) => e.stopPropagation()}>
                                 {/* 선택된 태그만 표시 + 클릭으로 해제 */}
-                                {item.types.filter(v => v !== 'place').map(v => {
+                                {(Array.isArray(item.types) ? item.types : [item.types]).filter(v => v && v !== 'place').map(v => {
                                   const t = TAG_OPTIONS.find(o => o.value === v);
                                   if (!t) return null;
                                   return (
@@ -400,7 +401,7 @@ const BulkAddModal = ({
                                 <div className="relative group/tag">
                                   <button type="button" className="px-1.5 py-0.5 rounded text-[9px] font-black border border-slate-200 bg-white text-slate-400 hover:border-slate-300">+</button>
                                   <div className="hidden group-hover/tag:flex absolute left-0 top-full z-10 mt-1 flex-wrap gap-1 p-1.5 rounded-lg border border-slate-200 bg-white shadow-lg max-w-[200px]">
-                                    {TAG_OPTIONS.filter(t => !['place', 'new', 'revisit', 'quick'].includes(t.value) && !item.types.includes(t.value)).map(t => (
+                                    {TAG_OPTIONS.filter(t => !['place', 'new', 'revisit', 'quick'].includes(t.value) && !(Array.isArray(item.types) ? item.types : []).includes(t.value)).map(t => (
                                       <button
                                         key={t.value}
                                         type="button"

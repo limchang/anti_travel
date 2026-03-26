@@ -5493,7 +5493,7 @@ const App = () => {
     const ic = 10;
     switch (type) {
       case 'food': return <div key={type} className={`${style} text-rose-500 bg-red-50 border-red-100`}><Utensils size={ic} /> 식당</div>;
-      case 'cafe': return <div key={type} className={`${style} text-amber-600 bg-amber-50 border-amber-100`}><Coffee size={ic} /> 카페</div>;
+      case 'cafe': return <div key={type} className={`${style} text-amber-900 bg-amber-50 border-amber-200`}><Coffee size={ic} /> 카페</div>;
       case 'tour': return <div key={type} className={`${style} text-purple-600 bg-purple-50 border-purple-100`}><Camera size={ic} /> 관광</div>;
       case 'lodge': return <div key={type} className={`${style} text-indigo-600 bg-indigo-50 border-indigo-100`}><Bed size={ic} /> 숙소</div>;
       case 'stay': return <div key={type} className={`${style} text-violet-600 bg-violet-50 border-violet-100`}><MoonStar size={ic} /> 숙박</div>;

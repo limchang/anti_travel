@@ -10395,11 +10395,27 @@ const App = () => {
                                         className="flex gap-2 select-none"
                                       >
                                         <div
-                                          onClick={() => setTimeControllerTarget(prev => prev?.itemId === p.id && prev?.kind === 'plan-time' ? null : { kind: 'plan-time', dayIdx: dIdx, pIdx, itemId: p.id })}
-                                          className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border py-2.5 cursor-pointer transition-colors ${timeControllerTarget?.itemId === p.id && timeControllerTarget?.kind === 'plan-time' ? 'bg-amber-50 border-amber-300' : 'bg-slate-50/60 border-slate-200 hover:bg-amber-50/50'}`}
+                                          className="flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border py-2.5 transition-colors bg-slate-50/60 border-slate-200 focus-within:bg-amber-50 focus-within:border-amber-300"
                                         >
                                           <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">출발</span>
-                                          <span className={`text-[13px] font-black tabular-nums ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{departTime.split(':')[0]}:{departTime.split(':')[1]}</span>
+                                          <input
+                                            type="time"
+                                            value={departTime}
+                                            onChange={(e) => {
+                                              const val = e.target.value;
+                                              if (!val) return;
+                                              setItinerary(prev => {
+                                                const next = JSON.parse(JSON.stringify(prev));
+                                                const item = next.days[dIdx]?.plan?.[pIdx];
+                                                if (!item) return prev;
+                                                item.time = val;
+                                                item.isTimeFixed = true;
+                                                return next;
+                                              });
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className={`bg-transparent text-center text-[13px] font-black tabular-nums outline-none w-[5rem] ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}
+                                          />
                                         </div>
                                         {nextItem && (
                                           <div className="flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50/60 py-2.5">

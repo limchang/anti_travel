@@ -5503,7 +5503,7 @@ const App = () => {
       case 'view': return <div key={type} className={`${style} text-sky-600 bg-sky-50 border-sky-100`}><Eye size={ic} /> 뷰맛집</div>;
       case 'experience': return <div key={type} className={`${style} text-emerald-600 bg-emerald-50 border-emerald-100`}><Star size={ic} /> 체험</div>;
       case 'souvenir': return <div key={type} className={`${style} text-teal-600 bg-teal-50 border-teal-100`}><Gift size={ic} /> 기념품샵</div>;
-      case 'snack': return <div key={type} className={`${style} text-pink-500 bg-pink-50 border-pink-100`}><Soup size={ic} /> 분식</div>;
+      case 'snack': return <div key={type} className={`${style} text-yellow-700 bg-yellow-50 border-yellow-200`}><Soup size={ic} /> 분식</div>;
       case 'pickup': return <div key={type} className={`${style} text-orange-500 bg-orange-50 border-orange-100`}><Package size={ic} /> 픽업</div>;
       case 'home': return <div key={type} className={`${style} text-amber-700 bg-amber-50 border-amber-100`}><Home size={ic} /> 집</div>;
       case 'quick': return <div key={type} className={`${style} text-yellow-600 bg-yellow-50 border-yellow-200`}><Zap size={ic} /> 퀵등록</div>;

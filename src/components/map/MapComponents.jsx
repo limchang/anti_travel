@@ -84,7 +84,7 @@ export const getMapCategoryColor = (type = 'place') => {
     case 'view': return '#0EA5E9';
     case 'experience': return '#10B981';
     case 'souvenir': return '#14B8A6';
-    case 'snack': return '#EC4899';
+    case 'snack': return '#CA8A04';
     case 'pickup': return '#F97316';
     case 'home': return '#B45309';
     default: return '#64748B';

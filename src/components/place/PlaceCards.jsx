@@ -739,6 +739,9 @@ export const PlaceLibraryCard = ({
         prefixContent={chips}
         onContainerClick={(event) => {
           event.stopPropagation();
+          // prefixContent(카테고리 칩) 클릭 시 지도 열기 방지
+          const target = event.target instanceof Element ? event.target : null;
+          if (target?.closest('[data-no-drag]') || target?.closest('button')) return;
           if (typeof onOpenMap === 'function') onOpenMap(event);
         }}
         actionButton={nameRowActions}

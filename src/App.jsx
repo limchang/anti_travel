@@ -7664,6 +7664,22 @@ const App = () => {
                       >
                         시작/소요/종료 시간 전체 초기화
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!window.confirm(`내 장소 ${(itinerary.places || []).length}개를 모두 비우시겠습니까?\n(휴지통으로 이동됩니다)`)) return;
+                          setItinerary(prev => ({
+                            ...prev,
+                            placeTrash: [...(prev.placeTrash || []), ...(prev.places || [])],
+                            places: [],
+                          }));
+                          setShowPlaceMenu(false);
+                          showInfoToast('내 장소를 모두 휴지통으로 이동했습니다.');
+                        }}
+                        className="w-full rounded-[10px] border border-transparent px-2.5 py-2 text-left text-[11px] font-black text-red-500 transition-colors hover:border-red-100 hover:bg-red-50"
+                      >
+                        내 장소 전체 비우기
+                      </button>
                     </div>
                   )}
                 </div>

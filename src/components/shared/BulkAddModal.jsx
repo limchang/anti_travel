@@ -177,12 +177,34 @@ const BulkAddModal = ({
                                 if (directMatch) {
                                   folderId = directMatch[1];
                                 }
-                                // 2. naver.me 단축 URL → 새 탭에서 열어서 긴 URL 안내
+                                // 2. naver.me 단축 URL → 숨겨진 iframe으로 리다이렉트 URL 추출
                                 if (!folderId && /naver\.me\//.test(url)) {
-                                  window.open(url, '_blank');
-                                  showInfoToast('새 탭에서 열린 페이지의 주소창 URL을 복사해서 붙여넣어주세요!');
-                                  setBulkAddLoading(false);
-                                  return;
+                                  folderId = await new Promise((resolve) => {
+                                    const iframe = document.createElement('iframe');
+                                    iframe.style.display = 'none';
+                                    iframe.src = url;
+                                    let resolved = false;
+                                    const cleanup = () => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); };
+                                    const timer = setTimeout(() => { if (!resolved) { resolved = true; cleanup(); resolve(null); } }, 5000);
+                                    iframe.onload = () => {
+                                      try {
+                                        const iframeUrl = iframe.contentWindow?.location?.href || '';
+                                        const m = iframeUrl.match(/folder\/([a-f0-9]{32})/);
+                                        if (!resolved) { resolved = true; clearTimeout(timer); cleanup(); resolve(m?.[1] || null); }
+                                      } catch {
+                                        // cross-origin 접근 불가 → URL 접근 불가
+                                        if (!resolved) { resolved = true; clearTimeout(timer); cleanup(); resolve(null); }
+                                      }
+                                    };
+                                    document.body.appendChild(iframe);
+                                  });
+                                  if (!folderId) {
+                                    // iframe도 실패 → 안내
+                                    window.open(url, '_blank');
+                                    showInfoToast('단축 URL 변환 실패. 새 탭의 주소창 URL을 복사해서 붙여넣어주세요.');
+                                    setBulkAddLoading(false);
+                                    return;
+                                  }
                                 }
                                 // 3. map.naver.com/p/favorite 또는 sharedPlace 형식
                                 if (!folderId && /map\.naver\.com/.test(url)) {

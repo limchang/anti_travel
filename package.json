@@ -1,7 +1,7 @@
 {
   "name": "anti_planer",
   "private": true,
-  "version": "1.3.436",
+  "version": "1.3.437",
   "type": "module",
   "homepage": "https://limchang.github.io/anti_travel",
   "scripts": {

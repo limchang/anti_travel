@@ -790,6 +790,7 @@ const App = () => {
   const [showPlaceMapModal, setShowPlaceMapModal] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
   const [placeLibraryViewMode, setPlaceLibraryViewMode] = useState(() => safeLocalStorageGet('placeLibraryViewMode', 'single') || 'single');
+  const [showPlacePrice, setShowPlacePrice] = useState(() => safeLocalStorageGet('showPlacePrice', 'true') === 'true');
   const [libraryGeoMap, setLibraryGeoMap] = useState({});
   const [recommendationGeoMap, setRecommendationGeoMap] = useState({});
   const routeRetryCooldownMs = 45000;
@@ -943,6 +944,9 @@ const App = () => {
     }
     safeLocalStorageSet('placeLibraryViewMode', placeLibraryViewMode);
   }, [placeLibraryViewMode]);
+  useEffect(() => {
+    safeLocalStorageSet('showPlacePrice', String(showPlacePrice));
+  }, [showPlacePrice]);
 
   useEffect(() => () => {
     clearMobileLibraryLongPress();
@@ -7630,32 +7634,16 @@ const App = () => {
                   </button>
                   {showPlaceMenu && (
                     <div className="absolute right-0 top-8 z-[9990] min-w-[186px] rounded-[12px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
-                      <div className="mb-1 rounded-[10px] border border-slate-100 bg-slate-50/80 p-1">
-                        <p className="px-1.5 pb-1 text-[9px] font-black tracking-[0.14em] text-slate-400 uppercase">카드 보기</p>
-                        <div className="grid grid-cols-3 gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setPlaceLibraryViewMode('single')}
-                            className={`rounded-[8px] px-1.5 py-2 text-[10px] font-black transition-colors ${placeLibraryViewMode === 'single' ? 'bg-[#3182F6] text-white shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}
-                          >
-                            1열
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPlaceLibraryViewMode('default')}
-                            className={`rounded-[8px] px-1.5 py-2 text-[10px] font-black transition-colors ${placeLibraryViewMode === 'default' ? 'bg-[#3182F6] text-white shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}
-                          >
-                            기본
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPlaceLibraryViewMode('compact')}
-                            className={`rounded-[8px] px-1.5 py-2 text-[10px] font-black transition-colors ${placeLibraryViewMode === 'compact' ? 'bg-[#3182F6] text-white shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}
-                          >
-                            축소 2열
-                          </button>
-                        </div>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setShowPlacePrice(prev => !prev); setShowPlaceMenu(false); }}
+                        className="flex w-full items-center justify-between rounded-[10px] border border-transparent px-2.5 py-2 text-left text-[11px] font-black text-slate-700 transition-colors hover:border-blue-100 hover:bg-blue-50 hover:text-[#3182F6]"
+                      >
+                        <span>가격 표시</span>
+                        <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-black ${showPlacePrice ? 'bg-[#3182F6] text-white' : 'bg-slate-100 text-slate-400'}`}>
+                          {showPlacePrice ? 'ON' : 'OFF'}
+                        </span>
+                      </button>
                       <button
                         type="button"
                         onClick={() => {
@@ -8121,7 +8109,7 @@ const App = () => {
                         + 버튼으로 장소를 추가하고<br />타임라인으로 드래그하세요
                       </p>
                     )}
-                    <div className={`grid gap-2.5 ${placeLibraryViewMode === 'single' ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                    <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))' }}>
                     {visiblePlaces.filter(place => place && (place.id || place.name)).map(place => {
                       const currentTypes = place.types?.length ? place.types : ['place'];
                       const chips = (
@@ -8238,6 +8226,7 @@ const App = () => {
                           businessSummary={bizWarningNow ? `주의 · ${hasBizSummary ? bizSummary : '영업 정보 미설정'}` : (hasBizSummary ? bizSummary : '미설정')}
                           isExpanded={isPlaceExpanded}
                           viewMode={placeLibraryViewMode}
+                          showPrice={showPlacePrice}
                           onJinaSmartFill={async () => {
                             try {
                               showInfoToast('v2: 네이버 지도 검색 + AI 분석 중...');

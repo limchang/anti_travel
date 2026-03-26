@@ -10009,7 +10009,25 @@ const App = () => {
                                 <button type="button" onClick={(e) => { e.stopPropagation(); toggleDurationFix(dIdx, pIdx); }} className={`text-[8px] font-black tracking-widest uppercase transition-colors ${isDurationLocked ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`} title={isDurationLocked ? '소요시간 고정 해제' : '소요시간 고정'}>Duration {isDurationLocked ? '🔒' : ''}</button>
                                 <div className="flex items-center gap-1.5">
                                   <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, -15); }} className="text-slate-300 hover:text-[#3182F6] transition-colors text-[13px] font-black">&lt;</button>
-                                  <span className={`text-[16px] font-black tabular-nums min-w-[4rem] text-center ${isDurationLocked ? 'text-[#3182F6]' : 'text-slate-500'}`}>{fmtDur(p.duration || 0)}</span>
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    defaultValue={String(p.duration || 0)}
+                                    key={`dur-${p.id}-${p.duration}`}
+                                    onBlur={(e) => {
+                                      const v = parseInt(e.target.value, 10);
+                                      if (Number.isFinite(v) && v >= 0) {
+                                        const delta = v - (p.duration || 0);
+                                        if (delta !== 0) updateDuration(dIdx, pIdx, delta);
+                                      }
+                                    }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                                    onFocus={(e) => e.target.select()}
+                                    onClick={(e) => e.stopPropagation()}
+                                    maxLength={4}
+                                    className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[3rem] ${isDurationLocked ? 'text-[#3182F6]' : 'text-slate-500'}`}
+                                  />
+                                  <span className={`text-[11px] font-bold ${isDurationLocked ? 'text-[#3182F6]' : 'text-slate-400'}`}>분</span>
                                   <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, 15); }} className="text-slate-300 hover:text-[#3182F6] transition-colors text-[13px] font-black">&gt;</button>
                                 </div>
                               </div>

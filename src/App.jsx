@@ -8155,14 +8155,6 @@ const App = () => {
                           key={place.id}
                           highlighted={highlightedPlaceId === place.id}
                           buildBusinessQuickEditSegments={buildBusinessQuickEditSegments}
-                          onNameClick={(e) => {
-                            e?.stopPropagation?.();
-                            // 해당 카드로 스크롤
-                            document.getElementById(`library-place-${place.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            // 편집 모달 열기
-                            setEditingPlaceId(place.id);
-                            setEditPlaceDraft(createPlaceEditorDraft(place));
-                          }}
                           cardProps={{
                             id: `library-place-${place.id}`,
                             onClickCapture: () => focusLibraryOnMap(place),

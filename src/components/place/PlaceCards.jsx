@@ -121,8 +121,10 @@ const SharedNameRow = ({
   actionButton = null,
   readOnly = false,
   onContainerClick,
+  prefixContent = null,
 }) => (
-  <div className="w-full flex items-center gap-2 text-slate-500 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm transition-all focus-within:border-[#3182F6]/50" onClick={onContainerClick}>
+  <div className="w-full flex items-center gap-1.5 text-slate-500 bg-white px-2 py-1.5 rounded-lg border border-slate-200 shadow-sm transition-all focus-within:border-[#3182F6]/50" onClick={onContainerClick}>
+    {prefixContent}
     <input
       value={value}
       onChange={onChange}
@@ -668,7 +670,6 @@ export const PlaceLibraryCard = ({
   statusChip = null,
   businessSummary = '미설정',
   isExpanded = false,
-  onNameClick = null,
   onEdit,
   onOpenMap,
   onBusinessEdit,
@@ -689,16 +690,6 @@ export const PlaceLibraryCard = ({
   const hasMemo = Boolean(String(place.memo || '').trim());
   const nameRowActions = (
     <div className="flex items-center gap-1">
-      {isCompact && (
-        <button
-          type="button"
-          onClick={onOpenMap}
-          className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-          title="네이버 지도에서 장소 검색"
-        >
-          <MapIcon size={9} />
-        </button>
-      )}
       {onJinaSmartFill && (
         <button
           type="button"
@@ -740,41 +731,33 @@ export const PlaceLibraryCard = ({
       </div>
     )}
     <div className="p-4 flex flex-col gap-2.5">
-      <div className="flex items-center gap-1.5 flex-wrap pr-12" data-no-drag="true">
-        {chips}
-        {baseDistance != null && (
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-200 bg-blue-50 text-blue-600">
-            {baseDistance}km
-          </span>
-        )}
-        {statusChip}
-      </div>
       <SharedNameRow
         value={place.name || ''}
         readOnly
         placeholder="장소 이름"
+        prefixContent={chips}
         onContainerClick={(event) => {
           event.stopPropagation();
-          if (typeof onNameClick === 'function') onNameClick(event);
+          if (typeof onOpenMap === 'function') onOpenMap(event);
         }}
         actionButton={nameRowActions}
       />
+      {(baseDistance != null || statusChip) && (
+        <div className="flex items-center gap-1.5 flex-wrap pr-12" data-no-drag="true">
+          {baseDistance != null && (
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-200 bg-blue-50 text-blue-600">
+              {baseDistance}km
+            </span>
+          )}
+          {statusChip}
+        </div>
+      )}
       {!isCompact && (
         <SharedAddressRow
           value={place.address || place.receipt?.address || ''}
           onChange={() => {}}
           onContainerClick={(event) => event.stopPropagation()}
           leading={<MapPin size={11} className="text-[#3182F6] shrink-0" />}
-          actions={(
-            <button
-              type="button"
-              onClick={onOpenMap}
-              className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-              title="네이버 지도에서 장소 검색"
-            >
-              <MapIcon size={9} />
-            </button>
-          )}
         />
       )}
       <SharedBusinessRow

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Plus, Sparkles } from 'lucide-react';
+import { X, Plus, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { TAG_OPTIONS, ADDRESS_REGEX, normalizeTagOrder, bulkKwToType } from '../../utils/constants.js';
 import { normalizeLibraryPlace } from '../../utils/helpers.js';
 import { parseBulkPlaceText } from '../../utils/parse.js';
@@ -377,7 +377,76 @@ const BulkAddModal = ({
                                 </div>
                               )}
                               {item.address && <p className="text-[10px] font-bold text-slate-400 mt-0.5 truncate">{item.address}</p>}
-                              <div className="flex flex-wrap gap-1 mt-1.5" onClick={(e) => e.stopPropagation()}>
+                              {item._expanded && (
+                                <div className="mt-1.5 space-y-1.5 p-2 rounded-lg border border-slate-100 bg-white" onClick={(e) => e.stopPropagation()}>
+                                  <div>
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">주소</label>
+                                    <input
+                                      value={item.address || ''}
+                                      onChange={(e) => setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, address: e.target.value }))}
+                                      className="w-full mt-0.5 px-2 py-1 text-[10px] font-bold text-slate-700 border border-slate-200 rounded-md outline-none focus:border-[#3182F6]"
+                                      placeholder="주소 입력"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">메모</label>
+                                    <textarea
+                                      value={item.memo || ''}
+                                      onChange={(e) => setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, memo: e.target.value }))}
+                                      rows={2}
+                                      className="w-full mt-0.5 px-2 py-1 text-[10px] font-bold text-slate-700 border border-slate-200 rounded-md outline-none focus:border-[#3182F6] resize-none"
+                                      placeholder="메모 입력"
+                                    />
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    <div>
+                                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">오픈</label>
+                                      <input
+                                        type="time"
+                                        value={item.business?.open || ''}
+                                        onChange={(e) => setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, business: { ...(p.business || {}), open: e.target.value } }))}
+                                        className="w-full mt-0.5 px-2 py-1 text-[10px] font-bold text-slate-700 border border-slate-200 rounded-md outline-none focus:border-[#3182F6]"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">마감</label>
+                                      <input
+                                        type="time"
+                                        value={item.business?.close || ''}
+                                        onChange={(e) => setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, business: { ...(p.business || {}), close: e.target.value } }))}
+                                        className="w-full mt-0.5 px-2 py-1 text-[10px] font-bold text-slate-700 border border-slate-200 rounded-md outline-none focus:border-[#3182F6]"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    <div>
+                                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">라스트오더</label>
+                                      <input
+                                        type="time"
+                                        value={item.business?.lastOrder || ''}
+                                        onChange={(e) => setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, business: { ...(p.business || {}), lastOrder: e.target.value } }))}
+                                        className="w-full mt-0.5 px-2 py-1 text-[10px] font-bold text-slate-700 border border-slate-200 rounded-md outline-none focus:border-[#3182F6]"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">휴무일</label>
+                                      <input
+                                        value={(item.business?.closedDays || []).join(', ')}
+                                        onChange={(e) => setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, business: { ...(p.business || {}), closedDays: e.target.value.split(',').map(s => s.trim()).filter(Boolean) } }))}
+                                        className="w-full mt-0.5 px-2 py-1 text-[10px] font-bold text-slate-700 border border-slate-200 rounded-md outline-none focus:border-[#3182F6]"
+                                        placeholder="월, 화 ..."
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              <div className="flex flex-wrap gap-1 mt-1.5 items-center" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  type="button"
+                                  onClick={() => setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, _expanded: !p._expanded }))}
+                                  className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black border transition-colors ${item._expanded ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+                                  title="상세 수정"
+                                >{item._expanded ? <ChevronUp size={9} className="inline" /> : <ChevronDown size={9} className="inline" />} 수정</button>
                                 {TAG_OPTIONS.filter(t => !['place', 'new', 'revisit', 'quick', 'lodge', 'ship', 'rest', 'openrun', 'view', 'home'].includes(t.value)).map(t => {
                                   const safeTypes = Array.isArray(item.types) ? item.types : [];
                                   const active = safeTypes.includes(t.value);
@@ -424,7 +493,7 @@ const BulkAddModal = ({
                               setItinerary(prev => ({ ...prev, placeTrash: [...(prev.placeTrash || []), trashPlace] }));
                               dupCount++;
                             } else {
-                              addPlace({ name: item.name, types: item.types, address: item.address, memo: '', menus: item.menus || [], business: item.business || {} }, { unselectedMenus: true });
+                              addPlace({ name: item.name, types: item.types, address: item.address, memo: item.memo || '', menus: item.menus || [], business: item.business || {} }, { unselectedMenus: true });
                               existingNames.add(normalizedName);
                               addedCount++;
                             }

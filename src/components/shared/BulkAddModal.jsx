@@ -159,17 +159,8 @@ const BulkAddModal = ({
                           <input
                             id="naver-share-link-input"
                             type="text"
-                            placeholder="map.naver.com/.../folder/... 형식의 긴 URL 붙여넣기"
+                            placeholder="naver.me/... 또는 map.naver.com/.../folder/... 링크"
                             className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-emerald-400"
-                            onPaste={(e) => {
-                              const text = e.clipboardData.getData('text').trim();
-                              if (/naver\.me\//.test(text)) {
-                                e.preventDefault();
-                                e.target.value = '';
-                                window.open(text, '_blank');
-                                showInfoToast('단축 URL → 새 탭이 열렸습니다. 주소창의 긴 URL을 복사해서 다시 붙여넣어주세요!');
-                              }
-                            }}
                           />
                           <button
                             type="button"
@@ -186,11 +177,21 @@ const BulkAddModal = ({
                                 if (directMatch) {
                                   folderId = directMatch[1];
                                 }
-                                // 2. naver.me 단축 URL → 긴 URL 변환 안내
+                                // 2. naver.me 단축 URL → Cloud Function으로 리다이렉트 URL 추출
                                 if (!folderId && /naver\.me\//.test(url)) {
-                                  setBulkAddLoading(false);
-                                  showInfoToast('단축 URL은 브라우저 보안 정책으로 직접 변환이 불가합니다.');
-                                  return;
+                                  try {
+                                    const res = await fetch(`https://asia-northeast3-anti-planer.cloudfunctions.net/resolveRedirect?url=${encodeURIComponent(url)}`);
+                                    if (res.ok) {
+                                      const data = await res.json();
+                                      const m = (data.url || '').match(/folder\/([a-f0-9]{32})/);
+                                      if (m) folderId = m[1];
+                                    }
+                                  } catch {}
+                                  if (!folderId) {
+                                    setBulkAddLoading(false);
+                                    showInfoToast('단축 URL 변환 실패. 긴 URL을 직접 붙여넣어주세요.');
+                                    return;
+                                  }
                                 }
                                 // 3. map.naver.com/p/favorite 또는 sharedPlace 형식
                                 if (!folderId && /map\.naver\.com/.test(url)) {

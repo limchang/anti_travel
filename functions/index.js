@@ -504,3 +504,32 @@ exports.routeVerify = onRequest({ invoker: 'public' }, async (req, res) => {
     return res.status(500).json({ error: 'route verify failed', details: error?.message || 'unknown error' });
   }
 });
+
+// ── Resolve Redirect (단축 URL → 긴 URL) ──────────────────────────────────
+exports.resolveRedirect = onRequest({ cors: true }, async (req, res) => {
+  const url = String(req.query?.url || req.body?.url || '').trim();
+  if (!url) return res.status(400).json({ error: 'url parameter required' });
+
+  try {
+    const https = require('https');
+    const http = require('http');
+    const mod = url.startsWith('https') ? https : http;
+
+    const finalUrl = await new Promise((resolve, reject) => {
+      const request = mod.request(url, { method: 'HEAD', timeout: 5000 }, (response) => {
+        if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+          resolve(response.headers.location);
+        } else {
+          resolve(url);
+        }
+      });
+      request.on('error', reject);
+      request.on('timeout', () => { request.destroy(); reject(new Error('timeout')); });
+      request.end();
+    });
+
+    return res.json({ url: finalUrl });
+  } catch (error) {
+    return res.status(500).json({ error: 'redirect resolve failed', details: error?.message });
+  }
+});

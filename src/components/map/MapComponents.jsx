@@ -243,7 +243,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
       const cellSvg = isOverflow ? '' : getMapCategoryEmoji(types[i] || categoryType || categoryLabel);
       const cellContent = isOverflow
         ? `<span style="font-size:${isFocused?'11px':'9px'};font-weight:900;color:#fff;line-height:1;">+${clusterCount - 2}</span>`
-        : `<svg width="${clusterIconSz}" height="${clusterIconSz}" viewBox="0 0 24 24" fill="none">${cellSvg}</svg>`;
+        : `<svg width="${clusterIconSz}" height="${clusterIconSz}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(0 0 3px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.4));">${cellSvg}</svg>`;
       const br = `border-radius:${isFirst ? `${cRadius}px 0 0 ${cRadius}px` : isLast ? `0 ${cRadius}px ${cRadius}px 0` : '0'};`;
       return `<div data-cluster-idx="${i}" data-cluster-overflow="${isOverflow}" style="width:${cellW}px;height:${h}px;${br}background:${color};display:flex;align-items:center;justify-content:center;cursor:pointer;${i > 0 ? `border-left:${dividerW}px solid rgba(255,255,255,0.5);` : ''}">
         ${cellContent}
@@ -280,7 +280,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
           box-shadow:0 0 0 1.5px ${categoryColor};
           display:flex;align-items:center;justify-content:center;
         ">
-          <svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none">${svgIcon}</svg>
+          <svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(0 0 3px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.4));">${svgIcon}</svg>
         </div>
         <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${categoryColor};margin-top:-1px;"></div>
       </div>

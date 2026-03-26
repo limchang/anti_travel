@@ -9980,7 +9980,7 @@ const App = () => {
                             >
                               {/* START */}
                               <div className="flex flex-col items-center gap-0.5 flex-1">
-                                <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">Start</span>
+                                <button type="button" onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`text-[8px] font-black tracking-widest uppercase transition-colors ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`} title={p.isTimeFixed ? '시작 시간 고정 해제' : '시작 시간 고정'}>Start {p.isTimeFixed ? '🔒' : ''}</button>
                                 <input
                                   type="text"
                                   inputMode="numeric"
@@ -10006,17 +10006,38 @@ const App = () => {
                               </div>
                               {/* DURATION */}
                               <div className="flex flex-col items-center gap-0.5 flex-1">
-                                <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">Duration</span>
-                                <div className="flex items-center gap-2">
-                                  <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, -15); }} className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors text-[11px] font-black">&lt;</button>
-                                  <span className="text-[13px] font-black text-slate-500 min-w-[3rem] text-center">{fmtDur(p.duration || 0)}</span>
-                                  <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, 15); }} className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors text-[11px] font-black">&gt;</button>
+                                <button type="button" onClick={(e) => { e.stopPropagation(); toggleDurationFix(dIdx, pIdx); }} className={`text-[8px] font-black tracking-widest uppercase transition-colors ${isDurationLocked ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`} title={isDurationLocked ? '소요시간 고정 해제' : '소요시간 고정'}>Duration {isDurationLocked ? '🔒' : ''}</button>
+                                <div className="flex items-center gap-1.5">
+                                  <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, -15); }} className="text-slate-300 hover:text-[#3182F6] transition-colors text-[13px] font-black">&lt;</button>
+                                  <span className={`text-[16px] font-black tabular-nums min-w-[4rem] text-center ${isDurationLocked ? 'text-[#3182F6]' : 'text-slate-500'}`}>{fmtDur(p.duration || 0)}</span>
+                                  <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, 15); }} className="text-slate-300 hover:text-[#3182F6] transition-colors text-[13px] font-black">&gt;</button>
                                 </div>
                               </div>
                               {/* END */}
                               <div className="flex flex-col items-center gap-0.5 flex-1">
-                                <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">End</span>
-                                <span className="text-[16px] font-black tabular-nums text-slate-800">{endTime}</span>
+                                <button type="button" onClick={(e) => { e.stopPropagation(); toggleEndTimeFix(dIdx, pIdx); }} className={`text-[8px] font-black tracking-widest uppercase transition-colors ${isEndTimeFixed ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`} title={isEndTimeFixed ? '종료 시간 고정 해제' : '종료 시간 고정'}>End {isEndTimeFixed ? '🔒' : ''}</button>
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  defaultValue={endTime}
+                                  key={`end-${p.id}-${endTime}`}
+                                  onBlur={(e) => {
+                                    let raw = e.target.value.replace(/[^0-9:]/g, '');
+                                    if (/^\d{3,4}$/.test(raw)) { const pd = raw.padStart(4, '0'); raw = pd.slice(0, 2) + ':' + pd.slice(2); }
+                                    const m = raw.match(/^(\d{1,2}):(\d{2})$/);
+                                    if (m) {
+                                      const h = Math.min(24, Math.max(0, parseInt(m[1], 10)));
+                                      const min = h === 24 ? 0 : Math.min(59, Math.max(0, parseInt(m[2], 10)));
+                                      setPlanEndTimeValue(dIdx, pIdx, `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
+                                    }
+                                  }}
+                                  onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                                  onFocus={(e) => e.target.select()}
+                                  onClick={(e) => e.stopPropagation()}
+                                  placeholder="HH:MM"
+                                  maxLength={5}
+                                  className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[5rem] ${isEndTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}
+                                />
                               </div>
                             </div>
                             );

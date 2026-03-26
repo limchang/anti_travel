@@ -219,33 +219,46 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
   const radius = isFocused ? '10px' : '8px';
 
   if (isCluster) {
-    // 카드 3장 스택 디자인: 뒤 → 앞 순서로 겹쳐 쌓기
-    const csz = isFocused ? 38 : 30;
-    const stackN = Math.min(clusterColors.length || 0, 3);
-    const c0 = clusterColors[2] || '#94A3B8'; // 가장 뒤
-    const c1 = clusterColors[1] || '#64748B'; // 중간
-    const c2 = clusterColors[0] || categoryColor || '#1E40AF'; // 맨 앞
-    const offset = isFocused ? 5 : 4;
-    const emojiLabel = getMapCategoryEmoji(categoryType || categoryLabel);
-    const totalW = csz + offset * 2;
-    const totalH = csz + offset * 2;
+    // 타임라인 그룹 마커와 동일한 가로 나열 + 꼬리 디자인
+    const n = Math.min(clusterCount, 5);
+    const cellW = isFocused ? 32 : 26;
+    const h = isFocused ? 36 : 28;
+    const dividerW = 1;
+    const totalW = cellW * n + dividerW * (n - 1);
+    const cRadius = isFocused ? 10 : 8;
+    const tailH = isFocused ? 7 : 6;
+    const totalH = h + tailH;
+    const colors = clusterColors.length ? clusterColors : [categoryColor];
+    const cells = Array.from({ length: n }, (_, i) => {
+      const color = colors[i] || colors[colors.length - 1] || categoryColor;
+      const emoji = getMapCategoryEmoji(categoryType || categoryLabel);
+      const isFirst = i === 0;
+      const isLast = i === n - 1;
+      const br = `border-radius:${isFirst ? `${cRadius}px 0 0 ${cRadius}px` : isLast ? `0 ${cRadius}px ${cRadius}px 0` : '0'};`;
+      return `<div style="width:${cellW}px;height:${h}px;${br}background:${color};display:flex;align-items:center;justify-content:center;cursor:pointer;${i > 0 ? `border-left:${dividerW}px solid rgba(255,255,255,0.5);` : ''}">
+        <span style="font-size:${isFocused?'15px':'12px'};line-height:1;">${i === 0 ? emoji : (i === n - 1 && clusterCount > n ? `+${clusterCount - n + 1}` : emoji)}</span>
+      </div>`;
+    }).join('');
+    const tailColor = colors[Math.floor(n / 2)] || categoryColor;
     return L.divIcon({
       className: '',
       html: `
-        <div style="position:relative;width:${totalW}px;height:${totalH}px;cursor:pointer;filter:${shadow};">
-          ${stackN >= 3 ? `<div style="position:absolute;left:${offset*2}px;top:${offset*2}px;width:${csz}px;height:${csz}px;border-radius:${radius};background:${c0};border:2px solid rgba(255,255,255,0.7);"></div>` : ''}
-          ${stackN >= 2 ? `<div style="position:absolute;left:${offset}px;top:${offset}px;width:${csz}px;height:${csz}px;border-radius:${radius};background:${c1};border:2px solid rgba(255,255,255,0.8);"></div>` : ''}
-          <div style="position:absolute;left:0;top:0;width:${csz}px;height:${csz}px;border-radius:${radius};background:${c2};border:2px solid rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;">
-            <span style="font-size:${isFocused?'16px':'13px'};line-height:1;">${emojiLabel}</span>
+        <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
+          <div style="display:flex;border-radius:${cRadius}px;border:${isFocused?'2.5px':'2px'} solid rgba(255,255,255,0.9);overflow:hidden;box-shadow:0 0 0 1.5px ${tailColor};">
+            ${cells}
           </div>
+          <div style="width:0;height:0;border-left:${isFocused?6:5}px solid transparent;border-right:${isFocused?6:5}px solid transparent;border-top:${tailH}px solid ${tailColor};margin-top:-1px;"></div>
         </div>
       `,
       iconSize: [totalW, totalH],
-      iconAnchor: [totalW / 2, totalH / 2],
+      iconAnchor: [totalW / 2, totalH],
     });
   }
 
   const emojiLabel = getMapCategoryEmoji(categoryType || categoryLabel);
+  const tailW = isFocused ? 6 : 5;
+  const tailH = isFocused ? 7 : 6;
+  const totalH = sz + tailH;
   return L.divIcon({
     className: '',
     html: `
@@ -253,14 +266,16 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
         <div style="
           width:${sz}px;height:${sz}px;border-radius:${radius};
           background:${categoryColor};border:${borderStyle};
+          box-shadow:0 0 0 1.5px ${categoryColor};
           display:flex;align-items:center;justify-content:center;
         ">
           <span style="font-size:${isFocused?'17px':'14px'};line-height:1;">${emojiLabel}</span>
         </div>
+        <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${categoryColor};margin-top:-1px;"></div>
       </div>
     `,
-    iconSize: [sz, sz],
-    iconAnchor: [sz / 2, sz / 2],
+    iconSize: [sz, totalH],
+    iconAnchor: [sz / 2, totalH],
   });
 };
 

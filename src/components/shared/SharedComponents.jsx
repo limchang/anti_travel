@@ -101,7 +101,7 @@ export const SharedNameRow = ({
   onContainerClick,
   prefixContent = null,
 }) => (
-  <div className="w-full flex items-center gap-1.5 text-slate-500 bg-white px-2 py-1.5 rounded-lg border border-slate-200 shadow-sm transition-all focus-within:border-[#3182F6]/50" onClick={onContainerClick}>
+  <div className="w-full flex items-center gap-2 text-slate-500 px-1 py-0.5 transition-all" onClick={onContainerClick}>
     {prefixContent}
     <input
       value={value}
@@ -111,7 +111,7 @@ export const SharedNameRow = ({
       onPaste={onPaste}
       autoFocus={autoFocus}
       readOnly={readOnly}
-      className="flex-1 bg-transparent text-[13px] font-black text-slate-800 truncate leading-tight focus:outline-none min-w-0"
+      className="flex-1 bg-transparent text-[15px] font-black text-slate-800 truncate leading-tight focus:outline-none min-w-0"
       placeholder={placeholder}
     />
     {actionButton ? <div className={ACTION_SLOT_CLASS}>{actionButton}</div> : null}
@@ -125,13 +125,13 @@ export const SharedAddressRow = ({
   actions = null,
   onContainerClick,
 }) => (
-  <div className="flex items-center gap-2 text-slate-500 bg-white w-full px-2 py-1 rounded-lg border border-slate-200 shadow-sm" onClick={onContainerClick}>
+  <div className="flex items-center gap-2 text-slate-500 w-full px-1 py-0.5" onClick={onContainerClick}>
     {leading}
     <input
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-bold text-slate-600 placeholder:text-slate-300"
+      className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-bold text-slate-500 placeholder:text-slate-300"
     />
     {actions ? <div className={ACTION_SLOT_CLASS}>{actions}</div> : null}
   </div>
@@ -146,7 +146,7 @@ export const SharedBusinessRow = ({
   quickEditSegments = null,
   onQuickEdit = null,
 }) => (
-  <div className="w-full bg-slate-50/60 border border-slate-200 rounded-lg py-1.5 px-2.5" onClick={onContainerClick}>
+  <div className="w-full py-0.5 px-1" onClick={onContainerClick}>
     <div className="w-full flex items-center gap-2">
       <button
         type="button"
@@ -215,7 +215,7 @@ export const SharedMemoRow = ({ value, onChange, placeholder = '메모를 입력
 
   if (hasList && !editing) {
     return (
-      <div onClick={onContainerClick} onDoubleClick={!readOnly ? (e) => { e.stopPropagation(); setEditing(true); } : undefined} className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-1.5" title={!readOnly ? '더블클릭으로 텍스트 편집' : undefined}>
+      <div onClick={onContainerClick} onDoubleClick={!readOnly ? (e) => { e.stopPropagation(); setEditing(true); } : undefined} className="w-full bg-slate-50 rounded-lg px-3 py-2" title={!readOnly ? '더블클릭으로 텍스트 편집' : undefined}>
         <div className="flex flex-col gap-0.5">
           {lines.map((line) =>
             line.isCheckItem ? (
@@ -251,7 +251,7 @@ export const SharedMemoRow = ({ value, onChange, placeholder = '메모를 입력
         readOnly={readOnly}
         autoFocus={editing}
         onBlur={() => setEditing(false)}
-        className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-1.5 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
+        className="w-full bg-slate-50 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-500 outline-none placeholder:text-slate-400 focus:outline-none focus:bg-white transition-all"
         placeholder={placeholder}
       />
     </div>
@@ -302,18 +302,14 @@ export const MenuPriceInput = ({ value = 0, onCommit, className = '', onClick = 
 export const SharedTotalFooter = ({ expanded, onToggle, total }) => (
   <div
     onClick={onToggle}
-    className={`mt-auto px-5 py-3.5 flex items-center justify-between cursor-pointer transition-all ${expanded ? 'bg-blue-50/50 border-t border-blue-100/60' : 'bg-[#FAFBFC] hover:bg-slate-50/80'}`}
+    className="mt-auto px-5 py-3 flex items-center justify-between cursor-pointer transition-all bg-slate-50/50 hover:bg-slate-50"
   >
-    <div className="flex flex-col gap-0.5 text-left">
-      <span className="text-[10px] text-slate-400 font-extrabold tracking-[0.15em] flex items-center gap-1.5">
-        TOTAL <ChevronDown size={12} className={`transition-transform duration-300 ${expanded ? 'rotate-180 text-[#3182F6]' : ''}`} />
-      </span>
-    </div>
-    <div className="flex items-center gap-2">
-      <span className={`text-[21px] font-black tabular-nums transition-colors ${expanded ? 'text-[#3182F6]' : 'text-slate-800'}`}>
-        ₩{Number(total || 0).toLocaleString()}
-      </span>
-    </div>
+    <span className="text-[10px] text-slate-400 font-black tracking-[0.15em] uppercase flex items-center gap-1.5">
+      Total <ChevronDown size={10} className={`transition-transform duration-300 ${expanded ? 'rotate-180 text-[#3182F6]' : ''}`} />
+    </span>
+    <span className={`text-[16px] font-black tabular-nums transition-colors ${expanded ? 'text-[#3182F6]' : 'text-[#3182F6]'}`}>
+      ₩{Number(total || 0).toLocaleString()}
+    </span>
   </div>
 );
 export const createPlaceEditorDraft = (place = {}, overrides = {}) => {

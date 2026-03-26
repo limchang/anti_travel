@@ -123,7 +123,7 @@ const SharedNameRow = ({
   onContainerClick,
   prefixContent = null,
 }) => (
-  <div className="w-full flex items-center gap-1.5 text-slate-500 bg-white px-2 py-1.5 rounded-lg border border-slate-200 shadow-sm transition-all focus-within:border-[#3182F6]/50" onClick={onContainerClick}>
+  <div className="w-full flex items-center gap-2 text-slate-500 px-1 py-0.5 transition-all" onClick={onContainerClick}>
     {prefixContent}
     <input
       value={value}
@@ -133,7 +133,7 @@ const SharedNameRow = ({
       onPaste={onPaste}
       autoFocus={autoFocus}
       readOnly={readOnly}
-      className="flex-1 bg-transparent text-[13px] font-black text-slate-800 truncate leading-tight focus:outline-none min-w-0"
+      className="flex-1 bg-transparent text-[15px] font-black text-slate-800 truncate leading-tight focus:outline-none min-w-0"
       placeholder={placeholder}
     />
     {actionButton ? <div className={ACTION_SLOT_CLASS}>{actionButton}</div> : null}
@@ -148,13 +148,13 @@ const SharedAddressRow = ({
   actions = null,
   onContainerClick,
 }) => (
-  <div className="flex items-center gap-2 text-slate-500 bg-white w-full px-2 py-1 rounded-lg border border-slate-200 shadow-sm" onClick={onContainerClick}>
+  <div className="flex items-center gap-2 text-slate-500 w-full px-1 py-0.5" onClick={onContainerClick}>
     {leading}
     <input
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-bold text-slate-600 placeholder:text-slate-300"
+      className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-bold text-slate-500 placeholder:text-slate-300"
     />
     {actions ? <div className={ACTION_SLOT_CLASS}>{actions}</div> : null}
   </div>
@@ -170,7 +170,7 @@ const SharedBusinessRow = ({
   quickEditSegments = null,
   onQuickEdit = null,
 }) => (
-  <div className="w-full bg-slate-50/60 border border-slate-200 rounded-lg py-1.5 px-2.5" onClick={onContainerClick}>
+  <div className="w-full py-0.5 px-1" onClick={onContainerClick}>
     <div className="w-full flex items-center gap-2">
       <div role="button" tabIndex={0}
         onClick={(event) => {
@@ -215,7 +215,7 @@ const SharedMemoRow = ({ value, onChange, placeholder = '메모를 입력하세�
       value={value}
       onChange={onChange}
       readOnly={readOnly}
-      className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-1.5 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
+      className="w-full bg-slate-50 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-500 outline-none placeholder:text-slate-400 focus:outline-none focus:bg-white transition-all"
       placeholder={placeholder}
     />
   </div>
@@ -263,18 +263,14 @@ const MenuPriceInput = ({ value = 0, onCommit, className = '', onClick = null })
 const SharedTotalFooter = ({ expanded, onToggle, total }) => (
   <div
     onClick={onToggle}
-    className={`mt-auto px-5 py-3.5 flex items-center justify-between cursor-pointer transition-all ${expanded ? 'bg-blue-50/50 border-t border-blue-100/60' : 'bg-[#FAFBFC] hover:bg-slate-50/80'}`}
+    className="mt-auto px-5 py-3 flex items-center justify-between cursor-pointer transition-all bg-slate-50/50 hover:bg-slate-50"
   >
-    <div className="flex flex-col gap-0.5 text-left">
-      <span className="text-[10px] text-slate-400 font-extrabold tracking-[0.15em] flex items-center gap-1.5">
-        TOTAL <ChevronDown size={12} className={`transition-transform duration-300 ${expanded ? 'rotate-180 text-[#3182F6]' : ''}`} />
-      </span>
-    </div>
-    <div className="flex items-center gap-2">
-      <span className={`text-[21px] font-black tabular-nums transition-colors ${expanded ? 'text-[#3182F6]' : 'text-slate-800'}`}>
-        ₩{Number(total || 0).toLocaleString()}
-      </span>
-    </div>
+    <span className="text-[10px] text-slate-400 font-black tracking-[0.15em] uppercase flex items-center gap-1.5">
+      Total <ChevronDown size={10} className={`transition-transform duration-300 ${expanded ? 'rotate-180 text-[#3182F6]' : ''}`} />
+    </span>
+    <span className={`text-[16px] font-black tabular-nums text-[#3182F6]`}>
+      ₩{Number(total || 0).toLocaleString()}
+    </span>
   </div>
 );
 
@@ -721,7 +717,7 @@ export const PlaceLibraryCard = ({
   <div
     {...cardProps}
     data-map-focus-card="true"
-    className={`w-full group relative overflow-hidden rounded-[24px] border bg-white shadow-[0_10px_28px_-14px_rgba(49,130,246,0.18)] ring-1 transition-all duration-300 ${highlighted ? 'border-[#3182F6] ring-[#3182F6]/30 shadow-[0_0_0_3px_rgba(49,130,246,0.18)]' : 'border-[#3182F6]/15 ring-[#3182F6]/6'} ${cardProps.className || ''}`.trim()}
+    className={`w-full group relative overflow-hidden rounded-[24px] border bg-white shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)] transition-all duration-300 ${highlighted ? 'border-[#3182F6] shadow-[0_0_0_3px_rgba(49,130,246,0.18)]' : 'border-slate-200 hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)] hover:border-slate-300'} ${cardProps.className || ''}`.trim()}
   >
     {jinaLoading && (
       <div className="px-4 pt-3 pb-1">
@@ -731,7 +727,7 @@ export const PlaceLibraryCard = ({
         </div>
       </div>
     )}
-    <div className="p-4 flex flex-col gap-2.5">
+    <div className="p-5 flex flex-col gap-2.5">
       <SharedNameRow
         value={place.name || ''}
         readOnly

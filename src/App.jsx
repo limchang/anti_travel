@@ -10399,21 +10399,50 @@ const App = () => {
                                         >
                                           <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">출발</span>
                                           <input
-                                            type="time"
+                                            type="text"
+                                            inputMode="numeric"
                                             value={departTime}
                                             onChange={(e) => {
-                                              const val = e.target.value;
-                                              if (!val) return;
+                                              let raw = e.target.value.replace(/[^0-9:]/g, '');
+                                              // 자동 콜론: 4자리 숫자이면 HH:MM으로 변환
+                                              if (/^\d{3,4}$/.test(raw)) {
+                                                const padded = raw.padStart(4, '0');
+                                                raw = padded.slice(0, 2) + ':' + padded.slice(2);
+                                              }
                                               setItinerary(prev => {
                                                 const next = JSON.parse(JSON.stringify(prev));
                                                 const item = next.days[dIdx]?.plan?.[pIdx];
                                                 if (!item) return prev;
-                                                item.time = val;
+                                                item.time = raw;
                                                 item.isTimeFixed = true;
                                                 return next;
                                               });
                                             }}
+                                            onBlur={(e) => {
+                                              // 블러 시 HH:MM 포맷 정규화 (00:00~24:00)
+                                              let raw = e.target.value.replace(/[^0-9:]/g, '');
+                                              if (/^\d{3,4}$/.test(raw)) {
+                                                const padded = raw.padStart(4, '0');
+                                                raw = padded.slice(0, 2) + ':' + padded.slice(2);
+                                              }
+                                              const m = raw.match(/^(\d{1,2}):(\d{2})$/);
+                                              if (m) {
+                                                const h = Math.min(24, Math.max(0, parseInt(m[1], 10)));
+                                                const min = h === 24 ? 0 : Math.min(59, Math.max(0, parseInt(m[2], 10)));
+                                                const normalized = `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+                                                setItinerary(prev => {
+                                                  const next = JSON.parse(JSON.stringify(prev));
+                                                  const item = next.days[dIdx]?.plan?.[pIdx];
+                                                  if (!item) return prev;
+                                                  item.time = normalized;
+                                                  return next;
+                                                });
+                                              }
+                                            }}
+                                            onFocus={(e) => e.target.select()}
                                             onClick={(e) => e.stopPropagation()}
+                                            placeholder="HH:MM"
+                                            maxLength={5}
                                             className={`bg-transparent text-center text-[13px] font-black tabular-nums outline-none w-[5rem] ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}
                                           />
                                         </div>

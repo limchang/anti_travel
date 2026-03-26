@@ -7670,11 +7670,13 @@ const App = () => {
                           const allPlaces = itinerary.places || [];
                           const activeLodgeIds = new Set();
                           (itinerary.days || []).forEach(d => (d.plan || []).forEach(p => {
-                            if (p._parentPlaceId) activeLodgeIds.add(p._parentPlaceId);
+                            if (p.sourceLodgeId) activeLodgeIds.add(p.sourceLodgeId);
                             if (isLodgeStay(p.types)) activeLodgeIds.add(p.id);
                           }));
-                          const toRemove = allPlaces.filter(p => !activeLodgeIds.has(p.id));
-                          const kept = allPlaces.filter(p => activeLodgeIds.has(p.id));
+                          // 타임라인에서 사용 중이거나, 숙소 타입이면서 세그먼트가 있는 장소 보호
+                          const isProtected = (p) => activeLodgeIds.has(p.id) || (isLodgeStay(p.types) && activeLodgeIds.has(p.id));
+                          const toRemove = allPlaces.filter(p => !isProtected(p));
+                          const kept = allPlaces.filter(p => isProtected(p));
                           const msg = kept.length
                             ? `내 장소 ${toRemove.length}개를 비우시겠습니까?\n(타임라인 숙소 ${kept.length}개는 유지, 나머지는 휴지통)`
                             : `내 장소 ${toRemove.length}개를 모두 비우시겠습니까?\n(휴지통으로 이동됩니다)`;

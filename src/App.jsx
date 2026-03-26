@@ -9971,36 +9971,61 @@ const App = () => {
                         {/* planVariantPicker 팝업은 overflow-hidden 카드 밖 루트 레벨에서 렌더링 */}
                         <div className="relative flex flex-col border-b border-slate-100 border-dashed">
 
-                          {!isShip && !isLodge && !isHome && (
+                          {!isShip && !isLodge && !isHome && (() => {
+                            const startTime = p.time || '--:--';
+                            const endMins = timeToMinutes(startTime) + (Number(p.duration) || 0);
+                            const endTime = `${String(Math.floor(endMins / 60) % 24).padStart(2, '0')}:${String(endMins % 60).padStart(2, '0')}`;
+                            return (
                             <div
                               data-no-drag="true"
-                              className={`flex flex-col group/tower transition-all duration-300 ease-out ${isTimeCellExpanded ? 'overflow-visible z-20 py-2 px-2 sm:px-2.5' : 'w-full border-b border-slate-100 overflow-hidden'} ${!isTimeCellExpanded ? 'py-1.5 px-2 sm:px-2.5' : ''} bg-slate-50/80`}
+                              className="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 bg-slate-50/80 border-b border-slate-100"
                             >
-                              <InlineTimeController
-                                p={p} dIdx={dIdx} pIdx={pIdx}
-                                isTimeCellExpanded={isTimeCellExpanded}
-                                isAutoLocked={isAutoLocked}
-                                isDurationLocked={isDurationLocked}
-                                isEndTimeFixed={isEndTimeFixed}
-                                setTimeControllerTarget={setTimeControllerTarget}
-                                setStartTimeValue={setStartTimeValue}
-                                setPlanEndTimeValue={setPlanEndTimeValue}
-                                setPlanEndAbsoluteMinutes={setPlanEndAbsoluteMinutes}
-                                toggleTimeFix={toggleTimeFix}
-                                toggleDurationFix={toggleDurationFix}
-                                toggleEndTimeFix={toggleEndTimeFix}
-                                setDurationHourValue={setDurationHourValue}
-                                setDurationMinuteValue={setDurationMinuteValue}
-                                updateDuration={updateDuration}
-                                bumpTimeControllerAutoClose={bumpTimeControllerAutoClose}
-                                setIsTimeWheelDragging={setIsTimeWheelDragging}
-                              />
-
+                              {/* START */}
+                              <div className="flex flex-col items-center gap-0.5 flex-1">
+                                <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">Start</span>
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  defaultValue={startTime}
+                                  key={`start-${p.id}-${startTime}`}
+                                  onBlur={(e) => {
+                                    let raw = e.target.value.replace(/[^0-9:]/g, '');
+                                    if (/^\d{3,4}$/.test(raw)) { const pd = raw.padStart(4, '0'); raw = pd.slice(0, 2) + ':' + pd.slice(2); }
+                                    const m = raw.match(/^(\d{1,2}):(\d{2})$/);
+                                    if (m) {
+                                      const h = Math.min(24, Math.max(0, parseInt(m[1], 10)));
+                                      const min = h === 24 ? 0 : Math.min(59, Math.max(0, parseInt(m[2], 10)));
+                                      setStartTimeValue(dIdx, pIdx, `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
+                                    }
+                                  }}
+                                  onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                                  onFocus={(e) => e.target.select()}
+                                  onClick={(e) => e.stopPropagation()}
+                                  placeholder="HH:MM"
+                                  maxLength={5}
+                                  className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[5rem] ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}
+                                />
+                              </div>
+                              {/* DURATION */}
+                              <div className="flex flex-col items-center gap-0.5 flex-1">
+                                <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">Duration</span>
+                                <div className="flex items-center gap-2">
+                                  <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, -15); }} className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors text-[11px] font-black">&lt;</button>
+                                  <span className="text-[13px] font-black text-slate-500 min-w-[3rem] text-center">{fmtDur(p.duration || 0)}</span>
+                                  <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, 15); }} className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors text-[11px] font-black">&gt;</button>
+                                </div>
+                              </div>
+                              {/* END */}
+                              <div className="flex flex-col items-center gap-0.5 flex-1">
+                                <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">End</span>
+                                <span className="text-[16px] font-black tabular-nums text-slate-800">{endTime}</span>
+                              </div>
                             </div>
-                          )}
+                            );
+                          })()}
 
                           {/* 🟢 내용 영역 */}
-                          <div className={`${isTimeCellExpanded && !isShip && !isLodge && !isHome ? 'hidden' : ''} w-full min-w-0 flex flex-col justify-start transition-all duration-500 overflow-hidden ${isTimelineDragActive ? 'gap-2 p-3 sm:p-4' : isCompactTimeline ? 'gap-2.5 p-3.5 sm:p-5' : 'gap-2.5 p-4 sm:p-5'}`}>
+                          <div className={`w-full min-w-0 flex flex-col justify-start transition-all duration-500 overflow-hidden ${isTimelineDragActive ? 'gap-2 p-3 sm:p-4' : isCompactTimeline ? 'gap-2.5 p-3.5 sm:p-5' : 'gap-2.5 p-4 sm:p-5'}`}>
                             {isShip ? (
                               <div className="flex flex-col gap-2.5" onClick={(e) => e.stopPropagation()}>
                                 {(() => {

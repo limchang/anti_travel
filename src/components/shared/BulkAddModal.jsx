@@ -5,10 +5,31 @@ import { normalizeLibraryPlace } from '../../utils/helpers.js';
 import { parseBulkPlaceText } from '../../utils/parse.js';
 import { safeLocalStorageGet, safeLocalStorageSet } from '../../utils/storage.js';
 
-// 이름 뒤에 붙는 카테고리 키워드 제거
-const CATEGORY_SUFFIXES = /[,\s]*(지역명소|베이커리|카페|디저트|한식|중식|양식|일식|분식|육류|고기요리|해산물|국밥|찌개|탕|면요리|패스트푸드|뷔페|포장마차|바\(BAR\)|펍|호프|이자카야|스시|라멘|돈가스|브런치|스테이크|피자|치킨|햄버거|수제버거|와인바|칵테일바|전통찻집|빙수|마카롱|케이크|도너츠|베이글|샌드위치|떡집|떡카페|수목원|식물원|관광|명소|맛집|음식점|레스토랑|식당)[\s,]*$/g;
+// 이름 뒤에 붙는 카테고리 키워드 목록
+const CATEGORY_KEYWORDS = [
+  '지역명소', '명소', '관광', '관광명소', '맛집', '음식점', '레스토랑', '식당',
+  '베이커리', '카페', '디저트', '한식', '중식', '양식', '일식', '분식',
+  '육류', '고기요리', '해산물', '생선요리', '국밥', '찌개', '탕', '면요리',
+  '패스트푸드', '뷔페', '포장마차', '호프', '이자카야', '스시', '라멘', '돈가스',
+  '브런치', '스테이크', '피자', '치킨', '햄버거', '수제버거', '핫도그',
+  '와인바', '칵테일바', '전통찻집', '빙수', '마카롱', '케이크', '도너츠', '베이글', '샌드위치',
+  '떡집', '떡카페', '수목원', '식물원', '해수욕장', '해변', '공원',
+  '김밥', '만두', '우동', '소바', '해장국', '한우', '족발', '보쌈',
+  '곱창', '막창', '삼겹살', '갈비', '냉면', '칼국수', '수제비',
+  '펍', '바\\(BAR\\)',
+];
+const CATEGORY_SUFFIX_RE = new RegExp(`[,\\s]*(${CATEGORY_KEYWORDS.join('|')})[,\\s]*$`, 'g');
 
-const cleanCategorySuffix = (name) => String(name || '').replace(CATEGORY_SUFFIXES, '').trim();
+const cleanCategorySuffix = (name) => {
+  let result = String(name || '');
+  // 반복 제거 (여러 카테고리가 연속 붙어있을 수 있음)
+  for (let i = 0; i < 3; i++) {
+    const next = result.replace(CATEGORY_SUFFIX_RE, '').trim();
+    if (next === result) break;
+    result = next;
+  }
+  return result;
+};
 
 const BulkAddModal = ({
   showBulkAddModal, setShowBulkAddModal,
@@ -26,7 +47,7 @@ const BulkAddModal = ({
                 <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
                   <div>
                     <p className="text-[14px] font-black text-slate-800">여러 장소 추가하기</p>
-                    <p className="text-[10px] font-bold text-slate-400 mt-0.5">카카오맵 공유 텍스트, 장소명+주소 형식 지원</p>
+                    <p className="text-[10px] font-bold text-slate-400 mt-0.5">카카오맵 공유 텍스트, 장소명+주소, 네이버 내장소 공유 링크 지원</p>
                   </div>
                   <button onClick={() => setShowBulkAddModal(false)} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
                 </div>
@@ -86,7 +107,7 @@ const BulkAddModal = ({
                                   requestAnimationFrame(() => { const pos = start + cleaned.length; ta.selectionStart = ta.selectionEnd = pos; });
                                 }}
                                 onScroll={(e) => { const bd = document.getElementById('bulk-highlight-backdrop'); if (bd) bd.scrollTop = e.target.scrollTop; }}
-                                placeholder={"카카오맵 공유 텍스트 또는\n장소명\n주소\n형식으로 붙여넣기하세요"}
+                                placeholder={"장소명과 주소를 입력하거나\n카카오맵 공유 텍스트를 붙여넣으세요\n\n예시)\n성수연방\n서울 성동구 연무장길 11"}
                                 className="absolute inset-0 w-full h-full px-3 py-2.5 outline-none resize-none"
                                 style={{ font: '700 11px/1.625 ui-sans-serif,system-ui,sans-serif', color: 'transparent', caretColor: '#334155', background: 'transparent', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'break-word' }}
                                 autoFocus
@@ -131,6 +152,74 @@ const BulkAddModal = ({
                       >
                         클립보드에서 붙여넣기
                       </button>
+                      {/* 네이버 내장소 공유 링크 */}
+                      <div className="border-t border-slate-100 pt-3 mt-1">
+                        <p className="text-[10px] font-black text-slate-500 mb-1.5">네이버 내장소 공유 링크로 불러오기</p>
+                        <div className="flex gap-2">
+                          <input
+                            id="naver-share-link-input"
+                            type="text"
+                            placeholder="naver.me/... 또는 map.naver.com/p/favorite/... 링크 붙여넣기"
+                            className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-emerald-400"
+                          />
+                          <button
+                            type="button"
+                            disabled={bulkAddLoading}
+                            onClick={async () => {
+                              const input = document.getElementById('naver-share-link-input');
+                              const url = String(input?.value || '').trim();
+                              if (!url) { showInfoToast('공유 링크를 입력해주세요.'); return; }
+                              setBulkAddLoading(true);
+                              try {
+                                // naver.me 또는 map.naver.com 링크에서 폴더 ID 추출
+                                let folderContent = '';
+                                if (/naver\.me\//.test(url) || /map\.naver\.com\/p\/favorite/.test(url)) {
+                                  // Jina로 리다이렉트 따라가서 폴더 ID 추출
+                                  const jinaText = await (await fetch(`https://r.jina.ai/${url}`)).text();
+                                  const folderMatch = jinaText.match(/folder\/([a-f0-9]{32})/);
+                                  const urlMatch = url.match(/folder\/([a-f0-9]{32})/);
+                                  const folderId = folderMatch?.[1] || urlMatch?.[1];
+                                  if (folderId) {
+                                    const detailUrl = `https://pages.map.naver.com/save-pages/pc/detail-list/${folderId}?lang=ko`;
+                                    folderContent = await (await fetch(`https://r.jina.ai/${detailUrl}`)).text();
+                                  }
+                                }
+                                if (!folderContent) {
+                                  // 직접 Jina로 파싱 시도
+                                  folderContent = await (await fetch(`https://r.jina.ai/${url}`)).text();
+                                }
+                                // 장소 이름 + 카테고리 추출
+                                const lines = folderContent.split('\n');
+                                const places = [];
+                                for (let i = 0; i < lines.length; i++) {
+                                  const line = lines[i].trim();
+                                  // "## 장소명" 또는 "### 장소명" 패턴
+                                  const headingMatch = line.match(/^#{1,3}\s+(.+)$/);
+                                  if (headingMatch) {
+                                    const name = headingMatch[1].replace(/\s*\(.*?\)\s*$/, '').trim();
+                                    if (name && !/저장한\s*장소|내\s*장소|폴더|Naver|naver|save-pages|detail-list/.test(name)) {
+                                      places.push({ name: cleanCategorySuffix(name), types: ['place'], address: '', selected: true });
+                                    }
+                                  }
+                                }
+                                if (places.length) {
+                                  setBulkAddParsed(places);
+                                  showInfoToast(`${places.length}개 장소를 불러왔습니다.`);
+                                } else {
+                                  showInfoToast('장소를 찾지 못했습니다. 링크를 확인해주세요.');
+                                }
+                              } catch (err) {
+                                showInfoToast(`링크 분석 실패: ${err?.message || '오류'}`);
+                              } finally {
+                                setBulkAddLoading(false);
+                              }
+                            }}
+                            className="shrink-0 px-4 py-2 rounded-lg bg-emerald-500 text-white text-[11px] font-black hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                          >
+                            {bulkAddLoading ? '불러오는 중...' : '불러오기'}
+                          </button>
+                        </div>
+                      </div>
                     </>
                   ) : (
                     <>
@@ -198,6 +287,7 @@ const BulkAddModal = ({
                                           setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : {
                                             ...p,
                                             _jinaLoading: false,
+                                            _jinaFilled: true,
                                             address: result.address || p.address,
                                             business: result.business || p.business,
                                             menus: result.menus?.length ? result.menus : p.menus,
@@ -211,9 +301,9 @@ const BulkAddModal = ({
                                         showInfoToast(`v2 실패: ${err?.message || '오류'}`);
                                       }
                                     }}
-                                    className={`shrink-0 px-1.5 py-0.5 rounded text-[8px] font-black border transition-colors ${item._jinaLoading ? 'text-emerald-400 border-emerald-200 bg-emerald-50' : 'text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'}`}
+                                    className={`shrink-0 px-1.5 py-0.5 rounded text-[8px] font-black border transition-colors ${item._jinaFilled ? 'text-white border-emerald-500 bg-emerald-500' : item._jinaLoading ? 'text-emerald-400 border-emerald-200 bg-emerald-50' : 'text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'}`}
                                     title="v2 지도검색 자동채우기"
-                                  >{item._jinaLoading ? '검색중...' : 'v2 채우기'}</button>
+                                  >{item._jinaLoading ? '검색중...' : item._jinaFilled ? '✓ 완료' : 'v2 채우기'}</button>
                                 )}
                               </div>
                               {item._jinaLoading && (

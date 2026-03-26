@@ -177,35 +177,15 @@ const BulkAddModal = ({
                                 if (directMatch) {
                                   folderId = directMatch[1];
                                 }
-                                // 2. naver.me 단축 URL → 리다이렉트 최종 URL에서 폴더 ID 추출
+                                // 2. naver.me 단축 URL → 새 탭에서 열어서 긴 URL 안내
                                 if (!folderId && /naver\.me\//.test(url)) {
-                                  // 방법 A: HEAD 요청으로 리다이렉트 따라가기
-                                  try {
-                                    const res = await fetch(url, { method: 'HEAD', redirect: 'follow' });
-                                    const finalUrl = res.url || '';
-                                    const m = finalUrl.match(/folder\/([a-f0-9]{32})/);
-                                    if (m) folderId = m[1];
-                                  } catch {}
-                                  // 방법 B: GET으로 재시도
-                                  if (!folderId) {
-                                    try {
-                                      const res = await fetch(url, { redirect: 'follow' });
-                                      const finalUrl = res.url || '';
-                                      const m = finalUrl.match(/folder\/([a-f0-9]{32})/);
-                                      if (m) folderId = m[1];
-                                    } catch {}
-                                  }
-                                  // 방법 C: Jina로 시도
-                                  if (!folderId) {
-                                    try {
-                                      const jinaText = await (await fetch(`https://r.jina.ai/${url}`)).text();
-                                      const m = jinaText.match(/folder\/([a-f0-9]{32})/);
-                                      if (m) folderId = m[1];
-                                    } catch {}
-                                  }
+                                  window.open(url, '_blank');
+                                  showInfoToast('새 탭에서 열린 페이지의 주소창 URL을 복사해서 붙여넣어주세요!');
+                                  setBulkAddLoading(false);
+                                  return;
                                 }
-                                // 3. map.naver.com/p/favorite 형식
-                                if (!folderId && /map\.naver\.com\/p\/favorite/.test(url)) {
+                                // 3. map.naver.com/p/favorite 또는 sharedPlace 형식
+                                if (!folderId && /map\.naver\.com/.test(url)) {
                                   const m = url.match(/folder\/([a-f0-9]{32})/);
                                   if (m) folderId = m[1];
                                 }
@@ -216,7 +196,7 @@ const BulkAddModal = ({
                                 }
 
                                 if (!folderId) {
-                                  showInfoToast('단축 URL은 브라우저에서 열어 주소창의 긴 URL을 붙여넣어주세요.');
+                                  showInfoToast('폴더 ID를 찾을 수 없습니다. URL을 확인해주세요.');
                                   setBulkAddLoading(false);
                                   return;
                                 }
@@ -283,6 +263,30 @@ const BulkAddModal = ({
                             }));
                             showInfoToast('카테고리 키워드를 제거했습니다.');
                           }} className="text-[10px] font-black text-orange-500 hover:underline">카테고리 제거</button>
+                          {runJinaSmartFill && (
+                            <button type="button" onClick={async () => {
+                              const selected = bulkAddParsed.filter(p => p.selected && !p._jinaFilled && !p._jinaLoading);
+                              if (!selected.length) { showInfoToast('채울 장소가 없습니다.'); return; }
+                              showInfoToast(`v2: ${selected.length}개 장소 정보 채우기 시작...`);
+                              for (let idx = 0; idx < bulkAddParsed.length; idx++) {
+                                const item = bulkAddParsed[idx];
+                                if (!item.selected || item._jinaFilled || item._jinaLoading) continue;
+                                setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, _jinaLoading: true }));
+                                try {
+                                  const result = await runJinaSmartFill({ placeName: item.name });
+                                  setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : {
+                                    ...p, _jinaLoading: false, _jinaFilled: true,
+                                    address: result?.address || p.address,
+                                    business: result?.business || p.business,
+                                    menus: result?.menus?.length ? result.menus : p.menus,
+                                  }));
+                                } catch {
+                                  setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, _jinaLoading: false }));
+                                }
+                              }
+                              showInfoToast('v2 전체 채우기 완료!');
+                            }} className="text-[10px] font-black text-emerald-500 hover:underline">v2 전체 채우기</button>
+                          )}
                           <button type="button" onClick={() => setBulkAddParsed(prev => prev.map(p => ({ ...p, selected: true })))} className="text-[10px] font-black text-[#3182F6] hover:underline">전체선택</button>
                           <button type="button" onClick={() => setBulkAddParsed(prev => prev.map(p => ({ ...p, selected: false })))} className="text-[10px] font-black text-slate-400 hover:underline">전체해제</button>
                           <button type="button" onClick={() => { setBulkAddParsed([]); setBulkAddText(''); }} className="text-[10px] font-black text-slate-400 hover:underline">다시 입력</button>

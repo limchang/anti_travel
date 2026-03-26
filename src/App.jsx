@@ -11226,21 +11226,92 @@ const App = () => {
           <>
             <div className="fixed inset-0 z-[99998]" onClick={() => setMapQuickViewItem(null)} />
             <div className="fixed z-[99999] rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_48px_-16px_rgba(15,23,42,0.3)] overflow-hidden animate-in slide-in-from-bottom-2" style={{ left: qvLeft, top: qvTop, width: panelW }}>
-              {/* 시간 바 */}
-              <div className="flex items-center justify-between gap-3 px-5 py-3 bg-slate-50 border-b border-slate-100">
-                <div className="flex flex-col items-center gap-0.5">
-                  <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">Start</span>
-                  <span className={`text-[16px] font-black tabular-nums ${qvItem.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}>{qvTime}</span>
+              {/* 시간 바 — 편집 가능 */}
+              {(() => {
+                const qvDIdx = mapQuickViewItem.dayIdx;
+                const qvPIdx = mapQuickViewItem.pIdx;
+                const qvDurLocked = !!qvItem.isDurationFixed;
+                const qvEndFixed = !!qvItem.isEndTimeFixed;
+                return (
+              <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-slate-50 border-b border-slate-100" data-no-drag="true">
+                {/* START */}
+                <div className="flex flex-col items-center gap-0.5 flex-1">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); toggleTimeFix(qvDIdx, qvPIdx); }} className={`text-[8px] font-black tracking-widest uppercase transition-colors ${qvItem.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}>Start {qvItem.isTimeFixed ? '🔒' : ''}</button>
+                  <input
+                    type="text" inputMode="numeric"
+                    defaultValue={qvTime}
+                    key={`qv-start-${qvItem.id}-${qvTime}`}
+                    onBlur={(e) => {
+                      let raw = e.target.value.replace(/[^0-9:]/g, '');
+                      if (/^\d{3,4}$/.test(raw)) { const pd = raw.padStart(4, '0'); raw = pd.slice(0, 2) + ':' + pd.slice(2); }
+                      const m = raw.match(/^(\d{1,2}):(\d{2})$/);
+                      if (m) {
+                        const h = Math.min(24, Math.max(0, parseInt(m[1], 10)));
+                        const min = h === 24 ? 0 : Math.min(59, Math.max(0, parseInt(m[2], 10)));
+                        setStartTimeValue(qvDIdx, qvPIdx, `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
+                      }
+                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                    onFocus={(e) => e.target.select()}
+                    onClick={(e) => e.stopPropagation()}
+                    placeholder="HH:MM" maxLength={5}
+                    className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[4.5rem] ${qvItem.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}
+                  />
                 </div>
-                <div className="flex flex-col items-center gap-0.5">
-                  <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">Duration</span>
-                  <span className="text-[13px] font-black text-slate-500">{fmtDur(qvItem.duration || 0)}</span>
+                {/* DURATION */}
+                <div className="flex flex-col items-center gap-0.5 flex-1">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); toggleDurationFix(qvDIdx, qvPIdx); }} className={`text-[8px] font-black tracking-widest uppercase transition-colors ${qvDurLocked ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}>Duration {qvDurLocked ? '🔒' : ''}</button>
+                  <div className="flex items-center gap-1">
+                    <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(qvDIdx, qvPIdx, -15); }} className="text-slate-300 hover:text-[#3182F6] transition-colors text-[13px] font-black">&lt;</button>
+                    <div className="flex items-baseline gap-0">
+                      <input
+                        type="text" inputMode="numeric"
+                        defaultValue={String(qvItem.duration || 0)}
+                        key={`qv-dur-${qvItem.id}-${qvItem.duration}`}
+                        onBlur={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          if (Number.isFinite(v) && v >= 0) {
+                            const delta = v - (qvItem.duration || 0);
+                            if (delta !== 0) updateDuration(qvDIdx, qvPIdx, delta);
+                          }
+                        }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                        onFocus={(e) => e.target.select()}
+                        onClick={(e) => e.stopPropagation()}
+                        maxLength={4}
+                        className={`bg-transparent text-right text-[16px] font-black tabular-nums outline-none w-[2.5rem] ${qvDurLocked ? 'text-[#3182F6]' : 'text-slate-500'}`}
+                      /><span className={`text-[13px] font-black ${qvDurLocked ? 'text-[#3182F6]' : 'text-slate-400'}`}>분</span>
+                    </div>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(qvDIdx, qvPIdx, 15); }} className="text-slate-300 hover:text-[#3182F6] transition-colors text-[13px] font-black">&gt;</button>
+                  </div>
                 </div>
-                <div className="flex flex-col items-center gap-0.5">
-                  <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">End</span>
-                  <span className="text-[16px] font-black tabular-nums text-slate-800">{qvEndTime}</span>
+                {/* END */}
+                <div className="flex flex-col items-center gap-0.5 flex-1">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); toggleEndTimeFix(qvDIdx, qvPIdx); }} className={`text-[8px] font-black tracking-widest uppercase transition-colors ${qvEndFixed ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}>End {qvEndFixed ? '🔒' : ''}</button>
+                  <input
+                    type="text" inputMode="numeric"
+                    defaultValue={qvEndTime}
+                    key={`qv-end-${qvItem.id}-${qvEndTime}`}
+                    onBlur={(e) => {
+                      let raw = e.target.value.replace(/[^0-9:]/g, '');
+                      if (/^\d{3,4}$/.test(raw)) { const pd = raw.padStart(4, '0'); raw = pd.slice(0, 2) + ':' + pd.slice(2); }
+                      const m = raw.match(/^(\d{1,2}):(\d{2})$/);
+                      if (m) {
+                        const h = Math.min(24, Math.max(0, parseInt(m[1], 10)));
+                        const min = h === 24 ? 0 : Math.min(59, Math.max(0, parseInt(m[2], 10)));
+                        setPlanEndTimeValue(qvDIdx, qvPIdx, `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
+                      }
+                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                    onFocus={(e) => e.target.select()}
+                    onClick={(e) => e.stopPropagation()}
+                    placeholder="HH:MM" maxLength={5}
+                    className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[4.5rem] ${qvEndFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}
+                  />
                 </div>
               </div>
+                );
+              })()}
               {/* 본체 */}
               <div className="p-5 flex flex-col gap-2.5">
                 {/* 카테고리 + 이름 */}

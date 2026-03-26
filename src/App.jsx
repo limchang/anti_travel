@@ -7667,14 +7667,25 @@ const App = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          if (!window.confirm(`내 장소 ${(itinerary.places || []).length}개를 모두 비우시겠습니까?\n(휴지통으로 이동됩니다)`)) return;
+                          const allPlaces = itinerary.places || [];
+                          const activeLodgeIds = new Set();
+                          (itinerary.days || []).forEach(d => (d.plan || []).forEach(p => {
+                            if (p._parentPlaceId) activeLodgeIds.add(p._parentPlaceId);
+                            if (isLodgeStay(p.types)) activeLodgeIds.add(p.id);
+                          }));
+                          const toRemove = allPlaces.filter(p => !activeLodgeIds.has(p.id));
+                          const kept = allPlaces.filter(p => activeLodgeIds.has(p.id));
+                          const msg = kept.length
+                            ? `내 장소 ${toRemove.length}개를 비우시겠습니까?\n(타임라인 숙소 ${kept.length}개는 유지, 나머지는 휴지통)`
+                            : `내 장소 ${toRemove.length}개를 모두 비우시겠습니까?\n(휴지통으로 이동됩니다)`;
+                          if (!window.confirm(msg)) return;
                           setItinerary(prev => ({
                             ...prev,
-                            placeTrash: [...(prev.placeTrash || []), ...(prev.places || [])],
-                            places: [],
+                            placeTrash: [...(prev.placeTrash || []), ...toRemove],
+                            places: kept,
                           }));
                           setShowPlaceMenu(false);
-                          showInfoToast('내 장소를 모두 휴지통으로 이동했습니다.');
+                          showInfoToast(kept.length ? `${toRemove.length}개 비움 (숙소 ${kept.length}개 유지)` : '내 장소를 모두 휴지통으로 이동했습니다.');
                         }}
                         className="w-full rounded-[10px] border border-transparent px-2.5 py-2 text-left text-[11px] font-black text-red-500 transition-colors hover:border-red-100 hover:bg-red-50"
                       >

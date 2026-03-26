@@ -177,31 +177,29 @@ const BulkAddModal = ({
                                 if (directMatch) {
                                   folderId = directMatch[1];
                                 }
-                                // 2. naver.me 단축 URL → 숨겨진 iframe으로 리다이렉트 URL 추출
+                                // 2. naver.me 단축 URL → 팝업으로 리다이렉트 URL 추출
                                 if (!folderId && /naver\.me\//.test(url)) {
                                   folderId = await new Promise((resolve) => {
-                                    const iframe = document.createElement('iframe');
-                                    iframe.style.display = 'none';
-                                    iframe.src = url;
+                                    const popup = window.open(url, '_blank', 'width=1,height=1,left=-9999,top=-9999');
                                     let resolved = false;
-                                    const cleanup = () => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); };
-                                    const timer = setTimeout(() => { if (!resolved) { resolved = true; cleanup(); resolve(null); } }, 5000);
-                                    iframe.onload = () => {
+                                    const timer = setTimeout(() => {
+                                      if (!resolved) { resolved = true; try { popup?.close(); } catch {} resolve(null); }
+                                    }, 4000);
+                                    const checker = setInterval(() => {
                                       try {
-                                        const iframeUrl = iframe.contentWindow?.location?.href || '';
-                                        const m = iframeUrl.match(/folder\/([a-f0-9]{32})/);
-                                        if (!resolved) { resolved = true; clearTimeout(timer); cleanup(); resolve(m?.[1] || null); }
+                                        const popupUrl = popup?.location?.href || '';
+                                        const m = popupUrl.match(/folder\/([a-f0-9]{32})/);
+                                        if (m) {
+                                          if (!resolved) { resolved = true; clearTimeout(timer); clearInterval(checker); popup?.close(); resolve(m[1]); }
+                                        }
                                       } catch {
-                                        // cross-origin 접근 불가 → URL 접근 불가
-                                        if (!resolved) { resolved = true; clearTimeout(timer); cleanup(); resolve(null); }
+                                        // cross-origin 동안은 무시, 리다이렉트 완료 후 same-origin이면 접근 가능
                                       }
-                                    };
-                                    document.body.appendChild(iframe);
+                                      if (resolved) clearInterval(checker);
+                                    }, 300);
                                   });
                                   if (!folderId) {
-                                    // iframe도 실패 → 안내
-                                    window.open(url, '_blank');
-                                    showInfoToast('단축 URL 변환 실패. 새 탭의 주소창 URL을 복사해서 붙여넣어주세요.');
+                                    showInfoToast('단축 URL 변환 실패. 브라우저에서 링크를 열고 주소창의 긴 URL을 붙여넣어주세요.');
                                     setBulkAddLoading(false);
                                     return;
                                   }

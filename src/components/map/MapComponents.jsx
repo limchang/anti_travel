@@ -854,6 +854,7 @@ export const RoutePreviewCanvas = ({
           key={tileProviders[tileProviderIndex].id}
           url={tileProviders[tileProviderIndex].url}
           attribution={tileProviders[tileProviderIndex].attribution}
+          opacity={0.6}
           eventHandlers={{
             loading: () => setTileStatus((prev) => (prev === 'ready' ? prev : 'loading')),
             tileloadstart: () => setTileStatus((prev) => (prev === 'ready' ? prev : 'loading')),

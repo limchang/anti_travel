@@ -96,8 +96,8 @@ export const getMapCategoryLabel = (type = 'place') => {
   return found?.label || '장소';
 };
 export const MAP_CATEGORY_EMOJI = {
-  food: '🍽️',
-  cafe: '☕',
+  food: '밥',
+  cafe: '차',
   tour: '📸',
   lodge: '🏨',
   stay: '🌙',
@@ -108,7 +108,7 @@ export const MAP_CATEGORY_EMOJI = {
   view: '🌅',
   experience: '⭐',
   souvenir: '🛍️',
-  snack: '🍢',
+  snack: '참',
   home: '🏠',
   place: '📍',
   quick: '⚡',
@@ -209,7 +209,7 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused) => {
   });
 };
 
-export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0, clusterColors = [], categoryType = '') => {
+export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0, clusterColors = [], categoryType = '', clusterTypes = []) => {
   const isCluster = clusterCount > 1;
   const sz = isFocused ? 36 : 28;
   const shadow = isFocused
@@ -219,27 +219,31 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
   const radius = isFocused ? '10px' : '8px';
 
   if (isCluster) {
-    // 타임라인 그룹 마커와 동일한 가로 나열 + 꼬리 디자인
-    const n = Math.min(clusterCount, 5);
+    // 3개 이하: 전부 개별 셀, 3개 초과: 앞 2개 + "+N" 셀
+    const showAll = clusterCount <= 3;
+    const visibleN = showAll ? clusterCount : 3;
     const cellW = isFocused ? 32 : 26;
     const h = isFocused ? 36 : 28;
     const dividerW = 1;
-    const totalW = cellW * n + dividerW * (n - 1);
+    const totalW = cellW * visibleN + dividerW * (visibleN - 1);
     const cRadius = isFocused ? 10 : 8;
     const tailH = isFocused ? 7 : 6;
     const totalH = h + tailH;
     const colors = clusterColors.length ? clusterColors : [categoryColor];
-    const cells = Array.from({ length: n }, (_, i) => {
-      const color = colors[i] || colors[colors.length - 1] || categoryColor;
-      const emoji = getMapCategoryEmoji(categoryType || categoryLabel);
+    const types = clusterTypes.length ? clusterTypes : [categoryType || categoryLabel];
+    const cells = Array.from({ length: visibleN }, (_, i) => {
       const isFirst = i === 0;
-      const isLast = i === n - 1;
+      const isLast = i === visibleN - 1;
+      const isOverflow = !showAll && isLast;
+      const color = isOverflow ? '#475569' : (colors[i] || colors[colors.length - 1] || categoryColor);
+      const emoji = isOverflow ? '' : getMapCategoryEmoji(types[i] || categoryType || categoryLabel);
+      const label = isOverflow ? `+${clusterCount - 2}` : emoji;
       const br = `border-radius:${isFirst ? `${cRadius}px 0 0 ${cRadius}px` : isLast ? `0 ${cRadius}px ${cRadius}px 0` : '0'};`;
-      return `<div style="width:${cellW}px;height:${h}px;${br}background:${color};display:flex;align-items:center;justify-content:center;cursor:pointer;${i > 0 ? `border-left:${dividerW}px solid rgba(255,255,255,0.5);` : ''}">
-        <span style="font-size:${isFocused?'15px':'12px'};line-height:1;">${i === 0 ? emoji : (i === n - 1 && clusterCount > n ? `+${clusterCount - n + 1}` : emoji)}</span>
+      return `<div data-cluster-idx="${i}" data-cluster-overflow="${isOverflow}" style="width:${cellW}px;height:${h}px;${br}background:${color};display:flex;align-items:center;justify-content:center;cursor:pointer;${i > 0 ? `border-left:${dividerW}px solid rgba(255,255,255,0.5);` : ''}">
+        <span style="font-size:${isOverflow ? (isFocused?'11px':'9px') : (isFocused?'13px':'11px')};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.3);">${label}</span>
       </div>`;
     }).join('');
-    const tailColor = colors[Math.floor(n / 2)] || categoryColor;
+    const tailColor = colors[0] || categoryColor;
     return L.divIcon({
       className: '',
       html: `
@@ -269,7 +273,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
           box-shadow:0 0 0 1.5px ${categoryColor};
           display:flex;align-items:center;justify-content:center;
         ">
-          <span style="font-size:${isFocused?'17px':'14px'};line-height:1;">${emojiLabel}</span>
+          <span style="font-size:${isFocused?'14px':'11px'};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.3);">${emojiLabel}</span>
         </div>
         <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${categoryColor};margin-top:-1px;"></div>
       </div>
@@ -1042,6 +1046,7 @@ export const RoutePreviewCanvas = ({
             const isCluster = !!(point._clusterCount && point._clusterCount > 1);
             const clusterCount = isCluster ? point._clusterCount : 0;
             const clusterColors = isCluster ? (point._clusterItems || []).map((e) => e.categoryColor || '#2563EB') : [];
+            const clusterTypes = isCluster ? (point._clusterItems || []).map((e) => e.primaryType || '') : [];
             const isFocusedLibrary = point.kind === 'place' && focusedLibraryMarkerId === point.id;
             // 클러스터 팝업에 표시할 아이템들
             const clusterItems = isCluster ? (point._clusterItems || []) : [];
@@ -1051,13 +1056,29 @@ export const RoutePreviewCanvas = ({
                 position={point.position}
                 bubblingMouseEvents={false}
                 icon={point.kind === 'place'
-                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors, point.primaryType || '')
+                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors, point.primaryType || '', clusterTypes)
                   : buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
                 eventHandlers={interactive ? {
-                  click: () => {
+                  click: (e) => {
                     if (point.kind === 'place') {
-                      // 한 번 클릭에 바로 팝업 (두 단계 제거)
-                      if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(point.id);
+                      if (isCluster) {
+                        // 클러스터: 클릭된 셀 확인
+                        const target = e.originalEvent?.target instanceof Element ? e.originalEvent.target : null;
+                        const cell = target?.closest('[data-cluster-idx]');
+                        const isOverflow = cell?.getAttribute('data-cluster-overflow') === 'true';
+                        const idx = cell ? parseInt(cell.getAttribute('data-cluster-idx'), 10) : -1;
+                        if (isOverflow) {
+                          // +N 셀 클릭 → 전체 팝업
+                          if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(point.id);
+                        } else if (idx >= 0 && clusterItems[idx]) {
+                          // 개별 셀 클릭 → 해당 장소만 포커스
+                          if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(clusterItems[idx].id);
+                        } else {
+                          if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(point.id);
+                        }
+                      } else {
+                        if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(point.id);
+                      }
                     } else if (typeof onMarkerClick === 'function') {
                       onMarkerClick({ kind: point.kind, id: point.id, label: point.label, address: point.address });
                     }
@@ -1072,47 +1093,63 @@ export const RoutePreviewCanvas = ({
                     className="library-marker-popup"
                   >
                     <div style={{ minWidth: '160px', maxWidth: '220px', padding: '0', fontFamily: 'inherit' }}>
-                      {isCluster ? (
-                        // 클러스터 팝업: 목록 표시
-                        <div>
-                          <div style={{ padding: '8px 10px 4px', fontSize: '10px', fontWeight: 900, color: '#64748B', borderBottom: '1px solid #F1F5F9' }}>
-                            내장소 {clusterCount}곳
-                          </div>
-                          {clusterItems.map((item) => (
-                            <div key={item.id} style={{ padding: '6px 10px', borderBottom: '1px solid #F1F5F9' }}>
-                              <div style={{ fontSize: '11px', fontWeight: 900, color: '#1E293B', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</div>
-                              {item.address && <div style={{ fontSize: '9px', color: '#94A3B8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.address}</div>}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); if (typeof onLibraryMarkerAddClick === 'function') onLibraryMarkerAddClick({ id: item.id, label: item.label }); if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(null); }}
-                                style={{ marginTop: '4px', width: '100%', padding: '3px 6px', borderRadius: '6px', background: '#3182F6', color: '#fff', fontSize: '10px', fontWeight: 900, border: 'none', cursor: 'pointer' }}
-                              >+ 일정 등록</button>
+                      {(() => {
+                        // 클러스터 내 개별 아이템이 포커스된 경우 해당 아이템만 단일 팝업
+                        const focusedClusterItem = isCluster && focusedLibraryMarkerId !== point.id
+                          ? clusterItems.find((item) => item.id === focusedLibraryMarkerId)
+                          : null;
+                        const singleItem = focusedClusterItem || (!isCluster ? point : null);
+
+                        if (isCluster && !focusedClusterItem) {
+                          // 전체 클러스터 팝업 (+N 클릭)
+                          return (
+                            <div>
+                              <div style={{ padding: '8px 10px 4px', fontSize: '10px', fontWeight: 900, color: '#64748B', borderBottom: '1px solid #F1F5F9' }}>
+                                내장소 {clusterCount}곳
+                              </div>
+                              {clusterItems.map((item) => (
+                                <div key={item.id} style={{ padding: '6px 10px', borderBottom: '1px solid #F1F5F9' }}>
+                                  <div style={{ fontSize: '11px', fontWeight: 900, color: '#1E293B', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</div>
+                                  {item.address && <div style={{ fontSize: '9px', color: '#94A3B8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.address}</div>}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); if (typeof onLibraryMarkerAddClick === 'function') onLibraryMarkerAddClick({ id: item.id, label: item.label }); if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(null); }}
+                                    style={{ marginTop: '4px', width: '100%', padding: '3px 6px', borderRadius: '6px', background: '#3182F6', color: '#fff', fontSize: '10px', fontWeight: 900, border: 'none', cursor: 'pointer' }}
+                                  >+ 일정 등록</button>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        // 단일 마커 팝업
-                        <div style={{ padding: '8px 10px' }}>
-                          {/* 카테고리 칩 — 클릭 시 App 레벨 모달 */}
-                          <div style={{ marginBottom: '4px' }}>
+                          );
+                        }
+
+                        // 단일 마커 팝업 (개별 또는 클러스터 내 개별)
+                        const itemId = singleItem?.id || point.id;
+                        const itemLabel = singleItem?.label || point.label;
+                        const itemAddress = singleItem?.address || point.address;
+                        const itemColor = singleItem?.categoryColor || point.categoryColor || '#2563EB';
+                        const itemCatLabel = singleItem?.categoryLabel || point.categoryLabel || '내장소';
+                        return (
+                          <div style={{ padding: '8px 10px' }}>
+                            <div style={{ marginBottom: '4px' }}>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); if (typeof onLibraryMarkerTypeEdit === 'function') onLibraryMarkerTypeEdit(itemId, e); }}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', padding: 0, cursor: typeof onLibraryMarkerTypeEdit === 'function' ? 'pointer' : 'default' }}
+                              >
+                                <div style={{ width: '8px', height: '8px', borderRadius: '3px', background: itemColor, flexShrink: 0 }} />
+                                <span style={{ fontSize: '9px', fontWeight: 900, color: itemColor }}>{itemCatLabel}</span>
+                              </button>
+                            </div>
                             <button
-                              onClick={(e) => { e.stopPropagation(); if (typeof onLibraryMarkerTypeEdit === 'function') onLibraryMarkerTypeEdit(point.id, e); }}
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', padding: 0, cursor: typeof onLibraryMarkerTypeEdit === 'function' ? 'pointer' : 'default' }}
-                            >
-                              <div style={{ width: '8px', height: '8px', borderRadius: '3px', background: point.categoryColor || '#2563EB', flexShrink: 0 }} />
-                              <span style={{ fontSize: '9px', fontWeight: 900, color: point.categoryColor || '#2563EB' }}>{point.categoryLabel || '내장소'}</span>
-                            </button>
+                              onClick={(e) => { e.stopPropagation(); if (typeof onLibraryMarkerNameClick === 'function') onLibraryMarkerNameClick(itemId); }}
+                              style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: typeof onLibraryMarkerNameClick === 'function' ? 'pointer' : 'default', fontSize: '12px', fontWeight: 900, color: '#1E293B', marginBottom: '3px', wordBreak: 'break-all', textDecoration: typeof onLibraryMarkerNameClick === 'function' ? 'underline' : 'none' }}
+                            >{itemLabel}</button>
+                            {itemAddress && <div style={{ fontSize: '9px', color: '#94A3B8', marginBottom: '6px', wordBreak: 'break-all' }}>{itemAddress}</div>}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); if (typeof onLibraryMarkerAddClick === 'function') onLibraryMarkerAddClick({ id: itemId, label: itemLabel }); if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(null); }}
+                              style={{ width: '100%', padding: '5px 8px', borderRadius: '8px', background: '#3182F6', color: '#fff', fontSize: '11px', fontWeight: 900, border: 'none', cursor: 'pointer' }}
+                            >+ 일정 등록</button>
                           </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); if (typeof onLibraryMarkerNameClick === 'function') onLibraryMarkerNameClick(point.id); }}
-                            style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: typeof onLibraryMarkerNameClick === 'function' ? 'pointer' : 'default', fontSize: '12px', fontWeight: 900, color: '#1E293B', marginBottom: '3px', wordBreak: 'break-all', textDecoration: typeof onLibraryMarkerNameClick === 'function' ? 'underline' : 'none' }}
-                          >{point.label}</button>
-                          {point.address && <div style={{ fontSize: '9px', color: '#94A3B8', marginBottom: '6px', wordBreak: 'break-all' }}>{point.address}</div>}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); if (typeof onLibraryMarkerAddClick === 'function') onLibraryMarkerAddClick({ id: point.id, label: point.label }); if (typeof onLibraryMarkerFocus === 'function') onLibraryMarkerFocus(null); }}
-                            style={{ width: '100%', padding: '5px 8px', borderRadius: '8px', background: '#3182F6', color: '#fff', fontSize: '11px', fontWeight: 900, border: 'none', cursor: 'pointer' }}
-                          >+ 일정 등록</button>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   </Popup>
                 )}

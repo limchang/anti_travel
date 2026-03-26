@@ -3035,8 +3035,22 @@ const App = () => {
     if (target.kind === 'timeline') {
       const found = findPlanItemContextById(target.id);
       if (found?.item) {
+        // 지도 편집 모드: 퀵뷰 모달 직접 띄우기
+        if (mapEditMode) {
+          setMapQuickViewItem({ dayIdx: found.dayIdx, pIdx: found.pIdx });
+          setFocusedMapTarget({
+            kind: 'timeline',
+            id: found.item.id,
+            day: found.dayNum,
+            routePointIds: found.item.types?.includes('ship')
+              ? [`${found.item.id}:ship-start`, `${found.item.id}:ship-end`]
+              : [found.item.id],
+          });
+          const addr = getRouteAddress(found.item, 'to');
+          setBasePlanRef({ id: found.item.id, name: found.item.activity || found.item.name || '', address: addr || '' });
+          return;
+        }
         focusTimelineOnMap(found.item, found.dayNum, { scroll: true });
-        // 내장소 탭 지도에서 일정 마커 클릭 시 거리순 정렬 기준 자동 설정
         const addr = getRouteAddress(found.item, 'to');
         setBasePlanRef({ id: found.item.id, name: found.item.activity || found.item.name || '', address: addr || '' });
       }
@@ -3050,7 +3064,7 @@ const App = () => {
     if (target.kind === 'recommendation') {
       focusRecommendationOnMap(target.id, { scroll: true });
     }
-  }, [findPlanItemContextById, focusLibraryOnMap, focusRecommendationOnMap, focusTimelineOnMap, itinerary.places, getRouteAddress, setBasePlanRef]);
+  }, [findPlanItemContextById, focusLibraryOnMap, focusRecommendationOnMap, focusTimelineOnMap, itinerary.places, getRouteAddress, setBasePlanRef, mapEditMode]);
 
   const handleOverviewMapLibraryAddClick = ({ id: placeId }) => {
     if (!placeId) return;
@@ -11139,8 +11153,8 @@ const App = () => {
         const qvEndTime = `${String(Math.floor(qvEndMins / 60) % 24).padStart(2, '0')}:${String(qvEndMins % 60).padStart(2, '0')}`;
         return (
           <>
-            <div className="fixed inset-0 z-[300] bg-black/20 backdrop-blur-[1px]" onClick={() => setMapQuickViewItem(null)} />
-            <div className="fixed z-[301] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(480px,92vw)] rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_48px_-16px_rgba(15,23,42,0.3)] overflow-hidden">
+            <div className="fixed inset-0 z-[99998] bg-black/20 backdrop-blur-[1px]" onClick={() => setMapQuickViewItem(null)} />
+            <div className="fixed z-[99999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(480px,92vw)] rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_48px_-16px_rgba(15,23,42,0.3)] overflow-hidden">
               {/* 시간 바 */}
               <div className="flex items-center justify-between gap-3 px-5 py-3 bg-slate-50 border-b border-slate-100">
                 <div className="flex flex-col items-center gap-0.5">

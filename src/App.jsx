@@ -587,7 +587,7 @@ const App = () => {
         });
       });
       if (foundDayIdx >= 0 && foundPIdx >= 0) {
-        setMapQuickViewItem({ dayIdx: foundDayIdx, pIdx: foundPIdx });
+        setMapQuickViewItem({ dayIdx: foundDayIdx, pIdx: foundPIdx, ...lastClickPosRef.current });
       }
       navScrollTimeout.current = setTimeout(() => { isNavScrolling.current = false; }, 500);
       return;
@@ -746,7 +746,8 @@ const App = () => {
   const [col1Collapsed, setCol1Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
   const [col2Collapsed, setCol2Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
   const [mapEditMode, setMapEditMode] = useState(false);
-  const [mapQuickViewItem, setMapQuickViewItem] = useState(null); // { dayIdx, pIdx }
+  const [mapQuickViewItem, setMapQuickViewItem] = useState(null); // { dayIdx, pIdx, x, y }
+  const lastClickPosRef = useRef({ x: 0, y: 0 });
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));
   const [leftPanelW, setLeftPanelW] = useState(() => { try { return Number(localStorage.getItem('leftPanelW')) || 280; } catch { return 280; } });
   const [rightPanelW, setRightPanelW] = useState(() => { try { return Number(localStorage.getItem('rightPanelW')) || 440; } catch { return 440; } });
@@ -970,6 +971,13 @@ const App = () => {
     const el = document.getElementById('place-library-scroll');
     if (el) el.scrollTop = 0;
   }, [mapEditMode, viewportWidth]);
+
+  // 클릭 위치 추적 (퀵뷰 모달 위치용)
+  useEffect(() => {
+    const track = (e) => { lastClickPosRef.current = { x: e.clientX, y: e.clientY }; };
+    window.addEventListener('pointerdown', track, true);
+    return () => window.removeEventListener('pointerdown', track, true);
+  }, []);
 
   useEffect(() => () => {
     clearMobileLibraryLongPress();
@@ -3038,7 +3046,7 @@ const App = () => {
       if (found?.item) {
         // 지도 편집 모드: 퀵뷰 모달 직접 띄우기
         if (mapEditMode) {
-          setMapQuickViewItem({ dayIdx: found.dayIdx, pIdx: found.pIdx });
+          setMapQuickViewItem({ dayIdx: found.dayIdx, pIdx: found.pIdx, ...lastClickPosRef.current });
           setFocusedMapTarget({
             kind: 'timeline',
             id: found.item.id,
@@ -11152,10 +11160,17 @@ const App = () => {
         const qvTime = qvItem.time || '--:--';
         const qvEndMins = timeToMinutes(qvTime) + (Number(qvItem.duration) || 0);
         const qvEndTime = `${String(Math.floor(qvEndMins / 60) % 24).padStart(2, '0')}:${String(qvEndMins % 60).padStart(2, '0')}`;
+        const panelW = 380;
+        const panelH = 320;
+        const cx = mapQuickViewItem.x || window.innerWidth / 2;
+        const cy = mapQuickViewItem.y || window.innerHeight / 2;
+        // 클릭 위치 바로 위에 배치, 화면 밖으로 안 나가게 clamp
+        const qvLeft = Math.max(8, Math.min(window.innerWidth - panelW - 8, cx - panelW / 2));
+        const qvTop = Math.max(8, Math.min(window.innerHeight - panelH - 8, cy - panelH - 16));
         return (
           <>
-            <div className="fixed inset-0 z-[99998] bg-black/20 backdrop-blur-[1px]" onClick={() => setMapQuickViewItem(null)} />
-            <div className="fixed z-[99999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(480px,92vw)] rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_48px_-16px_rgba(15,23,42,0.3)] overflow-hidden">
+            <div className="fixed inset-0 z-[99998]" onClick={() => setMapQuickViewItem(null)} />
+            <div className="fixed z-[99999] rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_48px_-16px_rgba(15,23,42,0.3)] overflow-hidden animate-in slide-in-from-bottom-2" style={{ left: qvLeft, top: qvTop, width: panelW }}>
               {/* 시간 바 */}
               <div className="flex items-center justify-between gap-3 px-5 py-3 bg-slate-50 border-b border-slate-100">
                 <div className="flex flex-col items-center gap-0.5">

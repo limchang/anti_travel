@@ -10052,16 +10052,17 @@ const App = () => {
                                         </button>
                                       </div>
                                       {/* 루트 배너 */}
-                                      <div className="flex items-stretch gap-2 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 p-2.5">
+                                      {/* 루트 배너 */}
+                                      <div className="flex items-stretch gap-3">
                                         {/* 출발지 */}
-                                        <div className="flex flex-1 flex-col items-start gap-0.5 min-w-0 rounded-xl bg-white/80 border border-blue-100 px-2.5 py-2 shadow-sm">
-                                          <span className="text-[8px] font-bold tracking-widest uppercase text-blue-400">Departure</span>
+                                        <div className="flex flex-1 flex-col items-start gap-0.5 min-w-0">
+                                          <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">Departure</span>
                                           <input
                                             value={p.startPoint || '목포항'}
                                             onChange={(e) => { e.stopPropagation(); updateShipPoint(dIdx, pIdx, 'startPoint', e.target.value); }}
                                             onClick={(e) => e.stopPropagation()}
                                             onFocus={(e) => e.target.select()}
-                                            className="w-full bg-transparent text-[15px] font-black text-blue-900 outline-none focus:border-b focus:border-blue-300 truncate"
+                                            className="w-full bg-transparent text-[15px] font-black text-slate-800 outline-none truncate"
                                           />
                                           <input
                                             value={p.receipt?.address || ''}
@@ -10069,26 +10070,24 @@ const App = () => {
                                             onClick={(e) => e.stopPropagation()}
                                             onFocus={async (e) => { e.target.select(); if (p.startPoint) { const r = await searchAddressFromPlaceName(p.startPoint); if (r?.address) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...d.days[dIdx].plan[pIdx].receipt, address: r.address }; return d; }); } }}
                                             placeholder="클릭 시 자동 입력"
-                                            className="w-full bg-transparent text-[9px] text-slate-400 outline-none focus:border-b focus:border-blue-200 truncate cursor-pointer"
+                                            className="w-full bg-transparent text-[11px] font-bold text-slate-500 outline-none truncate cursor-pointer"
                                           />
                                         </div>
                                         {/* 항해 시간 */}
-                                        <div className="flex flex-col items-center justify-center gap-1 px-1">
-                                          <div className="w-6 h-px bg-blue-200" />
-                                          <span className="text-[9px] font-bold text-blue-400 whitespace-nowrap">
+                                        <div className="flex flex-col items-center justify-center gap-0.5 px-1 shrink-0">
+                                          <span className="text-[9px] font-black text-slate-400 whitespace-nowrap">
                                             {(() => { const s = p.sailDuration ?? 240; return `${Math.floor(s / 60)}h${s % 60 > 0 ? ` ${s % 60}m` : ''}`; })()}
                                           </span>
-                                          <div className="w-6 h-px bg-blue-200" />
                                         </div>
                                         {/* 도착지 */}
-                                        <div className="flex flex-1 flex-col items-end gap-0.5 min-w-0 rounded-xl bg-white/80 border border-blue-100 px-2.5 py-2 shadow-sm">
-                                          <span className="text-[8px] font-bold tracking-widest uppercase text-cyan-500">Arrival</span>
+                                        <div className="flex flex-1 flex-col items-end gap-0.5 min-w-0">
+                                          <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">Arrival</span>
                                           <input
                                             value={p.endPoint || '제주항'}
                                             onChange={(e) => { e.stopPropagation(); updateShipPoint(dIdx, pIdx, 'endPoint', e.target.value); }}
                                             onClick={(e) => e.stopPropagation()}
                                             onFocus={(e) => e.target.select()}
-                                            className="w-full bg-transparent text-[15px] font-black text-blue-900 text-right outline-none focus:border-b focus:border-blue-300 truncate"
+                                            className="w-full bg-transparent text-[15px] font-black text-slate-800 text-right outline-none truncate"
                                           />
                                           <input
                                             value={p.endAddress || ''}
@@ -10096,7 +10095,7 @@ const App = () => {
                                             onClick={(e) => e.stopPropagation()}
                                             onFocus={async (e) => { e.target.select(); if (p.endPoint) { const r = await searchAddressFromPlaceName(p.endPoint); if (r?.address) updateShipPoint(dIdx, pIdx, 'endAddress', r.address); } }}
                                             placeholder="클릭 시 자동 입력"
-                                            className="w-full bg-transparent text-[9px] text-slate-400 text-right outline-none focus:border-b focus:border-blue-200 truncate cursor-pointer"
+                                            className="w-full bg-transparent text-[11px] font-bold text-slate-500 text-right outline-none truncate cursor-pointer"
                                           />
                                         </div>
                                       </div>
@@ -10412,15 +10411,12 @@ const App = () => {
                                       </div>
 
                                       {/* 루트 배너 */}
-                                      <div className="flex items-stretch gap-2 rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50/50 p-2.5">
+                                      {/* 루트 배너 */}
+                                      <div className="flex items-stretch gap-3">
                                         {/* 출발지 */}
-                                        <div className="flex flex-1 flex-col items-start gap-0.5 min-w-0 rounded-xl bg-white/80 border border-amber-100 px-2.5 py-2 shadow-sm">
-                                          <span className="text-[8px] font-bold tracking-widest uppercase text-amber-400">Departure</span>
-                                          <input
-                                            value={p.activity || ''}
-                                            readOnly
-                                            className="w-full bg-transparent text-[15px] font-black text-amber-900 outline-none truncate"
-                                          />
+                                        <div className="flex flex-1 flex-col items-start gap-0.5 min-w-0">
+                                          <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">Departure</span>
+                                          <span className="w-full text-[15px] font-black text-slate-800 truncate">{p.activity || '—'}</span>
                                           <input
                                             value={homeAddress}
                                             onChange={(v) => {
@@ -10438,23 +10434,21 @@ const App = () => {
                                             onClick={(e) => e.stopPropagation()}
                                             onFocus={(e) => e.target.select()}
                                             placeholder="주소 입력"
-                                            className="w-full bg-transparent text-[9px] text-slate-400 outline-none truncate cursor-pointer focus:border-b focus:border-amber-200"
+                                            className="w-full bg-transparent text-[11px] font-bold text-slate-500 outline-none truncate cursor-pointer"
                                           />
                                         </div>
                                         {/* 이동 시간 */}
-                                        <div className="flex flex-col items-center justify-center gap-1 px-1">
-                                          <div className="w-6 h-px bg-amber-200" />
-                                          <span className="text-[9px] font-bold text-amber-400 whitespace-nowrap">
+                                        <div className="flex flex-col items-center justify-center gap-0.5 px-1 shrink-0">
+                                          <span className="text-[9px] font-black text-slate-400 whitespace-nowrap">
                                             {nextTravel || '—'}
                                           </span>
-                                          {nextDist > 0 && <span className="text-[8px] text-amber-300">{nextDist}km</span>}
-                                          <div className="w-6 h-px bg-amber-200" />
+                                          {nextDist > 0 && <span className="text-[8px] font-bold text-slate-300">{nextDist}km</span>}
                                         </div>
                                         {/* 다음 일정 */}
-                                        <div className="flex flex-1 flex-col items-end gap-0.5 min-w-0 rounded-xl bg-white/80 border border-amber-100 px-2.5 py-2 shadow-sm">
-                                          <span className="text-[8px] font-bold tracking-widest uppercase text-orange-400">Next</span>
-                                          <span className="w-full text-[15px] font-black text-amber-900 text-right truncate">{nextName || '—'}</span>
-                                          <span className="w-full text-[9px] text-slate-400 text-right truncate">{nextAddress || ''}</span>
+                                        <div className="flex flex-1 flex-col items-end gap-0.5 min-w-0">
+                                          <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">Next</span>
+                                          <span className="w-full text-[15px] font-black text-slate-800 text-right truncate">{nextName || '—'}</span>
+                                          <span className="w-full text-[11px] font-bold text-slate-500 text-right truncate">{nextAddress || ''}</span>
                                         </div>
                                       </div>
 

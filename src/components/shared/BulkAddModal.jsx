@@ -171,23 +171,52 @@ const BulkAddModal = ({
                               if (!url) { showInfoToast('공유 링크를 입력해주세요.'); return; }
                               setBulkAddLoading(true);
                               try {
-                                // naver.me 또는 map.naver.com 링크에서 폴더 ID 추출
-                                let folderContent = '';
-                                if (/naver\.me\//.test(url) || /map\.naver\.com\/p\/favorite/.test(url)) {
-                                  // Jina로 리다이렉트 따라가서 폴더 ID 추출
-                                  const jinaText = await (await fetch(`https://r.jina.ai/${url}`)).text();
-                                  const folderMatch = jinaText.match(/folder\/([a-f0-9]{32})/);
-                                  const urlMatch = url.match(/folder\/([a-f0-9]{32})/);
-                                  const folderId = folderMatch?.[1] || urlMatch?.[1];
-                                  if (folderId) {
-                                    const detailUrl = `https://pages.map.naver.com/save-pages/pc/detail-list/${folderId}?lang=ko`;
-                                    folderContent = await (await fetch(`https://r.jina.ai/${detailUrl}`)).text();
+                                let folderId = null;
+                                // 1. URL에서 직접 폴더 ID 추출
+                                const directMatch = url.match(/folder\/([a-f0-9]{32})/);
+                                if (directMatch) {
+                                  folderId = directMatch[1];
+                                }
+                                // 2. naver.me 단축 URL → 리다이렉트로 폴더 ID 추출
+                                if (!folderId && /naver\.me\//.test(url)) {
+                                  try {
+                                    // fetch로 리다이렉트 따라가서 최종 URL에서 폴더 ID 추출
+                                    const redirectRes = await fetch(url, { redirect: 'follow', mode: 'no-cors' }).catch(() => null);
+                                    const finalUrl = redirectRes?.url || '';
+                                    const redirectMatch = finalUrl.match(/folder\/([a-f0-9]{32})/);
+                                    if (redirectMatch) folderId = redirectMatch[1];
+                                  } catch {}
+                                  // no-cors로 못 가져오면 Jina URL Source에서 추출
+                                  if (!folderId) {
+                                    try {
+                                      const jinaText = await (await fetch(`https://r.jina.ai/${url}`)).text();
+                                      const srcMatch = jinaText.match(/URL Source:\s*(https?:\/\/[^\n]+)/);
+                                      const srcUrl = srcMatch?.[1] || '';
+                                      const srcFolderMatch = srcUrl.match(/folder\/([a-f0-9]{32})/);
+                                      if (srcFolderMatch) folderId = srcFolderMatch[1];
+                                      // Jina 본문에서도 시도
+                                      if (!folderId) {
+                                        const bodyMatch = jinaText.match(/folder\/([a-f0-9]{32})/);
+                                        if (bodyMatch) folderId = bodyMatch[1];
+                                      }
+                                    } catch {}
                                   }
                                 }
-                                if (!folderContent) {
-                                  // 직접 Jina로 파싱 시도
-                                  folderContent = await (await fetch(`https://r.jina.ai/${url}`)).text();
+                                // 3. map.naver.com/p/favorite 형식
+                                if (!folderId && /map\.naver\.com\/p\/favorite/.test(url)) {
+                                  const favMatch = url.match(/folder\/([a-f0-9]{32})/);
+                                  if (favMatch) folderId = favMatch[1];
                                 }
+
+                                if (!folderId) {
+                                  showInfoToast('폴더 ID를 추출할 수 없습니다. 긴 URL을 직접 붙여넣어주세요.');
+                                  setBulkAddLoading(false);
+                                  return;
+                                }
+
+                                // 4. pages.map.naver.com으로 장소 목록 가져오기
+                                const detailUrl = `https://pages.map.naver.com/save-pages/pc/detail-list/${folderId}?lang=ko`;
+                                const folderContent = await (await fetch(`https://r.jina.ai/${detailUrl}`)).text();
                                 // 장소 이름 + 카테고리 + 주소 추출
                                 // 패턴: *   **장소명**  →  카테고리  →  주소
                                 const lines = folderContent.split('\n');

@@ -7878,7 +7878,7 @@ const App = () => {
                     {/* 지도 뷰 - 목록 위 고정 */}
                     <div id="right-panel-map-overview" className="shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-visible shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2">
                       {/* 지도 본체 + 오버레이 버튼 */}
-                      <div style={{ aspectRatio: '1 / 1' }} className="relative overflow-visible">
+                      <div style={{ aspectRatio: mapEditMode ? '16 / 9' : '1 / 1' }} className="relative overflow-visible transition-all duration-300">
                         <RoutePreviewCanvas
                           routePreviewMap={overviewFilteredRoutePreviewMap}
                           libraryPoints={libraryMapPoints}

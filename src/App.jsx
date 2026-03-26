@@ -34,7 +34,7 @@ import {
   ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
   PlusCircle, Waves, QrCode, CheckSquare, Square,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw, AlignLeft, Zap, Home, Clock
+  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw, AlignLeft, Zap, Home, Clock, Soup
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {
@@ -5473,6 +5473,7 @@ const App = () => {
       case 'view': return <div key={type} className={`${style} text-sky-600 bg-sky-50 border-sky-100`}><Eye size={10} /> 뷰맛집</div>;
       case 'experience': return <div key={type} className={`${style} text-emerald-600 bg-emerald-50 border-emerald-100`}><Star size={10} /> 체험</div>;
       case 'souvenir': return <div key={type} className={`${style} text-teal-600 bg-teal-50 border-teal-100`}><Gift size={10} /> 기념품샵</div>;
+      case 'snack': return <div key={type} className={`${style} text-pink-500 bg-pink-50 border-pink-100`}><Soup size={10} /> 분식</div>;
       case 'pickup': return <div key={type} className={`${style} text-orange-500 bg-orange-50 border-orange-100`}><Package size={10} /> 픽업</div>;
       case 'home': return <div key={type} className={`${style} text-amber-700 bg-amber-50 border-amber-100`}><Home size={10} /> 집</div>;
       case 'quick': return <div key={type} className={`${style} text-yellow-600 bg-yellow-50 border-yellow-200`}><Zap size={10} /> 퀵등록</div>;
@@ -5519,6 +5520,7 @@ const App = () => {
     const normalized = String(category || '').toLowerCase();
     if (!normalized) return ['place'];
     if (/카페|cafe|coffee|dessert|bakery/.test(normalized)) return ['cafe'];
+    if (/분식|snack|떡볶이|김밥|순대|어묵/.test(normalized)) return ['snack'];
     if (/식당|맛집|restaurant|food|dining|bar|pub/.test(normalized)) return ['food'];
     if (/관광|명소|tour|museum|attraction|view|beach|park/.test(normalized)) return ['tour'];
     return ['place'];

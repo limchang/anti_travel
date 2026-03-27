@@ -3032,7 +3032,7 @@ const App = () => {
       if (found?.item) {
         // 지도 편집 모드: 퀵뷰 모달 직접 띄우기
         if (mapEditMode) {
-          setMapQuickViewItem({ dayIdx: found.dayIdx, pIdx: found.pIdx, ...lastClickPosRef.current });
+          // 먼저 지도 이동
           setFocusedMapTarget({
             kind: 'timeline',
             id: found.item.id,
@@ -3043,6 +3043,10 @@ const App = () => {
           });
           const addr = getRouteAddress(found.item, 'to');
           setBasePlanRef({ id: found.item.id, name: found.item.activity || found.item.name || '', address: addr || '' });
+          // 지도 이동 완료 후 퀵뷰 표시
+          setTimeout(() => {
+            setMapQuickViewItem({ dayIdx: found.dayIdx, pIdx: found.pIdx });
+          }, 80);
           return;
         }
         focusTimelineOnMap(found.item, found.dayNum, { scroll: true });
@@ -11247,22 +11251,38 @@ const App = () => {
         const qvCatStyle = getCategoryCardStyle(qvPrimaryType);
         const qvIsExpanded = expandedId === qvItem.id;
         const qvMenus = (qvItem.receipt?.items || []).filter(m => m?.selected !== false);
-        // 지도 영역 중앙 고정
+        // 지도 영역 좌상단 고정
         const mapEl = document.getElementById('right-panel-map-overview');
         const mapRect = mapEl?.getBoundingClientRect();
-        const panelW = 380;
-        const qvLeft = mapRect ? mapRect.left + (mapRect.width - panelW) / 2 : (window.innerWidth - panelW) / 2;
-        const qvTop = mapRect ? mapRect.top + 16 : 80;
+        const panelW = 360;
+        const qvLeft = mapRect ? mapRect.left + 12 : 12;
+        const qvTop = mapRect ? mapRect.top + 12 : 80;
+        // 일정 순번 계산
+        const qvOrderNum = (() => {
+          let num = 0;
+          for (let di = 0; di <= qvDIdx; di++) {
+            const plan = itinerary.days?.[di]?.plan || [];
+            for (let pi = 0; pi < plan.length; pi++) {
+              if (plan[pi]?.type === 'backup') continue;
+              num++;
+              if (di === qvDIdx && pi === qvPIdx) return num;
+            }
+          }
+          return num;
+        })();
         return (
           <>
             <div className="fixed inset-0 z-[99998]" onClick={() => setMapQuickViewItem(null)} />
             <div
-              className={`fixed z-[99999] rounded-[24px] border overflow-hidden animate-in slide-in-from-bottom-2 ${qvCatStyle.bg} ${qvCatStyle.border} shadow-[0_24px_48px_-16px_rgba(15,23,42,0.3)]`}
-              style={{ left: Math.max(8, qvLeft), top: Math.max(8, qvTop), width: panelW, maxHeight: mapRect ? mapRect.height - 32 : '80vh' }}
+              className={`fixed z-[99999] rounded-[24px] border overflow-hidden animate-in slide-in-from-left-2 bg-white ${qvCatStyle.border} shadow-[0_24px_48px_-16px_rgba(15,23,42,0.3)]`}
+              style={{ left: Math.max(8, qvLeft), top: Math.max(8, qvTop), width: panelW, maxHeight: mapRect ? mapRect.height - 24 : '80vh' }}
             >
               <div className="overflow-y-auto max-h-[inherit]">
-              {/* 카테고리 악센트 바 */}
-              <div className={`h-[3px] w-full ${qvCatStyle.accent}`} />
+              {/* 마커 번호 + 카테고리 악센트 바 */}
+              <div className={`flex items-center gap-2 px-4 py-2 ${qvCatStyle.accent}`}>
+                <span className="w-6 h-6 rounded-lg bg-white/90 flex items-center justify-center text-[12px] font-black text-slate-700">{qvOrderNum}</span>
+                <span className="text-[12px] font-black text-white truncate">{qvItem.activity || '이름 없음'}</span>
+              </div>
               {/* 시간 바 */}
               <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 bg-slate-50 border-b border-slate-100" data-no-drag="true">
                 <div className="flex flex-col items-center gap-0.5 flex-1">

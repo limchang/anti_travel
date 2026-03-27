@@ -6877,7 +6877,62 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F2F4F6] text-[#191F28] font-sans flex overflow-x-hidden font-bold flex-row relative">
+    <div className="min-h-screen bg-[#F2F4F6] text-[#191F28] font-sans flex overflow-x-hidden font-bold flex-col relative">
+      {/* ── 최상단 메뉴바 ── */}
+      <div className="fixed top-0 inset-x-0 z-[310] h-12 bg-white border-b border-slate-200 flex items-center px-4 gap-3 shadow-sm">
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center">
+            <MapIcon size={14} className="text-white" />
+          </div>
+          <span className="text-[14px] font-black text-slate-800 tracking-tight">Anti Planer</span>
+        </div>
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={() => setMapEditMode(prev => !prev)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black transition-all ${!mapEditMode ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+        >
+          <Pencil size={12} />
+          {mapEditMode ? '상세 일정 편집' : '지도 보기'}
+        </button>
+        {user && !user.isGuest && (
+          <button
+            type="button"
+            onClick={() => saveItineraryManually()}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black transition-all ${isDirty ? 'border-amber-300 bg-amber-50 text-amber-600 hover:bg-amber-100' : 'border-slate-200 bg-white text-slate-400'}`}
+          >
+            {isDirty ? '저장' : '저장됨'}
+          </button>
+        )}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowNavMenu(prev => !prev)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-slate-300 transition-colors"
+          >
+            <SlidersHorizontal size={14} />
+          </button>
+          {showNavMenu && (
+            <>
+              <div className="fixed inset-0 z-[9980]" onClick={() => setShowNavMenu(false)} />
+              <div className="absolute right-0 top-10 z-[9990] w-[200px] rounded-[14px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
+                <button onClick={() => { setShowPlanManager(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">일정 목록</button>
+                <button onClick={() => { setShowAiSettings(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">AI 설정</button>
+                <button onClick={() => { setShowChecklistModal(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">체크리스트</button>
+                <button onClick={() => { setShowSmartFillGuide(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">학습 지침</button>
+                <div className="h-px bg-slate-100 my-1" />
+                {user ? (
+                  <button onClick={() => { handleLogout(); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-red-500 hover:bg-red-50">로그아웃</button>
+                ) : (
+                  <button onClick={() => { handleLogin(); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-[#3182F6] hover:bg-blue-50">로그인</button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+      {/* ── 메뉴바 아래 여백 ── */}
+      <div className="h-12 shrink-0" />
       {/* ── 장소 수정 모달 ── */}
       {editingPlaceId && editPlaceDraft && (
         <div

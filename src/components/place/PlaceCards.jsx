@@ -607,7 +607,7 @@ export const PlaceLibraryCard = ({
   <div
     {...cardProps}
     data-map-focus-card="true"
-    className={`w-full group relative overflow-hidden rounded-[24px] border bg-white shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)] transition-[border-color,box-shadow] duration-200 ${place._isNew ? 'border-2 border-dashed border-[#3182F6] shadow-[0_0_0_2px_rgba(49,130,246,0.12)]' : highlighted ? 'border-[#3182F6] shadow-[0_0_0_3px_rgba(49,130,246,0.18)]' : categoryBorder ? `${categoryBorder} hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)]` : 'border-slate-200 hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)] hover:border-slate-300'} ${cardProps.className || ''}`.trim()}
+    className={`w-full group relative overflow-hidden rounded-[24px] border bg-white transition-[border-color,box-shadow] duration-200 ${place._isNew ? 'border-[#3182F6] shadow-[0_0_0_4px_rgba(49,130,246,0.15),0_0_20px_-4px_rgba(49,130,246,0.2)] animate-pulse' : highlighted ? 'border-[#3182F6] ring-2 ring-[#3182F6]/25 shadow-[0_0_24px_-4px_rgba(49,130,246,0.3)]' : categoryBorder ? `${categoryBorder} shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)] hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)]` : 'border-slate-200 shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)] hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)] hover:border-slate-300'} ${cardProps.className || ''}`.trim()}
   >
     {/* 카테고리 색 헤더 */}
     {categoryAccent && (

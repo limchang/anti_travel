@@ -9561,7 +9561,7 @@ const App = () => {
             const { usedPct, timingConflictCount, budgetExceeded, compactHeroAlert, revisitCount, newCount, revisitPct, newPct, categorySpendRows, visitPlanCount, visitPerHour, travelIntensity, averageSpanHours, averageTravelHoursLabel, lodgingConstraintCount } = heroStats;
             const heroCompactActive = heroPinnedCompact && !heroSummaryExpanded;
             return (
-              <div ref={heroSpacerRef} className="mb-1.5 relative" style={{ minHeight: heroCompactActive ? 122 : '24rem' }}>
+              <div ref={heroSpacerRef} className="mb-1.5 relative" style={{ minHeight: heroCompactActive ? 122 : '20rem' }}>
                 {/* 풀 카드 (최상단) */}
                 <div
                   className="fixed top-0 z-[120]"
@@ -9905,7 +9905,7 @@ const App = () => {
                     key={p.id}
                     id={pIdx === 0 ? `day-marker-${d.day}` : p.id}
                     data-plan-id={p.id}
-                    className={`relative group ${highlightedItemId === p.id ? 'scale-[1.02]' : ''}`}
+                    className={`relative group ${highlightedItemId === p.id ? 'scale-[1.01] ring-2 ring-[#3182F6]/30 shadow-[0_0_24px_-4px_rgba(49,130,246,0.35)] rounded-[26px]' : ''}`}
                   >
                     {isFirstMainItem && renderMobileLibraryInsertSlot(dIdx, -1, `mobile-insert-start-${d.day}`)}
                     {isFirstMainItem && (isTimelineDragActive || d.day > 1) && (

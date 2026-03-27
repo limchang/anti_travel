@@ -731,7 +731,7 @@ const App = () => {
   const [placeDistanceSync, setPlaceDistanceSync] = useState({ active: false, total: 0, done: 0, percent: 0, baseName: '' });
   const [col1Collapsed, setCol1Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
   const [col2Collapsed, setCol2Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
-  const [mapEditMode, setMapEditMode] = useState(false);
+  const [mapEditMode, setMapEditMode] = useState(true);
   const [mapQuickViewItem, setMapQuickViewItem] = useState(null); // { dayIdx, pIdx, x, y }
   const lastClickPosRef = useRef({ x: 0, y: 0 });
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));

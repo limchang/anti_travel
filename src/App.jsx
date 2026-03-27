@@ -9979,13 +9979,20 @@ const App = () => {
                       {/* 🟢 카드 본체 (내부 라운드 셀) */}
                       <div className={`relative w-full flex flex-col border overflow-hidden rounded-[24px] transition-[border-color,box-shadow] duration-200 ${stateStyles}`}>
                         {/* 카테고리 색 헤더 (일반 장소만) */}
-                        {!isHome && !isLodge && !isLodgeTagged && !isShip && (
+                        {!isHome && !isLodge && !isLodgeTagged && !isShip && (() => {
+                          let _orderNum = 0;
+                          for (let di = 0; di < dIdx; di++) _orderNum += (itinerary.days?.[di]?.plan || []).filter(x => x.type !== 'backup').length;
+                          _orderNum += (d.plan || []).slice(0, pIdx + 1).filter(x => x.type !== 'backup').length;
+                          const _dayColor = ROUTE_PREVIEW_COLORS[dIdx % ROUTE_PREVIEW_COLORS.length];
+                          return (
                           <div className={`flex items-center gap-2 px-3 py-2 ${_tlCatStyle.accent}`}>
+                            <span className="w-6 h-6 rounded-[7px] flex items-center justify-center text-[11px] font-black text-white leading-none shrink-0" style={{ background: _dayColor, border: '2px solid rgba(255,255,255,0.9)', boxShadow: `0 0 0 1px ${_dayColor}` }}>{_orderNum}</span>
                             <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30">{getCategoryBadge(getPreferredNavCategory(p.types))}</div>
                             <span className="text-[13px] font-black text-white truncate flex-1">{p.activity || '이름 없음'}</span>
                             <button type="button" onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors" title="일정 수정"><Pencil size={12} /></button>
                           </div>
-                        )}
+                          );
+                        })()}
                         {/* Plan B 페이지 인디케이터 */}
                         {hasPlanB && (
                           <div className="absolute top-2 right-2 z-20 pointer-events-none">
@@ -11191,7 +11198,7 @@ const App = () => {
               <div className="overflow-y-auto max-h-[inherit]">
               {/* 마커 번호 + 카테고리 + 이름 + 수정 버튼 */}
               <div className={`flex items-center gap-2 px-3 py-2.5 ${qvCatStyle.accent}`}>
-                <span className="w-6 h-6 rounded-lg bg-white/90 flex items-center justify-center text-[12px] font-black text-slate-700 shrink-0">{qvOrderNum}</span>
+                <span className="w-6 h-6 rounded-[7px] flex items-center justify-center text-[11px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[(qvDIdx ?? 0) % ROUTE_PREVIEW_COLORS.length], border: '2px solid rgba(255,255,255,0.9)', boxShadow: `0 0 0 1px ${ROUTE_PREVIEW_COLORS[(qvDIdx ?? 0) % ROUTE_PREVIEW_COLORS.length]}` }}>{qvOrderNum}</span>
                 <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30">{getCategoryBadge(qvPrimaryType)}</div>
                 <span className="text-[13px] font-black text-white truncate flex-1">{qvItem.activity || qvItem.name || '이름 없음'}</span>
                 {!isPlaceQuickView && (

@@ -7275,6 +7275,11 @@ const App = () => {
                     <div className="flex flex-col gap-1">
                       {(() => {
                         const navPlanItems = (d.plan || []).filter(p => p.type !== 'backup');
+                        // 이전 day들의 아이템 수 누적 (지도 마커 번호용)
+                        let navOrderOffset = 0;
+                        for (let di = 0; di < dNavIdx; di++) {
+                          navOrderOffset += (itinerary.days?.[di]?.plan || []).filter(x => x.type !== 'backup').length;
+                        }
                         const expectedNightSlot = d.day <= tripNights;
                         const lastStayIndex = navPlanItems.findIndex((item, index, arr) =>
                           index === arr.length - 1 && (isFullLodgeStayItem(item) || (Array.isArray(item.types) && item.types.includes('stay')))
@@ -7436,10 +7441,13 @@ const App = () => {
                                     <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[14px] ${navCatStyle.accent}`} />
                                     {isLastLodge ? (
                                       <div className="grid w-full min-w-0 grid-cols-[2.45rem_1fr_auto] items-center gap-1.5">
-                                        <span
-                                          className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}
-                                          onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
-                                        >{p.time || '--:--'}</span>
+                                        <div className="flex flex-col items-center gap-0.5">
+                                          <span className={`text-[8px] font-black leading-none ${isActive ? 'text-[#3182F6]' : 'text-slate-300'}`}>{navOrderOffset + pIdx + 1}</span>
+                                          <span
+                                            className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}
+                                            onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
+                                          >{p.time || '--:--'}</span>
+                                        </div>
                                         <div className="min-w-0 flex items-center gap-1.5 overflow-hidden">
                                           <div
                                             className={`shrink-0 scale-[0.88] origin-left transition-opacity cursor-pointer hover:scale-100 ${isActive ? 'opacity-100' : 'opacity-70'}`}
@@ -7478,10 +7486,13 @@ const App = () => {
                                       </div>
                                     ) : (
                                       <>
-                                        <span
-                                          className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}
-                                          onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
-                                        >{p.time || '--:--'}</span>
+                                        <div className="flex flex-col items-center gap-0.5">
+                                          <span className={`text-[8px] font-black leading-none ${isActive ? 'text-[#3182F6]' : 'text-slate-300'}`}>{navOrderOffset + pIdx + 1}</span>
+                                          <span
+                                            className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}
+                                            onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
+                                          >{p.time || '--:--'}</span>
+                                        </div>
                                         <div className="min-w-0 flex items-center gap-1.5 overflow-hidden">
                                           <div
                                             className={`shrink-0 scale-[0.88] origin-left transition-opacity cursor-pointer hover:scale-100 ${isActive ? 'opacity-100' : 'opacity-70'}`}

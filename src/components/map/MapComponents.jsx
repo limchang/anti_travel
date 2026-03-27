@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import L from 'leaflet';
-import { MapContainer, Marker, Pane, Polyline, Popup, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, Pane, Polyline, Popup, TileLayer, Tooltip, Circle, useMap, useMapEvents } from 'react-leaflet';
 import { ChevronDown, ChevronUp, Plus, Minus, Pencil, X, Eye, RotateCcw, MapPin, Sparkles, LoaderCircle, Anchor, GripVertical, Map as MapIcon } from 'lucide-react';
 import { safeLocalStorageGet, safeLocalStorageSet } from '../../utils/storage.js';
 import { normalizeGeoPoint, hasGeoCoords } from '../../utils/geo.js';
@@ -1445,6 +1445,18 @@ export const RoutePreviewCanvas = ({
           });
           })()}
         </Pane>
+        {/* 선택된 일정 주변 15분 거리 원 */}
+        {activeItemId && (() => {
+          const activePoint = visibleTimelineEntries.find(p => p.id === activeItemId);
+          if (!activePoint?.position) return null;
+          return (
+            <Circle
+              center={activePoint.position}
+              radius={10000}
+              pathOptions={{ color: '#3182F6', weight: 1.5, opacity: 0.5, fillColor: '#3182F6', fillOpacity: 0.04, dashArray: '8 6' }}
+            />
+          );
+        })()}
       </MapContainer>
       {tileStatus === 'loading' && (
         <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/85 bg-white/92 px-3 py-1 text-[10px] font-black text-slate-500 shadow-sm">

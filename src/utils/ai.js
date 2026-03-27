@@ -723,20 +723,6 @@ export const searchAddressFromPlaceName = async (keyword, regionHint = '', kakao
   if (kakaoKey) {
     try {
       const res = await fetch(
-        `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(searchQuery)}&size=1`,
-        { headers: { Authorization: `KakaoAK ${kakaoKey}` } }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const first = data.documents?.[0];
-        if (first) {
-          const addr = first.road_address?.address_name || first.address?.address_name || '';
-          if (addr) return { address: addr, lat: first.y, lon: first.x, source: '카카오주소' };
-        }
-      }
-    } catch (_) {}
-    try {
-      const res = await fetch(
         `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(searchQuery)}&size=1`,
         { headers: { Authorization: `KakaoAK ${kakaoKey}` } }
       );
@@ -746,6 +732,22 @@ export const searchAddressFromPlaceName = async (keyword, regionHint = '', kakao
         if (first) {
           const addr = first.road_address_name || first.address_name || '';
           if (addr) return { address: addr, lat: first.y, lon: first.x, source: '카카오키워드' };
+        }
+      } else {
+        console.warn('[카카오 키워드]', res.status, await res.text().catch(() => ''));
+      }
+    } catch (err) { console.warn('[카카오 키워드 에러]', err.message); }
+    try {
+      const res = await fetch(
+        `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(searchQuery)}&size=1`,
+        { headers: { Authorization: `KakaoAK ${kakaoKey}` } }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const first = data.documents?.[0];
+        if (first) {
+          const addr = first.road_address?.address_name || first.address?.address_name || '';
+          if (addr) return { address: addr, lat: first.y, lon: first.x, source: '카카오주소' };
         }
       }
     } catch (_) {}

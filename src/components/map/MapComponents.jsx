@@ -130,28 +130,30 @@ export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColo
     ? 'drop-shadow(0 5px 14px rgba(15,23,42,0.45))'
     : 'drop-shadow(0 3px 8px rgba(15,23,42,0.32))';
 
-  // 이름 표시 모드: 이름 라벨 위 + 숫자 아이콘 아래 (세로 스택)
+  // 이름 표시 모드: 숫자 옆에 이름을 가로로 (내장소와 동일)
   if (showName && placeName) {
     const nameMaxW = isFocused ? 120 : 90;
-    const nameH = isFocused ? 22 : 18;
-    const totalH = badgeH + (badgeH ? 2 : 0) + nameH + 2 + sz + tailH;
-    const totalW = Math.max(sz, nameMaxW);
+    const pillH = sz;
+    const totalH = badgeH + (badgeH ? 2 : 0) + pillH + tailH;
+    const totalW = sz + nameMaxW;
     return L.divIcon({
       className: '',
       html: `
         <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
           ${badgeText ? `<div style="margin-bottom:2px;padding:0 5px;height:${badgeH}px;border-radius:999px;background:${badgeColor};color:#fff;font-size:7px;font-weight:900;line-height:${badgeH}px;white-space:nowrap;letter-spacing:0.06em;">${badgeText}</div>` : ''}
-          <div style="max-width:${nameMaxW}px;height:${nameH}px;padding:0 6px;border-radius:6px;background:rgba(255,255,255,0.95);border:1.5px solid ${dayColor};margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '11px' : '10px'};font-weight:900;color:#334155;line-height:${nameH - 3}px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.12);">
-            ${placeName}
-          </div>
-          <div style="width:${sz}px;height:${sz}px;border-radius:${radius}px;background:${dayColor};border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${dayColor};display:flex;align-items:center;justify-content:center;">
-            <span style="font-size:${isFocused ? '16px' : '13px'};font-weight:900;color:#fff;line-height:1;letter-spacing:-0.5px;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${label}</span>
+          <div style="display:flex;align-items:center;border-radius:${radius}px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${dayColor};overflow:hidden;background:#fff;">
+            <div style="width:${sz}px;height:${pillH}px;background:${dayColor};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <span style="font-size:${isFocused ? '16px' : '13px'};font-weight:900;color:#fff;line-height:1;letter-spacing:-0.5px;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${label}</span>
+            </div>
+            <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '12px' : '10px'};font-weight:900;color:#334155;line-height:${pillH}px;">
+              ${placeName}
+            </div>
           </div>
           <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${dayColor};margin-top:-1px;"></div>
         </div>
       `,
       iconSize: [totalW, totalH],
-      iconAnchor: [totalW / 2, totalH],
+      iconAnchor: [sz / 2, totalH],
     });
   }
 
@@ -283,24 +285,26 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
   const displayName = placeName || '';
   if (showName && displayName && !isCluster) {
     const nameMaxW = isFocused ? 120 : 90;
-    const nameH = isFocused ? 22 : 18;
-    const totalH = nameH + 2 + sz + tailH;
-    const totalW = Math.max(sz, nameMaxW);
+    const pillH = sz;
+    const totalH = pillH + tailH;
+    const totalW = sz + nameMaxW;
     return L.divIcon({
       className: '',
       html: `
         <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
-          <div style="max-width:${nameMaxW}px;height:${nameH}px;padding:0 6px;border-radius:6px;background:rgba(255,255,255,0.95);border:1.5px solid ${categoryColor};margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '11px' : '10px'};font-weight:900;color:#334155;line-height:${nameH - 3}px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.12);">
-            ${displayName}
-          </div>
-          <div style="width:${sz}px;height:${sz}px;border-radius:${radius};background:${categoryColor};border:${borderStyle};box-shadow:0 0 0 1.5px ${categoryColor};display:flex;align-items:center;justify-content:center;">
-            <svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5)) drop-shadow(0 0 2px rgba(0,0,0,0.25));">${svgIcon}</svg>
+          <div style="display:flex;align-items:center;border-radius:${radius};border:${borderStyle};box-shadow:0 0 0 1.5px ${categoryColor};overflow:hidden;background:#fff;">
+            <div style="width:${sz}px;height:${pillH}px;background:${categoryColor};display:flex;align-items:center;justify-content:center;shrink:0;">
+              <svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5)) drop-shadow(0 0 2px rgba(0,0,0,0.25));">${svgIcon}</svg>
+            </div>
+            <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '12px' : '10px'};font-weight:900;color:#334155;line-height:${pillH}px;">
+              ${displayName}
+            </div>
           </div>
           <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${categoryColor};margin-top:-1px;"></div>
         </div>
       `,
       iconSize: [totalW, totalH],
-      iconAnchor: [totalW / 2, totalH],
+      iconAnchor: [sz / 2, totalH],
     });
   }
 

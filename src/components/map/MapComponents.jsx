@@ -1216,6 +1216,8 @@ export const RoutePreviewCanvas = ({
                   bubblingMouseEvents={false}
                   icon={buildGroupedTimelineMarkerIcon(point._groupItems, isFocused, showLibraryNames)}
                   eventHandlers={interactive && typeof onMarkerClick === 'function' ? {
+                    mouseover: (e) => { e.target.setZIndexOffset(10000); },
+                    mouseout: (e) => { e.target.setZIndexOffset(0); },
                     click: (e) => {
                       const items = point._groupItems;
                       // data-group-idx 속성으로 정확히 어느 셀인지 판단
@@ -1253,6 +1255,8 @@ export const RoutePreviewCanvas = ({
               bubblingMouseEvents={false}
               icon={buildTimelineMarkerIcon(point.color, String(point.order), point.isFocused, point.categoryColor, point.categoryLabel, point.isFirst, point.isLast, 0, point.label || '', showLibraryNames)}
               eventHandlers={interactive && typeof onMarkerClick === 'function' ? {
+                mouseover: (e) => { e.target.setZIndexOffset(10000); },
+                mouseout: (e) => { e.target.setZIndexOffset(0); },
                 click: () => onMarkerClick({
                   kind: 'timeline',
                   id: point.id,
@@ -1287,6 +1291,8 @@ export const RoutePreviewCanvas = ({
                   ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors, point.primaryType || '', clusterTypes, point.label || '', clusterNames, showLibraryNames, point.starred)
                   : buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
                 eventHandlers={interactive ? {
+                  mouseover: (e) => { e.target.setZIndexOffset(10000); },
+                  mouseout: (e) => { e.target.setZIndexOffset(0); },
                   click: (e) => {
                     if (point.kind === 'place') {
                       if (isCluster) {

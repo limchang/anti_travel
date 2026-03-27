@@ -7649,6 +7649,33 @@ const App = () => {
               useAiSmartFill={useAiSmartFill} setUseAiSmartFill={setUseAiSmartFill}
               setShowChecklistModal={setShowChecklistModal}
               setShowSmartFillGuide={setShowSmartFillGuide}
+              onMoveAllToLibrary={() => {
+                const allItems = [];
+                (itinerary.days || []).forEach(d => {
+                  (d.plan || []).forEach(p => {
+                    if (p.type === 'backup' || p.types?.includes('home')) return;
+                    allItems.push(p);
+                  });
+                });
+                if (!allItems.length) { showInfoToast('이동할 일정이 없습니다.'); return; }
+                if (!window.confirm(`${allItems.length}개 일정을 모두 내장소로 보내시겠습니까?\n(일정 목록은 비워집니다)`)) return;
+                saveHistory();
+                setItinerary(prev => {
+                  const next = JSON.parse(JSON.stringify(prev));
+                  const newPlaces = [];
+                  (next.days || []).forEach(d => {
+                    const kept = [];
+                    (d.plan || []).forEach(p => {
+                      if (p.type === 'backup' || p.types?.includes('home')) { kept.push(p); return; }
+                      newPlaces.push({ id: p.id, name: p.activity || p.name || '', types: p.types || ['place'], address: p.receipt?.address || p.address || '', receipt: p.receipt || {}, memo: p.memo || '', business: p.business || {}, price: p.price || 0 });
+                    });
+                    d.plan = kept;
+                  });
+                  next.places = [...(next.places || []), ...newPlaces];
+                  return next;
+                });
+                showInfoToast(`${allItems.length}개 일정을 내장소로 이동했습니다.`);
+              }}
               handleLogin={handleLogin} handleLogout={handleLogout}
               auth={auth}
             />

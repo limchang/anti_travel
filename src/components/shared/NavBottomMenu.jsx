@@ -17,6 +17,7 @@ const NavBottomMenu = ({
   useAiSmartFill, setUseAiSmartFill,
   setShowChecklistModal,
   setShowSmartFillGuide,
+  onMoveAllToLibrary,
   handleLogin, handleLogout,
   auth,
 }) => (
@@ -158,6 +159,18 @@ const NavBottomMenu = ({
               </button>
             </div>
             <div className="h-px bg-slate-100 mx-4" />
+            {onMoveAllToLibrary && (
+              <>
+                <button
+                  onClick={() => { onMoveAllToLibrary(); setShowNavMenu(false); }}
+                  className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-amber-50 hover:text-amber-600 flex items-center gap-2.5 transition-colors"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8V21H3V8"/><path d="M23 3H1v5h22V3z"/><path d="M10 12h4"/></svg>
+                  일정 모두 내장소로 보내기
+                </button>
+                <div className="h-px bg-slate-100 mx-4" />
+              </>
+            )}
             <button
               onClick={() => { setShowChecklistModal(true); setShowNavMenu(false); }}
               className="w-full px-4 py-3 text-left text-[12px] font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2.5 transition-colors"

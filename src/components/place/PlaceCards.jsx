@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   CheckSquare,
-  ChevronDown,
   Map as MapIcon,
   MapPin,
   Minus,
@@ -15,8 +14,8 @@ import {
   X,
 } from 'lucide-react';
 import { TAG_OPTIONS, normalizeTagOrder, toggleTagSelection, getTagButtonClass } from '../../utils/constants.js';
+import { SharedNameRow, SharedAddressRow, SharedBusinessRow, SharedMemoRow, SharedTotalFooter } from '../shared/SharedComponents.jsx';
 
-const ACTION_SLOT_CLASS = 'shrink-0 flex items-center justify-end gap-1 min-w-[3.25rem]';
 
 const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', className = '' }) => {
   const selected = normalizeTagOrder(value);
@@ -112,116 +111,7 @@ const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', class
   );
 };
 
-const SharedNameRow = ({
-  value,
-  onChange,
-  onFocus,
-  onKeyDown,
-  onPaste,
-  autoFocus = false,
-  placeholder,
-  actionButton = null,
-  readOnly = false,
-  onContainerClick,
-  prefixContent = null,
-}) => (
-  <div className="w-full flex items-center gap-2 text-slate-500 px-1 py-0.5 transition-all" onClick={onContainerClick}>
-    {prefixContent}
-    <input
-      value={value}
-      onChange={onChange}
-      onFocus={onFocus}
-      onKeyDown={onKeyDown}
-      onPaste={onPaste}
-      autoFocus={autoFocus}
-      readOnly={readOnly}
-      className="flex-1 bg-transparent text-[15px] font-black text-slate-800 truncate leading-tight focus:outline-none min-w-0"
-      placeholder={placeholder}
-    />
-    {actionButton ? <div className={ACTION_SLOT_CLASS}>{actionButton}</div> : null}
-  </div>
-);
-
-const SharedAddressRow = ({
-  value,
-  onChange,
-  placeholder = '주소 정보 없음',
-  leading = null,
-  actions = null,
-  onContainerClick,
-}) => (
-  <div className="flex items-center gap-2 text-slate-500 w-full px-1 py-0.5" onClick={onContainerClick}>
-    {leading}
-    <input
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      className="flex-1 min-w-0 bg-transparent border-none outline-none text-[11px] font-bold text-slate-500 placeholder:text-slate-300"
-    />
-    {actions ? <div className={ACTION_SLOT_CLASS}>{actions}</div> : null}
-  </div>
-);
-
-const SharedBusinessRow = ({
-  summary,
-  placeholder = '영업 정보 (선택)',
-  onToggle,
-  actionButton = null,
-  expanded = null,
-  onContainerClick,
-  quickEditSegments = null,
-  onQuickEdit = null,
-}) => (
-  <div className="w-full py-0.5 px-1" onClick={onContainerClick}>
-    <div className="w-full flex items-center gap-2">
-      <div role="button" tabIndex={0}
-        onClick={(event) => {
-          event.stopPropagation();
-          onToggle?.(event);
-        }}
-        className="flex-1 flex items-center gap-2 text-left min-w-0"
-      >
-        {summary === '미설정' || !summary ? (
-          <span className="text-[10px] font-bold text-slate-400">{placeholder}</span>
-        ) : quickEditSegments?.length && onQuickEdit ? (
-          <span className="text-[10px] font-bold text-slate-600 truncate flex-1 flex items-center gap-1 flex-wrap">
-            {quickEditSegments.map((segment, index) => (
-              <React.Fragment key={`${segment.fieldKey}-${index}`}>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onQuickEdit(segment.fieldKey);
-                  }}
-                  className="hover:text-[#3182F6] transition-colors"
-                >
-                  {segment.label}
-                </button>
-                {index < quickEditSegments.length - 1 && <span className="text-slate-300">·</span>}
-              </React.Fragment>
-            ))}
-          </span>
-        ) : (
-          <span className="text-[10px] font-bold text-slate-600 truncate flex-1">{summary}</span>
-        )}
-      </div>
-      {actionButton ? <div className={ACTION_SLOT_CLASS}>{actionButton}</div> : null}
-    </div>
-    {expanded}
-  </div>
-);
-
-const SharedMemoRow = ({ value, onChange, placeholder = '메모를 입력하세요...', onContainerClick, readOnly = false }) => (
-  <div onClick={onContainerClick}>
-    <input
-      value={value}
-      onChange={onChange}
-      readOnly={readOnly}
-      className="w-full bg-slate-50 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-500 outline-none placeholder:text-slate-400 focus:outline-none focus:bg-white transition-all"
-      placeholder={placeholder}
-    />
-  </div>
-);
+// SharedNameRow, SharedAddressRow, SharedBusinessRow, SharedMemoRow는 SharedComponents.jsx에서 import
 
 const MenuPriceInput = ({ value = 0, onCommit, className = '', onClick = null }) => {
   const normalizedValue = Number(value) || 0;
@@ -262,19 +152,6 @@ const MenuPriceInput = ({ value = 0, onCommit, className = '', onClick = null })
   );
 };
 
-const SharedTotalFooter = ({ expanded, onToggle, total }) => (
-  <div
-    onClick={onToggle}
-    className="mt-auto px-5 py-3 flex items-center justify-between cursor-pointer transition-all bg-slate-50/50 hover:bg-slate-50"
-  >
-    <span className="text-[10px] text-slate-400 font-black tracking-[0.15em] uppercase flex items-center gap-1.5">
-      Total <ChevronDown size={10} className={`transition-transform duration-300 ${expanded ? 'rotate-180 text-[#3182F6]' : ''}`} />
-    </span>
-    <span className={`text-[16px] font-black tabular-nums text-[#3182F6]`}>
-      ₩{Number(total || 0).toLocaleString()}
-    </span>
-  </div>
-);
 
 export const PlaceEditorCard = ({
   className = '',

@@ -125,7 +125,7 @@ export const SharedAddressRow = ({
   actions = null,
   onContainerClick,
 }) => (
-  <div className="flex items-center gap-2 w-full rounded-xl bg-slate-50/80 px-2.5 py-1.5" onClick={onContainerClick}>
+  <div className="flex items-center gap-2 w-full rounded-xl bg-slate-50 px-2.5 py-1.5" onClick={onContainerClick}>
     {leading || <MapPin size={11} className="text-slate-400 shrink-0" />}
     <input
       value={value}
@@ -146,9 +146,9 @@ export const SharedBusinessRow = ({
   quickEditSegments = null,
   onQuickEdit = null,
 }) => (
-  <div className="w-full rounded-xl bg-amber-50/50 px-2.5 py-1.5" onClick={onContainerClick}>
+  <div className="w-full rounded-xl bg-amber-50 px-2.5 py-1.5" onClick={onContainerClick}>
     <div className="w-full flex items-center gap-2">
-      <Clock size={11} className="text-amber-500/70 shrink-0" />
+      <Clock size={11} className="text-amber-500 shrink-0" />
       <button
         type="button"
         onClick={(e) => {
@@ -160,7 +160,7 @@ export const SharedBusinessRow = ({
         {summary === '미설정' || !summary ? (
           <span className="text-[10px] font-bold text-slate-400">{placeholder}</span>
         ) : quickEditSegments?.length && onQuickEdit ? (
-          <span className="text-[10px] font-bold text-amber-700/80 truncate flex-1 flex items-center gap-1 flex-wrap">
+          <span className="text-[10px] font-bold text-amber-700 truncate flex-1 flex items-center gap-1 flex-wrap">
             {quickEditSegments.map((segment, idx) => (
               <React.Fragment key={`${segment.fieldKey}-${idx}`}>
                 <button
@@ -178,7 +178,7 @@ export const SharedBusinessRow = ({
             ))}
           </span>
         ) : (
-          <span className="text-[10px] font-bold text-amber-700/80 truncate flex-1">{summary}</span>
+          <span className="text-[10px] font-bold text-amber-700 truncate flex-1">{summary}</span>
         )}
       </button>
       {actionButton ? <div className={ACTION_SLOT_CLASS}>{actionButton}</div> : null}
@@ -216,7 +216,7 @@ export const SharedMemoRow = ({ value, onChange, placeholder = '메모를 입력
 
   if (hasList && !editing) {
     return (
-      <div onClick={onContainerClick} onDoubleClick={!readOnly ? (e) => { e.stopPropagation(); setEditing(true); } : undefined} className="w-full bg-slate-50/80 rounded-xl px-2.5 py-2" title={!readOnly ? '더블클릭으로 텍스트 편집' : undefined}>
+      <div onClick={onContainerClick} onDoubleClick={!readOnly ? (e) => { e.stopPropagation(); setEditing(true); } : undefined} className="w-full bg-slate-50 rounded-xl px-2.5 py-2" title={!readOnly ? '더블클릭으로 텍스트 편집' : undefined}>
         <div className="flex items-start gap-2">
           <StickyNote size={11} className="text-slate-400 shrink-0 mt-0.5" />
           <div className="flex flex-col gap-0.5 flex-1 min-w-0">
@@ -248,7 +248,7 @@ export const SharedMemoRow = ({ value, onChange, placeholder = '메모를 입력
   }
 
   return (
-    <div onClick={onContainerClick} className="flex items-center gap-2 w-full bg-slate-50/80 rounded-xl px-2.5 py-1.5">
+    <div onClick={onContainerClick} className="flex items-center gap-2 w-full bg-slate-50 rounded-xl px-2.5 py-1.5">
       <StickyNote size={11} className="text-slate-400 shrink-0" />
       <input
         value={value}

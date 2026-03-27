@@ -5538,16 +5538,16 @@ const App = () => {
 
   const getCategoryCardStyle = (type) => {
     switch (type) {
-      case 'food': return { bg: 'bg-[linear-gradient(180deg,rgba(255,241,242,0.5),rgba(255,255,255,0.98))]', border: 'border-rose-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(244,63,94,0.10)]', accent: 'bg-rose-500' };
-      case 'snack': return { bg: 'bg-[linear-gradient(180deg,rgba(254,252,232,0.5),rgba(255,255,255,0.98))]', border: 'border-yellow-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(202,138,4,0.10)]', accent: 'bg-yellow-600' };
-      case 'cafe': return { bg: 'bg-[linear-gradient(180deg,rgba(255,251,235,0.5),rgba(255,255,255,0.98))]', border: 'border-amber-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(217,119,6,0.10)]', accent: 'bg-amber-700' };
-      case 'tour': return { bg: 'bg-[linear-gradient(180deg,rgba(250,245,255,0.5),rgba(255,255,255,0.98))]', border: 'border-purple-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(139,92,246,0.10)]', accent: 'bg-purple-500' };
-      case 'experience': return { bg: 'bg-[linear-gradient(180deg,rgba(236,253,245,0.5),rgba(255,255,255,0.98))]', border: 'border-emerald-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(16,185,129,0.10)]', accent: 'bg-emerald-500' };
-      case 'view': return { bg: 'bg-[linear-gradient(180deg,rgba(240,249,255,0.5),rgba(255,255,255,0.98))]', border: 'border-sky-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(14,165,233,0.10)]', accent: 'bg-sky-500' };
-      case 'pickup': return { bg: 'bg-[linear-gradient(180deg,rgba(255,247,237,0.5),rgba(255,255,255,0.98))]', border: 'border-orange-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(249,115,22,0.10)]', accent: 'bg-orange-500' };
-      case 'souvenir': return { bg: 'bg-[linear-gradient(180deg,rgba(240,253,250,0.5),rgba(255,255,255,0.98))]', border: 'border-teal-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(20,184,166,0.10)]', accent: 'bg-teal-500' };
-      case 'openrun': return { bg: 'bg-[linear-gradient(180deg,rgba(254,242,242,0.5),rgba(255,255,255,0.98))]', border: 'border-red-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(239,68,68,0.10)]', accent: 'bg-red-500' };
-      case 'rest': return { bg: 'bg-[linear-gradient(180deg,rgba(236,254,255,0.5),rgba(255,255,255,0.98))]', border: 'border-cyan-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(6,182,212,0.10)]', accent: 'bg-cyan-500' };
+      case 'food': return { bg: 'bg-[linear-gradient(180deg,#fff1f2,#ffffff)]', border: 'border-rose-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(244,63,94,0.10)]', accent: 'bg-rose-500' };
+      case 'snack': return { bg: 'bg-[linear-gradient(180deg,#fefce8,#ffffff)]', border: 'border-yellow-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(202,138,4,0.10)]', accent: 'bg-yellow-600' };
+      case 'cafe': return { bg: 'bg-[linear-gradient(180deg,#fffbeb,#ffffff)]', border: 'border-amber-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(217,119,6,0.10)]', accent: 'bg-amber-700' };
+      case 'tour': return { bg: 'bg-[linear-gradient(180deg,#faf5ff,#ffffff)]', border: 'border-purple-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(139,92,246,0.10)]', accent: 'bg-purple-500' };
+      case 'experience': return { bg: 'bg-[linear-gradient(180deg,#ecfdf5,#ffffff)]', border: 'border-emerald-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(16,185,129,0.10)]', accent: 'bg-emerald-500' };
+      case 'view': return { bg: 'bg-[linear-gradient(180deg,#f0f9ff,#ffffff)]', border: 'border-sky-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(14,165,233,0.10)]', accent: 'bg-sky-500' };
+      case 'pickup': return { bg: 'bg-[linear-gradient(180deg,#fff7ed,#ffffff)]', border: 'border-orange-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(249,115,22,0.10)]', accent: 'bg-orange-500' };
+      case 'souvenir': return { bg: 'bg-[linear-gradient(180deg,#f0fdfa,#ffffff)]', border: 'border-teal-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(20,184,166,0.10)]', accent: 'bg-teal-500' };
+      case 'openrun': return { bg: 'bg-[linear-gradient(180deg,#fef2f2,#ffffff)]', border: 'border-red-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(239,68,68,0.10)]', accent: 'bg-red-500' };
+      case 'rest': return { bg: 'bg-[linear-gradient(180deg,#ecfeff,#ffffff)]', border: 'border-cyan-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(6,182,212,0.10)]', accent: 'bg-cyan-500' };
       default: return { bg: 'bg-white', border: 'border-slate-200', shadow: 'shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)]', accent: 'bg-slate-400' };
     }
   };
@@ -7266,7 +7266,7 @@ const App = () => {
                     {/* 스티키 날짜 라벨 */}
                     <button
                       type="button"
-                      className={`sticky top-0 z-10 w-full flex items-center gap-2 px-2.5 py-1.5 mb-1.5 rounded-xl backdrop-blur-md transition-all ${activeDay === d.day ? 'bg-[#3182F6]/90 text-white shadow-[0_4px_12px_-4px_rgba(49,130,246,0.4)]' : 'bg-white/85 text-slate-500 shadow-[0_2px_8px_-4px_rgba(15,23,42,0.1)] hover:bg-white/95'}`}
+                      className={`sticky top-0 z-10 w-full flex items-center gap-2 px-2.5 py-1.5 mb-1.5 rounded-xl ${activeDay === d.day ? 'bg-[#3182F6] text-white shadow-[0_4px_12px_-4px_rgba(49,130,246,0.4)]' : 'bg-white text-slate-500 shadow-[0_2px_8px_-4px_rgba(15,23,42,0.1)] hover:bg-slate-50'}`}
                       onClick={() => handleNavClick(d.day)}
                     >
                       <span className="text-[12px] font-black tracking-tight">{getNavDateLabelForDay(d.day).primary}</span>
@@ -10004,7 +10004,7 @@ const App = () => {
                             return (
                             <div
                               data-no-drag="true"
-                              className="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 bg-slate-50/80 border-b border-slate-100"
+                              className="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 bg-slate-50 border-b border-slate-100"
                             >
                               {/* START */}
                               <div className="flex flex-col items-center gap-0.5 flex-1">
@@ -11264,7 +11264,7 @@ const App = () => {
               {/* 카테고리 악센트 바 */}
               <div className={`h-[3px] w-full ${qvCatStyle.accent}`} />
               {/* 시간 바 */}
-              <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 bg-slate-50/80 border-b border-slate-100" data-no-drag="true">
+              <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 bg-slate-50 border-b border-slate-100" data-no-drag="true">
                 <div className="flex flex-col items-center gap-0.5 flex-1">
                   <button type="button" onClick={(e) => { e.stopPropagation(); toggleTimeFix(qvDIdx, qvPIdx); }} className={`text-[8px] font-black tracking-widest uppercase transition-colors ${qvItem.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}>Start {qvItem.isTimeFixed ? '🔒' : ''}</button>
                   <input type="text" inputMode="numeric" defaultValue={qvTime} key={`qv-s-${qvItem.id}-${qvTime}`} onBlur={(e) => { let raw = e.target.value.replace(/[^0-9:]/g, ''); if (/^\d{3,4}$/.test(raw)) { const pd = raw.padStart(4, '0'); raw = pd.slice(0, 2) + ':' + pd.slice(2); } const m = raw.match(/^(\d{1,2}):(\d{2})$/); if (m) { const h = Math.min(24, Math.max(0, parseInt(m[1], 10))); const min = h === 24 ? 0 : Math.min(59, Math.max(0, parseInt(m[2], 10))); setStartTimeValue(qvDIdx, qvPIdx, `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`); } }} onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }} onFocus={(e) => e.target.select()} onClick={(e) => e.stopPropagation()} placeholder="HH:MM" maxLength={5} className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[5rem] ${qvItem.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`} />

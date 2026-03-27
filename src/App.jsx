@@ -8464,7 +8464,7 @@ const App = () => {
       >
         {/* 일정 목록 */}
         <div
-          className={`w-full pt-8 pb-32 ${isMobileLayout ? 'px-4' : 'px-2 max-w-[500px] mx-auto'}`}
+          className={`w-full pt-8 pb-32 ${isMobileLayout ? 'px-4' : 'px-4 max-w-[500px] mx-auto'}`}
           onTouchStart={handleMainColumnTouchStart}
           onTouchEnd={handleMainColumnTouchEnd}
           onTouchCancel={handleMainColumnTouchEnd}
@@ -9560,7 +9560,7 @@ const App = () => {
 
                         {/* 개요 3개 카드 */}
                         {!heroCompactActive && (
-                          <div className={`w-full mx-auto px-2 ${timelineMaxClass}`}>
+                          <div className={`w-full mx-auto px-4 ${timelineMaxClass}`}>
                           <div className="rounded-[24px] border border-slate-200 bg-white/95 shadow-[0_10px_32px_-16px_rgba(15,23,42,0.18)] p-3">
                           <div className="grid grid-cols-3 gap-3 sm:gap-3">
                             <div className="relative rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4 cursor-pointer hover:border-blue-300 transition-colors" onClick={() => { setShowBudgetEdit(true); setBudgetEditValue(String(MAX_BUDGET)); }}>

@@ -7680,7 +7680,7 @@ const App = () => {
         ) : (
           <React.Fragment>
             {/* ── 고정 헤더 ── */}
-            <div className="px-5 pt-5 pb-2.5 border-b border-slate-100/60 shrink-0 bg-white">
+            <div className="px-3 pt-5 pb-2.5 border-b border-slate-100/60 shrink-0 bg-white">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
                   <Package size={14} className="text-[#3182F6]" />
@@ -7962,11 +7962,11 @@ const App = () => {
                     }}
                   >
                     {/* ── 고정 영역: 지도 + 카테고리 필터 ── */}
-                    <div className="shrink-0 px-5 pt-0 flex flex-col gap-1.5">
+                    <div className="shrink-0 px-3 pt-0 flex flex-col gap-1.5">
                     {/* 지도 뷰 - 목록 위 고정 */}
                     <div id="right-panel-map-overview" className="shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-visible shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2" style={{ isolation: 'isolate' }}>
                       {/* 지도 본체 + 오버레이 버튼 */}
-                      <div style={{ aspectRatio: mapEditMode ? '16 / 9' : '1 / 1' }} className="relative overflow-visible transition-all duration-300">
+                      <div style={{ aspectRatio: '16 / 9' }} className="relative overflow-visible transition-all duration-300">
                         <RoutePreviewCanvas
                           routePreviewMap={overviewFilteredRoutePreviewMap}
                           libraryPoints={libraryMapPoints}
@@ -8164,7 +8164,7 @@ const App = () => {
                     )}
                     </div>{/* 고정 영역 닫기 */}
                     {/* ── 스크롤 영역: 카드 목록 ── */}
-                    <div id="place-library-scroll" className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-5 pt-2 pb-4 flex flex-col gap-1">
+                    <div id="place-library-scroll" className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-3 pt-2 pb-4 flex flex-col gap-1">
                     {draggingFromTimeline && (
                       <div
                         className={`w-full mb-2 rounded-[20px] border-2 border-dashed px-4 py-4 flex items-center justify-center gap-3 text-center transition-all ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6] shadow-[0_12px_26px_-18px_rgba(49,130,246,0.45)]' : 'border-slate-200 bg-white/90 text-slate-500'}`}

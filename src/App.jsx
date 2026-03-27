@@ -3044,10 +3044,10 @@ const App = () => {
           });
           const addr = getRouteAddress(found.item, 'to');
           setBasePlanRef({ id: found.item.id, name: found.item.activity || found.item.name || '', address: addr || '' });
-          // 지도 이동 완료 후 마커 위치에 퀵뷰 표시
-          setTimeout(() => {
-            setMapQuickViewItem({ dayIdx: found.dayIdx, pIdx: found.pIdx, x: lastClickPosRef.current.x, y: lastClickPosRef.current.y });
-          }, 80);
+          // 지도 이동 완료 후 퀵뷰 표시 (브라우저 idle 대기)
+          const showQv = () => setMapQuickViewItem({ dayIdx: found.dayIdx, pIdx: found.pIdx, x: lastClickPosRef.current.x, y: lastClickPosRef.current.y });
+          if (window.requestIdleCallback) { window.requestIdleCallback(showQv, { timeout: 300 }); }
+          else { setTimeout(showQv, 150); }
           return;
         }
         focusTimelineOnMap(found.item, found.dayNum, { scroll: true });
@@ -3059,10 +3059,8 @@ const App = () => {
     if (target.kind === 'place') {
       setFocusedMapTarget({ kind: 'place', id: target.id });
       if (mapEditMode) {
-        // 지도 편집 모드: 내장소도 퀵뷰로 표시
-        setTimeout(() => {
-          setMapQuickViewItem({ placeId: target.id, x: lastClickPosRef.current.x, y: lastClickPosRef.current.y });
-        }, 80);
+        // 지도 편집 모드: 내장소 즉시 퀵뷰 (지도 이동 불필요 — 마커가 이미 보이는 상태)
+        setMapQuickViewItem({ placeId: target.id, x: lastClickPosRef.current.x, y: lastClickPosRef.current.y });
       } else {
         document.getElementById(`library-place-${target.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
@@ -7966,6 +7964,10 @@ const App = () => {
                           onLibraryMarkerAddClick={handleOverviewMapLibraryAddClick}
                           onLibraryMarkerFocus={(placeId) => {
                             setFocusedLibraryMarkerId(placeId);
+                            // 지도 편집 모드: 내장소 마커 클릭 시 즉시 퀵뷰
+                            if (mapEditMode && placeId && !String(placeId).includes('cluster')) {
+                              setMapQuickViewItem({ placeId, x: lastClickPosRef.current.x, y: lastClickPosRef.current.y });
+                            }
                           }}
                           onLibraryMarkerTypeEdit={(placeId, event) => {
                             const p = (itinerary.places || []).find(x => x?.id === placeId);

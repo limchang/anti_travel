@@ -10870,7 +10870,6 @@ const App = () => {
                                     ))}
                                   </div>
                                   <div className="grid grid-cols-2 gap-2">
-                                    <button onClick={(e) => { e.stopPropagation(); addMenuItem(dIdx, pIdx); }} className="py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6]/30 hover:bg-blue-50/50 transition-all">+ 메뉴 추가</button>
                                     <button
                                       type="button"
                                       onClick={async (e) => {
@@ -10887,11 +10886,12 @@ const App = () => {
                                           }
                                         } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
                                       }}
-                                      className="py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50/50 transition-all flex items-center justify-center gap-1"
+                                      className="py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50/50 transition-colors flex items-center justify-center gap-1"
                                       title="메뉴만 스마트 붙여넣기"
                                     >
                                       <Sparkles size={10} /> 자동채우기
                                     </button>
+                                    <button onClick={(e) => { e.stopPropagation(); addMenuItem(dIdx, pIdx); }} className="py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6]/30 hover:bg-blue-50/50 transition-colors">+ 메뉴 추가</button>
                                   </div>
 
                                   {/* 플랜 B 목록 → 카드 상단 ◀▶ 캐러셀로 이동 */}
@@ -11357,7 +11357,6 @@ const App = () => {
                       ))}
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <button onClick={(e) => { e.stopPropagation(); addMenuItem(qvDIdx, qvPIdx); }} className="py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6]/30 hover:bg-blue-50/50 transition-colors">+ 메뉴 추가</button>
                       <button
                         type="button"
                         onClick={async (e) => {
@@ -11378,6 +11377,7 @@ const App = () => {
                       >
                         <Sparkles size={10} /> 자동채우기
                       </button>
+                      <button onClick={(e) => { e.stopPropagation(); addMenuItem(qvDIdx, qvPIdx); }} className="py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6]/30 hover:bg-blue-50/50 transition-colors">+ 메뉴 추가</button>
                     </div>
                   </div>
                 )}

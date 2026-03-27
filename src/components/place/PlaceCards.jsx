@@ -547,6 +547,8 @@ export const PlaceLibraryCard = ({
   businessSummary = '미설정',
   businessWarning = '',
   businessStatus = '',
+  addressActions = null,
+  businessActions = null,
   isExpanded = false,
   onEdit,
   onBusinessEdit,
@@ -632,6 +634,8 @@ export const PlaceLibraryCard = ({
       namePrefix={chips}
       nameActions={nameRowActions}
       addressLeading={<MapPin size={11} className="text-[#3182F6] shrink-0" />}
+      addressActions={addressActions}
+      businessActions={businessActions}
       statusChip={(baseDistance != null || statusChip) ? (
         <div className="flex items-center gap-1.5 flex-wrap pr-12" data-no-drag="true">
           {baseDistance != null && (

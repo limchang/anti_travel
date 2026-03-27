@@ -8316,6 +8316,15 @@ const App = () => {
                           businessSummary={hasBizSummary ? bizSummary : '미설정'}
                           businessWarning={bizWarningNow ? `영업 주의 · ${hasBizSummary ? bizSummary : '영업 정보 미설정'}` : ''}
                           businessStatus={placeBusinessStatus}
+                          addressActions={
+                            <>
+                              <button type="button" onClick={(e) => { e.stopPropagation(); openNaverPlaceSearch(place.name || '', place.address || place.receipt?.address || ''); }} title="네이버 지도에서 장소 검색" className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"><MapIcon size={9} /></button>
+                              <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(place.name || '', tripRegion); if (result?.address) { setItinerary(prev => { const next = JSON.parse(JSON.stringify(prev)); const target = (next.places || []).find(pl => pl.id === place.id); if (target) { target.address = result.address; if (!target.receipt) target.receipt = {}; target.receipt.address = result.address; } return next; }); showInfoToast(`'${place.name}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} title="주소 자동 채우기" className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"><Sparkles size={11} /></button>
+                            </>
+                          }
+                          businessActions={
+                            <button type="button" onClick={async (e) => { e.stopPropagation(); try { const result = await analyzeClipboardSmartFill({ mode: 'business', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig }); const parsed = result?.parsed; if (parsed?.business) { setItinerary(prev => { const next = JSON.parse(JSON.stringify(prev)); const target = (next.places || []).find(pl => pl.id === place.id); if (target) target.business = normalizeBusiness(parsed.business); return next; }); showInfoToast('영업정보 스마트 입력 완료'); } else { showInfoToast('영업 정보를 찾지 못했습니다.'); } } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); } }} className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors" title="영업정보 스마트 붙여넣기"><Sparkles size={11} /></button>
+                          }
                           isExpanded={isPlaceExpanded}
                           viewMode={placeLibraryViewMode}
                           showPrice={showPlacePrice}

@@ -6906,6 +6906,19 @@ const App = () => {
                 setEditPlaceDraft(null);
               }}
               onCancel={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }}
+              onDelete={() => {
+                if (!window.confirm('이 장소를 삭제하시겠습니까? (휴지통으로 이동)')) return;
+                const placeId = editPlaceDraft?.id || editingPlaceId;
+                setItinerary(prev => {
+                  const next = JSON.parse(JSON.stringify(prev));
+                  const target = (next.places || []).find(p => p.id === placeId);
+                  next.places = (next.places || []).filter(p => p.id !== placeId);
+                  if (target) next.placeTrash = [...(next.placeTrash || []), target];
+                  return next;
+                });
+                setEditingPlaceId(null); setEditPlaceDraft(null);
+                showInfoToast('장소를 휴지통으로 이동했습니다.');
+              }}
               submitLabel="저장"
               cancelLabel="취소"
               regionHint={tripRegion}
@@ -7050,6 +7063,20 @@ const App = () => {
               onDraftChange={setEditPlanDraft}
               onSubmit={savePlanEditDraft}
               onCancel={() => { setEditingPlanTarget(null); setEditPlanDraft(null); }}
+              onDelete={() => {
+                if (!window.confirm('이 일정을 삭제하시겠습니까?')) return;
+                const target = editingPlanTarget;
+                if (target) {
+                  saveHistory();
+                  setItinerary(prev => {
+                    const next = JSON.parse(JSON.stringify(prev));
+                    next.days[target.dayIdx].plan.splice(target.pIdx, 1);
+                    return next;
+                  });
+                }
+                setEditingPlanTarget(null); setEditPlanDraft(null);
+                showInfoToast('일정을 삭제했습니다.');
+              }}
               submitLabel="저장"
               cancelLabel="취소"
               regionHint={tripRegion}
@@ -7660,20 +7687,32 @@ const App = () => {
                   });
                 });
                 if (!allItems.length) { showInfoToast('이동할 일정이 없습니다.'); return; }
-                if (!window.confirm(`${allItems.length}개 일정을 모두 내장소로 보내시겠습니까?\n(일정 목록은 비워집니다)`)) return;
+                if (!window.confirm(`${allItems.length}개 일정을 모두 내장소로 보내시겠습니까?\n(중복은 휴지통, 세그먼트는 삭제)`)) return;
                 saveHistory();
                 setItinerary(prev => {
                   const next = JSON.parse(JSON.stringify(prev));
+                  const existingIds = new Set((next.places || []).map(p => p.name?.toLowerCase()));
                   const newPlaces = [];
+                  const dupTrash = [];
                   (next.days || []).forEach(d => {
                     const kept = [];
                     (d.plan || []).forEach(p => {
                       if (p.type === 'backup' || p.types?.includes('home')) { kept.push(p); return; }
-                      newPlaces.push({ id: p.id, name: p.activity || p.name || '', types: p.types || ['place'], address: p.receipt?.address || p.address || '', receipt: p.receipt || {}, memo: p.memo || '', business: p.business || {}, price: p.price || 0 });
+                      // 세그먼트(숙소 분신)는 완전 삭제
+                      if (p.renderAsSegmentCard || p.sourceLodgeId) return;
+                      const nameKey = (p.activity || p.name || '').toLowerCase();
+                      if (existingIds.has(nameKey)) {
+                        // 중복 → 휴지통
+                        dupTrash.push({ id: p.id, name: p.activity || p.name || '', types: p.types || ['place'], address: p.receipt?.address || p.address || '', receipt: p.receipt || {}, memo: p.memo || '', business: p.business || {}, price: p.price || 0 });
+                      } else {
+                        existingIds.add(nameKey);
+                        newPlaces.push({ id: p.id, name: p.activity || p.name || '', types: p.types || ['place'], address: p.receipt?.address || p.address || '', receipt: p.receipt || {}, memo: p.memo || '', business: p.business || {}, price: p.price || 0 });
+                      }
                     });
                     d.plan = kept;
                   });
                   next.places = [...(next.places || []), ...newPlaces];
+                  if (dupTrash.length) next.placeTrash = [...(next.placeTrash || []), ...dupTrash];
                   return next;
                 });
                 showInfoToast(`${allItems.length}개 일정을 내장소로 이동했습니다.`);

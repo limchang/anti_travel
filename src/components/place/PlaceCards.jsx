@@ -163,6 +163,7 @@ export const PlaceEditorCard = ({
   onDraftChange,
   onSubmit,
   onCancel,
+  onDelete = null,
   submitLabel,
   cancelLabel = '취소',
   regionHint = '',
@@ -526,10 +527,15 @@ export const PlaceEditorCard = ({
       </div>
 
       <div className="px-4 pb-4 flex gap-2 shrink-0">
+        {onDelete && (
+          <button onClick={onDelete} className="px-4 py-3 bg-white border border-red-200 text-red-500 text-[13px] font-black rounded-xl hover:bg-red-50 transition-all">
+            삭제
+          </button>
+        )}
         <button onClick={() => onSubmit(createDraft({ ...safeDraft, price: total }))} className="flex-1 py-3 bg-[#3182F6] text-white text-[13px] font-black rounded-xl shadow-[0_8px_16px_-6px_rgba(49,130,246,0.35)] hover:bg-blue-600 transition-all active:scale-[0.98]">
           {submitLabel}
         </button>
-        <button onClick={onCancel} className="px-5 py-3 bg-white border border-slate-200 text-slate-500 text-[13px] font-black rounded-xl hover:bg-slate-50 transition-all">
+        <button onClick={onCancel} className="px-4 py-3 bg-white border border-slate-200 text-slate-500 text-[13px] font-black rounded-xl hover:bg-slate-50 transition-all">
           {cancelLabel}
         </button>
       </div>

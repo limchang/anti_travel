@@ -8132,7 +8132,7 @@ const App = () => {
                     {(() => {
                       const mapContent = (
                     <div id="right-panel-map-overview" className={mapEditMode && !isMobileLayout
-                      ? 'fixed inset-0 top-12 z-[100]'
+                      ? 'fixed inset-0 top-12 z-[1]'
                       : 'shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-hidden shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2 max-h-[40vh]'
                     } style={mapEditMode && !isMobileLayout ? { isolation: 'isolate' } : { isolation: 'isolate', aspectRatio: '16 / 9' }}>
                       {/* 지도 본체 + 오버레이 버튼 */}
@@ -11372,7 +11372,7 @@ const App = () => {
         const qvDurLocked = !!qvItem.isDurationFixed;
         const qvEndFixed = !!qvItem.isEndTimeFixed;
         const qvCatStyle = getCategoryCardStyle(qvPrimaryType);
-        const qvBizStatus = qvBizWarn ? 'warn' : (isPlaceQuickView && isOpenAt(qvItem.business) === true) ? 'open' : '';
+        const qvBizStatus = qvBizWarn ? 'warn' : (isPlaceQuickView && (() => { const b = qvItem.business; if (!b?.open || !b?.close) return false; const now = new Date(); const nowMins = now.getHours() * 60 + now.getMinutes(); const oM = timeToMinutes(b.open); const cM = timeToMinutes(b.close); return cM <= oM ? (nowMins >= oM || nowMins < cM) : (nowMins >= oM && nowMins < cM); })()) ? 'open' : '';
         const qvIsExpanded = expandedId === qvItem.id;
         const qvMenus = (qvItem.receipt?.items || []).filter(m => m?.selected !== false);
         // 마커 위치 중심에 퀵뷰 배치

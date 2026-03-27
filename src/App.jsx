@@ -8169,7 +8169,7 @@ const App = () => {
                     )}
                     </div>{/* 고정 영역 닫기 */}
                     {/* ── 스크롤 영역: 카드 목록 ── */}
-                    <div id="place-library-scroll" className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-2 pt-2 pb-4 flex flex-col gap-1">
+                    <div id="place-library-scroll" className={`flex-1 overflow-y-auto overscroll-none no-scrollbar px-2 pt-2 pb-4 ${rightSidebarWidth > 600 ? '[column-count:2] [column-gap:8px]' : 'flex flex-col gap-1'}`}>
                     {draggingFromTimeline && (
                       <div
                         className={`w-full mb-2 rounded-[20px] border-2 border-dashed px-4 py-4 flex items-center justify-center gap-3 text-center transition-all ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6] shadow-[0_12px_26px_-18px_rgba(49,130,246,0.45)]' : 'border-slate-200 bg-white/90 text-slate-500'}`}

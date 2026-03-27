@@ -7358,7 +7358,7 @@ const App = () => {
             )}
             {/* ── 스크롤 컨텐츠 ── */}
             <div className={`flex-1 overflow-y-auto overscroll-none no-scrollbar py-4 px-3 flex flex-col ${mapEditMode && !isMobileLayout && !navFloatingExpanded ? 'hidden' : ''}`}>
-              <nav className="relative -ml-1.5 flex flex-col gap-5">
+              <nav className="relative -ml-1.5 flex flex-col gap-0">
                 {itinerary.days?.map((d, dNavIdx) => (
                   <div key={d.day}>
                     <div className="flex flex-col gap-1">

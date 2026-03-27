@@ -7806,7 +7806,7 @@ const App = () => {
 
       <div
         className={mapEditMode && !isMobileLayout
-          ? `flex flex-col fixed z-[220] bg-white/95 backdrop-blur-lg rounded-2xl border border-slate-200 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.25)] overflow-hidden`
+          ? `flex flex-col fixed z-[220] bg-white rounded-2xl border border-slate-200 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.25)] overflow-visible`
           : 'flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[220] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] overflow-visible'
         }
         style={mapEditMode && !isMobileLayout

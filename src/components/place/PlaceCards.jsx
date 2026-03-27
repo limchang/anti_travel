@@ -576,11 +576,10 @@ export const PlaceLibraryCard = ({
             setJinaLoading(true);
             try { await onJinaSmartFill(); } finally { setJinaLoading(false); }
           }}
-          className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black transition-colors ${jinaLoading ? 'bg-white/30 text-white/70' : 'bg-white/20 text-white hover:bg-white/30'}`}
-          title="네이버 지도에서 주소·영업시간·메뉴를 자동으로 가져옵니다"
+          className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${jinaLoading ? 'bg-white/30 text-white/70' : 'bg-white/20 text-white hover:bg-white/30'}`}
+          title="슈퍼채우기 — 주소·영업시간·메뉴를 자동으로 가져옵니다"
         >
-          {jinaLoading ? <svg className="animate-spin shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> : <Search size={11} className="shrink-0" />}
-          {jinaLoading ? '검색중' : '슈퍼채우기'}
+          {jinaLoading ? <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> : <Sparkles size={14} />}
         </button>
       )}
       <button

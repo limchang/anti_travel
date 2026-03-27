@@ -10006,6 +10006,7 @@ const App = () => {
                             <span className="w-6 h-6 rounded-[7px] flex items-center justify-center text-[11px] font-black text-white leading-none shrink-0" style={{ background: _dayColor, border: '2px solid rgba(255,255,255,0.9)', boxShadow: `0 0 0 1px ${_dayColor}` }}>{_orderNum}</span>
                             <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30">{getCategoryBadge(getPreferredNavCategory(p.types))}</div>
                             <span className="text-[13px] font-black text-white truncate flex-1">{p.activity || '이름 없음'}</span>
+                            <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(getPlaceSearchName(p), tripRegion); if (result?.address) { updateAddress(dIdx, pIdx, result.address, true); showInfoToast(`'${p.activity}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors" title="주소 자동 채우기"><Sparkles size={12} /></button>
                             <button type="button" onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors" title="일정 수정"><Pencil size={12} /></button>
                           </div>
                           );

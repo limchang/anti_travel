@@ -313,6 +313,7 @@ const App = () => {
   const [showAiSettings, setShowAiSettings] = useState(false);
   const [navAiExpanded, setNavAiExpanded] = useState(false);
   const [navFloatingExpanded, setNavFloatingExpanded] = useState(true);
+  const [showTimelineOverlay, setShowTimelineOverlay] = useState(false);
   const [showPlanOptions, setShowPlanOptions] = useState(false);
   const [showNavMenu, setShowNavMenu] = useState(false);
   const [highlightedPlaceId, setHighlightedPlaceId] = useState(null);
@@ -6890,11 +6891,11 @@ const App = () => {
         <div className="flex-1" />
         <button
           type="button"
-          onClick={() => setMapEditMode(prev => !prev)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black transition-all ${!mapEditMode ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+          onClick={() => setShowTimelineOverlay(prev => !prev)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black transition-all ${showTimelineOverlay ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
         >
           <Pencil size={12} />
-          {mapEditMode ? '상세 일정 편집' : '지도 보기'}
+          {showTimelineOverlay ? '지도 보기' : '상세 일정 편집'}
         </button>
         {user && !user.isGuest && (
           <button
@@ -8686,12 +8687,16 @@ const App = () => {
       </div>
 
       <div
-        className={`flex-1 flex flex-col items-center w-full bg-slate-50 min-h-screen ${mapEditMode && !isMobileLayout ? 'opacity-0 pointer-events-none overflow-hidden max-w-0' : ''}`}
-        style={{ marginLeft: mapEditMode && !isMobileLayout ? leftExpandedWidth : mainContentLeftInset, marginRight: mapEditMode && !isMobileLayout ? 0 : mainContentRightInset }}
+        className={showTimelineOverlay
+          ? 'fixed inset-0 z-[250] flex flex-col items-center bg-slate-950/40 backdrop-blur-sm overflow-y-auto pt-14 pb-8'
+          : `flex-1 flex flex-col items-center w-full bg-slate-50 min-h-screen ${mapEditMode && !isMobileLayout ? 'opacity-0 pointer-events-none overflow-hidden max-w-0' : ''}`
+        }
+        style={showTimelineOverlay ? {} : { marginLeft: mapEditMode && !isMobileLayout ? leftExpandedWidth : mainContentLeftInset, marginRight: mapEditMode && !isMobileLayout ? 0 : mainContentRightInset }}
+        onClick={showTimelineOverlay ? (e) => { if (e.target === e.currentTarget) setShowTimelineOverlay(false); } : undefined}
       >
         {/* 일정 목록 */}
         <div
-          className={`w-full pt-8 pb-32 ${isMobileLayout ? 'px-4' : 'px-4 max-w-[500px] mx-auto'}`}
+          className={`w-full pb-32 ${showTimelineOverlay ? 'px-4 max-w-[480px] mx-auto bg-white rounded-t-[28px] shadow-[0_-8px_40px_rgba(0,0,0,0.15)] pt-6 min-h-screen' : isMobileLayout ? 'px-4 pt-8' : 'px-4 max-w-[500px] mx-auto pt-8'}`}
           onTouchStart={handleMainColumnTouchStart}
           onTouchEnd={handleMainColumnTouchEnd}
           onTouchCancel={handleMainColumnTouchEnd}

@@ -198,10 +198,14 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = fals
     const rows = items.map((item, i) => {
       const label = item.label || item.order;
       const isLast = i === n - 1;
+      const isOverlay = !!item._isOverlay;
+      const iconContent = isOverlay
+        ? `<svg width="${isFocused ? 16 : 13}" height="${isFocused ? 16 : 13}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5));">${getMapCategoryEmoji(item.primaryType || item.categoryLabel || '')}</svg>`
+        : `<span style="font-size:${isFocused ? '14px' : '11px'};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${item.order}</span>`;
       return `
         <div style="display:flex;align-items:center;height:${rowH}px;${!isLast ? `border-bottom:1px solid rgba(0,0,0,0.06);` : ''}">
           <div style="width:${sz}px;height:${rowH}px;background:${item.color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <span style="font-size:${isFocused ? '14px' : '11px'};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${item.order}</span>
+            ${iconContent}
           </div>
           <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '11px' : '10px'};font-weight:900;color:#334155;line-height:${rowH}px;">
             ${label}
@@ -916,11 +920,45 @@ export const RoutePreviewCanvas = ({
     const singleTlEntries = rawVisibleTimelineEntries.filter((e) => !groupedTlIds.has(e.pointId || e.id));
     const processedTl = [...singleTlEntries, ...groupedTlEntries];
 
-    // 3) timeline + overlay 방사형 분산 (timeline-overlay 겹침 처리)
+    // 3) timeline + overlay 통합 처리
+    const mergedOverlayIds = new Set(); // 이름 모드에서 timeline 그룹에 병합된 overlay
+    if (showLibraryNames) {
+      // 이름 모드: 근접한 timeline+overlay를 통합 그룹으로
+      for (let ti = 0; ti < processedTl.length; ti++) {
+        const tlEntry = processedTl[ti];
+        const nearbyOverlay = processedOverlay.filter(oe => {
+          if (oe._clusterCount > 1) return false; // 이미 클러스터된 overlay는 제외
+          if (mergedOverlayIds.has(oe.id)) return false;
+          const dLat = tlEntry.position[0] - oe.position[0];
+          const dLon = tlEntry.position[1] - oe.position[1];
+          return Math.sqrt(dLat * dLat + dLon * dLon) <= clusterRadiusDeg * 1.5;
+        });
+        if (nearbyOverlay.length > 0) {
+          // overlay를 timeline 그룹에 병합
+          const existingItems = tlEntry._isGrouped ? tlEntry._groupItems : [tlEntry];
+          const overlayAsItems = nearbyOverlay.map(oe => ({
+            ...oe,
+            order: oe.categoryLabel || '📍',
+            color: oe.categoryColor || '#64748B',
+            label: oe.label || oe.placeName || '',
+            _isOverlay: true,
+          }));
+          processedTl[ti] = {
+            ...tlEntry,
+            _isGrouped: true,
+            _groupItems: [...existingItems, ...overlayAsItems],
+          };
+          nearbyOverlay.forEach(oe => mergedOverlayIds.add(oe.id));
+        }
+      }
+    }
+    const finalOverlay = processedOverlay.filter(oe => !mergedOverlayIds.has(oe.id));
+
+    // 방사형 분산 (겹침 처리)
     const groups = new Map();
     const allEntries = [
       ...processedTl.map((e) => ({ ...e, _layer: 'timeline' })),
-      ...processedOverlay.map((e) => ({ ...e, _layer: 'overlay' })),
+      ...finalOverlay.map((e) => ({ ...e, _layer: 'overlay' })),
     ];
     allEntries.forEach((e) => {
       const k = posKey(e.position);
@@ -946,7 +984,7 @@ export const RoutePreviewCanvas = ({
       return off ? { ...e, position: off } : e;
     });
     const tl = applyOffset(processedTl.map((e) => ({ ...e, _layer: 'timeline' })), 'timeline');
-    const ov = applyOffset(processedOverlay.map((e) => ({ ...e, _layer: 'overlay' })), 'overlay');
+    const ov = applyOffset(finalOverlay.map((e) => ({ ...e, _layer: 'overlay' })), 'overlay');
     return [tl, ov];
   }, [rawVisibleTimelineEntries, rawVisibleOverlayEntries, mapZoom]);
   const renderableTimelinePointCount = visibleTimelineEntries.length;

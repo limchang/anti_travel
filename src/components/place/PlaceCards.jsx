@@ -680,6 +680,8 @@ export const PlaceLibraryCard = ({
   highlighted = false,
   onJinaSmartFill,
   showPrice = true,
+  categoryAccent = '',
+  categoryBorder = '',
 }) => {
   const [jinaLoading, setJinaLoading] = React.useState(false);
   const visibleMenus = (place.receipt?.items || []).filter((menu) => menu && menu.selected !== false);
@@ -717,8 +719,10 @@ export const PlaceLibraryCard = ({
   <div
     {...cardProps}
     data-map-focus-card="true"
-    className={`w-full group relative overflow-hidden rounded-[24px] border bg-white shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)] transition-all duration-300 ${highlighted ? 'border-[#3182F6] shadow-[0_0_0_3px_rgba(49,130,246,0.18)]' : 'border-slate-200 hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)] hover:border-slate-300'} ${cardProps.className || ''}`.trim()}
+    className={`w-full group relative overflow-hidden rounded-[24px] border bg-white shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)] transition-all duration-300 ${highlighted ? 'border-[#3182F6] shadow-[0_0_0_3px_rgba(49,130,246,0.18)]' : categoryBorder ? `${categoryBorder} hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)]` : 'border-slate-200 hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)] hover:border-slate-300'} ${cardProps.className || ''}`.trim()}
   >
+    {/* 카테고리 악센트 바 */}
+    {categoryAccent && <div className={`h-[3px] w-full ${categoryAccent}`} />}
     {jinaLoading && (
       <div className="px-4 pt-3 pb-1">
         <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2">

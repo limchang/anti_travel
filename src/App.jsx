@@ -5550,6 +5550,22 @@ const App = () => {
     return getPreferredMapCategory(types, fallbackType);
   };
 
+  const getCategoryCardStyle = (type) => {
+    switch (type) {
+      case 'food': return { bg: 'bg-[linear-gradient(180deg,rgba(255,241,242,0.5),rgba(255,255,255,0.98))]', border: 'border-rose-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(244,63,94,0.10)]', accent: 'bg-rose-500' };
+      case 'snack': return { bg: 'bg-[linear-gradient(180deg,rgba(254,252,232,0.5),rgba(255,255,255,0.98))]', border: 'border-yellow-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(202,138,4,0.10)]', accent: 'bg-yellow-600' };
+      case 'cafe': return { bg: 'bg-[linear-gradient(180deg,rgba(255,251,235,0.5),rgba(255,255,255,0.98))]', border: 'border-amber-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(217,119,6,0.10)]', accent: 'bg-amber-700' };
+      case 'tour': return { bg: 'bg-[linear-gradient(180deg,rgba(250,245,255,0.5),rgba(255,255,255,0.98))]', border: 'border-purple-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(139,92,246,0.10)]', accent: 'bg-purple-500' };
+      case 'experience': return { bg: 'bg-[linear-gradient(180deg,rgba(236,253,245,0.5),rgba(255,255,255,0.98))]', border: 'border-emerald-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(16,185,129,0.10)]', accent: 'bg-emerald-500' };
+      case 'view': return { bg: 'bg-[linear-gradient(180deg,rgba(240,249,255,0.5),rgba(255,255,255,0.98))]', border: 'border-sky-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(14,165,233,0.10)]', accent: 'bg-sky-500' };
+      case 'pickup': return { bg: 'bg-[linear-gradient(180deg,rgba(255,247,237,0.5),rgba(255,255,255,0.98))]', border: 'border-orange-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(249,115,22,0.10)]', accent: 'bg-orange-500' };
+      case 'souvenir': return { bg: 'bg-[linear-gradient(180deg,rgba(240,253,250,0.5),rgba(255,255,255,0.98))]', border: 'border-teal-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(20,184,166,0.10)]', accent: 'bg-teal-500' };
+      case 'openrun': return { bg: 'bg-[linear-gradient(180deg,rgba(254,242,242,0.5),rgba(255,255,255,0.98))]', border: 'border-red-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(239,68,68,0.10)]', accent: 'bg-red-500' };
+      case 'rest': return { bg: 'bg-[linear-gradient(180deg,rgba(236,254,255,0.5),rgba(255,255,255,0.98))]', border: 'border-cyan-200/70', shadow: 'shadow-[0_8px_24px_-8px_rgba(6,182,212,0.10)]', accent: 'bg-cyan-500' };
+      default: return { bg: 'bg-white', border: 'border-slate-200', shadow: 'shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)]', accent: 'bg-slate-400' };
+    }
+  };
+
   const addPlace = (formData, { unselectedMenus = false } = {}) => {
     const { name = '', types = ['place'], menus = [], address = '', memo = '', revisit = false, business = EMPTY_BUSINESS } = formData || {};
     const resolvedName = String(name || newPlaceName || '').trim();
@@ -7438,8 +7454,10 @@ const App = () => {
                                       endTouchDragLock();
                                     }}
                                     onClick={() => handleNavClick(d.day, p.id)}
-                                    className={`${isLastLodge ? 'flex flex-col' : 'grid grid-cols-[2.45rem_1fr_auto]'} items-center gap-1.5 rounded-[14px] border px-2 py-1.5 text-left transition-all ${p._timingConflict ? 'border-red-200 bg-red-50/85 shadow-[0_8px_18px_-16px_rgba(239,68,68,0.55)] hover:bg-red-100/80' : isLastLodge ? 'mt-2 border-indigo-200 bg-[linear-gradient(180deg,rgba(238,242,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-20px_rgba(99,102,241,0.28)] hover:border-indigo-300 hover:bg-indigo-50/90' : isActive ? 'border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-18px_rgba(49,130,246,0.42)]' : 'border-slate-200/85 bg-white/96 shadow-[0_8px_18px_-18px_rgba(15,23,42,0.18)] hover:border-slate-300 hover:bg-slate-50/90'}`}
+                                    className={`${isLastLodge ? 'flex flex-col' : 'grid grid-cols-[2.45rem_1fr_auto]'} items-center gap-1.5 rounded-[14px] border px-2 py-1.5 text-left transition-all relative overflow-hidden ${p._timingConflict ? 'border-red-200 bg-red-50/85 shadow-[0_8px_18px_-16px_rgba(239,68,68,0.55)] hover:bg-red-100/80' : isLastLodge ? 'mt-2 border-indigo-200 bg-[linear-gradient(180deg,rgba(238,242,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-20px_rgba(99,102,241,0.28)] hover:border-indigo-300 hover:bg-indigo-50/90' : isActive ? 'border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-18px_rgba(49,130,246,0.42)]' : (() => { const _ns = getCategoryCardStyle(navPrimaryType); return `${_ns.border} ${_ns.bg} ${_ns.shadow} hover:brightness-[0.97]`; })()}`}
                                   >
+                                    {/* 퀵뷰 좌측 악센트 바 */}
+                                    <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[14px] ${getCategoryCardStyle(navPrimaryType).accent}`} />
                                     {isLastLodge ? (
                                       <div className="grid w-full min-w-0 grid-cols-[2.45rem_1fr_auto] items-center gap-1.5">
                                         <span
@@ -8288,6 +8306,8 @@ const App = () => {
                           }}
                           place={place}
                           chips={chips}
+                          categoryAccent={getCategoryCardStyle(getPreferredNavCategory(place.types)).accent}
+                          categoryBorder={getCategoryCardStyle(getPreferredNavCategory(place.types)).border}
                           baseDistance={baseDistance}
                           statusChip={statusChip}
                           businessSummary={bizWarningNow ? `주의 · ${hasBizSummary ? bizSummary : '영업 정보 미설정'}` : (hasBizSummary ? bizSummary : '미설정')}
@@ -9752,7 +9772,10 @@ const App = () => {
                 else if (isShip) stateStyles = 'bg-[#f4fafe] border-blue-200 shadow-[0_8px_24px_-8px_rgba(29,78,216,0.12)]';
                 else if (hasPlanB) stateStyles = 'bg-white border-amber-300 shadow-[0_10px_30px_-8px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/20';
                 else if (p.isTimeFixed) stateStyles = 'bg-white border-[#3182F6]/40 shadow-[0_10px_30px_-8px_rgba(49,130,246,0.12)] ring-1 ring-[#3182F6]/15';
-                else stateStyles = 'bg-white border-slate-200 shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)] hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)] hover:border-slate-300';
+                else {
+                  const _cs = getCategoryCardStyle(getPreferredNavCategory(p.types));
+                  stateStyles = `${_cs.bg} ${_cs.border} ${_cs.shadow} hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)]`;
+                }
 
                 const allTypes = p.types || (p.type ? [p.type] : []);
                 const mainTypes = allTypes.filter(t => !MODIFIER_TAGS.has(t));
@@ -9961,6 +9984,8 @@ const App = () => {
 
                       {/* 🟢 카드 본체 (내부 라운드 셀) */}
                       <div className={`relative w-full flex flex-col border overflow-hidden rounded-[24px] transition-all duration-300 ${stateStyles}`}>
+                        {/* 카테고리 악센트 바 */}
+                        {!isHome && !isLodge && !isLodgeTagged && !isShip && <div className={`h-[3px] w-full ${getCategoryCardStyle(getPreferredNavCategory(p.types)).accent}`} />}
                         {/* Plan B 페이지 인디케이터 */}
                         {hasPlanB && (
                           <div className="absolute top-2 right-2 z-20 pointer-events-none">

@@ -33,6 +33,8 @@ const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', class
     setIsAddingCustom(false);
   };
 
+  const HIDDEN_TAGS = new Set(['stay', 'rest', 'home', 'quick', 'place']);
+  const visibleTagOptions = TAG_OPTIONS.filter((tag) => !HIDDEN_TAGS.has(tag.value));
   const predefinedValues = new Set(TAG_OPTIONS.map((tag) => tag.value));
   const activeTags = selected.filter((tag) => tag !== 'place');
   const customTags = activeTags.filter((tag) => !predefinedValues.has(tag));
@@ -45,7 +47,7 @@ const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', class
     <div className={className}>
       <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1.5">{title}</p>
       <div className="flex flex-wrap gap-1.5 items-center">
-        {TAG_OPTIONS.map((tag) => {
+        {visibleTagOptions.map((tag) => {
           const active = selected.includes(tag.value);
           return (
             <button

@@ -6897,10 +6897,9 @@ const App = () => {
           onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }}
         >
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-          <div className="relative px-3" onClick={(e) => e.stopPropagation()}>
+          <div className="relative flex justify-center px-3" style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }} onClick={(e) => e.stopPropagation()}>
             <PlaceEditorCard
               className="mx-auto"
-              style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }}
               maxModalHeight="85vh"
               title="장소 수정"
               draft={editPlaceDraft}
@@ -7050,10 +7049,9 @@ const App = () => {
           onClick={() => { setEditingPlanTarget(null); setEditPlanDraft(null); }}
         >
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-          <div className="relative px-3" onClick={(e) => e.stopPropagation()}>
+          <div className="relative flex justify-center px-3" style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }} onClick={(e) => e.stopPropagation()}>
             <PlaceEditorCard
               className="mx-auto"
-              style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }}
               maxModalHeight="85vh"
               title="일정 수정"
               draft={editPlanDraft}

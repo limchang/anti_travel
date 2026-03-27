@@ -7364,11 +7364,7 @@ const App = () => {
                     <div className="flex flex-col gap-1">
                       {(() => {
                         const navPlanItems = (d.plan || []).filter(p => p.type !== 'backup');
-                        // 전체 연속 순번 (home=0, 나머지는 Day 경계 없이 1~)
-                        let _navGlobalOffset = 0;
-                        for (let di = 0; di < dNavIdx; di++) {
-                          _navGlobalOffset += (itinerary.days?.[di]?.plan || []).filter(x => x.type !== 'backup' && !x.types?.includes('home')).length;
-                        }
+                        // Day별 순번 (home=0, 나머지는 1부터)
                         const getNavItemOrder = (item, idx, items) => {
                           if (item.types?.includes('home')) return 0;
                           let localNum = 0;
@@ -7376,7 +7372,7 @@ const App = () => {
                             if (items[i].types?.includes('home')) continue;
                             localNum++;
                           }
-                          return _navGlobalOffset + localNum;
+                          return localNum;
                         };
                         const expectedNightSlot = d.day <= tripNights;
                         const lastStayIndex = navPlanItems.findIndex((item, index, arr) =>

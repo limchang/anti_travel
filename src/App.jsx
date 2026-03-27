@@ -3033,21 +3033,8 @@ const App = () => {
       if (found?.item) {
         // 지도 편집 모드: 퀵뷰 모달 직접 띄우기
         if (mapEditMode) {
-          // 먼저 지도 이동
-          setFocusedMapTarget({
-            kind: 'timeline',
-            id: found.item.id,
-            day: found.dayNum,
-            routePointIds: found.item.types?.includes('ship')
-              ? [`${found.item.id}:ship-start`, `${found.item.id}:ship-end`]
-              : [found.item.id],
-          });
-          const addr = getRouteAddress(found.item, 'to');
-          setBasePlanRef({ id: found.item.id, name: found.item.activity || found.item.name || '', address: addr || '' });
-          // 지도 이동 완료 후 퀵뷰 표시 (브라우저 idle 대기)
-          const showQv = () => setMapQuickViewItem({ dayIdx: found.dayIdx, pIdx: found.pIdx, x: lastClickPosRef.current.x, y: lastClickPosRef.current.y });
-          if (window.requestIdleCallback) { window.requestIdleCallback(showQv, { timeout: 300 }); }
-          else { setTimeout(showQv, 150); }
+          // 지도 이동 없이 즉시 퀵뷰 표시 (마커가 이미 보이는 상태)
+          setMapQuickViewItem({ dayIdx: found.dayIdx, pIdx: found.pIdx, x: lastClickPosRef.current.x, y: lastClickPosRef.current.y });
           return;
         }
         focusTimelineOnMap(found.item, found.dayNum, { scroll: true });
@@ -8004,6 +7991,7 @@ const App = () => {
                             }
                           }}
                           interactive
+                          mapEditMode={mapEditMode}
                           height="100%"
                           showTimelineMarkers={overviewMapRouteVisible}
                           showRouteLines={overviewMapRouteVisible}
@@ -11235,6 +11223,22 @@ const App = () => {
                 getMenuQty={getMenuQty}
                 getMenuLineTotal={getMenuLineTotal}
               />
+              {/* 내장소: 다음 일정으로 추가 버튼 */}
+              {isPlaceQuickView && (
+                <div className="px-4 py-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOverviewMapLibraryAddClick({ id: qvItem.id, label: qvItem.name || qvItem.activity });
+                      setMapQuickViewItem(null);
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-[#3182F6] text-white text-[12px] font-black hover:bg-blue-600 transition-colors"
+                  >
+                    + 다음 일정으로 추가
+                  </button>
+                </div>
+              )}
               </div>
             </div>
           </>

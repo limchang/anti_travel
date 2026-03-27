@@ -524,6 +524,7 @@ export const RoutePreviewCanvas = ({
   onBackgroundClick = null,
   onSegmentLabelClick = null,
   interactive = true,
+  mapEditMode = false,
   showTimelineMarkers = true,
   showRouteLines = true,
   showOverlayMarkers = true,
@@ -1093,7 +1094,7 @@ export const RoutePreviewCanvas = ({
                   },
                 } : undefined}
               >
-                {interactive && point.kind === 'place' && (
+                {interactive && point.kind === 'place' && !mapEditMode && (
                   <Popup
                     offset={[0, -14]}
                     closeButton={false}

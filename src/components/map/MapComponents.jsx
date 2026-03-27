@@ -212,7 +212,7 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused) => {
   });
 };
 
-export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0, clusterColors = [], categoryType = '', clusterTypes = [], placeName = '', clusterNames = []) => {
+export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0, clusterColors = [], categoryType = '', clusterTypes = [], placeName = '', clusterNames = [], showName = false) => {
   const isCluster = clusterCount > 1;
   const sz = isFocused ? 36 : 28;
   const shadow = isFocused
@@ -271,7 +271,6 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
   const tailH = isFocused ? 7 : 6;
 
   // showName 모드: 아이콘 + 이름을 가로로 표시
-  const showName = arguments[12] ?? false;
   const displayName = placeName || '';
   if (showName && displayName && !isCluster) {
     const nameMaxW = isFocused ? 120 : 90;
@@ -1097,7 +1096,7 @@ export const RoutePreviewCanvas = ({
             const isFocusedLibrary = point.kind === 'place' && (focusedLibraryMarkerId === point.id || String(focusedLibraryMarkerId || '').startsWith(point.id) || (isCluster && clusterItems.some(item => item.id === focusedLibraryMarkerId)));
             return (
               <Marker
-                key={`overlay-point-${point.kind}-${point.id}`}
+                key={`overlay-point-${point.kind}-${point.id}-z${showLibraryNames ? 'n' : 'i'}`}
                 position={point.position}
                 bubblingMouseEvents={false}
                 icon={point.kind === 'place'

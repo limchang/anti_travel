@@ -578,17 +578,8 @@ const App = () => {
       }
     }
 
-    // 지도 편집 모드: 스크롤 대신 퀵뷰 모달
-    if (mapEditMode && targetItemId) {
-      let foundDayIdx = -1, foundPIdx = -1;
-      (itinerary.days || []).forEach((d, dI) => {
-        (d.plan || []).forEach((item, pI) => {
-          if (item?.id === targetItemId) { foundDayIdx = dI; foundPIdx = pI; }
-        });
-      });
-      if (foundDayIdx >= 0 && foundPIdx >= 0) {
-        setMapQuickViewItem({ dayIdx: foundDayIdx, pIdx: foundPIdx, ...lastClickPosRef.current });
-      }
+    // 지도 편집 모드: 네비 클릭 시 지도 포커스만 (퀵뷰 모달은 지도 마커 클릭에서만)
+    if (mapEditMode) {
       navScrollTimeout.current = setTimeout(() => { isNavScrolling.current = false; }, 500);
       return;
     }
@@ -11385,16 +11376,26 @@ const App = () => {
                 )}
                 {/* 메모 */}
                 {String(qvItem.memo || '').trim() && (
-                  <p className="text-[11px] font-medium text-slate-500 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">{qvItem.memo}</p>
+                  <p className="text-[11px] font-medium text-slate-500 bg-slate-50/80 rounded-xl px-2.5 py-2">{qvItem.memo}</p>
+                )}
+                {/* 메뉴 목록 */}
+                {(qvItem.receipt?.items || []).filter(m => m?.selected !== false).length > 0 && (
+                  <div className="flex flex-col gap-1 bg-slate-50/80 rounded-xl px-2.5 py-2">
+                    {(qvItem.receipt?.items || []).filter(m => m?.selected !== false).map((m, mIdx) => (
+                      <div key={mIdx} className="flex items-center justify-between text-[10px]">
+                        <span className="text-slate-600 font-bold truncate flex-1">{m?.name || '-'}</span>
+                        <span className="text-slate-400 font-bold mx-2">x{Math.max(1, Number(m?.qty) || 1)}</span>
+                        <span className="text-[#3182F6] font-black tabular-nums">₩{((Number(m?.price) || 0) * Math.max(1, Number(m?.qty) || 1)).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-              {/* 가격 푸터 */}
-              {qvTotal > 0 && (
-                <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/50">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total</span>
-                  <span className="text-[16px] font-black text-[#3182F6]">₩{qvTotal.toLocaleString()}</span>
-                </div>
-              )}
+              {/* 가격 푸터 — 항상 표시 */}
+              <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/50">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total</span>
+                <span className="text-[16px] font-black text-[#3182F6] tabular-nums">₩{qvTotal.toLocaleString()}</span>
+              </div>
             </div>
           </>
         );

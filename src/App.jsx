@@ -7533,6 +7533,8 @@ const App = () => {
                                       endTouchDragLock();
                                     }}
                                     onClick={() => { setActiveDay(d.day); setActiveItemId(p.id); }}
+                                    onMouseEnter={() => { setFocusedMapTarget({ kind: 'timeline', id: p.id }); }}
+                                    onMouseLeave={() => { setFocusedMapTarget(prev => prev?.id === p.id ? null : prev); }}
                                     className={(() => { const _layout = isLastLodge ? 'flex flex-col' : 'grid grid-cols-[4.2rem_1fr_auto]'; const _state = p._timingConflict ? 'bg-red-50' : isActive ? 'bg-blue-50/50' : 'hover:bg-slate-50'; return `${_layout} items-center gap-1.5 rounded-lg px-2 py-1.5 text-left transition-colors relative overflow-hidden border-b border-slate-100/80 ${_state}`; })()}
                                   >
                                     {isLastLodge ? (

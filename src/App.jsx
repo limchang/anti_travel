@@ -3030,6 +3030,7 @@ const App = () => {
     setFocusedMapTarget(null);
     setMobileSelectedLibraryPlace(null);
     setFocusedLibraryMarkerId(null);
+    setActiveItemId(null);
   }, []);
   const handleOverviewMapMarkerClick = useCallback((target) => {
     if (!target) return;

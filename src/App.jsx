@@ -520,7 +520,7 @@ const App = () => {
   const [lastAction, setLastAction] = useState("3일차 시작 일정이 수정되었습니다.");
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [aiLearningCapture, setAiLearningCapture] = useState(null); // { itemId, rawSource, aiResult, inputType }
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(true);
   const [activeDay, setActiveDay] = useState(1);
   const [activeItemId, setActiveItemId] = useState(null);
 
@@ -6888,6 +6888,16 @@ const App = () => {
             <MapIcon size={14} className="text-white" />
           </div>
           <span className="text-[14px] font-black text-slate-800 tracking-tight">Anti Planer</span>
+          {(() => {
+            const { refTime } = getActiveRefContext();
+            if (!refTime) return null;
+            const wdMap = { sun: '일', mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토' };
+            const { todayKey: tk } = getActiveRefContext();
+            const dl = wdMap[tk] || '';
+            let tl = `(${dl}) ${refTime}`;
+            if (tripStartDate) { const ad = itinerary.days?.find(dd => dd.day === activeDay); if (ad) { const dt = new Date(tripStartDate); dt.setDate(dt.getDate() + (ad.day - 1)); tl = `${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}(${dl}) ${refTime}`; }}
+            return <span className="text-[10px] font-bold text-slate-400 ml-2">{tl}</span>;
+          })()}
         </div>
         <div className="flex-1" />
         <button
@@ -7326,7 +7336,7 @@ const App = () => {
       {/* ── Col1: 예산 + 일정 네비게이션 ── */}
       <div
         className={mapEditMode && !isMobileLayout
-          ? `flex flex-col fixed z-[280] bg-slate-900/95 backdrop-blur-lg rounded-2xl shadow-[0_16px_48px_-16px_rgba(0,0,0,0.5)] overflow-hidden ${navFloatingExpanded ? '' : 'cursor-pointer'}`
+          ? `flex flex-col fixed z-[280] bg-white/95 backdrop-blur-lg rounded-2xl border border-slate-200/50 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.2)] overflow-hidden ${navFloatingExpanded ? '' : 'cursor-pointer'}`
           : 'flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-visible z-[290]'
         }
         style={mapEditMode && !isMobileLayout
@@ -7352,11 +7362,11 @@ const App = () => {
           <>
             {/* ── 고정 헤더 ── */}
             {mapEditMode && !isMobileLayout ? (
-              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10 shrink-0">
-                <CalendarDays size={14} className="text-white/70 shrink-0" />
-                {navFloatingExpanded && <span className="text-[12px] font-black text-white flex-1">{tripRegion || 'Anti Planer'}</span>}
+              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-100 shrink-0">
+                <CalendarDays size={14} className="text-slate-400 shrink-0" />
+                {navFloatingExpanded && <span className="text-[12px] font-black text-slate-800 flex-1">{tripRegion || 'Anti Planer'}</span>}
                 {navFloatingExpanded && (
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setNavFloatingExpanded(false); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/50 transition-colors">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setNavFloatingExpanded(false); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors">
                     <X size={12} />
                   </button>
                 )}
@@ -7382,7 +7392,7 @@ const App = () => {
                     {/* 스티키 날짜 라벨 */}
                     <button
                       type="button"
-                      className={`sticky top-0 z-10 w-full flex items-center gap-2 px-2.5 py-1.5 mb-1.5 rounded-xl ${activeDay === d.day ? 'bg-white/15 text-white' : 'bg-transparent text-white/50 hover:bg-white/5'}`}
+                      className={`sticky top-0 z-10 w-full flex items-center gap-2 px-2.5 py-1.5 mb-1 border-b border-slate-100 ${activeDay === d.day ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}
                       onClick={() => handleNavClick(d.day)}
                     >
                       <span className="text-[12px] font-black tracking-tight">{getNavDateLabelForDay(d.day).primary}</span>
@@ -7563,16 +7573,16 @@ const App = () => {
                                       endTouchDragLock();
                                     }}
                                     onClick={() => handleNavClick(d.day, p.id)}
-                                    className={(() => { const _layout = isLastLodge ? 'flex flex-col' : 'grid grid-cols-[4.2rem_1fr_auto]'; const _state = p._timingConflict ? 'bg-red-500/20' : isActive ? 'bg-white/10' : 'hover:bg-white/5'; return `${_layout} items-center gap-1.5 rounded-lg px-2 py-1.5 text-left transition-colors relative overflow-hidden ${_state}`; })()}
+                                    className={(() => { const _layout = isLastLodge ? 'flex flex-col' : 'grid grid-cols-[4.2rem_1fr_auto]'; const _state = p._timingConflict ? 'bg-red-50' : isActive ? 'bg-blue-50/50' : 'hover:bg-slate-50'; return `${_layout} items-center gap-1.5 rounded-lg px-2 py-1.5 text-left transition-colors relative overflow-hidden border-b border-slate-100/80 ${_state}`; })()}
                                   >
                                     {/* 퀵뷰 좌측 악센트 바 */}
                                     <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[14px] ${navCatStyle.accent}`} />
                                     {isLastLodge ? (
                                       <div className="grid w-full min-w-0 grid-cols-[4.2rem_1fr_auto] items-center gap-1.5">
-                                        <div className="flex items-center gap-0.5 bg-white/10 rounded-lg px-0.5 py-px border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
+                                        <div className="flex items-center gap-0.5 bg-white rounded-lg px-0.5 py-px border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
                                           <span className="w-[18px] h-[18px] rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{getNavItemOrder(p, pIdx, navPlanItems)}</span>
                                           <span
-                                            className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-400' : isFixedTimeNav ? 'font-black text-blue-400 cursor-pointer hover:opacity-70' : isActive ? 'font-black text-white' : 'font-bold text-white/50'}`}
+                                            className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-800' : 'font-bold text-slate-400'}`}
                                             onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
                                           >{p.time || '--:--'}</span>
                                         </div>
@@ -7581,7 +7591,7 @@ const App = () => {
                                             className={`shrink-0 scale-[0.88] origin-left transition-opacity cursor-pointer hover:scale-100 ${isActive ? 'opacity-100' : 'opacity-70'}`}
                                             onClick={(e) => { e.stopPropagation(); const realPIdx = (itinerary.days?.[dNavIdx]?.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) openPlanEditModal(dNavIdx, realPIdx); }}
                                           >{getCategoryBadge(navPrimaryType)}</div>
-                                          <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-400' : isActive ? 'font-black text-white' : 'font-bold text-white/60'}`}>{p.activity}</span>
+                                          <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-500' : isActive ? 'font-black text-slate-800' : 'font-bold text-slate-500'}`}>{p.activity}</span>
                                           {isRouteLoadingNav && (
                                             <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[8px] font-black leading-none text-[#3182F6]">
                                               <LoaderCircle size={8} className="animate-spin" />
@@ -7614,10 +7624,10 @@ const App = () => {
                                       </div>
                                     ) : (
                                       <>
-                                        <div className="flex items-center gap-0.5 bg-white/10 rounded-lg px-0.5 py-px border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
+                                        <div className="flex items-center gap-0.5 bg-white rounded-lg px-0.5 py-px border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
                                           <span className="w-[18px] h-[18px] rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{getNavItemOrder(p, pIdx, navPlanItems)}</span>
                                           <span
-                                            className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-400' : isFixedTimeNav ? 'font-black text-blue-400 cursor-pointer hover:opacity-70' : isActive ? 'font-black text-white' : 'font-bold text-white/50'}`}
+                                            className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-800' : 'font-bold text-slate-400'}`}
                                             onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
                                           >{p.time || '--:--'}</span>
                                         </div>
@@ -7626,7 +7636,7 @@ const App = () => {
                                             className={`shrink-0 scale-[0.88] origin-left transition-opacity cursor-pointer hover:scale-100 ${isActive ? 'opacity-100' : 'opacity-70'}`}
                                             onClick={(e) => { e.stopPropagation(); const realPIdx = (itinerary.days?.[dNavIdx]?.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) openPlanEditModal(dNavIdx, realPIdx); }}
                                           >{getCategoryBadge(navPrimaryType)}</div>
-                                          <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-400' : isActive ? 'font-black text-white' : 'font-bold text-white/60'}`}>{p.activity}</span>
+                                          <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-500' : isActive ? 'font-black text-slate-800' : 'font-bold text-slate-500'}`}>{p.activity}</span>
                                           {isRouteLoadingNav && (
                                             <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[8px] font-black leading-none text-[#3182F6]">
                                               <LoaderCircle size={8} className="animate-spin" />

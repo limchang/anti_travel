@@ -314,6 +314,7 @@ const App = () => {
   const [navAiExpanded, setNavAiExpanded] = useState(false);
   const [navFloatingExpanded, setNavFloatingExpanded] = useState(true);
   const [showTimelineOverlay, setShowTimelineOverlay] = useState(false);
+  const [bottomPanelExpanded, setBottomPanelExpanded] = useState(true);
   const [showPlanOptions, setShowPlanOptions] = useState(false);
   const [showNavMenu, setShowNavMenu] = useState(false);
   const [highlightedPlaceId, setHighlightedPlaceId] = useState(null);
@@ -7804,8 +7805,14 @@ const App = () => {
       </div>
 
       <div
-        className="flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[220] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] overflow-visible"
-        style={{ right: 0, width: rightSidebarWidth, transition: panelResizingRef.current?.side === 'right' ? 'none' : 'width 0.3s' }}
+        className={mapEditMode && !isMobileLayout
+          ? `flex flex-col fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-[220] shadow-[0_-8px_32px_rgba(0,0,0,0.08)] overflow-hidden`
+          : 'flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[220] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] overflow-visible'
+        }
+        style={mapEditMode && !isMobileLayout
+          ? { maxHeight: bottomPanelExpanded ? '45vh' : '0px', transition: 'max-height 0.3s' }
+          : { right: 0, width: rightSidebarWidth, transition: panelResizingRef.current?.side === 'right' ? 'none' : 'width 0.3s' }
+        }
       >
         {/* 우측 패널 너비 조절 핸들 */}
         {!isMobileLayout && (

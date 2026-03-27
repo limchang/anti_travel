@@ -7572,7 +7572,7 @@ const App = () => {
                                       setIsDragCopy(false);
                                       endTouchDragLock();
                                     }}
-                                    onClick={() => handleNavClick(d.day, p.id)}
+                                    onClick={() => { setActiveDay(d.day); setActiveItemId(p.id); }}
                                     className={(() => { const _layout = isLastLodge ? 'flex flex-col' : 'grid grid-cols-[4.2rem_1fr_auto]'; const _state = p._timingConflict ? 'bg-red-50' : isActive ? 'bg-blue-50/50' : 'hover:bg-slate-50'; return `${_layout} items-center gap-1.5 rounded-lg px-2 py-1.5 text-left transition-colors relative overflow-hidden border-b border-slate-100/80 ${_state}`; })()}
                                   >
                                     {/* 퀵뷰 좌측 악센트 바 */}
@@ -7670,6 +7670,17 @@ const App = () => {
                                             </div>
                                           );
                                         })()}
+                                        {isActive && (
+                                          <button
+                                            type="button"
+                                            data-no-drag="true"
+                                            onClick={(e) => { e.stopPropagation(); handleNavClick(d.day, p.id); }}
+                                            className="shrink-0 w-5 h-5 flex items-center justify-center rounded bg-[#3182F6] text-white hover:bg-blue-600 transition-colors"
+                                            title="지도에서 보기"
+                                          >
+                                            <ChevronRight size={12} />
+                                          </button>
+                                        )}
                                       </>
                                     )}
                                   </div>

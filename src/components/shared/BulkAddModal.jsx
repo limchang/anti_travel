@@ -38,6 +38,8 @@ const BulkAddModal = ({
   bulkAddLoading, setBulkAddLoading,
   showInfoToast, addPlace, itinerary, setItinerary,
   runJinaSmartFill,
+  searchAddressFromPlaceName,
+  tripRegion = '',
 }) => {
   if (!showBulkAddModal) return null;
   return (
@@ -45,10 +47,7 @@ const BulkAddModal = ({
               <div className="fixed inset-0 z-[291] bg-black/30 backdrop-blur-sm" onClick={() => setShowBulkAddModal(false)} />
               <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl flex flex-col" style={{ maxHeight: 'min(96vh, 1100px)' }}>
                 <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
-                  <div>
-                    <p className="text-[14px] font-black text-slate-800">여러 장소 추가하기</p>
-                    <p className="text-[10px] font-bold text-slate-400 mt-0.5">카카오맵 공유 텍스트, 장소명+주소, 네이버 내장소 공유 링크 지원</p>
-                  </div>
+                  <p className="text-[14px] font-black text-slate-800">여러 장소 추가하기</p>
                   <button onClick={() => setShowBulkAddModal(false)} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -60,12 +59,12 @@ const BulkAddModal = ({
                         let nameCount = 0;
                         const coloredLines = lines.map((line, li) => {
                           const trimmed = line.trim();
+                          if (!trimmed) return 'none';
                           const isAddr = addressRe.test(trimmed);
-                          const nextTrimmed = li < lines.length - 1 ? lines[li + 1]?.trim() : '';
-                          const isName = trimmed && !isAddr && addressRe.test(nextTrimmed || '');
-                          if (isName) { nameCount++; return 'name'; }
                           if (isAddr) return 'addr';
-                          return 'none';
+                          // 이름 줄: 주소가 아닌 모든 비어있지 않은 줄
+                          nameCount++;
+                          return 'name';
                         });
                         return (
                           <>
@@ -113,14 +112,12 @@ const BulkAddModal = ({
                                 autoFocus
                               />
                             </div>
-                            {nameCount > 0 && (
-                              <div className="flex items-center gap-3 text-[9px] font-bold text-slate-400">
-                                <span>{nameCount}개 장소 감지</span>
-                                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#3182F6]" /> 상호</span>
-                                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> 주소</span>
-                                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-300" /> 무시</span>
-                              </div>
-                            )}
+                            <div className="flex items-center gap-3 text-[9px] font-bold text-slate-400">
+                              {nameCount > 0 && <span>{nameCount}개 장소 감지</span>}
+                              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#3182F6]" /> 상호</span>
+                              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> 주소</span>
+                              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-300" /> 무시</span>
+                            </div>
                           </>
                         );
                       })()}
@@ -273,29 +270,23 @@ const BulkAddModal = ({
                             }));
                             showInfoToast('카테고리 키워드를 제거했습니다.');
                           }} className="text-[10px] font-black text-orange-500 hover:underline">카테고리 제거</button>
-                          {runJinaSmartFill && (
+                          {searchAddressFromPlaceName && (
                             <button type="button" onClick={async () => {
-                              const selected = bulkAddParsed.filter(p => p.selected && !p._jinaFilled && !p._jinaLoading);
-                              if (!selected.length) { showInfoToast('채울 장소가 없습니다.'); return; }
-                              showInfoToast(`v2: ${selected.length}개 장소 정보 채우기 시작...`);
+                              const selected = bulkAddParsed.filter(p => p.selected && !p.address);
+                              if (!selected.length) { showInfoToast('주소가 없는 장소가 없습니다.'); return; }
+                              showInfoToast(`${selected.length}개 장소 주소 검색 시작...`);
                               for (let idx = 0; idx < bulkAddParsed.length; idx++) {
                                 const item = bulkAddParsed[idx];
-                                if (!item.selected || item._jinaFilled || item._jinaLoading) continue;
-                                setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, _jinaLoading: true }));
+                                if (!item.selected || item.address) continue;
                                 try {
-                                  const result = await runJinaSmartFill({ placeName: item.name });
-                                  setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : {
-                                    ...p, _jinaLoading: false, _jinaFilled: true,
-                                    address: result?.address || p.address,
-                                    business: result?.business || p.business,
-                                    menus: result?.menus?.length ? result.menus : p.menus,
-                                  }));
-                                } catch {
-                                  setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, _jinaLoading: false }));
-                                }
+                                  const result = await searchAddressFromPlaceName(item.name, tripRegion);
+                                  if (result?.address) {
+                                    setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, address: result.address }));
+                                  }
+                                } catch { /* silent */ }
                               }
-                              showInfoToast('v2 전체 채우기 완료!');
-                            }} className="text-[10px] font-black text-emerald-500 hover:underline">v2 전체 채우기</button>
+                              showInfoToast('주소 자동 채우기 완료!');
+                            }} className="text-[10px] font-black text-[#3182F6] hover:underline">주소 자동 채우기</button>
                           )}
                           <button type="button" onClick={() => setBulkAddParsed(prev => prev.map(p => ({ ...p, selected: true })))} className="text-[10px] font-black text-[#3182F6] hover:underline">전체선택</button>
                           <button type="button" onClick={() => setBulkAddParsed(prev => prev.map(p => ({ ...p, selected: false })))} className="text-[10px] font-black text-slate-400 hover:underline">전체해제</button>
@@ -339,43 +330,23 @@ const BulkAddModal = ({
                                     title="카테고리 키워드 제거"
                                   >카테고리 제거</button>
                                 )}
-                                {runJinaSmartFill && (
+                                {searchAddressFromPlaceName && !item.address && (
                                   <button
                                     type="button"
-                                    disabled={item._jinaLoading}
                                     onClick={async () => {
-                                      setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, _jinaLoading: true }));
                                       try {
-                                        const result = await runJinaSmartFill({ placeName: item.name });
-                                        if (result) {
-                                          setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : {
-                                            ...p,
-                                            _jinaLoading: false,
-                                            _jinaFilled: true,
-                                            address: result.address || p.address,
-                                            business: result.business || p.business,
-                                            menus: result.menus?.length ? result.menus : p.menus,
-                                          }));
-                                          showInfoToast(`${result.name || item.name} 정보 채움`);
-                                        } else {
-                                          setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, _jinaLoading: false }));
-                                        }
-                                      } catch (err) {
-                                        setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, _jinaLoading: false }));
-                                        showInfoToast(`v2 실패: ${err?.message || '오류'}`);
-                                      }
+                                        const result = await searchAddressFromPlaceName(item.name, tripRegion);
+                                        if (result?.address) {
+                                          setBulkAddParsed(prev => prev.map((p, i) => i !== idx ? p : { ...p, address: result.address }));
+                                          showInfoToast(`${item.name} 주소 찾음`);
+                                        } else { showInfoToast('주소를 찾지 못했습니다.'); }
+                                      } catch { showInfoToast('주소 검색 실패'); }
                                     }}
-                                    className={`shrink-0 px-1.5 py-0.5 rounded text-[8px] font-black border transition-colors ${item._jinaFilled ? 'text-white border-emerald-500 bg-emerald-500' : item._jinaLoading ? 'text-emerald-400 border-emerald-200 bg-emerald-50' : 'text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'}`}
-                                    title="v2 지도검색 자동채우기"
-                                  >{item._jinaLoading ? '검색중...' : item._jinaFilled ? '✓ 완료' : 'v2 채우기'}</button>
+                                    className="shrink-0 px-1.5 py-0.5 rounded text-[8px] font-black border text-[#3182F6] border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors"
+                                    title="카카오 주소 검색"
+                                  >주소 검색</button>
                                 )}
                               </div>
-                              {item._jinaLoading && (
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                  <svg className="animate-spin shrink-0" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
-                                  <span className="text-[9px] font-bold text-emerald-500">네이버 지도에서 정보 가져오는 중...</span>
-                                </div>
-                              )}
                               {item.address && <p className="text-[10px] font-bold text-slate-400 mt-0.5 truncate">{item.address}</p>}
                               {item._expanded && (
                                 <div className="mt-1.5 space-y-1.5 p-2 rounded-lg border border-slate-100 bg-white" onClick={(e) => e.stopPropagation()}>

@@ -578,7 +578,7 @@ export const PlaceLibraryCard = ({
           title="네이버 지도에서 주소·영업시간·메뉴를 자동으로 가져옵니다"
         >
           {jinaLoading ? <svg className="animate-spin shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> : <Search size={11} className="shrink-0" />}
-          {jinaLoading ? '검색중' : '자동검색'}
+          {jinaLoading ? '검색중' : '슈퍼채우기'}
         </button>
       )}
       <button

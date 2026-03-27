@@ -8745,7 +8745,7 @@ const App = () => {
           )}
 
           {/* ── 여러 장소 추가 모달 ── */}
-          <BulkAddModal showBulkAddModal={showBulkAddModal} setShowBulkAddModal={setShowBulkAddModal} bulkAddText={bulkAddText} setBulkAddText={setBulkAddText} bulkAddParsed={bulkAddParsed} setBulkAddParsed={setBulkAddParsed} bulkAddLoading={bulkAddLoading} setBulkAddLoading={setBulkAddLoading} showInfoToast={showInfoToast} addPlace={addPlace} itinerary={itinerary} setItinerary={setItinerary} runJinaSmartFill={runJinaSmartFill} />
+          <BulkAddModal showBulkAddModal={showBulkAddModal} setShowBulkAddModal={setShowBulkAddModal} bulkAddText={bulkAddText} setBulkAddText={setBulkAddText} bulkAddParsed={bulkAddParsed} setBulkAddParsed={setBulkAddParsed} bulkAddLoading={bulkAddLoading} setBulkAddLoading={setBulkAddLoading} showInfoToast={showInfoToast} addPlace={addPlace} itinerary={itinerary} setItinerary={setItinerary} runJinaSmartFill={runJinaSmartFill} searchAddressFromPlaceName={searchAddressFromPlaceName} tripRegion={tripRegion} />
 
           {showPlanOptions && (
             <>

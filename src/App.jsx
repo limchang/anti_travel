@@ -7275,11 +7275,20 @@ const App = () => {
                     <div className="flex flex-col gap-1">
                       {(() => {
                         const navPlanItems = (d.plan || []).filter(p => p.type !== 'backup');
-                        // 이전 day들의 아이템 수 누적 (지도 마커 번호용)
-                        let navOrderOffset = 0;
-                        for (let di = 0; di < dNavIdx; di++) {
-                          navOrderOffset += (itinerary.days?.[di]?.plan || []).filter(x => x.type !== 'backup').length;
-                        }
+                        // day 내 순번 계산 (home/lodge=0, 나머지=1~)
+                        const getNavItemOrder = (item, idx, items) => {
+                          const types = item.types || [];
+                          if (types.includes('home')) return 0;
+                          if ((isFullLodgeStayItem(item) || types.includes('stay')) && idx === items.length - 1) return 0;
+                          let num = 0;
+                          for (let i = 0; i <= idx; i++) {
+                            const t = items[i].types || [];
+                            if (t.includes('home')) continue;
+                            if ((isFullLodgeStayItem(items[i]) || t.includes('stay')) && i === items.length - 1) continue;
+                            num++;
+                          }
+                          return num;
+                        };
                         const expectedNightSlot = d.day <= tripNights;
                         const lastStayIndex = navPlanItems.findIndex((item, index, arr) =>
                           index === arr.length - 1 && (isFullLodgeStayItem(item) || (Array.isArray(item.types) && item.types.includes('stay')))
@@ -7442,7 +7451,7 @@ const App = () => {
                                     {isLastLodge ? (
                                       <div className="grid w-full min-w-0 grid-cols-[4.2rem_1fr_auto] items-center gap-1.5">
                                         <div className="flex items-center gap-1 bg-white rounded-lg px-0.5 py-0.5 border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
-                                          <span className="w-[18px] h-[18px] rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{navOrderOffset + pIdx + 1}</span>
+                                          <span className="w-[18px] h-[18px] rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{getNavItemOrder(p, pIdx, navPlanItems)}</span>
                                           <span
                                             className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}
                                             onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
@@ -7487,7 +7496,7 @@ const App = () => {
                                     ) : (
                                       <>
                                         <div className="flex items-center gap-1 bg-white rounded-lg px-0.5 py-0.5 border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
-                                          <span className="w-[18px] h-[18px] rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{navOrderOffset + pIdx + 1}</span>
+                                          <span className="w-[18px] h-[18px] rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{getNavItemOrder(p, pIdx, navPlanItems)}</span>
                                           <span
                                             className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}
                                             onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
@@ -9980,9 +9989,19 @@ const App = () => {
                       <div className={`relative w-full flex flex-col border overflow-hidden rounded-[24px] transition-[border-color,box-shadow] duration-200 ${stateStyles}`}>
                         {/* 카테고리 색 헤더 (일반 장소만) */}
                         {!isHome && !isLodge && !isLodgeTagged && !isShip && (() => {
+                          const _planItems = (d.plan || []).filter(x => x.type !== 'backup');
+                          const _pIdxInFiltered = _planItems.findIndex(x => x.id === p.id);
+                          const _isHome = p.types?.includes('home');
+                          const _isLastLodge = (isFullLodgeStayItem(p) || p.types?.includes('stay')) && _pIdxInFiltered === _planItems.length - 1;
                           let _orderNum = 0;
-                          for (let di = 0; di < dIdx; di++) _orderNum += (itinerary.days?.[di]?.plan || []).filter(x => x.type !== 'backup').length;
-                          _orderNum += (d.plan || []).slice(0, pIdx + 1).filter(x => x.type !== 'backup').length;
+                          if (!_isHome && !_isLastLodge) {
+                            for (let i = 0; i <= _pIdxInFiltered; i++) {
+                              const t = _planItems[i]?.types || [];
+                              if (t.includes('home')) continue;
+                              if ((isFullLodgeStayItem(_planItems[i]) || t.includes('stay')) && i === _planItems.length - 1) continue;
+                              _orderNum++;
+                            }
+                          }
                           const _dayColor = ROUTE_PREVIEW_COLORS[dIdx % ROUTE_PREVIEW_COLORS.length];
                           return (
                           <div className={`flex items-center gap-2 px-3 py-2 ${_tlCatStyle.accent}`}>
@@ -11177,14 +11196,19 @@ const App = () => {
         const qvTop = Math.max(8, Math.min(window.innerHeight - panelH - 8, clickY - panelH / 2));
         // 일정 순번 계산
         const qvOrderNum = (() => {
+          if (isPlaceQuickView) return '';
+          const plan = (itinerary.days?.[qvDIdx]?.plan || []).filter(x => x.type !== 'backup');
+          const idx = plan.findIndex(x => x.id === qvItem.id);
+          if (idx < 0) return 0;
+          const types = qvItem.types || [];
+          if (types.includes('home')) return 0;
+          if ((isFullLodgeStayItem(qvItem) || types.includes('stay')) && idx === plan.length - 1) return 0;
           let num = 0;
-          for (let di = 0; di <= qvDIdx; di++) {
-            const plan = itinerary.days?.[di]?.plan || [];
-            for (let pi = 0; pi < plan.length; pi++) {
-              if (plan[pi]?.type === 'backup') continue;
-              num++;
-              if (di === qvDIdx && pi === qvPIdx) return num;
-            }
+          for (let i = 0; i <= idx; i++) {
+            const t = plan[i]?.types || [];
+            if (t.includes('home')) continue;
+            if ((isFullLodgeStayItem(plan[i]) || t.includes('stay')) && i === plan.length - 1) continue;
+            num++;
           }
           return num;
         })();

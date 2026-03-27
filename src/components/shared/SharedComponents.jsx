@@ -145,10 +145,16 @@ export const SharedBusinessRow = ({
   onContainerClick,
   quickEditSegments = null,
   onQuickEdit = null,
-}) => (
-  <div className="w-full rounded-xl bg-amber-50 px-2.5 py-1.5" onClick={onContainerClick}>
+  status = '', // 'warn' | 'open' | ''
+}) => {
+  const bgClass = status === 'warn' ? 'bg-red-50 border border-red-200' : status === 'open' ? 'bg-emerald-50 border border-emerald-200' : 'bg-amber-50';
+  const iconClass = status === 'warn' ? 'text-red-500' : status === 'open' ? 'text-emerald-500' : 'text-amber-500';
+  const textClass = status === 'warn' ? 'text-red-600' : status === 'open' ? 'text-emerald-700' : 'text-amber-700';
+  const dotClass = status === 'warn' ? 'text-red-300' : status === 'open' ? 'text-emerald-300' : 'text-amber-300';
+  return (
+  <div className={`w-full rounded-xl px-2.5 py-1.5 ${bgClass}`} onClick={onContainerClick}>
     <div className="w-full flex items-center gap-2">
-      <Clock size={11} className="text-amber-500 shrink-0" />
+      <Clock size={11} className={`${iconClass} shrink-0`} />
       <button
         type="button"
         onClick={(e) => {
@@ -160,7 +166,7 @@ export const SharedBusinessRow = ({
         {summary === '미설정' || !summary ? (
           <span className="text-[10px] font-bold text-slate-400">{placeholder}</span>
         ) : quickEditSegments?.length && onQuickEdit ? (
-          <span className="text-[10px] font-bold text-amber-700 truncate flex-1 flex items-center gap-1 flex-wrap">
+          <span className={`text-[10px] font-bold ${textClass} truncate flex-1 flex items-center gap-1 flex-wrap`}>
             {quickEditSegments.map((segment, idx) => (
               <React.Fragment key={`${segment.fieldKey}-${idx}`}>
                 <button
@@ -173,19 +179,20 @@ export const SharedBusinessRow = ({
                 >
                   {segment.label}
                 </button>
-                {idx < quickEditSegments.length - 1 && <span className="text-amber-300">·</span>}
+                {idx < quickEditSegments.length - 1 && <span className={dotClass}>·</span>}
               </React.Fragment>
             ))}
           </span>
         ) : (
-          <span className="text-[10px] font-bold text-amber-700 truncate flex-1">{summary}</span>
+          <span className={`text-[10px] font-bold ${textClass} truncate flex-1`}>{summary}</span>
         )}
       </button>
       {actionButton ? <div className={ACTION_SLOT_CLASS}>{actionButton}</div> : null}
     </div>
     {expanded}
   </div>
-);
+  );
+};
 // 메모 텍스트에서 체크리스트 항목 파싱
 export const parseChecklistLines = (text = '') => {
   return String(text).split('\n').map((line, idx) => {

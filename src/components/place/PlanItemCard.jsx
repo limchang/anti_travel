@@ -44,6 +44,7 @@ const PlanItemCard = ({
   onBusinessToggle,
   businessExpanded,
   businessActions,
+  businessStatus = '', // 'warn' | 'open' | ''
 
   // 콜백 — 메모
   onMemoChange,
@@ -105,18 +106,12 @@ const PlanItemCard = ({
           />
         )}
 
-        {/* 영업 경고 */}
-        {businessWarning && (
-          <div className="w-full px-2.5 py-1 rounded-lg border border-red-200 bg-red-50 text-red-600 text-[10px] font-black text-left">
-            {businessWarning}
-          </div>
-        )}
-
-        {/* 영업 정보 */}
+        {/* 영업 정보 (경고/영업중 상태 색상 포함) */}
         <SharedBusinessRow
-          summary={businessSummary}
+          summary={businessWarning ? `⚠ ${businessWarning}` : businessSummary}
+          status={businessWarning ? 'warn' : businessStatus || ''}
           onContainerClick={onContainerClick}
-          quickEditSegments={quickEditSegments}
+          quickEditSegments={businessWarning ? null : quickEditSegments}
           onQuickEdit={onBusinessQuickEdit}
           onToggle={onBusinessToggle}
           actionButton={businessActions}

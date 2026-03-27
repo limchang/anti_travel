@@ -8226,13 +8226,9 @@ const App = () => {
                       const openStatus = isOpenAt(place.business); // true=영업중, false=마감, null=정보없음
                       const baseDistance = placeDistanceMap[place.id];
                       const placeCardClass = `${draggingFromLibrary?.id === place.id ? 'opacity-40 animate-pulse' : 'hover:shadow-[0_14px_32px_-14px_rgba(49,130,246,0.22)] hover:border-[#3182F6]/25'} ${isPlaceExpanded ? 'scale-[1.01]' : ''} ${(isMobilePlaceSelected || isMapFocusedPlace) ? 'border-[#3182F6]/55 ring-2 ring-[#3182F6]/18 shadow-[0_18px_34px_-20px_rgba(49,130,246,0.35)]' : ''}`.trim();
+                      const placeBusinessStatus = bizWarningNow ? 'warn' : openStatus === true ? 'open' : '';
                       const statusChip = (
                         <>
-                          {bizWarningNow
-                            ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-orange-200 bg-orange-50 text-orange-600">영업 주의</span>
-                            : openStatus === true
-                              ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-[#3182F6]/20 bg-blue-50 text-[#3182F6]">영업중</span>
-                              : null}
                           {isMobilePlaceSelected && (
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-[#3182F6]/20 bg-blue-50 text-[#3182F6]">
                               선택됨
@@ -8317,7 +8313,9 @@ const App = () => {
                           categoryBorder={placeCatStyle.border}
                           baseDistance={baseDistance}
                           statusChip={statusChip}
-                          businessSummary={bizWarningNow ? `주의 · ${hasBizSummary ? bizSummary : '영업 정보 미설정'}` : (hasBizSummary ? bizSummary : '미설정')}
+                          businessSummary={hasBizSummary ? bizSummary : '미설정'}
+                          businessWarning={bizWarningNow ? `영업 주의 · ${hasBizSummary ? bizSummary : '영업 정보 미설정'}` : ''}
+                          businessStatus={placeBusinessStatus}
                           isExpanded={isPlaceExpanded}
                           viewMode={placeLibraryViewMode}
                           showPrice={showPlacePrice}

@@ -545,6 +545,8 @@ export const PlaceLibraryCard = ({
   baseDistance = null,
   statusChip = null,
   businessSummary = '미설정',
+  businessWarning = '',
+  businessStatus = '',
   isExpanded = false,
   onEdit,
   onBusinessEdit,
@@ -622,6 +624,8 @@ export const PlaceLibraryCard = ({
       isExpanded={isExpanded}
       compact={isCompact}
       businessSummary={businessSummary}
+      businessWarning={businessWarning}
+      businessStatus={businessStatus}
       quickEditSegments={buildBusinessQuickEditSegments(place.business || {})}
       onBusinessQuickEdit={(fieldKey) => onBusinessQuickEdit?.(fieldKey)}
       onBusinessToggle={onBusinessEdit}

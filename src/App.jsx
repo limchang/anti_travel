@@ -7360,6 +7360,7 @@ const App = () => {
                               const isActive = activeItemId === p.id;
                               const isLastLodge = (isFullLodgeStayItem(p) || (Array.isArray(p.types) && p.types.includes('stay'))) && pIdx === arr.length - 1;
                               const navPrimaryType = getPreferredNavCategory(p.types, p.type || 'place');
+                              const navCatStyle = getCategoryCardStyle(navPrimaryType);
                               const isFixedTimeNav = !!p.isTimeFixed || p.types?.includes('ship');
                               const isRouteLoadingNav = calculatingRouteTarget?.itemId === p.id;
                               const navConflictRecommendation = getTimingConflictRecommendation(dNavIdx, pIdx);
@@ -7438,10 +7439,10 @@ const App = () => {
                                       endTouchDragLock();
                                     }}
                                     onClick={() => handleNavClick(d.day, p.id)}
-                                    className={`${isLastLodge ? 'flex flex-col' : 'grid grid-cols-[2.45rem_1fr_auto]'} items-center gap-1.5 rounded-[14px] border px-2 py-1.5 text-left transition-all relative overflow-hidden ${p._timingConflict ? 'border-red-200 bg-red-50/85 shadow-[0_8px_18px_-16px_rgba(239,68,68,0.55)] hover:bg-red-100/80' : isLastLodge ? 'mt-2 border-indigo-200 bg-[linear-gradient(180deg,rgba(238,242,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-20px_rgba(99,102,241,0.28)] hover:border-indigo-300 hover:bg-indigo-50/90' : isActive ? 'border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-18px_rgba(49,130,246,0.42)]' : (() => { const _ns = getCategoryCardStyle(navPrimaryType); return `${_ns.border} ${_ns.bg} ${_ns.shadow} hover:brightness-[0.97]`; })()}`}
+                                    className={(() => { const _layout = isLastLodge ? 'flex flex-col' : 'grid grid-cols-[2.45rem_1fr_auto]'; const _state = p._timingConflict ? 'border-red-200 bg-red-50/85 shadow-[0_8px_18px_-16px_rgba(239,68,68,0.55)] hover:bg-red-100/80' : isLastLodge ? 'mt-2 border-indigo-200 bg-[linear-gradient(180deg,rgba(238,242,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-20px_rgba(99,102,241,0.28)] hover:border-indigo-300 hover:bg-indigo-50/90' : isActive ? 'border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-18px_rgba(49,130,246,0.42)]' : `${navCatStyle.border} ${navCatStyle.bg} ${navCatStyle.shadow} hover:brightness-[0.97]`; return `${_layout} items-center gap-1.5 rounded-[14px] border px-2 py-1.5 text-left transition-all relative overflow-hidden ${_state}`; })()}
                                   >
                                     {/* 퀵뷰 좌측 악센트 바 */}
-                                    <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[14px] ${getCategoryCardStyle(navPrimaryType).accent}`} />
+                                    <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[14px] ${navCatStyle.accent}`} />
                                     {isLastLodge ? (
                                       <div className="grid w-full min-w-0 grid-cols-[2.45rem_1fr_auto] items-center gap-1.5">
                                         <span
@@ -8186,6 +8187,7 @@ const App = () => {
                     <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))' }}>
                     {visiblePlaces.filter(place => place && (place.id || place.name)).map(place => {
                       const currentTypes = place.types?.length ? place.types : ['place'];
+                      const placeCatStyle = getCategoryCardStyle(getPreferredNavCategory(currentTypes));
                       const chips = (
                         <button
                           type="button"
@@ -8293,8 +8295,8 @@ const App = () => {
                           }}
                           place={place}
                           chips={chips}
-                          categoryAccent={getCategoryCardStyle(getPreferredNavCategory(place.types)).accent}
-                          categoryBorder={getCategoryCardStyle(getPreferredNavCategory(place.types)).border}
+                          categoryAccent={placeCatStyle.accent}
+                          categoryBorder={placeCatStyle.border}
                           baseDistance={baseDistance}
                           statusChip={statusChip}
                           businessSummary={bizWarningNow ? `주의 · ${hasBizSummary ? bizSummary : '영업 정보 미설정'}` : (hasBizSummary ? bizSummary : '미설정')}
@@ -9752,6 +9754,7 @@ const App = () => {
                 const isMapFocusedTimeline = focusedMapTarget?.kind === 'timeline' && focusedMapTarget.id === p.id;
                 const focusedDayColor = ROUTE_PREVIEW_COLORS[dIdx % ROUTE_PREVIEW_COLORS.length];
 
+                const _tlCatStyle = getCategoryCardStyle(getPreferredNavCategory(p.types));
                 let stateStyles;
                 if (isHome) stateStyles = 'bg-[linear-gradient(180deg,rgba(255,252,240,0.98),rgba(255,255,255,0.98))] border-amber-200/70 shadow-[0_8px_24px_-8px_rgba(180,131,9,0.10)]';
                 else if (isLodge) stateStyles = 'bg-[linear-gradient(180deg,rgba(244,245,255,0.98),rgba(255,255,255,0.98))] border-indigo-200 shadow-[0_12px_28px_-12px_rgba(99,102,241,0.18)]';
@@ -9759,10 +9762,7 @@ const App = () => {
                 else if (isShip) stateStyles = 'bg-[#f4fafe] border-blue-200 shadow-[0_8px_24px_-8px_rgba(29,78,216,0.12)]';
                 else if (hasPlanB) stateStyles = 'bg-white border-amber-300 shadow-[0_10px_30px_-8px_rgba(251,191,36,0.15)] ring-1 ring-amber-400/20';
                 else if (p.isTimeFixed) stateStyles = 'bg-white border-[#3182F6]/40 shadow-[0_10px_30px_-8px_rgba(49,130,246,0.12)] ring-1 ring-[#3182F6]/15';
-                else {
-                  const _cs = getCategoryCardStyle(getPreferredNavCategory(p.types));
-                  stateStyles = `${_cs.bg} ${_cs.border} ${_cs.shadow} hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)]`;
-                }
+                else stateStyles = `${_tlCatStyle.bg} ${_tlCatStyle.border} ${_tlCatStyle.shadow} hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)]`;
 
                 const allTypes = p.types || (p.type ? [p.type] : []);
                 const mainTypes = allTypes.filter(t => !MODIFIER_TAGS.has(t));
@@ -9972,7 +9972,7 @@ const App = () => {
                       {/* 🟢 카드 본체 (내부 라운드 셀) */}
                       <div className={`relative w-full flex flex-col border overflow-hidden rounded-[24px] transition-all duration-300 ${stateStyles}`}>
                         {/* 카테고리 악센트 바 */}
-                        {!isHome && !isLodge && !isLodgeTagged && !isShip && <div className={`h-[3px] w-full ${getCategoryCardStyle(getPreferredNavCategory(p.types)).accent}`} />}
+                        {!isHome && !isLodge && !isLodgeTagged && !isShip && <div className={`h-[3px] w-full ${_tlCatStyle.accent}`} />}
                         {/* Plan B 페이지 인디케이터 */}
                         {hasPlanB && (
                           <div className="absolute top-2 right-2 z-20 pointer-events-none">

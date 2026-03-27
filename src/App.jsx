@@ -7275,16 +7275,18 @@ const App = () => {
                     <div className="flex flex-col gap-1">
                       {(() => {
                         const navPlanItems = (d.plan || []).filter(p => p.type !== 'backup');
-                        // day 내 순번 계산 (home/lodge=0, 나머지=1~)
+                        // day 내 순번 계산 (출발지/숙소출발=0, 나머지=1~)
                         const getNavItemOrder = (item, idx, items) => {
                           const types = item.types || [];
+                          // 출발지(home) = 0
                           if (types.includes('home')) return 0;
-                          if ((isFullLodgeStayItem(item) || types.includes('stay')) && idx === items.length - 1) return 0;
+                          // day 첫 번째가 숙소 = 0 (숙소 출발)
+                          if (idx === 0 && (isFullLodgeStayItem(item) || types.includes('stay') || types.includes('lodge'))) return 0;
                           let num = 0;
                           for (let i = 0; i <= idx; i++) {
                             const t = items[i].types || [];
                             if (t.includes('home')) continue;
-                            if ((isFullLodgeStayItem(items[i]) || t.includes('stay')) && i === items.length - 1) continue;
+                            if (i === 0 && (isFullLodgeStayItem(items[i]) || t.includes('stay') || t.includes('lodge'))) continue;
                             num++;
                           }
                           return num;
@@ -9992,13 +9994,13 @@ const App = () => {
                           const _planItems = (d.plan || []).filter(x => x.type !== 'backup');
                           const _pIdxInFiltered = _planItems.findIndex(x => x.id === p.id);
                           const _isHome = p.types?.includes('home');
-                          const _isLastLodge = (isFullLodgeStayItem(p) || p.types?.includes('stay')) && _pIdxInFiltered === _planItems.length - 1;
+                          const _isFirstLodge = _pIdxInFiltered === 0 && (isFullLodgeStayItem(p) || p.types?.includes('stay') || p.types?.includes('lodge'));
                           let _orderNum = 0;
-                          if (!_isHome && !_isLastLodge) {
+                          if (!_isHome && !_isFirstLodge) {
                             for (let i = 0; i <= _pIdxInFiltered; i++) {
                               const t = _planItems[i]?.types || [];
                               if (t.includes('home')) continue;
-                              if ((isFullLodgeStayItem(_planItems[i]) || t.includes('stay')) && i === _planItems.length - 1) continue;
+                              if (i === 0 && (isFullLodgeStayItem(_planItems[i]) || t.includes('stay') || t.includes('lodge'))) continue;
                               _orderNum++;
                             }
                           }
@@ -11202,12 +11204,12 @@ const App = () => {
           if (idx < 0) return 0;
           const types = qvItem.types || [];
           if (types.includes('home')) return 0;
-          if ((isFullLodgeStayItem(qvItem) || types.includes('stay')) && idx === plan.length - 1) return 0;
+          if (idx === 0 && (isFullLodgeStayItem(qvItem) || types.includes('stay') || types.includes('lodge'))) return 0;
           let num = 0;
           for (let i = 0; i <= idx; i++) {
             const t = plan[i]?.types || [];
             if (t.includes('home')) continue;
-            if ((isFullLodgeStayItem(plan[i]) || t.includes('stay')) && i === plan.length - 1) continue;
+            if (i === 0 && (isFullLodgeStayItem(plan[i]) || t.includes('stay') || t.includes('lodge'))) continue;
             num++;
           }
           return num;

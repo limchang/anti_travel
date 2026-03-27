@@ -11182,10 +11182,14 @@ const App = () => {
               style={{ left: Math.max(8, qvLeft), top: Math.max(8, qvTop), width: panelW, maxHeight: mapRect ? mapRect.height - 24 : '80vh' }}
             >
               <div className="overflow-y-auto max-h-[inherit]">
-              {/* 마커 번호 + 카테고리 악센트 바 */}
-              <div className={`flex items-center gap-2 px-4 py-2 ${qvCatStyle.accent}`}>
-                <span className="w-6 h-6 rounded-lg bg-white/90 flex items-center justify-center text-[12px] font-black text-slate-700">{qvOrderNum}</span>
-                <span className="text-[12px] font-black text-white truncate">{qvItem.activity || '이름 없음'}</span>
+              {/* 마커 번호 + 카테고리 + 이름 + 수정 버튼 */}
+              <div className={`flex items-center gap-2 px-3 py-2.5 ${qvCatStyle.accent}`}>
+                <span className="w-6 h-6 rounded-lg bg-white/90 flex items-center justify-center text-[12px] font-black text-slate-700 shrink-0">{qvOrderNum}</span>
+                <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30">{getCategoryBadge(qvPrimaryType)}</div>
+                <span className="text-[13px] font-black text-white truncate flex-1">{qvItem.activity || qvItem.name || '이름 없음'}</span>
+                {!isPlaceQuickView && (
+                  <button type="button" onClick={() => { setMapQuickViewItem(null); openPlanEditModal(qvDIdx, qvPIdx); }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors" title="일정 수정"><Pencil size={12} /></button>
+                )}
               </div>
               {/* 시간 바 — 내장소에서는 숨김 */}
               {!isPlaceQuickView && (<div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 bg-slate-50 border-b border-slate-100" data-no-drag="true">
@@ -11209,14 +11213,13 @@ const App = () => {
               <PlanItemCard
                 item={qvItem}
                 readOnly
+                hideNameRow
                 isExpanded={qvIsExpanded}
                 businessSummary={qvBizSummary}
                 businessWarning={qvBizWarn || ''}
                 quickEditSegments={buildBusinessQuickEditSegments(qvItem.business || {})}
                 onBusinessQuickEdit={(fieldKey) => applyBusinessQuickEditAction(qvDIdx, qvPIdx, fieldKey)}
                 onBusinessToggle={() => setBusinessEditorTarget(prev => (prev?.dayIdx === qvDIdx && prev?.pIdx === qvPIdx ? null : { dayIdx: qvDIdx, pIdx: qvPIdx, fieldKey: null }))}
-                namePrefix={<div className="shrink-0">{getCategoryBadge(qvPrimaryType)}</div>}
-                nameActions={<button type="button" onClick={() => { setMapQuickViewItem(null); openPlanEditModal(qvDIdx, qvPIdx); }} className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors" title="일정 수정"><Pencil size={11} /></button>}
                 onMenuUpdate={(mIdx, field, value) => updateMenuData(qvDIdx, qvPIdx, mIdx, field, value)}
                 onMenuDelete={(mIdx) => deleteMenuItem(qvDIdx, qvPIdx, mIdx)}
                 onMenuAdd={() => addMenuItem(qvDIdx, qvPIdx)}

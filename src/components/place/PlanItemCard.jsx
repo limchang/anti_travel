@@ -22,6 +22,7 @@ const PlanItemCard = ({
   showReceipt = true,
   isExpanded = false,
   compact = false,
+  hideNameRow = false,
 
   // 콜백 — 이름
   onActivityChange,
@@ -75,17 +76,19 @@ const PlanItemCard = ({
       {/* 본체 */}
       <div className="p-4 flex flex-col gap-2.5" onClick={onContainerClick}>
         {/* 이름 행 */}
-        <SharedNameRow
-          value={name}
-          readOnly={readOnly}
-          onChange={onActivityChange ? (e) => onActivityChange(e.target.value) : undefined}
-          onFocus={!readOnly ? (e) => e.target.select() : undefined}
-          onKeyDown={onActivityKeyDown}
-          placeholder={readOnly ? '이름 없음' : '일정 이름 입력 후 Enter'}
-          onContainerClick={onContainerClick}
-          prefixContent={namePrefix}
-          actionButton={nameActions}
-        />
+        {!hideNameRow && (
+          <SharedNameRow
+            value={name}
+            readOnly={readOnly}
+            onChange={onActivityChange ? (e) => onActivityChange(e.target.value) : undefined}
+            onFocus={!readOnly ? (e) => e.target.select() : undefined}
+            onKeyDown={onActivityKeyDown}
+            placeholder={readOnly ? '이름 없음' : '일정 이름 입력 후 Enter'}
+            onContainerClick={onContainerClick}
+            prefixContent={namePrefix}
+            actionButton={nameActions}
+          />
+        )}
 
         {/* 상태 칩 */}
         {statusChip}

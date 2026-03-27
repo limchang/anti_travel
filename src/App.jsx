@@ -7292,7 +7292,7 @@ const App = () => {
           : 'flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-visible z-[290]'
         }
         style={mapEditMode && !isMobileLayout
-          ? { left: 16, top: 60, width: navFloatingExpanded ? 280 : 48, maxHeight: navFloatingExpanded ? 'calc(100vh - 80px)' : 48, transition: 'width 0.3s, max-height 0.3s' }
+          ? { left: 16, top: 60, width: navFloatingExpanded ? 340 : 48, maxHeight: navFloatingExpanded ? 'calc(100vh - 80px)' : 48, transition: 'width 0.3s, max-height 0.3s' }
           : { width: leftSidebarWidth, transition: panelResizingRef.current?.side === 'left' ? 'none' : 'width 0.3s' }
         }
         onClick={mapEditMode && !isMobileLayout && !navFloatingExpanded ? () => setNavFloatingExpanded(true) : undefined}

@@ -189,7 +189,7 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = fals
   // 이름 표시 모드: 하나의 카드 안에 행을 쌓기
   if (showName) {
     const nameMaxW = isFocused ? 120 : 90;
-    const rowH = isFocused ? 30 : 24;
+    const rowH = sz; // 아이콘 정사각형 유지
     const totalCardH = n * rowH;
     const totalH = totalCardH + tailH;
     const totalW = sz + nameMaxW;
@@ -285,7 +285,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
     // 이름 표시 모드: 일정 그룹과 동일한 카드 스택
     if (showName) {
       const nameMaxW = isFocused ? 120 : 90;
-      const rowH = isFocused ? 30 : 24;
+      const rowH = sz; // 아이콘 정사각형 유지
       const clusterIconSz = isFocused ? 14 : 11;
       const visibleN = Math.min(clusterCount, 5);
       const hasOverflow = clusterCount > 5;
@@ -877,26 +877,42 @@ export const RoutePreviewCanvas = ({
     const remainingOverlay = rawVisibleOverlayEntries.filter((e) => !clusteredPlaceIds.has(e.id));
     const processedOverlay = [...remainingOverlay, ...clusteredOverlayEntries];
 
-    // 2) 같은 위치 타임라인 마커 → 그룹 마커로 병합
-    const tlPosGroups = new Map();
-    rawVisibleTimelineEntries.forEach((e) => {
-      const k = posKey(e.position);
-      if (!tlPosGroups.has(k)) tlPosGroups.set(k, []);
-      tlPosGroups.get(k).push(e);
-    });
+    // 2) 타임라인 마커 → 근접 거리 기반 그룹 마커로 병합
+    const tlClusterRadius = showLibraryNames ? clusterRadiusDeg * 1.5 : 0; // 이름 모드에서만 거리 기반
     const groupedTlIds = new Set();
-    const groupedTlEntries = []; // 그룹 마커 (2개 이상)
-    tlPosGroups.forEach((entries) => {
-      if (entries.length >= 2) {
-        const rep = entries[0];
-        groupedTlEntries.push({
-          ...rep,
-          _isGrouped: true,
-          _groupItems: entries, // 각 항목의 order, color, id 포함
-        });
-        entries.forEach((e) => groupedTlIds.add(e.pointId || e.id));
+    const groupedTlEntries = [];
+    if (tlClusterRadius > 0) {
+      // 거리 기반 클러스터링
+      const tlEntries = [...rawVisibleTimelineEntries];
+      for (let i = 0; i < tlEntries.length; i++) {
+        if (groupedTlIds.has(tlEntries[i].pointId || tlEntries[i].id)) continue;
+        const group = [tlEntries[i]];
+        for (let j = i + 1; j < tlEntries.length; j++) {
+          if (groupedTlIds.has(tlEntries[j].pointId || tlEntries[j].id)) continue;
+          const dLat = tlEntries[i].position[0] - tlEntries[j].position[0];
+          const dLon = tlEntries[i].position[1] - tlEntries[j].position[1];
+          if (Math.sqrt(dLat * dLat + dLon * dLon) <= tlClusterRadius) group.push(tlEntries[j]);
+        }
+        if (group.length >= 2) {
+          groupedTlEntries.push({ ...group[0], _isGrouped: true, _groupItems: group });
+          group.forEach((e) => groupedTlIds.add(e.pointId || e.id));
+        }
       }
-    });
+    } else {
+      // 기본: 완전 일치만
+      const tlPosGroups = new Map();
+      rawVisibleTimelineEntries.forEach((e) => {
+        const k = posKey(e.position);
+        if (!tlPosGroups.has(k)) tlPosGroups.set(k, []);
+        tlPosGroups.get(k).push(e);
+      });
+      tlPosGroups.forEach((entries) => {
+        if (entries.length >= 2) {
+          groupedTlEntries.push({ ...entries[0], _isGrouped: true, _groupItems: entries });
+          entries.forEach((e) => groupedTlIds.add(e.pointId || e.id));
+        }
+      });
+    }
     const singleTlEntries = rawVisibleTimelineEntries.filter((e) => !groupedTlIds.has(e.pointId || e.id));
     const processedTl = [...singleTlEntries, ...groupedTlEntries];
 

@@ -8158,8 +8158,8 @@ const App = () => {
                         </div>
                       </div>
                     </div>
-                    {/* 카테고리 필터 + 카테고리 관리 */}
-                    <div className="flex items-start gap-1 mb-1">
+                    {/* 카테고리 필터 + 일정 추가 */}
+                    <div className="flex items-start gap-1.5 mb-1">
                       <div className="flex flex-1 flex-wrap gap-1 min-w-0">
                         <button
                           onClick={() => {
@@ -8169,7 +8169,7 @@ const App = () => {
                               setPlaceFilterTags([]);
                             }
                           }}
-                          className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 transition-all ${placeFilterTags.length === 0 ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
+                          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black border shrink-0 transition-all ${placeFilterTags.length === 0 ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
                         >전체</button>
                         {filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0).map(t => {
                             const excluded = placeFilterTags.includes(t.value);
@@ -8210,12 +8210,21 @@ const App = () => {
                               </button>
                             );
                           })}
+                        {/* 카테고리 관리 — 목록 끝에 */}
+                        <button
+                          type="button"
+                          onClick={() => setShowPlaceCategoryManager(prev => !prev)}
+                          className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black border transition-colors ${showPlaceCategoryManager ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300'}`}
+                        ><SlidersHorizontal size={10} /></button>
                       </div>
+                      {/* 일정 추가 버튼 */}
                       <button
                         type="button"
-                        onClick={() => setShowPlaceCategoryManager(prev => !prev)}
-                        className={`shrink-0 w-6 h-6 flex items-center justify-center rounded-lg border transition-colors ${showPlaceCategoryManager ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300'}`}
-                      ><SlidersHorizontal size={11} /></button>
+                        onClick={() => { setShowAddPlaceMenu(v => !v); }}
+                        className={`shrink-0 flex items-center gap-1 px-3 py-1 rounded-lg text-[11px] font-black border transition-colors whitespace-nowrap ${showAddPlaceMenu ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-[#3182F6] text-white border-[#3182F6] hover:bg-blue-600'}`}
+                      >
+                        <Plus size={12} /> 장소 추가
+                      </button>
                     </div>
                     {showPlaceCategoryManager && (
                       <div className="mb-1.5 rounded-[12px] border border-slate-200 bg-white px-2.5 py-2 shadow-sm">

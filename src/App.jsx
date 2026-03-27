@@ -5545,6 +5545,10 @@ const App = () => {
       case 'souvenir': return { bg: 'bg-[linear-gradient(180deg,#f0fdfa,#ffffff)]', border: 'border-teal-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(20,184,166,0.10)]', accent: 'bg-teal-500' };
       case 'openrun': return { bg: 'bg-[linear-gradient(180deg,#fef2f2,#ffffff)]', border: 'border-red-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(239,68,68,0.10)]', accent: 'bg-red-500' };
       case 'rest': return { bg: 'bg-[linear-gradient(180deg,#ecfeff,#ffffff)]', border: 'border-cyan-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(6,182,212,0.10)]', accent: 'bg-cyan-500' };
+      case 'lodge': return { bg: 'bg-[linear-gradient(180deg,#eef2ff,#ffffff)]', border: 'border-indigo-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(99,102,241,0.10)]', accent: 'bg-indigo-500' };
+      case 'stay': return { bg: 'bg-[linear-gradient(180deg,#f5f3ff,#ffffff)]', border: 'border-violet-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(139,92,246,0.10)]', accent: 'bg-violet-500' };
+      case 'ship': return { bg: 'bg-[linear-gradient(180deg,#eff6ff,#ffffff)]', border: 'border-blue-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(37,99,235,0.10)]', accent: 'bg-blue-500' };
+      case 'home': return { bg: 'bg-[linear-gradient(180deg,#fffbeb,#ffffff)]', border: 'border-amber-200', shadow: 'shadow-[0_8px_24px_-8px_rgba(180,131,9,0.10)]', accent: 'bg-amber-600' };
       default: return { bg: 'bg-white', border: 'border-slate-200', shadow: 'shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)]', accent: 'bg-slate-400' };
     }
   };
@@ -7275,18 +7279,14 @@ const App = () => {
                     <div className="flex flex-col gap-1">
                       {(() => {
                         const navPlanItems = (d.plan || []).filter(p => p.type !== 'backup');
-                        // day 내 순번 계산 (출발지/숙소출발=0, 나머지=1~)
+                        // day 내 순번 계산 (출발지=0, 나머지=1~)
                         const getNavItemOrder = (item, idx, items) => {
                           const types = item.types || [];
-                          // 출발지(home) = 0
                           if (types.includes('home')) return 0;
-                          // day 첫 번째가 숙소 = 0 (숙소 출발)
-                          if (idx === 0 && (isFullLodgeStayItem(item) || types.includes('stay') || types.includes('lodge'))) return 0;
                           let num = 0;
                           for (let i = 0; i <= idx; i++) {
                             const t = items[i].types || [];
                             if (t.includes('home')) continue;
-                            if (i === 0 && (isFullLodgeStayItem(items[i]) || t.includes('stay') || t.includes('lodge'))) continue;
                             num++;
                           }
                           return num;
@@ -9989,18 +9989,16 @@ const App = () => {
 
                       {/* 🟢 카드 본체 (내부 라운드 셀) */}
                       <div className={`relative w-full flex flex-col border overflow-hidden rounded-[24px] transition-[border-color,box-shadow] duration-200 ${stateStyles}`}>
-                        {/* 카테고리 색 헤더 (일반 장소만) */}
-                        {!isHome && !isLodge && !isLodgeTagged && !isShip && (() => {
+                        {/* 카테고리 색 헤더 */}
+                        {(() => {
                           const _planItems = (d.plan || []).filter(x => x.type !== 'backup');
                           const _pIdxInFiltered = _planItems.findIndex(x => x.id === p.id);
                           const _isHome = p.types?.includes('home');
-                          const _isFirstLodge = _pIdxInFiltered === 0 && (isFullLodgeStayItem(p) || p.types?.includes('stay') || p.types?.includes('lodge'));
                           let _orderNum = 0;
-                          if (!_isHome && !_isFirstLodge) {
+                          if (!_isHome) {
                             for (let i = 0; i <= _pIdxInFiltered; i++) {
                               const t = _planItems[i]?.types || [];
                               if (t.includes('home')) continue;
-                              if (i === 0 && (isFullLodgeStayItem(_planItems[i]) || t.includes('stay') || t.includes('lodge'))) continue;
                               _orderNum++;
                             }
                           }
@@ -11204,12 +11202,10 @@ const App = () => {
           if (idx < 0) return 0;
           const types = qvItem.types || [];
           if (types.includes('home')) return 0;
-          if (idx === 0 && (isFullLodgeStayItem(qvItem) || types.includes('stay') || types.includes('lodge'))) return 0;
           let num = 0;
           for (let i = 0; i <= idx; i++) {
             const t = plan[i]?.types || [];
             if (t.includes('home')) continue;
-            if (i === 0 && (isFullLodgeStayItem(plan[i]) || t.includes('stay') || t.includes('lodge'))) continue;
             num++;
           }
           return num;

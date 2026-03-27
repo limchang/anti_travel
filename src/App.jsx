@@ -6887,11 +6887,16 @@ const App = () => {
           <div className="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center">
             <MapIcon size={14} className="text-white" />
           </div>
-          <button type="button" onClick={() => setShowPlanManager(true)} className="flex items-center gap-1.5 text-left hover:opacity-80 transition-opacity">
+          <button type="button" onClick={() => setShowPlanManager(true)} className="flex items-center gap-1 text-left hover:opacity-80 transition-opacity">
             <span className="text-[14px] font-black text-slate-800 tracking-tight">{tripRegion || 'Anti Planer'}</span>
-            {tripStartDate && <span className="text-[10px] font-bold text-slate-400">{tripStartDate} · {tripNights}박</span>}
             <ChevronDown size={10} className="text-slate-400" />
           </button>
+          {tripStartDate && (
+            <button type="button" onClick={() => setShowDatePicker(v => !v)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors">
+              <Calendar size={10} />
+              {tripStartDate} · {tripNights}박
+            </button>
+          )}
         </div>
         <div className="flex-1" />
         <button
@@ -9847,7 +9852,7 @@ const App = () => {
                             {showDatePicker && (
                               <>
                                 <div className="fixed inset-0 z-[408]" onClick={() => setShowDatePicker(false)} />
-                                <div className="absolute top-full left-0 z-[300] mt-3">
+                                <div className="fixed left-16 top-14 z-[409]">
                                   <DateRangePicker
                                     startDate={tripStartDate} endDate={tripEndDate}
                                     onStartChange={setTripStartDate} onEndChange={setTripEndDate}

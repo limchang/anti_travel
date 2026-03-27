@@ -3039,6 +3039,8 @@ const App = () => {
         if (mapEditMode) {
           // 지도 이동 없이 즉시 퀵뷰 표시 (마커가 이미 보이는 상태)
           setMapQuickViewItem({ dayIdx: found.dayIdx, pIdx: found.pIdx, x: lastClickPosRef.current.x, y: lastClickPosRef.current.y });
+          setActiveDay(found.dayNum);
+          setActiveItemId(found.item.id);
           return;
         }
         focusTimelineOnMap(found.item, found.dayNum, { scroll: true });

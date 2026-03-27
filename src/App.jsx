@@ -7278,18 +7278,17 @@ const App = () => {
               <nav className="relative -ml-1.5 flex flex-col gap-5">
                 {itinerary.days?.map((d, dNavIdx) => (
                   <div key={d.day}>
-                    {/* 날짜 디바이더 */}
+                    {/* 스티키 날짜 라벨 */}
                     <button
                       type="button"
-                      className="w-full flex items-center gap-2.5 group mb-2"
+                      className={`sticky top-0 z-10 w-full flex items-center gap-2 px-2.5 py-1.5 mb-1.5 rounded-xl backdrop-blur-md transition-all ${activeDay === d.day ? 'bg-[#3182F6]/90 text-white shadow-[0_4px_12px_-4px_rgba(49,130,246,0.4)]' : 'bg-white/85 text-slate-500 shadow-[0_2px_8px_-4px_rgba(15,23,42,0.1)] hover:bg-white/95'}`}
                       onClick={() => handleNavClick(d.day)}
                     >
-                      <div className={`h-[2px] flex-1 transition-colors ${activeDay === d.day ? 'bg-[#3182F6]' : 'bg-slate-200'}`} />
-                      <div className={`flex items-center gap-1.5 shrink-0 px-1 transition-colors ${activeDay === d.day ? 'text-[#3182F6]' : 'text-slate-400 group-hover:text-slate-600'}`}>
-                        <span className="text-[12px] font-black tracking-tight">{getNavDateLabelForDay(d.day).primary}</span>
-                        <span className={`text-[9px] font-bold ${activeDay === d.day ? 'text-[#3182F6]/60' : 'text-slate-300'}`}>{getNavDateLabelForDay(d.day).secondary || '요일'}</span>
-                      </div>
-                      <div className={`h-[2px] flex-1 transition-colors ${activeDay === d.day ? 'bg-[#3182F6]' : 'bg-slate-200'}`} />
+                      <span className="text-[12px] font-black tracking-tight">{getNavDateLabelForDay(d.day).primary}</span>
+                      <span className={`text-[9px] font-bold ${activeDay === d.day ? 'text-white/60' : 'text-slate-300'}`}>{getNavDateLabelForDay(d.day).secondary || '요일'}</span>
+                      <span className="flex-1" />
+                      <span className={`text-[9px] font-bold ${activeDay === d.day ? 'text-white/50' : 'text-slate-300'}`}>{(d.plan || []).filter(p => p.type !== 'backup').length}개</span>
+                      <ChevronDown size={12} className={`transition-transform ${activeDay === d.day ? 'rotate-180 text-white/50' : 'text-slate-300'}`} />
                     </button>
                     <div className="flex flex-col gap-1">
                       {(() => {

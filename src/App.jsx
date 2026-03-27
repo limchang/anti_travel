@@ -8118,8 +8118,15 @@ const App = () => {
                               );
                             })}
                           </div>
-                          {/* 우: 장거리 + 페리 + 새로고침 */}
+                          {/* 우: 내장소 + 장거리 + 페리 + 새로고침 */}
                           <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setShowOverviewLibraryPoints((v) => !v)}
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-black shadow-sm backdrop-blur-md transition-all ${showOverviewLibraryPoints ? 'border-[#3182F6]/60 bg-[#3182F6]/80 text-white' : 'border-white/30 bg-white/20 text-white/90 hover:bg-white/30'}`}
+                            >
+                              <Package size={12} /><span>내장소</span>
+                            </button>
                             <button
                               type="button"
                               onClick={() => setHideLongRouteSegments((v) => !v)}

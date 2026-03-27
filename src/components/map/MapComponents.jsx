@@ -268,7 +268,7 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = fals
   });
 };
 
-export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0, clusterColors = [], categoryType = '', clusterTypes = [], placeName = '', clusterNames = [], showName = false) => {
+export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0, clusterColors = [], categoryType = '', clusterTypes = [], placeName = '', clusterNames = [], showName = false, starred = false) => {
   const isCluster = clusterCount > 1;
   const sz = isFocused ? 36 : 28;
   const shadow = isFocused
@@ -381,6 +381,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
   const iconSz = isFocused ? 18 : 14;
   const tailW = isFocused ? 6 : 5;
   const tailH = isFocused ? 7 : 6;
+  const starBadge = starred ? `<div style="position:absolute;top:-4px;left:-4px;width:16px;height:16px;background:#FBBF24;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;z-index:1;box-shadow:0 1px 3px rgba(0,0,0,0.3);"><svg width="9" height="9" viewBox="0 0 24 24" fill="#fff" stroke="none"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg></div>` : '';
 
   // showName 모드: 아이콘 + 이름을 가로로 표시
   const displayName = placeName || '';
@@ -393,8 +394,9 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
       className: '',
       html: `
         <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
-          <div style="display:flex;align-items:center;border-radius:${radius};border:${borderStyle};box-shadow:0 0 0 1.5px ${categoryColor};overflow:hidden;background:#fff;">
-            <div style="width:${sz}px;height:${pillH}px;background:${categoryColor};display:flex;align-items:center;justify-content:center;shrink:0;">
+          <div style="position:relative;display:flex;align-items:center;border-radius:${radius};border:${borderStyle};box-shadow:0 0 0 1.5px ${categoryColor};overflow:visible;background:#fff;">
+            ${starBadge}
+            <div style="width:${sz}px;height:${pillH}px;background:${categoryColor};display:flex;align-items:center;justify-content:center;shrink:0;border-radius:${radius} 0 0 ${radius};">
               <svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5)) drop-shadow(0 0 2px rgba(0,0,0,0.25));">${svgIcon}</svg>
             </div>
             <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '12px' : '10px'};font-weight:900;color:#334155;line-height:${pillH}px;">
@@ -414,12 +416,13 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
     className: '',
     html: `
       <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
-        <div style="
+        <div style="position:relative;
           width:${sz}px;height:${sz}px;border-radius:${radius};
           background:${categoryColor};border:${borderStyle};
           box-shadow:0 0 0 1.5px ${categoryColor};
-          display:flex;align-items:center;justify-content:center;
+          display:flex;align-items:center;justify-content:center;overflow:visible;
         ">
+          ${starBadge}
           <svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5)) drop-shadow(0 0 2px rgba(0,0,0,0.25));">${svgIcon}</svg>
         </div>
         <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${categoryColor};margin-top:-1px;"></div>
@@ -1269,7 +1272,7 @@ export const RoutePreviewCanvas = ({
                 position={point.position}
                 bubblingMouseEvents={false}
                 icon={point.kind === 'place'
-                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors, point.primaryType || '', clusterTypes, `${point.starred ? '★ ' : ''}${point.label || ''}`, clusterNames, showLibraryNames)
+                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors, point.primaryType || '', clusterTypes, point.label || '', clusterNames, showLibraryNames, point.starred)
                   : buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
                 eventHandlers={interactive ? {
                   click: (e) => {

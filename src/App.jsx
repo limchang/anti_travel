@@ -6898,6 +6898,15 @@ const App = () => {
           <Pencil size={12} />
           {showTimelineOverlay ? '지도 보기' : '상세 일정 편집'}
         </button>
+        <button
+          type="button"
+          onClick={() => setIsEditMode(prev => !prev)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black transition-all ${isEditMode ? 'border-amber-300 bg-amber-50 text-amber-600' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+          title={isEditMode ? '편집 잠금' : '드래그 편집 활성화'}
+        >
+          {isEditMode ? <Unlock size={12} /> : <Lock size={12} />}
+          {isEditMode ? '편집중' : '잠금'}
+        </button>
         {user && !user.isGuest && (
           <button
             type="button"
@@ -9914,10 +9923,11 @@ const App = () => {
           })()}
           {canManagePlan && (
             <div
-              className="fixed z-[240] flex flex-col items-center gap-2"
+              className="fixed z-[240] flex flex-col items-center gap-2 pointer-events-auto"
               style={{
-                right: (isMobileLayout ? Math.max(rightSidebarWidth + 14, 14) : rightSidebarWidth + 18),
+                right: mapEditMode && !isMobileLayout ? 22 : (isMobileLayout ? Math.max(rightSidebarWidth + 14, 14) : rightSidebarWidth + 18),
                 bottom: isMobileLayout ? 74 : 22,
+                opacity: 1,
               }}
             >
               <button

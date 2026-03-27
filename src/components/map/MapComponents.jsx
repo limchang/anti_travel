@@ -274,18 +274,75 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
   const radius = isFocused ? '10px' : '8px';
 
   if (isCluster) {
-    // 3개 이하: 전부 개별 셀, 3개 초과: 앞 2개 + "+N" 셀
+    const cRadius = isFocused ? 10 : 8;
+    const tailH = isFocused ? 7 : 6;
+    const tailW = isFocused ? 6 : 5;
+    const colors = clusterColors.length ? clusterColors : [categoryColor];
+    const types = clusterTypes.length ? clusterTypes : [categoryType || categoryLabel];
+    const names = clusterNames.length ? clusterNames : [];
+    const tailColor = colors[0] || categoryColor;
+
+    // 이름 표시 모드: 일정 그룹과 동일한 카드 스택
+    if (showName) {
+      const nameMaxW = isFocused ? 120 : 90;
+      const rowH = isFocused ? 30 : 24;
+      const clusterIconSz = isFocused ? 14 : 11;
+      const visibleN = Math.min(clusterCount, 5);
+      const hasOverflow = clusterCount > 5;
+      const totalCardH = (visibleN + (hasOverflow ? 1 : 0)) * rowH;
+      const totalH = totalCardH + tailH;
+      const totalW = sz + nameMaxW;
+
+      const rows = Array.from({ length: visibleN }, (_, i) => {
+        const color = colors[i] || colors[colors.length - 1] || categoryColor;
+        const type = types[i] || categoryType || categoryLabel;
+        const name = names[i] || '';
+        const svgIcon = getMapCategoryEmoji(type);
+        const isLast = !hasOverflow && i === visibleN - 1;
+        return `
+          <div data-cluster-idx="${i}" style="display:flex;align-items:center;height:${rowH}px;cursor:pointer;${!isLast ? `border-bottom:1px solid rgba(0,0,0,0.06);` : ''}">
+            <div style="width:${sz}px;height:${rowH}px;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="${clusterIconSz}" height="${clusterIconSz}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5));">${svgIcon}</svg>
+            </div>
+            <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '11px' : '10px'};font-weight:900;color:#334155;line-height:${rowH}px;">
+              ${name || type}
+            </div>
+          </div>`;
+      }).join('');
+
+      const overflowRow = hasOverflow ? `
+        <div style="display:flex;align-items:center;height:${rowH}px;cursor:pointer;">
+          <div style="width:${sz}px;height:${rowH}px;background:#475569;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span style="font-size:${isFocused ? '11px' : '9px'};font-weight:900;color:#fff;">+${clusterCount - visibleN}</span>
+          </div>
+          <div style="padding:0 6px;font-size:${isFocused ? '10px' : '9px'};font-weight:700;color:#94A3B8;line-height:${rowH}px;">
+            외 ${clusterCount - visibleN}곳
+          </div>
+        </div>` : '';
+
+      return L.divIcon({
+        className: '',
+        html: `
+          <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
+            <div style="border-radius:${cRadius}px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};overflow:hidden;background:#fff;">
+              ${rows}${overflowRow}
+            </div>
+            <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${tailColor};margin-top:-1px;"></div>
+          </div>
+        `,
+        iconSize: [totalW, totalH],
+        iconAnchor: [totalW / 2, totalH],
+      });
+    }
+
+    // 기본: 아이콘만 가로로
     const showAll = clusterCount <= 3;
     const visibleN = showAll ? clusterCount : 3;
     const cellW = isFocused ? 32 : 26;
     const h = isFocused ? 36 : 28;
     const dividerW = 1;
     const totalW = cellW * visibleN + dividerW * (visibleN - 1);
-    const cRadius = isFocused ? 10 : 8;
-    const tailH = isFocused ? 7 : 6;
     const totalH = h + tailH;
-    const colors = clusterColors.length ? clusterColors : [categoryColor];
-    const types = clusterTypes.length ? clusterTypes : [categoryType || categoryLabel];
     const clusterIconSz = isFocused ? 16 : 13;
     const cells = Array.from({ length: visibleN }, (_, i) => {
       const isFirst = i === 0;
@@ -301,7 +358,6 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
         ${cellContent}
       </div>`;
     }).join('');
-    const tailColor = colors[0] || categoryColor;
     return L.divIcon({
       className: '',
       html: `

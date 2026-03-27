@@ -758,7 +758,10 @@ export const searchAddressFromPlaceName = async (keyword, regionHint = '', kakao
 const JINA_READER_PREFIX = 'https://r.jina.ai/';
 
 const fetchJinaReader = async (targetUrl, jinaApiKey = '') => {
-  const headers = {};
+  const headers = {
+    'x-wait-for-selector': '.place_section_content',
+    'x-timeout': '15',
+  };
   if (jinaApiKey) headers.Authorization = `Bearer ${jinaApiKey}`;
   const res = await fetch(`${JINA_READER_PREFIX}${targetUrl}`, { headers });
   if (!res.ok) throw new Error(`Jina Reader HTTP ${res.status}`);
@@ -807,35 +810,57 @@ const parseJinaPlaceDetail = (text) => {
   const phoneMatch = text.match(/(\d{2,4}-\d{3,4}-\d{4})/);
   if (phoneMatch) result.phone = phoneMatch[1];
 
-  // 영업시간
-  const hoursMatch = text.match(/(\d{1,2}:\d{2})\s*[~\-–—]\s*(\d{1,2}:\d{2})/);
-  if (hoursMatch) {
-    result.business.open = hoursMatch[1];
-    result.business.close = hoursMatch[2];
+  // 영업시간 — 다양한 패턴 지원
+  const hoursPatterns = [
+    /(?:영업\s*시간|운영\s*시간|매일|평일|영업)[:\s]*(\d{1,2}:\d{2})\s*[~\-–—]\s*(\d{1,2}:\d{2})/i,
+    /(\d{1,2}:\d{2})\s*[~\-–—]\s*(\d{1,2}:\d{2})/,
+  ];
+  for (const hp of hoursPatterns) {
+    const hoursMatch = text.match(hp);
+    if (hoursMatch) {
+      result.business.open = hoursMatch[1];
+      result.business.close = hoursMatch[2];
+      break;
+    }
   }
-  const breakMatch = text.match(/브레이크\s*타임[:\s]*(\d{1,2}:\d{2})\s*[~\-–—]\s*(\d{1,2}:\d{2})/i);
+  const breakMatch = text.match(/브레이크\s*(?:타임)?[:\s]*(\d{1,2}:\d{2})\s*[~\-–—]\s*(\d{1,2}:\d{2})/i);
   if (breakMatch) {
     result.business.breakStart = breakMatch[1];
     result.business.breakEnd = breakMatch[2];
   }
-  const lastOrderMatch = text.match(/라스트\s*오더[:\s]*(\d{1,2}:\d{2})/i);
-  if (lastOrderMatch) result.business.lastOrder = lastOrderMatch[1];
-
-  // 휴무일
-  const closedMatch = text.match(/(?:정기\s*휴무|휴무|쉬는\s*날)[:\s]*([^\n]+)/i);
-  if (closedMatch) {
-    const dayMap = { '월': 'mon', '화': 'tue', '수': 'wed', '목': 'thu', '금': 'fri', '토': 'sat', '일': 'sun' };
-    const closedDays = [];
-    for (const [k, v] of Object.entries(dayMap)) {
-      if (closedMatch[1].includes(k + '요일') || new RegExp(`${k}[,\\s]`).test(closedMatch[1])) closedDays.push(v);
-    }
-    if (closedDays.length) result.business.closedDays = closedDays;
+  const lastOrderPatterns = [
+    /라스트\s*오더[:\s]*(\d{1,2}:\d{2})/i,
+    /[Ll]\.?[Oo]\.?\s*(\d{1,2}:\d{2})/,
+    /주문\s*마감[:\s]*(\d{1,2}:\d{2})/i,
+  ];
+  for (const lop of lastOrderPatterns) {
+    const lastOrderMatch = text.match(lop);
+    if (lastOrderMatch) { result.business.lastOrder = lastOrderMatch[1]; break; }
   }
 
-  // 메뉴 파싱
+  // 휴무일 — 다양한 패턴 지원
+  const closedPatterns = [
+    /(?:정기\s*휴무|휴무일?|쉬는\s*날|휴일)[:\s]*([^\n]+)/i,
+    /(?:매주|매월)\s*([월화수목금토일][요일]?\s*(?:[,·\s]+[월화수목금토일][요일]?)*)/i,
+  ];
+  const dayMap = { '월': 'mon', '화': 'tue', '수': 'wed', '목': 'thu', '금': 'fri', '토': 'sat', '일': 'sun' };
+  for (const cp of closedPatterns) {
+    const closedMatch = text.match(cp);
+    if (closedMatch) {
+      const closedDays = [];
+      for (const [k, v] of Object.entries(dayMap)) {
+        if (closedMatch[1].includes(k)) closedDays.push(v);
+      }
+      if (closedDays.length) { result.business.closedDays = closedDays; break; }
+    }
+  }
+
+  // 메뉴 파싱 — 다양한 네이버 플레이스 메뉴 포맷
   const menuPatterns = [
     /^[\s]*([가-힣a-zA-Z][^\n]{1,30}?)\s+[₩￦]?\s*([0-9,]{3,10})원?\s*$/gm,
     /([가-힣a-zA-Z][^\n|]{1,25})\s*[|｜]\s*[₩￦]?\s*([0-9,]{3,10})원?/g,
+    /([가-힣a-zA-Z][가-힣a-zA-Z\s]{1,25}?)\s{2,}([0-9,]{3,10})원/gm,
+    /([가-힣a-zA-Z][^\n\t]{1,25}?)\t+[₩￦]?\s*([0-9,]{3,10})/g,
   ];
   for (const menuRegex of menuPatterns) {
     let menuMatch;
@@ -913,7 +938,7 @@ export const runJinaSmartFill = async ({ placeName, regionHint = '', runGroqPost
           `장소 URL: ${detailUrl}`,
           `검색어: ${query}`,
           '---',
-          detailText.slice(0, 5000),
+          detailText.slice(0, 8000),
         ].join('\n\n'),
         imageDataUrl: '',
         aiSettings,

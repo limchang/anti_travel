@@ -186,23 +186,24 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = fals
     ? 'drop-shadow(0 5px 14px rgba(15,23,42,0.45))'
     : 'drop-shadow(0 3px 8px rgba(15,23,42,0.32))';
 
-  // 이름 표시 모드: 각 아이템을 가로 pill로 위로 쌓기
+  // 이름 표시 모드: 하나의 카드 안에 행을 쌓기
   if (showName) {
     const nameMaxW = isFocused ? 120 : 90;
-    const rowH = sz;
-    const gap = 3;
-    const totalH = n * rowH + (n - 1) * gap + tailH;
+    const rowH = isFocused ? 30 : 24;
+    const totalCardH = n * rowH;
+    const totalH = totalCardH + tailH;
     const totalW = sz + nameMaxW;
     const tailColor = items[items.length - 1]?.color || items[0].color;
 
     const rows = items.map((item, i) => {
       const label = item.label || item.order;
+      const isLast = i === n - 1;
       return `
-        <div style="display:flex;align-items:center;border-radius:${radius}px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${item.color};overflow:hidden;background:#fff;${i > 0 ? `margin-top:${gap}px;` : ''}">
+        <div style="display:flex;align-items:center;height:${rowH}px;${!isLast ? `border-bottom:1px solid rgba(0,0,0,0.06);` : ''}">
           <div style="width:${sz}px;height:${rowH}px;background:${item.color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <span style="font-size:${isFocused ? '16px' : '13px'};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${item.order}</span>
+            <span style="font-size:${isFocused ? '14px' : '11px'};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${item.order}</span>
           </div>
-          <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '12px' : '10px'};font-weight:900;color:#334155;line-height:${rowH}px;">
+          <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '11px' : '10px'};font-weight:900;color:#334155;line-height:${rowH}px;">
             ${label}
           </div>
         </div>`;
@@ -211,13 +212,15 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = fals
     return L.divIcon({
       className: '',
       html: `
-        <div style="display:flex;flex-direction:column;align-items:flex-start;cursor:pointer;filter:${shadow};">
-          ${rows}
-          <div style="margin-left:${sz / 2 - tailW}px;width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${tailColor};margin-top:-1px;"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
+          <div style="border-radius:${radius}px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};overflow:hidden;background:#fff;">
+            ${rows}
+          </div>
+          <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${tailColor};margin-top:-1px;"></div>
         </div>
       `,
       iconSize: [totalW, totalH],
-      iconAnchor: [sz / 2, totalH],
+      iconAnchor: [totalW / 2, totalH],
     });
   }
 

@@ -6933,6 +6933,7 @@ const App = () => {
               <div className="fixed inset-0 z-[9980]" onClick={() => setShowNavMenu(false)} />
               <div className="absolute right-0 top-10 z-[9990] w-[200px] rounded-[14px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
                 <button onClick={() => { setShowPlanManager(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">일정 목록</button>
+                <button onClick={() => { autoCalculateAllRoutes(); setShowNavMenu(false); }} disabled={isCalculatingAllRoutes} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">{isCalculatingAllRoutes ? `경로 계산 ${routeCalcProgress}%` : '전체 경로 재계산'}</button>
                 <button onClick={() => { setShowAiSettings(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">AI 설정</button>
                 <button onClick={() => { setShowChecklistModal(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">체크리스트</button>
                 <button onClick={() => { setShowSmartFillGuide(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">학습 지침</button>
@@ -9948,34 +9949,7 @@ const App = () => {
               </div>
             );
           })()}
-          {canManagePlan && (
-            <div
-              className="fixed z-[240] flex flex-col items-center gap-2 pointer-events-auto"
-              style={{
-                right: mapEditMode && !isMobileLayout ? 22 : (isMobileLayout ? Math.max(rightSidebarWidth + 14, 14) : rightSidebarWidth + 18),
-                bottom: isMobileLayout ? 74 : 22,
-                opacity: 1,
-              }}
-            >
-              <button
-                type="button"
-                onClick={autoCalculateAllRoutes}
-                disabled={isCalculatingAllRoutes}
-                className={`flex h-12 w-12 items-center justify-center rounded-[18px] border backdrop-blur-xl transition-all ${isCalculatingAllRoutes ? 'border-[#3182F6]/30 bg-blue-50/96 text-[#3182F6] shadow-[0_18px_36px_-20px_rgba(49,130,246,0.35)]' : 'border-slate-200/85 bg-white/96 text-slate-700 shadow-[0_18px_36px_-24px_rgba(15,23,42,0.4)] hover:border-[#3182F6]/40 hover:text-[#3182F6]'}`}
-                title={isCalculatingAllRoutes ? `경로 계산 ${routeCalcProgress}%` : '전체 경로 재계산'}
-              >
-                {isCalculatingAllRoutes ? <LoaderCircle size={18} className="animate-spin" /> : <Navigation size={18} />}
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsEditMode((prev) => !prev)}
-                className={`flex h-12 w-12 items-center justify-center rounded-[18px] border backdrop-blur-xl transition-all ${isEditMode ? 'border-amber-300 bg-amber-50/96 text-amber-700 shadow-[0_18px_36px_-20px_rgba(245,158,11,0.35)]' : 'border-slate-200/85 bg-white/96 text-slate-700 shadow-[0_18px_36px_-24px_rgba(15,23,42,0.4)] hover:border-[#3182F6]/40 hover:text-[#3182F6]'}`}
-                title={isEditMode ? '편집 잠금' : '편집 잠금 해제'}
-              >
-                {isEditMode ? <Unlock size={18} /> : <Lock size={18} />}
-              </button>
-            </div>
-          )}
+          {/* 플로팅 버튼 — 메뉴바로 이동됨 */}
           <LibraryCategoryModal
             showLibraryCategoryModal={showLibraryCategoryModal}
             setShowLibraryCategoryModal={setShowLibraryCategoryModal}

@@ -8196,10 +8196,10 @@ const App = () => {
                     )}
                     </div>{/* 고정 영역 닫기 */}
                     {/* ── 스크롤 영역: 카드 목록 ── */}
-                    <div id="place-library-scroll" className="overflow-y-auto overscroll-none no-scrollbar px-2 pt-2 pb-4" style={{ flex: 1, display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, Math.floor((rightSidebarWidth - 16) / 220))}, 1fr)`, gap: '8px', alignItems: 'start', alignContent: 'start' }}>
+                    <div id="place-library-scroll" className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-2 pt-2 pb-4 flex flex-col gap-2">
                     {draggingFromTimeline && (
                       <div
-                        className={`w-full mb-2 rounded-[20px] border-2 border-dashed px-4 py-4 flex items-center justify-center gap-3 text-center transition-all [grid-column:1/-1] ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6] shadow-[0_12px_26px_-18px_rgba(49,130,246,0.45)]' : 'border-slate-200 bg-white/90 text-slate-500'}`}
+                        className={`w-full mb-2 rounded-[20px] border-2 border-dashed px-4 py-4 flex items-center justify-center gap-3 text-center transition-all ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6] shadow-[0_12px_26px_-18px_rgba(49,130,246,0.45)]' : 'border-slate-200 bg-white/90 text-slate-500'}`}
                         data-drag-action="move_to_library"
                         onDragOver={(e) => { e.preventDefault(); setDragBottomTarget('move_to_library'); }}
                         onDragLeave={() => setDragBottomTarget(prev => (prev === 'move_to_library' ? '' : prev))}
@@ -9293,8 +9293,8 @@ const App = () => {
             const totalCount = checklistGroups.reduce((s, g) => s + g.items.length, 0);
             const checkedCount = checklistGroups.reduce((s, g) => s + g.items.filter(i => i.checked).length, 0);
             return (
-              <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/50 px-4 py-8 backdrop-blur-sm" onClick={() => setShowChecklistModal(false)}>
-                <div className="relative w-full max-w-md max-h-[80vh] flex flex-col rounded-[28px] border border-white/70 bg-white shadow-[0_30px_80px_-20px_rgba(15,23,42,0.4)]" onClick={e => e.stopPropagation()}>
+              <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/50 px-4 py-8 backdrop-blur-sm" style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }} onClick={() => setShowChecklistModal(false)}>
+                <div className="relative w-full max-h-[80vh] flex flex-col rounded-[28px] border border-white/70 bg-white shadow-[0_30px_80px_-20px_rgba(15,23,42,0.4)]" style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }} onClick={e => e.stopPropagation()}>
                   {/* 헤더 */}
                   <div className="flex items-center gap-3 px-5 pt-5 pb-3 border-b border-slate-100">
                     <div className="flex-1 min-w-0">

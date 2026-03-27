@@ -7279,17 +7279,19 @@ const App = () => {
                     <div className="flex flex-col gap-1">
                       {(() => {
                         const navPlanItems = (d.plan || []).filter(p => p.type !== 'backup');
-                        // day 내 순번 계산 (출발지=0, 나머지=1~)
+                        // 전체 연속 순번 (home=0, 나머지는 Day 경계 없이 1~)
+                        let _navGlobalOffset = 0;
+                        for (let di = 0; di < dNavIdx; di++) {
+                          _navGlobalOffset += (itinerary.days?.[di]?.plan || []).filter(x => x.type !== 'backup' && !x.types?.includes('home')).length;
+                        }
                         const getNavItemOrder = (item, idx, items) => {
-                          const types = item.types || [];
-                          if (types.includes('home')) return 0;
-                          let num = 0;
+                          if (item.types?.includes('home')) return 0;
+                          let localNum = 0;
                           for (let i = 0; i <= idx; i++) {
-                            const t = items[i].types || [];
-                            if (t.includes('home')) continue;
-                            num++;
+                            if (items[i].types?.includes('home')) continue;
+                            localNum++;
                           }
-                          return num;
+                          return _navGlobalOffset + localNum;
                         };
                         const expectedNightSlot = d.day <= tripNights;
                         const lastStayIndex = navPlanItems.findIndex((item, index, arr) =>
@@ -10028,13 +10030,18 @@ const App = () => {
                           const _planItems = (d.plan || []).filter(x => x.type !== 'backup');
                           const _pIdxInFiltered = _planItems.findIndex(x => x.id === p.id);
                           const _isHome = p.types?.includes('home');
+                          let _tlGlobalOffset = 0;
+                          for (let di = 0; di < dIdx; di++) {
+                            _tlGlobalOffset += (itinerary.days?.[di]?.plan || []).filter(x => x.type !== 'backup' && !x.types?.includes('home')).length;
+                          }
                           let _orderNum = 0;
                           if (!_isHome) {
+                            let _localNum = 0;
                             for (let i = 0; i <= _pIdxInFiltered; i++) {
-                              const t = _planItems[i]?.types || [];
-                              if (t.includes('home')) continue;
-                              _orderNum++;
+                              if (_planItems[i]?.types?.includes('home')) continue;
+                              _localNum++;
                             }
+                            _orderNum = _tlGlobalOffset + _localNum;
                           }
                           const _dayColor = ROUTE_PREVIEW_COLORS[dIdx % ROUTE_PREVIEW_COLORS.length];
                           return (
@@ -11177,15 +11184,17 @@ const App = () => {
           const plan = (itinerary.days?.[qvDIdx]?.plan || []).filter(x => x.type !== 'backup');
           const idx = plan.findIndex(x => x.id === qvItem.id);
           if (idx < 0) return 0;
-          const types = qvItem.types || [];
-          if (types.includes('home')) return 0;
+          if (qvItem.types?.includes('home')) return 0;
+          let globalOffset = 0;
+          for (let di = 0; di < qvDIdx; di++) {
+            globalOffset += (itinerary.days?.[di]?.plan || []).filter(x => x.type !== 'backup' && !x.types?.includes('home')).length;
+          }
           let num = 0;
           for (let i = 0; i <= idx; i++) {
-            const t = plan[i]?.types || [];
-            if (t.includes('home')) continue;
+            if (plan[i]?.types?.includes('home')) continue;
             num++;
           }
-          return num;
+          return globalOffset + num;
         })();
         return (
           <>

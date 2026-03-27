@@ -9715,7 +9715,7 @@ const App = () => {
             const { usedPct, timingConflictCount, budgetExceeded, compactHeroAlert, revisitCount, newCount, revisitPct, newPct, categorySpendRows, visitPlanCount, visitPerHour, travelIntensity, averageSpanHours, averageTravelHoursLabel, lodgingConstraintCount } = heroStats;
             const heroCompactActive = heroPinnedCompact && !heroSummaryExpanded;
             return (
-              <div ref={heroSpacerRef} className={`mb-1.5 relative ${showTimelineOverlay ? 'hidden' : ''}`} style={{ minHeight: heroCompactActive ? 122 : '20rem' }}>
+              <div ref={heroSpacerRef} className={`mb-1.5 relative ${showTimelineOverlay || mapEditMode || isMobileLayout ? 'hidden' : ''}`} style={{ minHeight: heroCompactActive ? 122 : '20rem' }}>
                 {/* 풀 카드 (최상단) */}
                 <div
                   className="fixed top-0 z-[120]"

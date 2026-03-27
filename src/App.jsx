@@ -7372,9 +7372,29 @@ const App = () => {
                     </button>
                   )}
                   {navFloatingExpanded && (
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setNavFloatingExpanded(false); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors">
-                      <X size={12} />
-                    </button>
+                    <div className="relative shrink-0">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setShowNavMenu(prev => !prev); }} className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors">
+                        <SlidersHorizontal size={12} />
+                      </button>
+                      {showNavMenu && (
+                        <>
+                          <div className="fixed inset-0 z-[9980]" onClick={() => setShowNavMenu(false)} />
+                          <div className="absolute right-0 top-8 z-[9990] w-[200px] rounded-[14px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
+                            <button onClick={() => { setShowPlanManager(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">일정 목록</button>
+                            <button onClick={() => { autoCalculateAllRoutes(); setShowNavMenu(false); }} disabled={isCalculatingAllRoutes} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">{isCalculatingAllRoutes ? `경로 계산 ${routeCalcProgress}%` : '전체 경로 재계산'}</button>
+                            <button onClick={() => { setShowAiSettings(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">AI 설정</button>
+                            <button onClick={() => { setShowChecklistModal(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">체크리스트</button>
+                            <button onClick={() => { setShowSmartFillGuide(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">학습 지침</button>
+                            <div className="h-px bg-slate-100 my-1" />
+                            {user ? (
+                              <button onClick={() => { handleLogout(); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-red-500 hover:bg-red-50">로그아웃</button>
+                            ) : (
+                              <button onClick={() => { handleLogin(); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-[#3182F6] hover:bg-blue-50">로그인</button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
                 {navFloatingExpanded && tripStartDate && (
@@ -9856,42 +9876,19 @@ const App = () => {
                             placeholder="어디로 떠나시나요?"
                             className={`bg-transparent border-none outline-none font-extrabold text-white drop-shadow-md placeholder:text-white/50 tracking-tight leading-none transition-all duration-300 ${heroCompactActive ? 'w-full text-center text-[26px] sm:text-[30px] whitespace-nowrap overflow-hidden text-ellipsis' : 'w-full max-w-[440px] text-center text-[36px] sm:text-[44px]'}`}
                           />
-                          <div className={`relative mx-auto flex items-center gap-2 transition-all duration-300 ${heroCompactActive ? 'max-w-[360px] flex-nowrap overflow-hidden justify-center' : 'justify-center'}`}>
-                            <button
-                              onClick={() => setShowDatePicker(v => !v)}
-                              className={`flex items-center gap-2.5 bg-white/20 backdrop-blur-md border border-white/20 transition-all group hover:bg-white/30 ${heroCompactActive ? 'min-w-0 shrink px-3 py-1.5 rounded-xl' : 'min-w-[260px] justify-center px-5 py-2.5 rounded-2xl'}`}
-                            >
-                              <Calendar size={14} className="text-white group-hover:scale-110 transition-transform shrink-0" />
-                              <div className={`flex items-center gap-1.5 pt-0.5 ${heroCompactActive ? 'min-w-0 whitespace-nowrap overflow-hidden' : ''}`}>
-                                <span className={`${heroCompactActive ? 'text-[11px] truncate' : 'text-[12px]'} font-black text-white`}>
-                                  {tripStartDate ? tripStartDate.replace(/-/g, '. ') : '시작일'}
-                                </span>
-                                <span className="text-white/50 text-[10px] font-black">~</span>
-                                <span className={`${heroCompactActive ? 'text-[11px] truncate' : 'text-[12px]'} font-black text-white`}>
-                                  {tripEndDate ? tripEndDate.replace(/-/g, '. ') : '종료일'}
-                                </span>
+                          {showDatePicker && createPortal(
+                            <>
+                              <div className="fixed inset-0 z-[9980]" onClick={() => setShowDatePicker(false)} />
+                              <div className="fixed left-16 top-14 z-[9990]">
+                                <DateRangePicker
+                                  startDate={tripStartDate} endDate={tripEndDate}
+                                  onStartChange={setTripStartDate} onEndChange={setTripEndDate}
+                                  onClose={() => setShowDatePicker(false)}
+                                />
                               </div>
-                            </button>
-                            <div className={`bg-black/10 backdrop-blur-sm border border-white/10 transition-all duration-300 ${heroCompactActive ? 'shrink-0 px-3 py-1.5 rounded-xl whitespace-nowrap' : 'min-w-[84px] px-4 py-2.5 rounded-2xl text-center'}`}>
-                              <span className={`${heroCompactActive ? 'text-[11px] whitespace-nowrap' : 'text-[12px]'} font-black text-white/90`}>
-                                {tripDays > 0 ? `${tripNights}박 ${tripDays}일` : `${itinerary.days?.length || 0}일 일정`}
-                              </span>
-                            </div>
-
-                            {showDatePicker && createPortal(
-                              <>
-                                <div className="fixed inset-0 z-[9980]" onClick={() => setShowDatePicker(false)} />
-                                <div className="fixed left-16 top-14 z-[9990]">
-                                  <DateRangePicker
-                                    startDate={tripStartDate} endDate={tripEndDate}
-                                    onStartChange={setTripStartDate} onEndChange={setTripEndDate}
-                                    onClose={() => setShowDatePicker(false)}
-                                  />
-                                </div>
-                              </>,
-                              document.body
-                            )}
-                          </div>
+                            </>,
+                            document.body
+                          )}
                         </div>
 
 

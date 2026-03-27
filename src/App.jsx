@@ -7441,7 +7441,7 @@ const App = () => {
                                     <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[14px] ${navCatStyle.accent}`} />
                                     {isLastLodge ? (
                                       <div className="grid w-full min-w-0 grid-cols-[4.5rem_1fr_auto] items-center gap-1.5">
-                                        <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-1 py-0.5 border-2" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
+                                        <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-1.5 py-1">
                                           <span className="w-[18px] h-[18px] rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length], border: '1.5px solid rgba(255,255,255,0.9)', boxShadow: `0 0 0 1px ${ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length]}` }}>{navOrderOffset + pIdx + 1}</span>
                                           <span
                                             className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}
@@ -7486,7 +7486,7 @@ const App = () => {
                                       </div>
                                     ) : (
                                       <>
-                                        <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-1 py-0.5 border-2" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
+                                        <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-1.5 py-1">
                                           <span className="w-[18px] h-[18px] rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length], border: '1.5px solid rgba(255,255,255,0.9)', boxShadow: `0 0 0 1px ${ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length]}` }}>{navOrderOffset + pIdx + 1}</span>
                                           <span
                                             className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}

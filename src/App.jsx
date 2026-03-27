@@ -7806,13 +7806,14 @@ const App = () => {
 
       <div
         className={mapEditMode && !isMobileLayout
-          ? `flex flex-col fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-[220] shadow-[0_-8px_32px_rgba(0,0,0,0.08)]`
+          ? `flex flex-col fixed z-[220] bg-white/95 backdrop-blur-lg rounded-2xl border border-slate-200 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.25)] overflow-hidden`
           : 'flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[220] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] overflow-visible'
         }
         style={mapEditMode && !isMobileLayout
-          ? { maxHeight: bottomPanelExpanded ? '45vh' : '40px', transition: 'max-height 0.3s' }
+          ? { right: 16, top: 60, width: bottomPanelExpanded ? 340 : 48, maxHeight: bottomPanelExpanded ? 'calc(100vh - 80px)' : 48, transition: 'width 0.3s, max-height 0.3s' }
           : { right: 0, width: rightSidebarWidth, transition: panelResizingRef.current?.side === 'right' ? 'none' : 'width 0.3s' }
         }
+        onClick={mapEditMode && !isMobileLayout && !bottomPanelExpanded ? () => setBottomPanelExpanded(true) : undefined}
       >
         {/* 우측 패널 너비 조절 핸들 */}
         {!isMobileLayout && (
@@ -7823,17 +7824,17 @@ const App = () => {
             <div className="absolute inset-y-0 left-0 w-1 bg-transparent group-hover:bg-[#3182F6]/30 transition-colors" />
           </div>
         )}
-        {/* 하단 패널 토글 핸들 */}
+        {/* 플로팅 헤더 */}
         {mapEditMode && !isMobileLayout && (
-          <button
-            type="button"
-            onClick={() => setBottomPanelExpanded(prev => !prev)}
-            className="w-full h-10 flex items-center justify-center gap-2 bg-white hover:bg-slate-50 transition-colors shrink-0 cursor-pointer"
-          >
-            <div className="w-8 h-1 rounded-full bg-slate-300" />
-            <span className="text-[10px] font-black text-slate-400">{bottomPanelExpanded ? '내장소 접기' : '내장소 펼치기'}</span>
-            <ChevronDown size={12} className={`text-slate-400 transition-transform ${bottomPanelExpanded ? 'rotate-180' : ''}`} />
-          </button>
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 shrink-0">
+            <Package size={14} className="text-[#3182F6] shrink-0" />
+            {bottomPanelExpanded && <span className="text-[12px] font-black text-slate-700 flex-1">내 장소</span>}
+            {bottomPanelExpanded && (
+              <button type="button" onClick={(e) => { e.stopPropagation(); setBottomPanelExpanded(false); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors">
+                <X size={12} />
+              </button>
+            )}
+          </div>
         )}
         {isMobileLayout && col2Collapsed ? (
           <div className="flex-1 flex flex-col items-center justify-center">
@@ -7841,7 +7842,8 @@ const App = () => {
           </div>
         ) : (
           <React.Fragment>
-            {/* ── 고정 헤더 ── */}
+            {/* ── 고정 헤더 (플로팅 모드에서는 위 핸들이 대체) ── */}
+            {!(mapEditMode && !isMobileLayout) && (
             <div className="px-2 pt-5 pb-2.5 border-b border-slate-100/60 shrink-0 bg-white">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
@@ -8047,10 +8049,11 @@ const App = () => {
                 </div>
               </div>
             </div>
+            )}
 
             {/* ── 스크롤 컨텐츠 ── */}
             <div
-              className="flex-1 flex flex-col overflow-hidden"
+              className={`flex-1 flex flex-col overflow-hidden ${mapEditMode && !isMobileLayout && !bottomPanelExpanded ? 'hidden' : ''}`}
               data-library-dropzone="true"
               onDragOver={(e) => { if (draggingFromTimeline) e.preventDefault(); }}
               onDrop={(e) => {

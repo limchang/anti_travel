@@ -8113,8 +8113,11 @@ const App = () => {
                   >
                     {/* ── 고정 영역: 지도 + 카테고리 필터 ── */}
                     <div className="shrink-0 px-2 pt-0 flex flex-col gap-1.5">
-                    {/* 지도 뷰 - 목록 위 고정 */}
-                    <div id="right-panel-map-overview" className="shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-hidden shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2 max-h-[40vh]" style={{ isolation: 'isolate', aspectRatio: '16 / 9' }}>
+                    {/* 지도 뷰 */}
+                    <div id="right-panel-map-overview" className={mapEditMode && !isMobileLayout
+                      ? 'fixed inset-0 top-12 z-[100]'
+                      : 'shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-hidden shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2 max-h-[40vh]'
+                    } style={mapEditMode && !isMobileLayout ? { isolation: 'isolate' } : { isolation: 'isolate', aspectRatio: '16 / 9' }}>
                       {/* 지도 본체 + 오버레이 버튼 */}
                       <div className="relative overflow-visible transition-all duration-300 w-full h-full">
                         <RoutePreviewCanvas

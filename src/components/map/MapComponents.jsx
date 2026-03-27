@@ -1041,23 +1041,17 @@ export const RoutePreviewCanvas = ({
       return;
     }
     tileFailureCountRef.current = 0;
-    setTileProviderIndex(0);
+    setTileProviderIndex(tileIndex < tileProviders.length ? tileIndex : 0);
     setTileStatus('loading');
-  }, [boundsSignature, hasRenderableData]);
+  }, [boundsSignature, hasRenderableData, tileIndex, tileProviders.length]);
 
   useEffect(() => {
     if (!hasRenderableData || tileStatus === 'ready' || tileStatus === 'error') return undefined;
     const timer = window.setTimeout(() => {
-      if (tileProviderIndex < tileProviders.length - 1) {
-        tileFailureCountRef.current = 0;
-        setTileProviderIndex((prev) => prev + 1);
-        setTileStatus('loading');
-      } else {
-        setTileStatus('error');
-      }
-    }, 2600);
+      setTileStatus('ready');
+    }, 5000);
     return () => window.clearTimeout(timer);
-  }, [hasRenderableData, tileProviderIndex, tileProviders.length, tileStatus]);
+  }, [hasRenderableData, tileStatus]);
 
   if (!hasRenderableData) {
     return (

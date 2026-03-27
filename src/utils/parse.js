@@ -131,16 +131,28 @@ export const parseBulkPlaceText = (text) => {
     // 다음 줄이 주소인지 확인
     const nextLine = lines[i + 1] || '';
     const nextIsAddress = /^(제주|서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|충청|전북|전남|전라|경북|경남|경상|제주특별자치도|서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도)/.test(nextLine);
-    if (!nextIsAddress) { i++; continue; }
-    const address = nextLine;
-    if (finalName.length >= 1) {
-      const types = detectedTypes.length > 0 ? [...new Set(detectedTypes)] : ['place'];
-      const dupKey = `${finalName.toLowerCase()}::${address.toLowerCase()}`;
-      if (!results.some(r => `${r.name.toLowerCase()}::${r.address.toLowerCase()}` === dupKey)) {
-        results.push({ name: finalName, address, types, selected: true, _rawName: rawName });
+    if (nextIsAddress) {
+      // 이름 + 주소 쌍
+      const address = nextLine;
+      if (finalName.length >= 1) {
+        const types = detectedTypes.length > 0 ? [...new Set(detectedTypes)] : ['place'];
+        const dupKey = `${finalName.toLowerCase()}::${address.toLowerCase()}`;
+        if (!results.some(r => `${r.name.toLowerCase()}::${r.address.toLowerCase()}` === dupKey)) {
+          results.push({ name: finalName, address, types, selected: true, _rawName: rawName });
+        }
       }
+      i += 2;
+    } else {
+      // 이름만 (주소 없음)
+      if (finalName.length >= 1) {
+        const types = detectedTypes.length > 0 ? [...new Set(detectedTypes)] : ['place'];
+        const dupKey = finalName.toLowerCase();
+        if (!results.some(r => r.name.toLowerCase() === dupKey && !r.address)) {
+          results.push({ name: finalName, address: '', types, selected: true, _rawName: rawName });
+        }
+      }
+      i++;
     }
-    i += 2;
   }
   return results;
 };

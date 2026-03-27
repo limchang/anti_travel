@@ -894,7 +894,7 @@ const App = () => {
     if (!day || !item) return null;
     return { dayIdx, pIdx, dayNumber: day.day || dayIdx + 1, itemId: item.id, activity: item.activity || item.name || '일정' };
   }, [calculatingRouteId, itinerary.days]);
-  const timelineMaxClass = isCompactTimeline ? 'max-w-[560px]' : 'max-w-[680px]';
+  const timelineMaxClass = isCompactTimeline ? 'max-w-[440px]' : 'max-w-[480px]';
 
   const scrollIntervalRef = useRef(null);
   const lastTouchYRef = useRef(null);
@@ -8486,7 +8486,7 @@ const App = () => {
           data-no-swipe={false}
         >
           {isSharedReadOnly && (
-            <div className={`mx-auto mb-3 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-[11px] font-black text-amber-700 ${isCompactTimeline ? 'max-w-[500px]' : 'max-w-[560px]'}`}>
+            <div className={`mx-auto mb-3 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-[11px] font-black text-amber-700 ${isCompactTimeline ? 'max-w-[440px]' : 'max-w-[480px]'}`}>
               공유 일정 보기 모드입니다. (편집 권한 없음)
             </div>
           )}

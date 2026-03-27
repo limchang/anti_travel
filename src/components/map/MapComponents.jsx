@@ -1221,7 +1221,11 @@ export const RoutePreviewCanvas = ({
                             return Math.min(items.length - 1, Math.max(0, Math.floor(relX / (rect.width / items.length))));
                           })();
                       const target = items[idx] || items[0];
-                      onMarkerClick({ kind: 'timeline', id: target.id, pointId: target.pointId, day: target.day, label: target.label, address: target.address });
+                      if (target._isOverlay) {
+                        onMarkerClick({ kind: 'place', id: target.id, label: target.label });
+                      } else {
+                        onMarkerClick({ kind: 'timeline', id: target.id, pointId: target.pointId, day: target.day, label: target.label, address: target.address });
+                      }
                     },
                   } : undefined}
                 />

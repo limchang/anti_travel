@@ -11134,6 +11134,7 @@ const App = () => {
         const qvDurLocked = !!qvItem.isDurationFixed;
         const qvEndFixed = !!qvItem.isEndTimeFixed;
         const qvCatStyle = getCategoryCardStyle(qvPrimaryType);
+        const qvBizStatus = qvBizWarn ? 'warn' : (isPlaceQuickView && isOpenAt(qvItem.business) === true) ? 'open' : '';
         const qvIsExpanded = expandedId === qvItem.id;
         const qvMenus = (qvItem.receipt?.items || []).filter(m => m?.selected !== false);
         // 마커 위치 중심에 퀵뷰 배치
@@ -11169,11 +11170,20 @@ const App = () => {
               style={{ left: Math.max(8, qvLeft), top: Math.max(8, qvTop), width: panelW, maxHeight: mapRect ? mapRect.height - 24 : '80vh' }}
             >
               <div className="overflow-y-auto max-h-[inherit]">
-              {/* 마커 번호 + 카테고리 + 이름 + 수정 버튼 */}
+              {/* 헤더: 카테고리 + 이름 + 버튼 */}
               <div className={`flex items-center gap-2 px-3 py-2.5 ${qvCatStyle.accent}`}>
-                <span className="w-6 h-6 rounded-[7px] flex items-center justify-center text-[11px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[(qvDIdx ?? 0) % ROUTE_PREVIEW_COLORS.length], border: '2px solid rgba(255,255,255,0.9)', boxShadow: `0 0 0 1px ${ROUTE_PREVIEW_COLORS[(qvDIdx ?? 0) % ROUTE_PREVIEW_COLORS.length]}` }}>{qvOrderNum}</span>
+                {!isPlaceQuickView && <span className="w-6 h-6 rounded-[7px] flex items-center justify-center text-[11px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[(qvDIdx ?? 0) % ROUTE_PREVIEW_COLORS.length], border: '2px solid rgba(255,255,255,0.9)', boxShadow: `0 0 0 1px ${ROUTE_PREVIEW_COLORS[(qvDIdx ?? 0) % ROUTE_PREVIEW_COLORS.length]}` }}>{qvOrderNum}</span>}
                 <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30">{getCategoryBadge(qvPrimaryType)}</div>
                 <span className="text-[13px] font-black text-white truncate flex-1">{qvItem.activity || qvItem.name || '이름 없음'}</span>
+                {isPlaceQuickView && (
+                  <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(qvItem.name || '', tripRegion); if (result?.address) { setItinerary(prev => { const next = JSON.parse(JSON.stringify(prev)); const target = (next.places || []).find(pl => pl.id === qvItem.id); if (target) { target.address = result.address; if (!target.receipt) target.receipt = {}; target.receipt.address = result.address; } return next; }); showInfoToast(`'${qvItem.name}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors" title="주소 자동 채우기"><Sparkles size={12} /></button>
+                )}
+                {isPlaceQuickView && (
+                  <button type="button" onClick={() => { setMapQuickViewItem(null); const place = (itinerary.places || []).find(pl => pl.id === qvItem.id); if (place) { setEditingPlaceId(place.id); setEditPlaceDraft(createPlaceEditorDraft(place)); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors" title="장소 수정"><Pencil size={12} /></button>
+                )}
+                {!isPlaceQuickView && (
+                  <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(getPlaceSearchName(qvItem), tripRegion); if (result?.address) { updateAddress(qvDIdx, qvPIdx, result.address, true); showInfoToast(`'${qvItem.activity}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors" title="주소 자동 채우기"><Sparkles size={12} /></button>
+                )}
                 {!isPlaceQuickView && (
                   <button type="button" onClick={() => { setMapQuickViewItem(null); openPlanEditModal(qvDIdx, qvPIdx); }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors" title="일정 수정"><Pencil size={12} /></button>
                 )}
@@ -11204,6 +11214,7 @@ const App = () => {
                 isExpanded={qvIsExpanded}
                 businessSummary={qvBizSummary}
                 businessWarning={qvBizWarn || ''}
+                businessStatus={qvBizStatus}
                 quickEditSegments={buildBusinessQuickEditSegments(qvItem.business || {})}
                 onBusinessQuickEdit={(fieldKey) => applyBusinessQuickEditAction(qvDIdx, qvPIdx, fieldKey)}
                 onBusinessToggle={() => setBusinessEditorTarget(prev => (prev?.dayIdx === qvDIdx && prev?.pIdx === qvPIdx ? null : { dayIdx: qvDIdx, pIdx: qvPIdx, fieldKey: null }))}

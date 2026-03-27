@@ -268,7 +268,7 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = fals
   });
 };
 
-export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0, clusterColors = [], categoryType = '', clusterTypes = [], placeName = '', clusterNames = [], showName = false, starred = false) => {
+export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, _canAdd = false, _extraTailH = 0, _timelineFocused = false, clusterCount = 0, clusterColors = [], categoryType = '', clusterTypes = [], placeName = '', clusterNames = [], showName = false, starred = false, showAddButton = false) => {
   const isCluster = clusterCount > 1;
   const sz = isFocused ? 36 : 28;
   const shadow = isFocused
@@ -293,24 +293,29 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
       const clusterIconSz = isFocused ? 14 : 11;
       const visibleN = Math.min(clusterCount, 5);
       const hasOverflow = clusterCount > 5;
+      const addBtnW = showAddButton ? (isFocused ? 28 : 24) : 0;
       const totalCardH = (visibleN + (hasOverflow ? 1 : 0)) * rowH;
       const totalH = totalCardH + tailH;
-      const totalW = sz + nameMaxW;
-
+      const totalW = sz + nameMaxW + addBtnW;
       const rows = Array.from({ length: visibleN }, (_, i) => {
         const color = colors[i] || colors[colors.length - 1] || categoryColor;
         const type = types[i] || categoryType || categoryLabel;
         const name = names[i] || '';
         const svgIcon = getMapCategoryEmoji(type);
         const isLast = !hasOverflow && i === visibleN - 1;
+        const addBtn = showAddButton ? `
+          <div data-cluster-idx="${i}" data-library-add="true" style="width:${addBtnW}px;height:${rowH}px;background:#3182F6;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;border-left:1px solid rgba(255,255,255,0.5);">
+            <svg width="${isFocused ? 13 : 11}" height="${isFocused ? 13 : 11}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>` : '';
         return `
           <div data-cluster-idx="${i}" style="display:flex;align-items:center;height:${rowH}px;cursor:pointer;${!isLast ? `border-bottom:1px solid rgba(0,0,0,0.06);` : ''}">
             <div style="width:${sz}px;height:${rowH}px;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
               <svg width="${clusterIconSz}" height="${clusterIconSz}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5));">${svgIcon}</svg>
             </div>
-            <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '11px' : '10px'};font-weight:900;color:#334155;line-height:${rowH}px;">
+            <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '11px' : '10px'};font-weight:900;color:#334155;line-height:${rowH}px;flex:1;">
               ${name || type}
             </div>
+            ${addBtn}
           </div>`;
       }).join('');
 
@@ -387,21 +392,27 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
   const displayName = placeName || '';
   if (showName && displayName && !isCluster) {
     const nameMaxW = isFocused ? 120 : 90;
+    const addBtnW = showAddButton ? (isFocused ? 28 : 24) : 0;
     const pillH = sz;
     const totalH = pillH + tailH;
-    const totalW = sz + nameMaxW;
+    const totalW = sz + nameMaxW + addBtnW;
+    const addBtnHtml = showAddButton ? `
+      <div data-library-add="true" style="width:${addBtnW}px;height:${pillH}px;background:#3182F6;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;border-left:1px solid rgba(255,255,255,0.5);border-radius:0 ${radius} ${radius} 0;">
+        <svg width="${isFocused ? 14 : 12}" height="${isFocused ? 14 : 12}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>` : '';
     return L.divIcon({
       className: '',
       html: `
         <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
           <div style="position:relative;display:flex;align-items:center;border-radius:${radius};border:${borderStyle};box-shadow:0 0 0 1.5px ${categoryColor};overflow:visible;background:#fff;">
             ${starBadge}
-            <div style="width:${sz}px;height:${pillH}px;background:${categoryColor};display:flex;align-items:center;justify-content:center;shrink:0;border-radius:${radius} 0 0 ${radius};">
+            <div style="width:${sz}px;height:${pillH}px;background:${categoryColor};display:flex;align-items:center;justify-content:center;shrink:0;border-radius:${radius} 0 0 ${showAddButton ? '0' : radius};">
               <svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5)) drop-shadow(0 0 2px rgba(0,0,0,0.25));">${svgIcon}</svg>
             </div>
             <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '12px' : '10px'};font-weight:900;color:#334155;line-height:${pillH}px;">
               ${displayName}
             </div>
+            ${addBtnHtml}
           </div>
           <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${categoryColor};margin-top:-1px;"></div>
         </div>
@@ -683,6 +694,7 @@ export const RoutePreviewCanvas = ({
   scopeKey = '',
   focusedLibraryMarkerId = null,
   hideLongSegments = false,
+  activeItemId = null,
 }) => {
   const tileProviders = useMemo(() => ([
     {
@@ -1288,12 +1300,29 @@ export const RoutePreviewCanvas = ({
                 position={point.position}
                 bubblingMouseEvents={false}
                 icon={point.kind === 'place'
-                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors, point.primaryType || '', clusterTypes, point.label || '', clusterNames, showLibraryNames, point.starred)
+                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors, point.primaryType || '', clusterTypes, point.label || '', clusterNames, showLibraryNames, point.starred, !!(activeItemId && showLibraryNames))
                   : buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
                 eventHandlers={interactive ? {
                   mouseover: (e) => { e.target.setZIndexOffset(10000); },
                   mouseout: (e) => { e.target.setZIndexOffset(0); },
                   click: (e) => {
+                    // + 버튼 클릭 감지
+                    const addEl = e.originalEvent?.target instanceof Element ? e.originalEvent.target.closest('[data-library-add]') : null;
+                    if (addEl && point.kind === 'place') {
+                      if (isCluster) {
+                        const clusterIdx = addEl.closest('[data-cluster-idx]');
+                        const idx = clusterIdx ? parseInt(clusterIdx.getAttribute('data-cluster-idx'), 10) : -1;
+                        const item = idx >= 0 && clusterItems[idx] ? clusterItems[idx] : null;
+                        if (item && typeof onLibraryMarkerAddClick === 'function') {
+                          onLibraryMarkerAddClick({ id: item.id, label: item.label });
+                        }
+                      } else {
+                        if (typeof onLibraryMarkerAddClick === 'function') {
+                          onLibraryMarkerAddClick({ id: point.id, label: point.label });
+                        }
+                      }
+                      return;
+                    }
                     if (point.kind === 'place') {
                       if (isCluster) {
                         // 클러스터: 클릭된 셀 확인

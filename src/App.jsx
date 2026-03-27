@@ -7409,18 +7409,6 @@ const App = () => {
               <nav className="relative -ml-1.5 flex flex-col gap-5">
                 {itinerary.days?.map((d, dNavIdx) => (
                   <div key={d.day}>
-                    {/* 스티키 날짜 라벨 */}
-                    <button
-                      type="button"
-                      className={`sticky top-0 z-10 w-full flex items-center gap-2 px-2.5 py-1.5 mb-1 border-b border-slate-100 ${activeDay === d.day ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}
-                      onClick={() => handleNavClick(d.day)}
-                    >
-                      <span className="text-[12px] font-black tracking-tight">{getNavDateLabelForDay(d.day).primary}</span>
-                      <span className={`text-[9px] font-bold ${activeDay === d.day ? 'text-white/60' : 'text-slate-300'}`}>{getNavDateLabelForDay(d.day).secondary || '요일'}</span>
-                      <span className="flex-1" />
-                      <span className={`text-[9px] font-bold ${activeDay === d.day ? 'text-white/50' : 'text-slate-300'}`}>{(d.plan || []).filter(p => p.type !== 'backup').length}개</span>
-                      <ChevronDown size={12} className={`transition-transform ${activeDay === d.day ? 'rotate-180 text-white/50' : 'text-slate-300'}`} />
-                    </button>
                     <div className="flex flex-col gap-1">
                       {(() => {
                         const navPlanItems = (d.plan || []).filter(p => p.type !== 'backup');
@@ -7595,8 +7583,6 @@ const App = () => {
                                     onClick={() => { setActiveDay(d.day); setActiveItemId(p.id); }}
                                     className={(() => { const _layout = isLastLodge ? 'flex flex-col' : 'grid grid-cols-[4.2rem_1fr_auto]'; const _state = p._timingConflict ? 'bg-red-50' : isActive ? 'bg-blue-50/50' : 'hover:bg-slate-50'; return `${_layout} items-center gap-1.5 rounded-lg px-2 py-1.5 text-left transition-colors relative overflow-hidden border-b border-slate-100/80 ${_state}`; })()}
                                   >
-                                    {/* 퀵뷰 좌측 악센트 바 */}
-                                    <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[14px] ${navCatStyle.accent}`} />
                                     {isLastLodge ? (
                                       <div className="grid w-full min-w-0 grid-cols-[4.2rem_1fr_auto] items-center gap-1.5">
                                         <div className="flex items-center gap-0.5 bg-white rounded-lg px-0.5 py-px border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
@@ -8244,6 +8230,7 @@ const App = () => {
                           scopeKey={`lib:${overviewMapScope}:${overviewMapDayFilter ?? 'all'}:${overviewMapRouteVisible ? 'r' : 'nr'}:${hideLongRouteSegments ? 'hl' : 'sl'}`}
                           hideLongSegments={hideLongRouteSegments}
                           tileIndex={mapTileStyle}
+                          activeItemId={activeItemId}
                         />
                         {/* 오버레이 버튼: 상단 중앙 바 */}
                         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/90 backdrop-blur-md shadow-lg border border-slate-200/50" data-no-map-clear="true">

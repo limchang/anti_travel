@@ -9998,26 +9998,30 @@ const App = () => {
                                 <button type="button" onClick={(e) => { e.stopPropagation(); toggleDurationFix(dIdx, pIdx); }} className={`text-[8px] font-black tracking-widest uppercase transition-colors ${isDurationLocked ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`} title={isDurationLocked ? '소요시간 고정 해제' : '소요시간 고정'}>Duration {isDurationLocked ? '🔒' : ''}</button>
                                 <div className="flex items-center justify-center gap-1">
                                   <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, -15); }} className="text-slate-300 hover:text-[#3182F6] transition-colors text-[13px] font-black">&lt;</button>
-                                  <div className="flex items-baseline justify-center gap-0">
-                                    <input
-                                      type="text"
-                                      inputMode="numeric"
-                                      defaultValue={String(p.duration || 0)}
-                                      key={`dur-${p.id}-${p.duration}`}
-                                      onBlur={(e) => {
-                                        const v = parseInt(e.target.value, 10);
-                                        if (Number.isFinite(v) && v >= 0) {
-                                          const delta = v - (p.duration || 0);
-                                          if (delta !== 0) updateDuration(dIdx, pIdx, delta);
-                                        }
-                                      }}
-                                      onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
-                                      onFocus={(e) => e.target.select()}
-                                      onClick={(e) => e.stopPropagation()}
-                                      maxLength={4}
-                                      className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[2.5rem] ${isDurationLocked ? 'text-[#3182F6]' : 'text-slate-500'}`}
-                                    /><span className={`text-[13px] font-black ${isDurationLocked ? 'text-[#3182F6]' : 'text-slate-400'}`}>분</span>
-                                  </div>
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    defaultValue={`${String(Math.floor((p.duration || 0) / 60)).padStart(2, '0')}:${String((p.duration || 0) % 60).padStart(2, '0')}`}
+                                    key={`dur-${p.id}-${p.duration}`}
+                                    onBlur={(e) => {
+                                      let raw = e.target.value.replace(/[^0-9:]/g, '');
+                                      if (/^\d{1,4}$/.test(raw)) { const pd = raw.padStart(4, '0'); raw = pd.slice(0, 2) + ':' + pd.slice(2); }
+                                      const m = raw.match(/^(\d{1,2}):(\d{2})$/);
+                                      if (m) {
+                                        const h = Math.max(0, parseInt(m[1], 10));
+                                        const min = Math.min(59, Math.max(0, parseInt(m[2], 10)));
+                                        const totalMins = h * 60 + min;
+                                        const delta = totalMins - (p.duration || 0);
+                                        if (delta !== 0) updateDuration(dIdx, pIdx, delta);
+                                      }
+                                    }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                                    onFocus={(e) => e.target.select()}
+                                    onClick={(e) => e.stopPropagation()}
+                                    placeholder="HH:MM"
+                                    maxLength={5}
+                                    className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[5rem] ${isDurationLocked ? 'text-[#3182F6]' : 'text-slate-500'}`}
+                                  />
                                   <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, 15); }} className="text-slate-300 hover:text-[#3182F6] transition-colors text-[13px] font-black">&gt;</button>
                                 </div>
                               </div>

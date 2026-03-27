@@ -436,16 +436,17 @@ export const LeafletMapViewportController = ({
   focusedPoints = [],
   animateFocus = true,
   resizeKey = '',
+  onZoomChange = null,
   scopeKey = '',
 }) => {
   const map = useMap();
-  const [currentZoom, setCurrentZoom] = useState(() => map.getZoom());
   useEffect(() => {
-    const onZoom = () => setCurrentZoom(map.getZoom());
-    map.on('zoomend', onZoom);
-    return () => map.off('zoomend', onZoom);
-  }, [map]);
-  const showLibraryNames = currentZoom >= 13;
+    if (!onZoomChange) return;
+    onZoomChange(map.getZoom());
+    const handler = () => onZoomChange(map.getZoom());
+    map.on('zoomend', handler);
+    return () => map.off('zoomend', handler);
+  }, [map, onZoomChange]);
   const boundsSignature = useMemo(
     () => boundsPoints.map((point) => `${point[0].toFixed(5)}:${point[1].toFixed(5)}`).join('|'),
     [boundsPoints]
@@ -567,6 +568,8 @@ export const RoutePreviewCanvas = ({
   focusedLibraryMarkerId = null,
   hideLongSegments = false,
 }) => {
+  const [mapZoom, setMapZoom] = useState(10);
+  const showLibraryNames = mapZoom >= 13;
   const tileProviders = useMemo(() => ([
     {
       id: 'osm',
@@ -922,6 +925,7 @@ export const RoutePreviewCanvas = ({
           animateFocus={interactive}
           resizeKey={`${height}:${interactive ? 'on' : 'off'}`}
           scopeKey={scopeKey || routeOnlyBoundsSignature}
+          onZoomChange={setMapZoom}
         />
         <LeafletMapBackgroundClickHandler onBackgroundClick={onBackgroundClick} />
         <LeafletMapContextMenuHandler onContextMenu={async (info) => {

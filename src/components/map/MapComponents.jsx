@@ -721,7 +721,7 @@ export const RoutePreviewCanvas = ({
 
   const [tileProviderIndex, setTileProviderIndex] = useState(0);
   const [mapZoom, setMapZoom] = useState(10);
-  const showLibraryNames = mapZoom >= 13;
+  const showLibraryNames = mapZoom >= 11;
   const [contextMenuInfo, setContextMenuInfo] = useState(null); // { lat, lng, x, y, zoom, locationName }
 
   // 클러스터 + 방사형 분산 처리 (줌 레벨 기반)

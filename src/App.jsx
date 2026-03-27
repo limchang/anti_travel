@@ -312,6 +312,7 @@ const App = () => {
   const [perplexityNearbyModal, setPerplexityNearbyModal] = useState({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' });
   const [showAiSettings, setShowAiSettings] = useState(false);
   const [navAiExpanded, setNavAiExpanded] = useState(false);
+  const [navFloatingExpanded, setNavFloatingExpanded] = useState(true);
   const [showPlanOptions, setShowPlanOptions] = useState(false);
   const [showNavMenu, setShowNavMenu] = useState(false);
   const [highlightedPlaceId, setHighlightedPlaceId] = useState(null);
@@ -7313,8 +7314,15 @@ const App = () => {
 
       {/* ── Col1: 예산 + 일정 네비게이션 ── */}
       <div
-        className="flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-visible z-[290]"
-        style={{ width: leftSidebarWidth, transition: panelResizingRef.current?.side === 'left' ? 'none' : 'width 0.3s' }}
+        className={mapEditMode && !isMobileLayout
+          ? `flex flex-col fixed z-[280] bg-white/95 backdrop-blur-lg rounded-2xl border border-slate-200 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.25)] overflow-hidden ${navFloatingExpanded ? '' : 'cursor-pointer'}`
+          : 'flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-visible z-[290]'
+        }
+        style={mapEditMode && !isMobileLayout
+          ? { left: 16, top: 60, width: navFloatingExpanded ? 280 : 48, maxHeight: navFloatingExpanded ? 'calc(100vh - 80px)' : 48, transition: 'width 0.3s, max-height 0.3s' }
+          : { width: leftSidebarWidth, transition: panelResizingRef.current?.side === 'left' ? 'none' : 'width 0.3s' }
+        }
+        onClick={mapEditMode && !isMobileLayout && !navFloatingExpanded ? () => setNavFloatingExpanded(true) : undefined}
       >
         {/* 좌측 패널 너비 조절 핸들 */}
         {!isMobileLayout && (
@@ -7332,20 +7340,31 @@ const App = () => {
         ) : (
           <>
             {/* ── 고정 헤더 ── */}
-            <div className="px-5 pt-5 pb-3 border-b border-slate-100 bg-white shrink-0">
-              <div className="flex items-center gap-2.5 mb-1">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
-                  <MapIcon size={14} className="text-[#3182F6]" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-[13px] font-black tracking-[0.18em] text-slate-800 uppercase leading-none">Anti Planer</h2>
-                  <p className="mt-1 text-[10px] font-bold text-slate-400 leading-none">{pushTimeLabel}</p>
+            {mapEditMode && !isMobileLayout ? (
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 shrink-0">
+                <CalendarDays size={14} className="text-[#3182F6] shrink-0" />
+                {navFloatingExpanded && <span className="text-[12px] font-black text-slate-700 flex-1">일정</span>}
+                {navFloatingExpanded && (
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setNavFloatingExpanded(false); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors">
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="px-5 pt-5 pb-3 border-b border-slate-100 bg-white shrink-0">
+                <div className="flex items-center gap-2.5 mb-1">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
+                    <MapIcon size={14} className="text-[#3182F6]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-[13px] font-black tracking-[0.18em] text-slate-800 uppercase leading-none">Anti Planer</h2>
+                    <p className="mt-1 text-[10px] font-bold text-slate-400 leading-none">{pushTimeLabel}</p>
+                  </div>
                 </div>
               </div>
-
-            </div>
+            )}
             {/* ── 스크롤 컨텐츠 ── */}
-            <div className="flex-1 overflow-y-auto overscroll-none no-scrollbar py-6 px-5 flex flex-col">
+            <div className={`flex-1 overflow-y-auto overscroll-none no-scrollbar py-4 px-3 flex flex-col ${mapEditMode && !isMobileLayout && !navFloatingExpanded ? 'hidden' : ''}`}>
               <nav className="relative -ml-1.5 flex flex-col gap-5">
                 {itinerary.days?.map((d, dNavIdx) => (
                   <div key={d.day}>

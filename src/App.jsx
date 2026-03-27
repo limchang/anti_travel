@@ -8715,13 +8715,31 @@ const App = () => {
             </div>
           {/* 장소 추가 플로팅 버튼 */}
           {mapEditMode && !isMobileLayout && bottomPanelExpanded && (
-            <button
-              type="button"
-              onClick={() => setShowAddPlaceMenu(v => !v)}
-              className="absolute bottom-4 right-4 flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#3182F6] text-white text-[12px] font-black shadow-[0_8px_24px_-8px_rgba(49,130,246,0.4)] hover:bg-blue-600 transition-colors z-10"
-            >
-              <Plus size={14} /> 장소 추가
-            </button>
+            <div className="absolute bottom-4 right-4 z-10">
+              <button
+                type="button"
+                onClick={() => setShowAddPlaceMenu(v => !v)}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#3182F6] text-white text-[12px] font-black shadow-[0_8px_24px_-8px_rgba(49,130,246,0.4)] hover:bg-blue-600 transition-colors"
+              >
+                <Plus size={14} /> 장소 추가
+              </button>
+              {showAddPlaceMenu && (
+                <>
+                  <div className="fixed inset-0 z-[9980]" onClick={() => setShowAddPlaceMenu(false)} />
+                  <div className="absolute right-0 bottom-12 z-[9990] w-[200px] rounded-[14px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
+                    <button type="button" onClick={() => { setShowAddPlaceMenu(false); const allTagValues = TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map(t => t.value); const activeTags = allTagValues.filter(v => !placeFilterTags.includes(v)); if (activeTags.length === 1 && activeTags[0] !== 'food') setNewPlaceTypes([activeTags[0]]); setIsAddingPlaceAutoFill(false); setIsAddingPlace(true); }} className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[10px] text-[11px] font-black text-slate-700 hover:bg-slate-50">
+                      <Plus size={11} className="text-slate-400" /> 장소 추가
+                    </button>
+                    <button type="button" onClick={async () => { setShowAddPlaceMenu(false); showInfoToast('⚡ 클립보드에서 장소 정보를 분석 중…'); try { const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig }); const parsed = result?.parsed; if (parsed?.name) { let address = parsed.address || ''; if (!address) { const sr = await searchAddressFromPlaceName(parsed.name, tripRegion); if (sr?.address) address = sr.address; } addPlace({ name: parsed.name, types: ['quick', ...(parsed.types?.filter(t => t !== 'place') || [])], menus: parsed.menus || [], address, memo: '', business: parsed.business || {} }, { unselectedMenus: true }); showInfoToast(`⚡ '${parsed.name}' 추가됨`); } else { showInfoToast('정보를 찾지 못했습니다.'); setIsAddingPlace(true); } } catch { showInfoToast('오류 발생'); setIsAddingPlace(true); } }} className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[10px] text-[11px] font-black text-slate-700 hover:bg-slate-50">
+                      <Sparkles size={11} className="text-blue-500" /> 스마트 퀵 추가
+                    </button>
+                    <button type="button" onClick={() => { setShowAddPlaceMenu(false); setBulkAddText(''); setBulkAddParsed([]); setShowBulkAddModal(true); }} className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[10px] text-[11px] font-black text-slate-700 hover:bg-slate-50">
+                      <AlignLeft size={11} className="text-emerald-500" /> 여러 장소 추가
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           )}
           </React.Fragment>
         )

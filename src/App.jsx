@@ -6938,6 +6938,8 @@ const App = () => {
               <div className="fixed inset-0 z-[9980]" onClick={() => setShowNavMenu(false)} />
               <div className="absolute right-0 top-10 z-[9990] w-[200px] rounded-[14px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
                 <button onClick={() => { setShowPlanManager(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">일정 목록</button>
+                <button onClick={() => { setShowPlanOptions(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">일정 옵션</button>
+                <button onClick={() => { setShowShareManager(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">공유 설정</button>
                 <button onClick={() => { autoCalculateAllRoutes(); setShowNavMenu(false); }} disabled={isCalculatingAllRoutes} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">{isCalculatingAllRoutes ? `경로 계산 ${routeCalcProgress}%` : '전체 경로 재계산'}</button>
                 <button onClick={() => { setShowAiSettings(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">AI 설정</button>
                 <button onClick={() => { setShowChecklistModal(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">체크리스트</button>
@@ -7372,29 +7374,9 @@ const App = () => {
                     </button>
                   )}
                   {navFloatingExpanded && (
-                    <div className="relative shrink-0">
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setShowNavMenu(prev => !prev); }} className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors">
-                        <SlidersHorizontal size={12} />
-                      </button>
-                      {showNavMenu && (
-                        <>
-                          <div className="fixed inset-0 z-[9980]" onClick={() => setShowNavMenu(false)} />
-                          <div className="absolute right-0 top-8 z-[9990] w-[200px] rounded-[14px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
-                            <button onClick={() => { setShowPlanManager(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">일정 목록</button>
-                            <button onClick={() => { autoCalculateAllRoutes(); setShowNavMenu(false); }} disabled={isCalculatingAllRoutes} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">{isCalculatingAllRoutes ? `경로 계산 ${routeCalcProgress}%` : '전체 경로 재계산'}</button>
-                            <button onClick={() => { setShowAiSettings(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">AI 설정</button>
-                            <button onClick={() => { setShowChecklistModal(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">체크리스트</button>
-                            <button onClick={() => { setShowSmartFillGuide(true); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-slate-700 hover:bg-slate-50">학습 지침</button>
-                            <div className="h-px bg-slate-100 my-1" />
-                            {user ? (
-                              <button onClick={() => { handleLogout(); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-red-500 hover:bg-red-50">로그아웃</button>
-                            ) : (
-                              <button onClick={() => { handleLogin(); setShowNavMenu(false); }} className="w-full px-3 py-2 rounded-[10px] text-left text-[11px] font-black text-[#3182F6] hover:bg-blue-50">로그인</button>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowPlanOptions(true); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" title="일정 옵션">
+                      <SlidersHorizontal size={12} />
+                    </button>
                   )}
                 </div>
                 {navFloatingExpanded && tripStartDate && (
@@ -8272,9 +8254,14 @@ const App = () => {
                             const wdMap = { sun: '일', mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토' };
                             const { todayKey: tk } = getActiveRefContext();
                             const dl = wdMap[tk] || '';
-                            let tl = `(${dl}) ${refTime}`;
-                            if (tripStartDate) { const ad = itinerary.days?.find(dd => dd.day === activeDay); if (ad) { const dt = new Date(tripStartDate); dt.setDate(dt.getDate() + (ad.day - 1)); tl = `${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}(${dl}) ${refTime}`; }}
-                            return <span className="text-[9px] font-black text-slate-500">{tl}</span>;
+                            let datePart = '';
+                            if (tripStartDate) { const ad = itinerary.days?.find(dd => dd.day === activeDay); if (ad) { const dt = new Date(tripStartDate); dt.setDate(dt.getDate() + (ad.day - 1)); datePart = `${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}`; }}
+                            return (
+                              <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-[11px] font-black text-slate-600 shadow-sm">
+                                <Clock size={11} className="text-slate-400" />
+                                기준시각 {datePart} {refTime}
+                              </span>
+                            );
                           })()}
                           <div className="w-px h-4 bg-slate-200" />
                           {/* Day 필터 */}
@@ -9816,24 +9803,6 @@ const App = () => {
                     className={`${heroCompactActive ? 'mb-0.5' : 'mb-2 sm:mb-3'} transition-all duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overflow-x-visible overscroll-contain pb-5 pr-1 sm:pb-6' : ''}`}
                   >
                     <div className="w-full relative overflow-visible bg-transparent">
-                      {canManagePlan && (
-                        <div className={`absolute right-4 z-20 grid transition-all duration-300 ${heroCompactActive ? 'top-2 grid-cols-2 gap-1' : 'top-4 grid-cols-1 gap-1.5'}`}>
-                          <button
-                            onClick={() => setShowPlanOptions(true)}
-                            className={`${heroCompactActive ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg`}
-                            title="일정 옵션"
-                          >
-                            <SlidersHorizontal size={heroCompactActive ? 14 : 16} />
-                          </button>
-                          <button
-                            onClick={() => setShowShareManager(true)}
-                            className={`${heroCompactActive ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 rounded-xl'} border border-white/40 bg-white/85 backdrop-blur text-slate-700 hover:border-[#3182F6]/50 hover:text-[#3182F6] transition-colors flex items-center justify-center shadow-lg`}
-                            title="공유 설정"
-                          >
-                            <Share2 size={heroCompactActive ? 14 : 16} />
-                          </button>
-                        </div>
-                      )}
                       {/* 🖼️ 배경 이미지 (고정 높이, 요약 확장과 무관) */}
                       <div className={`absolute left-0 right-0 top-0 overflow-hidden pointer-events-none transition-all duration-300 ${heroCompactActive ? 'h-[124px] sm:h-[138px]' : 'h-[220px] sm:h-[236px]'}`}>
                         <img

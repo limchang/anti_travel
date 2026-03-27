@@ -7442,7 +7442,7 @@ const App = () => {
                                     {isLastLodge ? (
                                       <div className="grid w-full min-w-0 grid-cols-[2.45rem_1fr_auto] items-center gap-1.5">
                                         <div className="flex flex-col items-center gap-0.5">
-                                          <span className={`text-[8px] font-black leading-none ${isActive ? 'text-[#3182F6]' : 'text-slate-300'}`}>{navOrderOffset + pIdx + 1}</span>
+                                          <span className="w-4 h-4 rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length], border: '1.5px solid rgba(255,255,255,0.9)', boxShadow: `0 0 0 1px ${ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length]}` }}>{navOrderOffset + pIdx + 1}</span>
                                           <span
                                             className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}
                                             onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
@@ -7487,7 +7487,7 @@ const App = () => {
                                     ) : (
                                       <>
                                         <div className="flex flex-col items-center gap-0.5">
-                                          <span className={`text-[8px] font-black leading-none ${isActive ? 'text-[#3182F6]' : 'text-slate-300'}`}>{navOrderOffset + pIdx + 1}</span>
+                                          <span className="w-4 h-4 rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length], border: '1.5px solid rgba(255,255,255,0.9)', boxShadow: `0 0 0 1px ${ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length]}` }}>{navOrderOffset + pIdx + 1}</span>
                                           <span
                                             className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}
                                             onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}

@@ -7690,17 +7690,17 @@ const App = () => {
                   <button
                     type="button"
                     onClick={() => setMapEditMode(prev => !prev)}
-                    className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-black transition-all ${mapEditMode ? 'border-[#3182F6] bg-[#3182F6] text-white shadow-[0_2px_8px_rgba(49,130,246,0.3)]' : 'border-slate-200 bg-white text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black transition-all ${mapEditMode ? 'border-[#3182F6] bg-[#3182F6] text-white shadow-[0_2px_8px_rgba(49,130,246,0.3)]' : 'border-slate-200 bg-white text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
                     title={mapEditMode ? '일정 편집 모드로 돌아가기' : '지도 편집 모드 — 일정 영역을 닫고 지도+내장소 확장'}
                   >
-                    <MapIcon size={11} />
+                    <MapIcon size={13} />
                     {mapEditMode ? '일정 보기' : '지도 편집'}
                   </button>
                 )}
                 {(() => {
                   const { refTime } = getActiveRefContext();
                   return refTime ? (
-                    <span className="text-[9px] font-black text-slate-400 bg-slate-100 px-2 py-1 rounded-md tracking-wider shrink-0" title={`영업 경고 기준 시각`}>
+                    <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-2.5 py-1.5 rounded-lg tracking-wider shrink-0" title={`영업 경고 기준 시각`}>
                       {(() => {
                         const wdMap = { sun: '일', mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토' };
                         const { todayKey: tk } = getActiveRefContext();
@@ -7727,10 +7727,10 @@ const App = () => {
                       e.stopPropagation();
                       setShowPlaceMenu((prev) => !prev);
                     }}
-                    className={`w-6 h-6 flex items-center justify-center rounded-full border transition-colors ${showPlaceMenu ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600'}`}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-colors ${showPlaceMenu ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600'}`}
                     title="내 장소 메뉴"
                   >
-                    <SlidersHorizontal size={12} />
+                    <SlidersHorizontal size={14} />
                   </button>
                   {showPlaceMenu && (
                     <div className="absolute right-0 top-8 z-[9990] min-w-[186px] rounded-[12px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
@@ -7800,10 +7800,10 @@ const App = () => {
                   <button
                     type="button"
                     onClick={() => setShowAddPlaceMenu(v => !v)}
-                    className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors shrink-0 ${showAddPlaceMenu ? 'bg-[#3182F6] text-white' : 'bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-[#3182F6]'}`}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors shrink-0 ${showAddPlaceMenu ? 'bg-[#3182F6] text-white' : 'bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-[#3182F6]'}`}
                     title="장소 추가 메뉴"
                   >
-                    <Plus size={11} className={`transition-transform ${showAddPlaceMenu ? 'rotate-45' : ''}`} />
+                    <Plus size={14} className={`transition-transform ${showAddPlaceMenu ? 'rotate-45' : ''}`} />
                   </button>
                   {showAddPlaceMenu && (
                     <>
@@ -7966,7 +7966,7 @@ const App = () => {
                     {/* 지도 뷰 - 목록 위 고정 */}
                     <div id="right-panel-map-overview" className="shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-visible shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2" style={{ isolation: 'isolate' }}>
                       {/* 지도 본체 + 오버레이 버튼 */}
-                      <div style={{ aspectRatio: '16 / 9' }} className="relative overflow-visible transition-all duration-300">
+                      <div style={{ aspectRatio: '16 / 9', maxHeight: '40vh' }} className="relative overflow-visible transition-all duration-300">
                         <RoutePreviewCanvas
                           routePreviewMap={overviewFilteredRoutePreviewMap}
                           libraryPoints={libraryMapPoints}
@@ -10137,10 +10137,10 @@ const App = () => {
                                         <button
                                           type="button"
                                           onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}
-                                          className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                          className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
                                           title="일정 수정"
                                         >
-                                          <Pencil size={9} />
+                                          <Pencil size={11} />
                                         </button>
                                       </div>
                                       {/* 루트 배너 */}
@@ -10284,10 +10284,10 @@ const App = () => {
                                   <button
                                     type="button"
                                     onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}
-                                    className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                    className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
                                     title="일정 수정"
                                   >
-                                    <Pencil size={9} />
+                                    <Pencil size={11} />
                                   </button>
                                 </div>
                                 <SharedAddressRow
@@ -10499,7 +10499,7 @@ const App = () => {
                                           className="flex-1 min-w-0 bg-transparent text-[15px] font-black text-slate-800 leading-tight outline-none placeholder:text-slate-300 focus:outline-none truncate"
                                           placeholder="출발지 이름"
                                         />
-                                        <button onClick={(e) => { e.stopPropagation(); setEditingItemId(p.id); setEditDraft(createPlanEditorDraft(p)); }} className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors" title="일정 수정"><Pencil size={9} /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); setEditingItemId(p.id); setEditDraft(createPlanEditorDraft(p)); }} className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors" title="일정 수정"><Pencil size={11} /></button>
                                       </div>
 
                                       {/* 루트 배너 */}
@@ -10655,10 +10655,10 @@ const App = () => {
                                       <button
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}
-                                        className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                        className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
                                         title="일정 수정"
                                       >
-                                        <Pencil size={9} />
+                                        <Pencil size={11} />
                                       </button>
                                       <button
                                         type="button"
@@ -10683,10 +10683,10 @@ const App = () => {
                                             }
                                           } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
                                         }}
-                                        className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                        className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
                                         title="스마트 전체 붙여넣기"
                                       >
-                                        <Sparkles size={9} />
+                                        <Sparkles size={11} />
                                       </button>
                                     </div>
                                   }
@@ -10732,7 +10732,7 @@ const App = () => {
                                               openNaverPlaceSearch(getPlaceSearchName(p), p.receipt?.address || p.address || '');
                                             }}
                                             title="네이버 지도에서 장소 검색"
-                                            className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                            className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
                                           >
                                             <MapIcon size={9} />
                                           </button>
@@ -10743,7 +10743,7 @@ const App = () => {
                                               void requestPerplexityNearbyRecommendations(dIdx, pIdx);
                                             }}
                                             title="AI로 근처 추천 받기"
-                                            className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-violet-200 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+                                            className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-violet-200 hover:text-violet-600 hover:bg-violet-50 transition-colors"
                                           >
                                             <Star size={9} />
                                           </button>
@@ -10767,9 +10767,9 @@ const App = () => {
                                             }}
                                             title="일정 이름으로 주소 및 지도 정보 강제 새로고침"
 
-                                            className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                            className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
                                           >
-                                            <Sparkles size={9} />
+                                            <Sparkles size={11} />
                                           </button>
                                         </>
                                       }
@@ -10826,10 +10826,10 @@ const App = () => {
                                           }
                                         } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
                                       }}
-                                      className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors"
+                                      className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors"
                                       title="영업정보만 스마트 붙여넣기"
                                     >
-                                      <Sparkles size={9} />
+                                      <Sparkles size={11} />
                                     </button>
                                   }
                                   expanded={businessEditorTarget?.dayIdx === dIdx && businessEditorTarget?.pIdx === pIdx ? (

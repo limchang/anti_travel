@@ -467,7 +467,7 @@ export const PlaceEditorCard = ({
               type="button"
               onClick={wrapSmartPaste(onSmartPasteAll)}
               disabled={smartPasteLoading}
-              className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors disabled:opacity-50"
+              className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors disabled:opacity-50"
               title="스마트 전체 붙여넣기"
             >
               {smartPasteLoading
@@ -492,7 +492,7 @@ export const PlaceEditorCard = ({
                   window.open(`https://map.naver.com/v5/search/${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
                 }}
                 title="네이버 지도에서 장소 검색"
-                className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
               >
                 <MapIcon size={9} />
               </button>
@@ -502,7 +502,7 @@ export const PlaceEditorCard = ({
                   onClick={wrapSmartPaste(onSmartPasteAddress)}
                   disabled={smartPasteLoading}
                   title="클립보드 AI 주소 붙여넣기"
-                  className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors disabled:opacity-50"
+                  className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors disabled:opacity-50"
                   style={{ color: '#8B5CF6' }}
                 >
                   <Wand2 size={9} />
@@ -515,7 +515,7 @@ export const PlaceEditorCard = ({
                 }}
                 disabled={isSearchingAddress || !safeDraft.name.trim()}
                 title="장소 이름으로 주소 자동 검색 (네이버 검색)"
-                className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 disabled:opacity-50 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 disabled:opacity-50 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
                 style={{ color: '#3182F6' }}
               >
                 <Sparkles size={9} />
@@ -534,7 +534,7 @@ export const PlaceEditorCard = ({
               type="button"
               onClick={wrapSmartPaste(onSmartPasteBusiness)}
               disabled={smartPasteLoading}
-              className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors disabled:opacity-50"
+              className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors disabled:opacity-50"
               title="영업정보만 스마트 붙여넣기"
             >
               {smartPasteLoading
@@ -566,7 +566,7 @@ export const PlaceEditorCard = ({
                   type="button"
                   onClick={wrapSmartPaste(onSmartPasteMenus)}
                   disabled={smartPasteLoading}
-                  className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] hover:border-blue-200 transition-colors disabled:opacity-50"
+                  className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] hover:border-blue-200 transition-colors disabled:opacity-50"
                   title="메뉴만 스마트 붙여넣기"
                 >
                   {smartPasteLoading
@@ -698,19 +698,19 @@ export const PlaceLibraryCard = ({
             setJinaLoading(true);
             try { await onJinaSmartFill(); } finally { setJinaLoading(false); }
           }}
-          className={`shrink-0 p-1 rounded-md border transition-colors ${jinaLoading ? 'border-emerald-300 bg-emerald-50 text-emerald-400' : 'border-emerald-200 bg-white text-emerald-500 hover:border-emerald-400 hover:bg-emerald-50'}`}
+          className={`shrink-0 p-1.5 rounded-lg border transition-colors ${jinaLoading ? 'border-emerald-300 bg-emerald-50 text-emerald-400' : 'border-emerald-200 bg-white text-emerald-500 hover:border-emerald-400 hover:bg-emerald-50'}`}
           title="v2 지도검색 자동채우기"
         >
-          {jinaLoading ? <svg className="animate-spin" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> : <Search size={9} />}
+          {jinaLoading ? <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> : <Search size={11} />}
         </button>
       )}
       <button
         type="button"
         onClick={onEdit}
-        className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+        className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
         title="장소 수정"
       >
-        <Pencil size={9} />
+        <Pencil size={11} />
       </button>
     </div>
   );

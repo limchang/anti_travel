@@ -676,6 +676,7 @@ export const RoutePreviewCanvas = ({
   onSegmentLabelClick = null,
   interactive = true,
   mapEditMode = false,
+  tileIndex = 0,
   showTimelineMarkers = true,
   showRouteLines = true,
   showOverlayMarkers = true,
@@ -688,6 +689,16 @@ export const RoutePreviewCanvas = ({
       id: 'osm',
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       attribution: '&copy; OpenStreetMap contributors',
+    },
+    {
+      id: 'gray',
+      url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+    },
+    {
+      id: 'dark',
+      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
     },
   ]), []);
   const focusedTimelinePointIds = focusedTarget?.kind === 'timeline'
@@ -834,7 +845,8 @@ export const RoutePreviewCanvas = ({
     : [];
   const rawVisibleOverlayEntries = showOverlayMarkers ? overlayEntries : [];
 
-  const [tileProviderIndex, setTileProviderIndex] = useState(0);
+  const [tileProviderIndex, setTileProviderIndex] = useState(tileIndex);
+  useEffect(() => { if (tileIndex < tileProviders.length) setTileProviderIndex(tileIndex); }, [tileIndex, tileProviders.length]);
   const [mapZoom, setMapZoom] = useState(10);
   const showLibraryNames = mapZoom >= 11;
   const [contextMenuInfo, setContextMenuInfo] = useState(null); // { lat, lng, x, y, zoom, locationName }

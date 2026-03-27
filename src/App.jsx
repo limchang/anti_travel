@@ -783,6 +783,7 @@ const App = () => {
 
   const [hiddenRoutePreviewEndpoints, setHiddenRoutePreviewEndpoints] = useState({});
   const [hideLongRouteSegments, setHideLongRouteSegments] = useState(false);
+  const [mapTileStyle, setMapTileStyle] = useState(0); // 0=osm, 1=gray, 2=dark
   const [overviewMapScope, setOverviewMapScope] = useState('all');
   const [overviewMapDayFilter, setOverviewMapDayFilter] = useState(null);
   const [overviewMapRouteVisible, setOverviewMapRouteVisible] = useState(true);
@@ -8090,6 +8091,7 @@ const App = () => {
                           showOverlayMarkers
                           scopeKey={`lib:${overviewMapScope}:${overviewMapDayFilter ?? 'all'}:${overviewMapRouteVisible ? 'r' : 'nr'}:${hideLongRouteSegments ? 'hl' : 'sl'}`}
                           hideLongSegments={hideLongRouteSegments}
+                          tileIndex={mapTileStyle}
                         />
                         {/* 오버레이 버튼: 하단 통합 바 */}
                         <div className="absolute bottom-0 inset-x-0 z-[500] flex items-center justify-between gap-1.5 px-2.5 py-2 bg-gradient-to-t from-black/40 to-transparent" data-no-map-clear="true">
@@ -8146,6 +8148,14 @@ const App = () => {
                                 <Anchor size={12} /><span>{action.id.endsWith('ship-start') ? '출발' : '도착'}</span>
                               </button>
                             ))}
+                            <button
+                              type="button"
+                              onClick={() => setMapTileStyle(prev => (prev + 1) % 3)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-black shadow-sm backdrop-blur-md transition-all border-white/30 bg-white/20 text-white/90 hover:bg-white/30"
+                              title="지도 스타일 변경"
+                            >
+                              <MapIcon size={12} />{['기본', '회색', '다크'][mapTileStyle]}
+                            </button>
                             <button
                               type="button"
                               onClick={refreshRoutePreviewMap}

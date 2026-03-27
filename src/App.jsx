@@ -6958,7 +6958,7 @@ const App = () => {
       {/* ── 장소 수정 모달 ── */}
       {editingPlaceId && editPlaceDraft && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center"
+          className="fixed inset-0 z-[300] flex items-center justify-center"
           style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }}
           onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }}
         >
@@ -7123,7 +7123,7 @@ const App = () => {
       )}
       {editingPlanTarget && editPlanDraft && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center"
+          className="fixed inset-0 z-[300] flex items-center justify-center"
           style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }}
           onClick={() => { setEditingPlanTarget(null); setEditPlanDraft(null); }}
         >
@@ -7281,7 +7281,7 @@ const App = () => {
       )}
       {isAddingPlace && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center"
+          className="fixed inset-0 z-[300] flex items-center justify-center"
           style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }}
           onClick={resetNewPlaceDraft}
         >
@@ -8151,7 +8151,7 @@ const App = () => {
                     {(() => {
                       const mapContent = (
                     <div id="right-panel-map-overview" className={mapEditMode && !isMobileLayout
-                      ? 'fixed inset-0 top-12 z-[1]'
+                      ? 'fixed inset-0 top-12 z-[1] rounded-none'
                       : 'shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-hidden shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2 max-h-[40vh]'
                     } style={mapEditMode && !isMobileLayout ? { isolation: 'isolate' } : { isolation: 'isolate', aspectRatio: '16 / 9' }}>
                       {/* 지도 본체 + 오버레이 버튼 */}
@@ -8214,8 +8214,8 @@ const App = () => {
                           hideLongSegments={hideLongRouteSegments}
                           tileIndex={mapTileStyle}
                         />
-                        {/* 오버레이 버튼: 하단 통합 바 */}
-                        <div className="absolute bottom-0 inset-x-0 z-[500] flex items-center justify-between gap-1.5 px-2.5 py-2 bg-gradient-to-t from-black/40 to-transparent" data-no-map-clear="true">
+                        {/* 오버레이 버튼: 상단 중앙 바 */}
+                        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/90 backdrop-blur-md shadow-lg border border-slate-200/50" data-no-map-clear="true">
                           {/* 좌: Day 필터 */}
                           <div className="flex items-center gap-1.5">
                             <button
@@ -9528,7 +9528,7 @@ const App = () => {
             const totalCount = checklistGroups.reduce((s, g) => s + g.items.length, 0);
             const checkedCount = checklistGroups.reduce((s, g) => s + g.items.filter(i => i.checked).length, 0);
             return (
-              <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/50 px-4 py-8 backdrop-blur-sm" style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }} onClick={() => setShowChecklistModal(false)}>
+              <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/50 px-4 py-8 backdrop-blur-sm" style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }} onClick={() => setShowChecklistModal(false)}>
                 <div className="relative w-full max-h-[80vh] flex flex-col rounded-[28px] border border-white/70 bg-white shadow-[0_30px_80px_-20px_rgba(15,23,42,0.4)]" style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }} onClick={e => e.stopPropagation()}>
                   {/* 헤더 */}
                   <div className="flex items-center gap-3 px-5 pt-5 pb-3 border-b border-slate-100">

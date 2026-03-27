@@ -937,6 +937,8 @@ const App = () => {
     if (isMobileLayout && !mobileSwitchRef.current) {
       setCol1Collapsed(true);
       setCol2Collapsed(true);
+      setNavFloatingExpanded(false);
+      setBottomPanelExpanded(false);
     }
     if (!isMobileLayout) {
       setCol1Collapsed(false);
@@ -7280,24 +7282,24 @@ const App = () => {
         </div>
       )}
 
-      {isMobileLayout && (!col1Collapsed || !col2Collapsed) && (
+      {isMobileLayout && (navFloatingExpanded || bottomPanelExpanded) && (
         <div
-          className="fixed inset-0 z-[210] bg-slate-950/10 backdrop-blur-[1px]"
-          onClick={closeMobileSidePanels}
+          className="fixed inset-0 z-[210] bg-slate-950/10"
+          onClick={() => { setNavFloatingExpanded(false); setBottomPanelExpanded(false); }}
         />
       )}
 
       {/* ── Col1: 예산 + 일정 네비게이션 ── */}
       <div
-        className={mapEditMode && !isMobileLayout
+        className={(mapEditMode || isMobileLayout)
           ? `flex flex-col fixed z-[280] bg-white/95 backdrop-blur-lg rounded-2xl border border-slate-200/50 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.2)] overflow-hidden ${navFloatingExpanded ? '' : 'cursor-pointer'}`
           : 'flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-visible z-[290]'
         }
-        style={mapEditMode && !isMobileLayout
-          ? { left: 16, top: 60, width: navFloatingExpanded ? 340 : 48, maxHeight: navFloatingExpanded ? 'calc(100vh - 80px)' : 48, transition: 'width 0.3s, max-height 0.3s' }
+        style={(mapEditMode || isMobileLayout)
+          ? { left: isMobileLayout ? 8 : 16, top: 60, width: navFloatingExpanded ? (isMobileLayout ? Math.min(320, viewportWidth - 16) : 340) : 48, maxHeight: navFloatingExpanded ? 'calc(100vh - 80px)' : 48, transition: 'width 0.3s, max-height 0.3s' }
           : { width: leftSidebarWidth, transition: panelResizingRef.current?.side === 'left' ? 'none' : 'width 0.3s' }
         }
-        onClick={mapEditMode && !isMobileLayout && !navFloatingExpanded ? () => setNavFloatingExpanded(true) : undefined}
+        onClick={(mapEditMode || isMobileLayout) && !navFloatingExpanded ? () => setNavFloatingExpanded(true) : undefined}
       >
         {/* 좌측 패널 너비 조절 핸들 */}
         {!isMobileLayout && (
@@ -7308,14 +7310,14 @@ const App = () => {
             <div className="absolute inset-y-0 right-0 w-1 bg-transparent group-hover:bg-[#3182F6]/30 transition-colors" />
           </div>
         )}
-        {isMobileLayout && col1Collapsed ? (
+        {false && isMobileLayout && col1Collapsed ? (
           <div className="flex-1 flex items-center justify-center">
             <MapIcon size={14} className="text-slate-300" />
           </div>
         ) : (
           <>
             {/* ── 고정 헤더 ── */}
-            {mapEditMode && !isMobileLayout ? (
+            {(mapEditMode || isMobileLayout) ? (
               <div className="flex flex-col border-b border-slate-100 shrink-0">
                 <div className="flex items-center gap-2 px-3 py-2">
                   <CalendarDays size={14} className="text-slate-400 shrink-0" />
@@ -7357,7 +7359,7 @@ const App = () => {
               </div>
             )}
             {/* ── 스크롤 컨텐츠 ── */}
-            <div className={`flex-1 overflow-y-auto overscroll-none no-scrollbar py-4 px-3 flex flex-col ${mapEditMode && !isMobileLayout && !navFloatingExpanded ? 'hidden' : ''}`}>
+            <div className={`flex-1 overflow-y-auto overscroll-none no-scrollbar py-4 px-3 flex flex-col ${(mapEditMode || isMobileLayout) && !navFloatingExpanded ? 'hidden' : ''}`}>
               <nav className="relative -ml-1.5 flex flex-col gap-0">
                 {itinerary.days?.map((d, dNavIdx) => (
                   <div key={d.day}>
@@ -7791,15 +7793,15 @@ const App = () => {
       </div>
 
       <div
-        className={mapEditMode && !isMobileLayout
+        className={(mapEditMode || isMobileLayout)
           ? `flex flex-col fixed z-[220] bg-white rounded-2xl border border-slate-200 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.25)] overflow-visible`
           : 'flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[220] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] overflow-visible'
         }
-        style={mapEditMode && !isMobileLayout
-          ? { right: 16, top: 60, width: bottomPanelExpanded ? 340 : 48, maxHeight: bottomPanelExpanded ? 'calc(100vh - 80px)' : 48, transition: 'width 0.3s, max-height 0.3s' }
+        style={(mapEditMode || isMobileLayout)
+          ? { right: isMobileLayout ? 8 : 16, top: 60, width: bottomPanelExpanded ? (isMobileLayout ? Math.min(320, viewportWidth - 16) : 340) : 48, maxHeight: bottomPanelExpanded ? 'calc(100vh - 80px)' : 48, transition: 'width 0.3s, max-height 0.3s' }
           : { right: 0, width: rightSidebarWidth, transition: panelResizingRef.current?.side === 'right' ? 'none' : 'width 0.3s' }
         }
-        onClick={mapEditMode && !isMobileLayout && !bottomPanelExpanded ? () => setBottomPanelExpanded(true) : undefined}
+        onClick={(mapEditMode || isMobileLayout) && !bottomPanelExpanded ? () => setBottomPanelExpanded(true) : undefined}
       >
         {/* 우측 패널 너비 조절 핸들 */}
         {!isMobileLayout && (
@@ -7811,7 +7813,7 @@ const App = () => {
           </div>
         )}
         {/* 플로팅 헤더 */}
-        {mapEditMode && !isMobileLayout && (
+        {(mapEditMode || isMobileLayout) && (
           <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 shrink-0">
             {bottomPanelExpanded ? (
               <>
@@ -8144,10 +8146,10 @@ const App = () => {
                     {/* 지도 뷰 */}
                     {(() => {
                       const mapContent = (
-                    <div id="right-panel-map-overview" className={mapEditMode && !isMobileLayout
+                    <div id="right-panel-map-overview" className={(mapEditMode && !isMobileLayout) || isMobileLayout
                       ? 'fixed inset-0 top-12 z-[1] rounded-none'
                       : 'shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-hidden shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2 max-h-[40vh]'
-                    } style={mapEditMode && !isMobileLayout ? { isolation: 'isolate' } : { isolation: 'isolate', aspectRatio: '16 / 9' }}>
+                    } style={(mapEditMode && !isMobileLayout) || isMobileLayout ? { isolation: 'isolate' } : { isolation: 'isolate', aspectRatio: '16 / 9' }}>
                       {/* 지도 본체 + 오버레이 버튼 */}
                       <div className="relative overflow-visible transition-all duration-300 w-full h-full">
                         <RoutePreviewCanvas
@@ -8302,7 +8304,7 @@ const App = () => {
                       </div>
                     </div>
                       );
-                      return mapEditMode && !isMobileLayout
+                      return (mapEditMode && !isMobileLayout) || isMobileLayout
                         ? createPortal(mapContent, document.body)
                         : mapContent;
                     })()}

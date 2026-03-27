@@ -9878,17 +9878,18 @@ const App = () => {
                               </span>
                             </div>
 
-                            {showDatePicker && (
+                            {showDatePicker && createPortal(
                               <>
-                                <div className="fixed inset-0 z-[408]" onClick={() => setShowDatePicker(false)} />
-                                <div className="fixed left-16 top-14 z-[409]">
+                                <div className="fixed inset-0 z-[9980]" onClick={() => setShowDatePicker(false)} />
+                                <div className="fixed left-16 top-14 z-[9990]">
                                   <DateRangePicker
                                     startDate={tripStartDate} endDate={tripEndDate}
                                     onStartChange={setTripStartDate} onEndChange={setTripEndDate}
                                     onClose={() => setShowDatePicker(false)}
                                   />
                                 </div>
-                              </>
+                              </>,
+                              document.body
                             )}
                           </div>
                         </div>

@@ -700,10 +700,11 @@ export const PlaceLibraryCard = ({
             setJinaLoading(true);
             try { await onJinaSmartFill(); } finally { setJinaLoading(false); }
           }}
-          className={`shrink-0 p-1.5 rounded-lg border transition-colors ${jinaLoading ? 'border-emerald-300 bg-emerald-50 text-emerald-400' : 'border-emerald-200 bg-white text-emerald-500 hover:border-emerald-400 hover:bg-emerald-50'}`}
-          title="v2 지도검색 자동채우기"
+          className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-black transition-colors ${jinaLoading ? 'border-emerald-300 bg-emerald-50 text-emerald-500' : 'border-emerald-200 bg-emerald-50/50 text-emerald-600 hover:border-emerald-400 hover:bg-emerald-50'}`}
+          title="네이버 지도에서 주소·영업시간·메뉴를 자동으로 가져옵니다"
         >
-          {jinaLoading ? <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> : <Search size={11} />}
+          {jinaLoading ? <svg className="animate-spin shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> : <Search size={11} className="shrink-0" />}
+          {jinaLoading ? '검색중' : '자동검색'}
         </button>
       )}
       <button

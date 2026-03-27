@@ -6952,7 +6952,7 @@ const App = () => {
       {/* ── 장소 수정 모달 ── */}
       {editingPlaceId && editPlaceDraft && (
         <div
-          className="fixed inset-0 z-[300] flex items-center justify-center"
+          className="fixed inset-0 z-[400] flex items-center justify-center"
           style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }}
           onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }}
         >
@@ -7117,7 +7117,7 @@ const App = () => {
       )}
       {editingPlanTarget && editPlanDraft && (
         <div
-          className="fixed inset-0 z-[300] flex items-center justify-center"
+          className="fixed inset-0 z-[400] flex items-center justify-center"
           style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }}
           onClick={() => { setEditingPlanTarget(null); setEditPlanDraft(null); }}
         >
@@ -7275,7 +7275,7 @@ const App = () => {
       )}
       {isAddingPlace && (
         <div
-          className="fixed inset-0 z-[300] flex items-center justify-center"
+          className="fixed inset-0 z-[400] flex items-center justify-center"
           style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }}
           onClick={resetNewPlaceDraft}
         >
@@ -8817,8 +8817,8 @@ const App = () => {
 
           {showEntryChooser && !user?.isGuest && !sharedSource?.ownerId && (
             <>
-              <div className="fixed inset-0 z-[295] bg-black/25 backdrop-blur-[1px]" />
-              <div className="fixed z-[296] inset-0 flex items-center justify-center p-4">
+              <div className="fixed inset-0 z-[404] bg-black/25 backdrop-blur-[1px]" />
+              <div className="fixed z-[405] inset-0 flex items-center justify-center p-4">
                 <div className="w-[min(640px,94vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)] p-5">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-[16px] font-black text-slate-800">일정 선택</p>
@@ -8892,8 +8892,8 @@ const App = () => {
 
           {navDayMenu && (
             <>
-              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setNavDayMenu(null)} />
-              <div className="fixed z-[292] top-1/2 left-1/2 w-[min(360px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+              <div className="fixed inset-0 z-[400] bg-black/20" onClick={() => setNavDayMenu(null)} />
+              <div className="fixed z-[401] top-1/2 left-1/2 w-[min(360px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
                 <div className="mb-3 flex items-center justify-between">
                   <div>
                     <p className="text-[14px] font-black text-slate-800">일별 수정 메뉴</p>
@@ -8936,8 +8936,8 @@ const App = () => {
 
           {showPlanManager && (
             <>
-              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowPlanManager(false)} />
-              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(640px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+              <div className="fixed inset-0 z-[400] bg-black/20" onClick={() => setShowPlanManager(false)} />
+              <div className="fixed z-[401] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(640px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[14px] font-black text-slate-800">일정 관리 (도시별 예시)</p>
                   <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowPlanManager(false)}><X size={16} /></button>
@@ -8995,8 +8995,8 @@ const App = () => {
 
           {showPlaceTrash && (
             <>
-              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowPlaceTrash(false)} />
-              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+              <div className="fixed inset-0 z-[400] bg-black/20" onClick={() => setShowPlaceTrash(false)} />
+              <div className="fixed z-[401] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-[14px] font-black text-slate-800">내 장소 휴지통</p>
@@ -9049,8 +9049,8 @@ const App = () => {
 
           {showPlanOptions && (
             <>
-              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowPlanOptions(false)} />
-              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+              <div className="fixed inset-0 z-[400] bg-black/20" onClick={() => setShowPlanOptions(false)} />
+              <div className="fixed z-[401] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[14px] font-black text-slate-800">일정 옵션</p>
                   <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowPlanOptions(false)}><X size={16} /></button>
@@ -9241,8 +9241,8 @@ const App = () => {
 
           {showShareManager && (
             <>
-              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowShareManager(false)} />
-              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+              <div className="fixed inset-0 z-[400] bg-black/20" onClick={() => setShowShareManager(false)} />
+              <div className="fixed z-[401] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[14px] font-black text-slate-800">공유 범위 / 편집 권한</p>
                   <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowShareManager(false)}><X size={16} /></button>
@@ -9323,8 +9323,8 @@ const App = () => {
 
           {showAiSettings && (
             <>
-              <div className="fixed inset-0 z-[291] bg-black/20" onClick={() => setShowAiSettings(false)} />
-              <div className="fixed z-[292] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(480px,92vw)] max-h-[88vh] overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+              <div className="fixed inset-0 z-[400] bg-black/20" onClick={() => setShowAiSettings(false)} />
+              <div className="fixed z-[401] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(480px,92vw)] max-h-[88vh] overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-[14px] font-black text-slate-800">AI 스마트 채우기 설정</p>
@@ -9537,7 +9537,7 @@ const App = () => {
             const totalCount = checklistGroups.reduce((s, g) => s + g.items.length, 0);
             const checkedCount = checklistGroups.reduce((s, g) => s + g.items.filter(i => i.checked).length, 0);
             return (
-              <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/50 px-4 py-8 backdrop-blur-sm" style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }} onClick={() => setShowChecklistModal(false)}>
+              <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-950/50 px-4 py-8 backdrop-blur-sm" style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }} onClick={() => setShowChecklistModal(false)}>
                 <div className="relative w-full max-h-[80vh] flex flex-col rounded-[28px] border border-white/70 bg-white shadow-[0_30px_80px_-20px_rgba(15,23,42,0.4)]" style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }} onClick={e => e.stopPropagation()}>
                   {/* 헤더 */}
                   <div className="flex items-center gap-3 px-5 pt-5 pb-3 border-b border-slate-100">
@@ -9617,10 +9617,10 @@ const App = () => {
           {perplexityNearbyModal.open && (
             <>
               <div
-                className="fixed inset-0 z-[293] bg-black/20"
+                className="fixed inset-0 z-[402] bg-black/20"
                 onClick={() => setPerplexityNearbyModal({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' })}
               />
-              <div className="fixed z-[294] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)] overflow-hidden">
+              <div className="fixed z-[403] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)] overflow-hidden">
                 <div className="px-5 py-4 border-b border-slate-100 bg-[linear-gradient(135deg,#faf5ff,#ffffff)] flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[14px] font-black text-slate-800">AI 근처 추천</p>
@@ -9845,7 +9845,7 @@ const App = () => {
 
                             {showDatePicker && (
                               <>
-                                <div className="fixed inset-0 z-[299]" onClick={() => setShowDatePicker(false)} />
+                                <div className="fixed inset-0 z-[408]" onClick={() => setShowDatePicker(false)} />
                                 <div className="absolute top-full left-0 z-[300] mt-3">
                                   <DateRangePicker
                                     startDate={tripStartDate} endDate={tripEndDate}

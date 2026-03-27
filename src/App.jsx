@@ -7435,13 +7435,13 @@ const App = () => {
                                       endTouchDragLock();
                                     }}
                                     onClick={() => handleNavClick(d.day, p.id)}
-                                    className={(() => { const _layout = isLastLodge ? 'flex flex-col' : 'grid grid-cols-[5.2rem_1fr_auto]'; const _state = p._timingConflict ? 'border-red-200 bg-red-50/85 shadow-[0_8px_18px_-16px_rgba(239,68,68,0.55)] hover:bg-red-100/80' : isLastLodge ? 'mt-2 border-indigo-200 bg-[linear-gradient(180deg,rgba(238,242,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-20px_rgba(99,102,241,0.28)] hover:border-indigo-300 hover:bg-indigo-50/90' : isActive ? 'border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-18px_rgba(49,130,246,0.42)]' : `${navCatStyle.border} ${navCatStyle.bg} ${navCatStyle.shadow} hover:brightness-[0.97]`; return `${_layout} items-center gap-1.5 rounded-[14px] border px-2 py-1.5 text-left transition-colors relative overflow-hidden ${_state}`; })()}
+                                    className={(() => { const _layout = isLastLodge ? 'flex flex-col' : 'grid grid-cols-[4.2rem_1fr_auto]'; const _state = p._timingConflict ? 'border-red-200 bg-red-50/85 shadow-[0_8px_18px_-16px_rgba(239,68,68,0.55)] hover:bg-red-100/80' : isLastLodge ? 'mt-2 border-indigo-200 bg-[linear-gradient(180deg,rgba(238,242,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-20px_rgba(99,102,241,0.28)] hover:border-indigo-300 hover:bg-indigo-50/90' : isActive ? 'border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-18px_rgba(49,130,246,0.42)]' : `${navCatStyle.border} ${navCatStyle.bg} ${navCatStyle.shadow} hover:brightness-[0.97]`; return `${_layout} items-center gap-1.5 rounded-[14px] border px-2 py-1.5 text-left transition-colors relative overflow-hidden ${_state}`; })()}
                                   >
                                     {/* 퀵뷰 좌측 악센트 바 */}
                                     <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[14px] ${navCatStyle.accent}`} />
                                     {isLastLodge ? (
-                                      <div className="grid w-full min-w-0 grid-cols-[5.2rem_1fr_auto] items-center gap-1.5">
-                                        <div className="flex items-center gap-1.5 bg-white rounded-xl px-1.5 py-1 border-[2.5px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
+                                      <div className="grid w-full min-w-0 grid-cols-[4.2rem_1fr_auto] items-center gap-1.5">
+                                        <div className="flex items-center gap-1 bg-white rounded-lg px-0.5 py-0.5 border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
                                           <span className="w-[18px] h-[18px] rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{navOrderOffset + pIdx + 1}</span>
                                           <span
                                             className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}
@@ -7486,7 +7486,7 @@ const App = () => {
                                       </div>
                                     ) : (
                                       <>
-                                        <div className="flex items-center gap-1.5 bg-white rounded-xl px-1.5 py-1 border-[2.5px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
+                                        <div className="flex items-center gap-1 bg-white rounded-lg px-0.5 py-0.5 border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
                                           <span className="w-[18px] h-[18px] rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{navOrderOffset + pIdx + 1}</span>
                                           <span
                                             className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}
@@ -7536,7 +7536,7 @@ const App = () => {
                                     )}
                                   </div>
                                   {p._timingConflict && navConflictRecommendation && (
-                                    <div className="grid grid-cols-[5.2rem_1fr_auto] items-center gap-1.5 px-1 py-0.5">
+                                    <div className="grid grid-cols-[4.2rem_1fr_auto] items-center gap-1.5 px-1 py-0.5">
                                       <span />
                                       <button
                                         type="button"
@@ -7559,7 +7559,7 @@ const App = () => {
                                           e.stopPropagation();
                                           handleNavClick(d.day, nextNavItem.id, `travel-chip-${dNavIdx}-${pIdx}`);
                                         }}
-                                        className="grid w-full grid-cols-[5.2rem_1fr_auto] items-center gap-1.5 rounded-[14px] border border-orange-300 bg-orange-400 px-2 py-1.5 text-left transition-all hover:bg-orange-500"
+                                        className="grid w-full grid-cols-[4.2rem_1fr_auto] items-center gap-1.5 rounded-[14px] border border-orange-300 bg-orange-400 px-2 py-1.5 text-left transition-all hover:bg-orange-500"
                                         title={`${nextNavItem.activity || '다음 일정'} 진입 전 이동칩 위치로 이동`}
                                       >
                                         <span className="text-[11px] tabular-nums leading-none opacity-0 select-none">

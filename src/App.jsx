@@ -8457,7 +8457,7 @@ const App = () => {
       </div>
 
       <div
-        className={`flex-1 flex flex-col items-center w-full bg-slate-50 min-h-screen transition-all duration-300 ${mapEditMode && !isMobileLayout ? 'opacity-0 pointer-events-none overflow-hidden max-w-0' : ''}`}
+        className={`flex-1 flex flex-col items-center w-full bg-slate-50 min-h-screen ${mapEditMode && !isMobileLayout ? 'opacity-0 pointer-events-none overflow-hidden max-w-0' : ''}`}
         style={{ marginLeft: mapEditMode && !isMobileLayout ? leftExpandedWidth : mainContentLeftInset, marginRight: mapEditMode && !isMobileLayout ? 0 : mainContentRightInset }}
       >
         {/* 일정 목록 */}
@@ -9789,7 +9789,7 @@ const App = () => {
                     key={p.id}
                     id={pIdx === 0 ? `day-marker-${d.day}` : p.id}
                     data-plan-id={p.id}
-                    className={`relative group transition-all duration-300 ${highlightedItemId === p.id ? 'scale-[1.02]' : ''}`}
+                    className={`relative group ${highlightedItemId === p.id ? 'scale-[1.02]' : ''}`}
                   >
                     {isFirstMainItem && renderMobileLibraryInsertSlot(dIdx, -1, `mobile-insert-start-${d.day}`)}
                     {isFirstMainItem && (isTimelineDragActive || d.day > 1) && (
@@ -9964,7 +9964,7 @@ const App = () => {
 
 
                       {/* 🟢 카드 본체 (내부 라운드 셀) */}
-                      <div className={`relative w-full flex flex-col border overflow-hidden rounded-[24px] transition-all duration-300 ${stateStyles}`}>
+                      <div className={`relative w-full flex flex-col border overflow-hidden rounded-[24px] transition-[border-color,box-shadow] duration-200 ${stateStyles}`}>
                         {/* 카테고리 악센트 바 */}
                         {!isHome && !isLodge && !isLodgeTagged && !isShip && <div className={`h-[3px] w-full ${_tlCatStyle.accent}`} />}
                         {/* Plan B 페이지 인디케이터 */}
@@ -10095,7 +10095,7 @@ const App = () => {
                           })()}
 
                           {/* 🟢 내용 영역 */}
-                          <div className={`w-full min-w-0 flex flex-col justify-start transition-all duration-500 overflow-hidden ${isTimelineDragActive ? 'gap-2 p-3 sm:p-4' : isCompactTimeline ? 'gap-2.5 p-3.5 sm:p-5' : 'gap-2.5 p-4 sm:p-5'}`}>
+                          <div className={`w-full min-w-0 flex flex-col justify-start overflow-hidden ${isTimelineDragActive ? 'gap-2 p-3 sm:p-4' : isCompactTimeline ? 'gap-2.5 p-3.5 sm:p-5' : 'gap-2.5 p-4 sm:p-5'}`}>
                             {isShip ? (
                               <div className="flex flex-col gap-2.5" onClick={(e) => e.stopPropagation()}>
                                 {(() => {

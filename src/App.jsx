@@ -2511,8 +2511,6 @@ const App = () => {
         }, 100);
       }
     }
-    // 추가/삭제 모두 지도 새로고침
-    refreshRoutePreviewMap();
   }, [itinerary.places]);
 
   useEffect(() => {

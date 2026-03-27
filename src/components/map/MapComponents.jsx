@@ -1269,7 +1269,7 @@ export const RoutePreviewCanvas = ({
                 position={point.position}
                 bubblingMouseEvents={false}
                 icon={point.kind === 'place'
-                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors, point.primaryType || '', clusterTypes, point.label || '', clusterNames, showLibraryNames)
+                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors, point.primaryType || '', clusterTypes, `${point.starred ? '★ ' : ''}${point.label || ''}`, clusterNames, showLibraryNames)
                   : buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
                 eventHandlers={interactive ? {
                   click: (e) => {

@@ -9,6 +9,7 @@ import {
   Search,
   Sparkles,
   Square,
+  Star,
   Trash2,
   Wand2,
   X,
@@ -555,6 +556,7 @@ export const PlaceLibraryCard = ({
   businessStatus = '',
   addressActions = null,
   businessActions = null,
+  onToggleStar = null,
   isExpanded = false,
   onEdit,
   onBusinessEdit,
@@ -605,13 +607,18 @@ export const PlaceLibraryCard = ({
   <div
     {...cardProps}
     data-map-focus-card="true"
-    className={`w-full group relative overflow-hidden rounded-[24px] border bg-white shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)] transition-[border-color,box-shadow] duration-200 ${highlighted ? 'border-[#3182F6] shadow-[0_0_0_3px_rgba(49,130,246,0.18)]' : categoryBorder ? `${categoryBorder} hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)]` : 'border-slate-200 hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)] hover:border-slate-300'} ${cardProps.className || ''}`.trim()}
+    className={`w-full group relative overflow-hidden rounded-[24px] border bg-white shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)] transition-[border-color,box-shadow] duration-200 ${place._isNew ? 'border-2 border-dashed border-[#3182F6] shadow-[0_0_0_2px_rgba(49,130,246,0.12)]' : highlighted ? 'border-[#3182F6] shadow-[0_0_0_3px_rgba(49,130,246,0.18)]' : categoryBorder ? `${categoryBorder} hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)]` : 'border-slate-200 hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)] hover:border-slate-300'} ${cardProps.className || ''}`.trim()}
   >
     {/* 카테고리 색 헤더 */}
     {categoryAccent && (
       <div className={`flex items-center gap-2 px-3 py-2 ${categoryAccent}`}>
         <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30">{chips}</div>
         <span className="text-[13px] font-black text-white truncate flex-1">{place.name || '이름 없음'}</span>
+        {onToggleStar && (
+          <button type="button" onClick={(e) => { e.stopPropagation(); onToggleStar(); }} className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${place.starred ? 'bg-yellow-400 text-white' : 'bg-white/20 text-white hover:bg-white/30'}`} title={place.starred ? '즐겨찾기 해제' : '즐겨찾기'}>
+            <Star size={14} className={place.starred ? 'fill-current' : ''} />
+          </button>
+        )}
         {nameRowActions}
       </div>
     )}

@@ -2921,6 +2921,7 @@ const App = () => {
           types: place.types || ['place'],
           categoryColor: getMapCategoryColor(primaryType),
           categoryLabel: getMapCategoryLabel(primaryType),
+          starred: !!place.starred,
         };
       })
       .filter((point) => point && isMapPointNearTimelineCluster(Number(point.lat), Number(point.lon)))
@@ -5573,6 +5574,7 @@ const App = () => {
       address: address.trim(),
       memo: memo.trim(),
       receipt: { address: address.trim(), items: normalizedMenus },
+      _isNew: true,
     });
     setItinerary(prev => ({
       ...prev,
@@ -6901,7 +6903,7 @@ const App = () => {
                 if (!Array.isArray(receipt.items)) receipt.items = [];
                 receipt.address = nextDraft.address || receipt.address || '';
                 const price = receipt.items.reduce((sum, item) => sum + (item.selected === false ? 0 : getMenuLineTotal(item)), 0);
-                updatePlace(nextDraft.id, { ...nextDraft, business: normalizeBusiness(nextDraft.business || {}), receipt, price });
+                updatePlace(nextDraft.id, { ...nextDraft, business: normalizeBusiness(nextDraft.business || {}), receipt, price, _isNew: false });
                 setEditingPlaceId(null);
                 setEditPlaceDraft(null);
               }}
@@ -8543,6 +8545,14 @@ const App = () => {
                             const bizDefaults = hasBiz ? normalizeBusiness(place.business || {}) : { ...DEFAULT_BUSINESS };
                             setEditingPlaceId(place.id);
                             setEditPlaceDraft(createPlaceEditorDraft(place, { business: bizDefaults, showBusinessEditor: true, businessFocusField: fieldKey }));
+                          }}
+                          onToggleStar={() => {
+                            setItinerary(prev => {
+                              const next = JSON.parse(JSON.stringify(prev));
+                              const target = (next.places || []).find(p => p.id === place.id);
+                              if (target) target.starred = !target.starred;
+                              return next;
+                            });
                           }}
                           onToggleExpand={(e) => { e.stopPropagation(); setExpandedPlaceId(prev => (prev === place.id ? null : place.id)); }}
                           onDelete={(e) => { e.stopPropagation(); removePlace(place.id); }}

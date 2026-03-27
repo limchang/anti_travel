@@ -8719,9 +8719,9 @@ const App = () => {
       <div
         className={showTimelineOverlay
           ? 'fixed inset-0 z-[250] flex flex-col items-center bg-slate-950/40 backdrop-blur-sm overflow-y-auto pt-14 pb-8'
-          : `flex-1 flex flex-col items-center w-full min-h-screen ${mapEditMode && !isMobileLayout ? 'max-w-0 overflow-hidden' : 'bg-slate-50'}`
+          : `flex-1 flex flex-col items-center w-full min-h-screen ${mapEditMode || isMobileLayout ? 'max-w-0 overflow-hidden' : 'bg-slate-50'}`
         }
-        style={showTimelineOverlay ? {} : { marginLeft: mapEditMode && !isMobileLayout ? leftExpandedWidth : mainContentLeftInset, marginRight: mapEditMode && !isMobileLayout ? 0 : mainContentRightInset }}
+        style={showTimelineOverlay ? {} : { marginLeft: mapEditMode || isMobileLayout ? 0 : mainContentLeftInset, marginRight: mapEditMode || isMobileLayout ? 0 : mainContentRightInset }}
         onClick={showTimelineOverlay ? (e) => { if (e.target === e.currentTarget) setShowTimelineOverlay(false); } : undefined}
       >
         {/* 일정 목록 */}

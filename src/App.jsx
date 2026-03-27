@@ -862,7 +862,7 @@ const App = () => {
   const isMobileLayout = viewportWidth < 1100;
   const TIMELINE_FIXED_WIDTH = 500;
   const leftExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : leftPanelW;
-  const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : mapEditMode ? Math.max(rightPanelW, viewportWidth - leftPanelW) : Math.max(rightPanelW, viewportWidth - leftExpandedWidth - TIMELINE_FIXED_WIDTH);
+  const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : mapEditMode ? Math.max(rightPanelW, viewportWidth - leftPanelW - 12) : Math.max(rightPanelW, viewportWidth - leftExpandedWidth - TIMELINE_FIXED_WIDTH);
   const leftCollapsedWidth = 0;
   const rightCollapsedWidth = 0;
   const leftSidebarWidth = isMobileLayout ? (col1Collapsed ? leftCollapsedWidth : leftExpandedWidth) : leftExpandedWidth;
@@ -3058,7 +3058,14 @@ const App = () => {
     }
     if (target.kind === 'place') {
       setFocusedMapTarget({ kind: 'place', id: target.id });
-      document.getElementById(`library-place-${target.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (mapEditMode) {
+        // 지도 편집 모드: 내장소도 퀵뷰로 표시
+        setTimeout(() => {
+          setMapQuickViewItem({ placeId: target.id, x: lastClickPosRef.current.x, y: lastClickPosRef.current.y });
+        }, 80);
+      } else {
+        document.getElementById(`library-place-${target.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
     if (target.kind === 'recommendation') {
@@ -11121,13 +11128,17 @@ const App = () => {
 
       {/* ── 지도 편집 모드 퀵뷰 모달 ── */}
       {mapEditMode && mapQuickViewItem && createPortal((() => {
-        const qvDay = itinerary.days?.[mapQuickViewItem.dayIdx];
-        const qvItem = qvDay?.plan?.[mapQuickViewItem.pIdx];
+        // 내장소 vs 일정 분기
+        const isPlaceQuickView = !!mapQuickViewItem.placeId;
+        const qvDay = isPlaceQuickView ? null : itinerary.days?.[mapQuickViewItem.dayIdx];
+        const qvItem = isPlaceQuickView
+          ? (itinerary.places || []).find(p => p?.id === mapQuickViewItem.placeId)
+          : qvDay?.plan?.[mapQuickViewItem.pIdx];
         if (!qvItem) return null;
         const qvTypes = Array.isArray(qvItem.types) ? qvItem.types : ['place'];
         const qvPrimaryType = getPreferredNavCategory(qvTypes, qvItem.type || 'place');
         const qvBizSummary = formatBusinessSummary(qvItem.business, qvItem);
-        const qvBizWarn = getBusinessWarning(qvItem, mapQuickViewItem.dayIdx);
+        const qvBizWarn = isPlaceQuickView ? '' : getBusinessWarning(qvItem, mapQuickViewItem.dayIdx);
         const qvAddr = qvItem.receipt?.address || qvItem.address || '';
         const qvTotal = qvItem.price || (qvItem.receipt?.items || []).reduce((s, m) => s + (m?.selected !== false ? (Number(m?.price) || 0) * Math.max(1, Number(m?.qty) || 1) : 0), 0);
         const qvTime = qvItem.time || '--:--';
@@ -11140,16 +11151,15 @@ const App = () => {
         const qvCatStyle = getCategoryCardStyle(qvPrimaryType);
         const qvIsExpanded = expandedId === qvItem.id;
         const qvMenus = (qvItem.receipt?.items || []).filter(m => m?.selected !== false);
-        // 마커 클릭 위치 기준 배치
+        // 마커 위치 중심에 퀵뷰 배치
         const mapEl = document.getElementById('right-panel-map-overview');
         const mapRect = mapEl?.getBoundingClientRect();
         const panelW = 360;
+        const panelH = 380;
         const clickX = mapQuickViewItem.x || (mapRect ? mapRect.left + mapRect.width / 2 : window.innerWidth / 2);
         const clickY = mapQuickViewItem.y || (mapRect ? mapRect.top + mapRect.height / 2 : window.innerHeight / 2);
-        // 마커 오른쪽에 표시, 화면 밖이면 왼쪽에
-        const spaceRight = window.innerWidth - clickX;
-        const qvLeft = spaceRight > panelW + 20 ? clickX + 16 : Math.max(8, clickX - panelW - 16);
-        const qvTop = Math.max(8, Math.min(window.innerHeight - 400, clickY - 60));
+        const qvLeft = Math.max(8, Math.min(window.innerWidth - panelW - 8, clickX - panelW / 2));
+        const qvTop = Math.max(8, Math.min(window.innerHeight - panelH - 8, clickY - panelH / 2));
         // 일정 순번 계산
         const qvOrderNum = (() => {
           let num = 0;
@@ -11176,8 +11186,8 @@ const App = () => {
                 <span className="w-6 h-6 rounded-lg bg-white/90 flex items-center justify-center text-[12px] font-black text-slate-700">{qvOrderNum}</span>
                 <span className="text-[12px] font-black text-white truncate">{qvItem.activity || '이름 없음'}</span>
               </div>
-              {/* 시간 바 */}
-              <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 bg-slate-50 border-b border-slate-100" data-no-drag="true">
+              {/* 시간 바 — 내장소에서는 숨김 */}
+              {!isPlaceQuickView && (<div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 bg-slate-50 border-b border-slate-100" data-no-drag="true">
                 <div className="flex flex-col items-center gap-0.5 flex-1">
                   <button type="button" onClick={(e) => { e.stopPropagation(); toggleTimeFix(qvDIdx, qvPIdx); }} className={`text-[8px] font-black tracking-widest uppercase transition-colors ${qvItem.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}>Start {qvItem.isTimeFixed ? '🔒' : ''}</button>
                   <input type="text" inputMode="numeric" defaultValue={qvTime} key={`qv-s-${qvItem.id}-${qvTime}`} onBlur={(e) => { let raw = e.target.value.replace(/[^0-9:]/g, ''); if (/^\d{3,4}$/.test(raw)) { const pd = raw.padStart(4, '0'); raw = pd.slice(0, 2) + ':' + pd.slice(2); } const m = raw.match(/^(\d{1,2}):(\d{2})$/); if (m) { const h = Math.min(24, Math.max(0, parseInt(m[1], 10))); const min = h === 24 ? 0 : Math.min(59, Math.max(0, parseInt(m[2], 10))); setStartTimeValue(qvDIdx, qvPIdx, `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`); } }} onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }} onFocus={(e) => e.target.select()} onClick={(e) => e.stopPropagation()} placeholder="HH:MM" maxLength={5} className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[5rem] ${qvItem.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`} />
@@ -11194,7 +11204,7 @@ const App = () => {
                   <button type="button" onClick={(e) => { e.stopPropagation(); toggleEndTimeFix(qvDIdx, qvPIdx); }} className={`text-[8px] font-black tracking-widest uppercase transition-colors ${qvEndFixed ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}>End {qvEndFixed ? '🔒' : ''}</button>
                   <input type="text" inputMode="numeric" defaultValue={qvEndTime} key={`qv-e-${qvItem.id}-${qvEndTime}`} onBlur={(e) => { let raw = e.target.value.replace(/[^0-9:]/g, ''); if (/^\d{3,4}$/.test(raw)) { const pd = raw.padStart(4, '0'); raw = pd.slice(0, 2) + ':' + pd.slice(2); } const m = raw.match(/^(\d{1,2}):(\d{2})$/); if (m) { const h = Math.min(24, Math.max(0, parseInt(m[1], 10))); const min = h === 24 ? 0 : Math.min(59, Math.max(0, parseInt(m[2], 10))); setPlanEndTimeValue(qvDIdx, qvPIdx, `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`); } }} onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }} onFocus={(e) => e.target.select()} onClick={(e) => e.stopPropagation()} placeholder="HH:MM" maxLength={5} className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[5rem] ${qvEndFixed ? 'text-[#3182F6]' : 'text-slate-800'}`} />
                 </div>
-              </div>
+              </div>)}
               <PlanItemCard
                 item={qvItem}
                 readOnly

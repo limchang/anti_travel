@@ -874,8 +874,9 @@ const App = () => {
     }));
   }, [itinerary.days, itinerary.places]);
   const isMobileLayout = viewportWidth < 1100;
-  const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : mapEditMode ? Math.max(rightPanelW, viewportWidth - leftPanelW) : rightPanelW;
+  const TIMELINE_FIXED_WIDTH = 500;
   const leftExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : leftPanelW;
+  const rightExpandedWidth = isMobileLayout ? Math.min(360, Math.round(viewportWidth * 0.86)) : mapEditMode ? Math.max(rightPanelW, viewportWidth - leftPanelW) : Math.max(rightPanelW, viewportWidth - leftExpandedWidth - TIMELINE_FIXED_WIDTH);
   const leftCollapsedWidth = 0;
   const rightCollapsedWidth = 0;
   const leftSidebarWidth = isMobileLayout ? (col1Collapsed ? leftCollapsedWidth : leftExpandedWidth) : leftExpandedWidth;

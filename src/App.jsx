@@ -6603,7 +6603,7 @@ const App = () => {
               </div>
             </div>
 
-            <div className="rounded-[24px] border border-slate-200/90 bg-white/88 shadow-[0_12px_28px_-18px_rgba(15,23,42,0.16)] overflow-hidden">
+            <div className="rounded-2xl border border-slate-200/90 bg-white/88 shadow-[0_12px_28px_-18px_rgba(15,23,42,0.16)] overflow-hidden">
               <div className="px-4 py-3 flex items-center gap-2 text-[12px] font-black text-slate-700">
                 <div className="w-7 h-7 rounded-xl bg-blue-50 flex items-center justify-center text-[#3182F6]">
                   <Calendar size={14} />
@@ -6633,7 +6633,7 @@ const App = () => {
               </div>
             </div>
 
-            <div className="rounded-[24px] border border-slate-200/80 bg-white/82 shadow-[0_12px_28px_-18px_rgba(15,23,42,0.12)] overflow-hidden">
+            <div className="rounded-2xl border border-slate-200/80 bg-white/82 shadow-[0_12px_28px_-18px_rgba(15,23,42,0.12)] overflow-hidden">
               <div className="px-4 py-3 flex items-center gap-2 text-[12px] font-black text-slate-700">
                 <div className="w-7 h-7 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500">
                   <SlidersHorizontal size={14} />
@@ -9834,9 +9834,9 @@ const App = () => {
                         {/* 개요 3개 카드 */}
                         {!heroCompactActive && (
                           <div className={`w-full mx-auto px-4 ${timelineMaxClass}`}>
-                          <div className="rounded-[24px] border border-slate-200 bg-white/95 shadow-[0_10px_32px_-16px_rgba(15,23,42,0.18)] p-3">
+                          <div className="rounded-2xl border border-slate-200 bg-white/95 shadow-[0_10px_32px_-16px_rgba(15,23,42,0.18)] p-3">
                           <div className="grid grid-cols-3 gap-3 sm:gap-3">
-                            <div className="relative rounded-[24px] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4 cursor-pointer hover:border-blue-300 transition-colors" onClick={() => { setShowBudgetEdit(true); setBudgetEditValue(String(MAX_BUDGET)); }}>
+                            <div className="relative rounded-2xl border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(239,246,255,0.95)_100%)] px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-4 cursor-pointer hover:border-blue-300 transition-colors" onClick={() => { setShowBudgetEdit(true); setBudgetEditValue(String(MAX_BUDGET)); }}>
                               <div className="flex h-full flex-col items-center justify-center text-center">
                                 <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">예산 사용</p>
                                 <p className="mt-2 text-[22px] leading-none font-black text-[#3182F6] tabular-nums sm:text-[31px]">{usedPct}%</p>
@@ -9871,7 +9871,7 @@ const App = () => {
                                 </div>
                               )}
                             </div>
-                            <div className="relative rounded-[24px] border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] px-3 py-4 sm:px-4">
+                            <div className="relative rounded-2xl border border-slate-200 bg-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] px-3 py-4 sm:px-4">
                               <div className="flex h-full flex-col items-center justify-center text-center">
                                 <div className="flex items-center justify-center gap-1.5">
                                   <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">여행 강도</p>
@@ -9893,7 +9893,7 @@ const App = () => {
                                 </div>
                               )}
                             </div>
-                            <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] px-3 py-4 sm:px-4">
+                            <div className="rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] px-3 py-4 sm:px-4">
                               <div className="flex h-full flex-col items-center justify-center text-center">
                                 <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">방문 밀도</p>
                                 <p className="mt-2 text-[22px] text-center leading-none font-black text-slate-800 tabular-nums sm:text-[31px]">{visitPerHour.toFixed(1)}개/h</p>
@@ -9980,7 +9980,7 @@ const App = () => {
                   setDropTarget(null);
                   setIsDragCopy(false);
                 }}
-                className={`w-full rounded-[24px] border bg-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.2)] p-5 flex flex-col items-center gap-3 transition-all ${draggingFromLibrary ? 'cursor-copy border-[#3182F6]/40' : 'border-slate-200'} ${dropTarget?.dayIdx === 0 && dropTarget?.insertAfterPIdx === -1 ? 'ring-2 ring-[#3182F6] bg-blue-50/40' : ''}`}
+                className={`w-full rounded-2xl border bg-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.2)] p-5 flex flex-col items-center gap-3 transition-all ${draggingFromLibrary ? 'cursor-copy border-[#3182F6]/40' : 'border-slate-200'} ${dropTarget?.dayIdx === 0 && dropTarget?.insertAfterPIdx === -1 ? 'ring-2 ring-[#3182F6] bg-blue-50/40' : ''}`}
               >
                 <p className="text-[12px] font-black text-slate-500">아직 등록된 일정이 없습니다.</p>
                 <button
@@ -10240,7 +10240,7 @@ const App = () => {
 
 
                       {/* 🟢 카드 본체 (내부 라운드 셀) */}
-                      <div className={`relative w-full flex flex-col border overflow-hidden rounded-[24px] transition-[border-color,box-shadow] duration-200 ${stateStyles}`}>
+                      <div className={`relative w-full flex flex-col border overflow-hidden rounded-2xl transition-[border-color,box-shadow] duration-200 ${stateStyles}`}>
                         {/* 카테고리 색 헤더 */}
                         {(() => {
                           const _planItems = (d.plan || []).filter(x => x.type !== 'backup');
@@ -11416,7 +11416,7 @@ const App = () => {
           <>
             <div className="fixed inset-0 z-[99998]" onClick={() => setMapQuickViewItem(null)} />
             <div
-              className={`fixed z-[99999] rounded-[24px] border overflow-hidden animate-in slide-in-from-left-2 bg-white ${qvCatStyle.border} shadow-[0_24px_48px_-16px_rgba(15,23,42,0.3)]`}
+              className={`fixed z-[99999] rounded-2xl border overflow-hidden animate-in slide-in-from-left-2 bg-white ${qvCatStyle.border} shadow-[0_24px_48px_-16px_rgba(15,23,42,0.3)]`}
               style={{ left: Math.max(8, qvLeft), top: Math.max(8, qvTop), width: panelW, maxHeight: mapRect ? mapRect.height - 24 : '80vh' }}
             >
               <div className="overflow-y-auto max-h-[inherit]">

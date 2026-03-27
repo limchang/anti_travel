@@ -7724,7 +7724,7 @@ const App = () => {
               </nav>
             </div>
 
-            {!(mapEditMode && !isMobileLayout) && <NavBottomMenu
+            {!(mapEditMode || isMobileLayout) && <NavBottomMenu
               showNavMenu={showNavMenu} setShowNavMenu={setShowNavMenu}
               canManagePlan={canManagePlan}
               leftSidebarWidth={leftSidebarWidth}
@@ -7845,14 +7845,12 @@ const App = () => {
             )}
           </div>
         )}
-        {isMobileLayout && col2Collapsed ? (
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <Package size={14} className="text-slate-300" />
-          </div>
+        {false ? (
+          null
         ) : (
           <React.Fragment>
             {/* ── 고정 헤더 (플로팅 모드에서는 위 핸들이 대체) ── */}
-            {!(mapEditMode && !isMobileLayout) && (
+            {!(mapEditMode || isMobileLayout) && (
             <div className="px-2 pt-5 pb-2.5 border-b border-slate-100/60 shrink-0 bg-white">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
@@ -11142,7 +11140,6 @@ const App = () => {
           }
 
 
-          <MobileTabBar isMobileLayout={isMobileLayout} col1Collapsed={col1Collapsed} col2Collapsed={col2Collapsed} setCol1Collapsed={setCol1Collapsed} setCol2Collapsed={setCol2Collapsed} />
 
           <DragActionBar
             draggingFromTimeline={draggingFromTimeline}

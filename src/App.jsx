@@ -10863,8 +10863,7 @@ const App = () => {
                               {isExpanded && (
                                 <div className="px-5 py-4 animate-in slide-in-from-top-1 bg-white border-b border-slate-100 border-dashed">
                                   <div className="space-y-3 mb-3">
-                                    <div className="flex items-center justify-between gap-2">
-                                      <p className="text-[10px] text-slate-400 font-semibold">메뉴명/수량/가격을 직접 수정하면 총액이 자동 계산됩니다.</p>
+                                    <div className="flex items-center justify-end gap-2">
                                       <button
                                         type="button"
                                         onClick={async () => {

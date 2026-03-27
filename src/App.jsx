@@ -559,18 +559,15 @@ const App = () => {
         if (found) break;
       }
       if (found) {
-        // 지도 이동 + 기준 장소 업데이트를 다음 프레임으로 지연 (렉 방지)
-        requestAnimationFrame(() => {
-          const addr = getRouteAddress(found, 'to');
-          setBasePlanRef({ id: found.id, name: found.activity, address: addr || '' });
-          setFocusedMapTarget({
-            kind: 'timeline',
-            id: found.id,
-            day: dayNum,
-            routePointIds: found.types?.includes('ship')
-              ? [`${found.id}:ship-start`, `${found.id}:ship-end`]
-              : [found.id],
-          });
+        const addr = getRouteAddress(found, 'to');
+        setBasePlanRef({ id: found.id, name: found.activity, address: addr || '' });
+        setFocusedMapTarget({
+          kind: 'timeline',
+          id: found.id,
+          day: dayNum,
+          routePointIds: found.types?.includes('ship')
+            ? [`${found.id}:ship-start`, `${found.id}:ship-end`]
+            : [found.id],
         });
       }
     }

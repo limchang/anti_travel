@@ -466,14 +466,14 @@ export const LeafletMapViewportController = ({
       if (focusedPoints.length >= 2) {
         const focusBounds = L.latLngBounds(focusedPoints);
         if (focusBounds.isValid()) {
-          map.fitBounds(focusBounds.pad(0.38), { animate: animateFocus, padding: [28, 28] });
+          map.fitBounds(focusBounds.pad(0.38), { animate: false, padding: [28, 28] });
           return;
         }
       }
       if (focusedPoints.length === 1) {
-        map.flyTo(focusedPoints[0], Math.max(map.getZoom(), 13), { duration: animateFocus ? 0.35 : 0 });
+        map.setView(focusedPoints[0], Math.max(map.getZoom(), 13), { animate: false });
       }
-    }, 40);
+    }, 20);
     return () => window.clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusSignature]);

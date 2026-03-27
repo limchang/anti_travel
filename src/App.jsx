@@ -543,7 +543,6 @@ const App = () => {
 
     let targetItemId = itemId;
     if (!targetItemId) {
-      // Day 클릭 시 해당 일자의 첫 일정 활성화
       const targetDay = itinerary.days?.find(d => d.day === dayNum);
       const firstItem = targetDay?.plan?.find(p => p.type !== 'backup');
       if (firstItem) targetItemId = firstItem.id;
@@ -554,26 +553,24 @@ const App = () => {
       setHighlightedItemId(targetItemId);
       setTimeout(() => setHighlightedItemId(null), 1500);
 
-      // 해당 일정을 기준 장소(basePlanRef)로 자동 지정 (toggleReceipt와 동일 로직)
       let found = null;
       for (const d of itinerary.days || []) {
         found = d.plan?.find(p => p.id === targetItemId);
         if (found) break;
       }
       if (found) {
-        const addr = getRouteAddress(found, 'to');
-        if (addr) {
-          setBasePlanRef({ id: found.id, name: found.activity, address: addr });
-        } else {
-          setBasePlanRef({ id: found.id, name: found.activity, address: '' });
-        }
-        setFocusedMapTarget({
-          kind: 'timeline',
-          id: found.id,
-          day: dayNum,
-          routePointIds: found.types?.includes('ship')
-            ? [`${found.id}:ship-start`, `${found.id}:ship-end`]
-            : [found.id],
+        // 지도 이동 + 기준 장소 업데이트를 다음 프레임으로 지연 (렉 방지)
+        requestAnimationFrame(() => {
+          const addr = getRouteAddress(found, 'to');
+          setBasePlanRef({ id: found.id, name: found.activity, address: addr || '' });
+          setFocusedMapTarget({
+            kind: 'timeline',
+            id: found.id,
+            day: dayNum,
+            routePointIds: found.types?.includes('ship')
+              ? [`${found.id}:ship-start`, `${found.id}:ship-end`]
+              : [found.id],
+          });
         });
       }
     }
@@ -7439,7 +7436,7 @@ const App = () => {
                                       endTouchDragLock();
                                     }}
                                     onClick={() => handleNavClick(d.day, p.id)}
-                                    className={(() => { const _layout = isLastLodge ? 'flex flex-col' : 'grid grid-cols-[2.45rem_1fr_auto]'; const _state = p._timingConflict ? 'border-red-200 bg-red-50/85 shadow-[0_8px_18px_-16px_rgba(239,68,68,0.55)] hover:bg-red-100/80' : isLastLodge ? 'mt-2 border-indigo-200 bg-[linear-gradient(180deg,rgba(238,242,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-20px_rgba(99,102,241,0.28)] hover:border-indigo-300 hover:bg-indigo-50/90' : isActive ? 'border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-18px_rgba(49,130,246,0.42)]' : `${navCatStyle.border} ${navCatStyle.bg} ${navCatStyle.shadow} hover:brightness-[0.97]`; return `${_layout} items-center gap-1.5 rounded-[14px] border px-2 py-1.5 text-left transition-all relative overflow-hidden ${_state}`; })()}
+                                    className={(() => { const _layout = isLastLodge ? 'flex flex-col' : 'grid grid-cols-[2.45rem_1fr_auto]'; const _state = p._timingConflict ? 'border-red-200 bg-red-50/85 shadow-[0_8px_18px_-16px_rgba(239,68,68,0.55)] hover:bg-red-100/80' : isLastLodge ? 'mt-2 border-indigo-200 bg-[linear-gradient(180deg,rgba(238,242,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-20px_rgba(99,102,241,0.28)] hover:border-indigo-300 hover:bg-indigo-50/90' : isActive ? 'border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-18px_rgba(49,130,246,0.42)]' : `${navCatStyle.border} ${navCatStyle.bg} ${navCatStyle.shadow} hover:brightness-[0.97]`; return `${_layout} items-center gap-1.5 rounded-[14px] border px-2 py-1.5 text-left transition-colors relative overflow-hidden ${_state}`; })()}
                                   >
                                     {/* 퀵뷰 좌측 악센트 바 */}
                                     <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[14px] ${navCatStyle.accent}`} />

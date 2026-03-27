@@ -463,7 +463,6 @@ export const LeafletMapViewportController = ({
   useEffect(() => {
     if (!focusSignature) return undefined;
     const timer = window.setTimeout(() => {
-      map.invalidateSize({ pan: false });
       if (focusedPoints.length >= 2) {
         const focusBounds = L.latLngBounds(focusedPoints);
         if (focusBounds.isValid()) {
@@ -472,7 +471,7 @@ export const LeafletMapViewportController = ({
         }
       }
       if (focusedPoints.length === 1) {
-        map.flyTo(focusedPoints[0], Math.max(map.getZoom(), 13), { duration: animateFocus ? 0.45 : 0 });
+        map.flyTo(focusedPoints[0], Math.max(map.getZoom(), 13), { duration: animateFocus ? 0.35 : 0 });
       }
     }, 40);
     return () => window.clearTimeout(timer);

@@ -10863,33 +10863,6 @@ const App = () => {
                               {isExpanded && (
                                 <div className="px-5 py-4 animate-in slide-in-from-top-1 bg-white border-b border-slate-100 border-dashed">
                                   <div className="space-y-3 mb-3">
-                                    <div className="flex items-center justify-end gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={async () => {
-                                          try {
-                                            const result = await analyzeClipboardSmartFill({ mode: 'menus', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
-                                            const parsed = result?.parsed;
-                                            if (parsed?.menus?.length) {
-                                              setAiLearningCapture({
-                                                itemId: p.id,
-                                                rawSource: result.rawPayload,
-                                                aiResult: parsed,
-                                                inputType: result.inputType
-                                              });
-                                              setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: buildSmartFillMenuItems(parsed.menus) }; return d; });
-                                              showInfoToast(isAiSmartFillSource(result?.source) ? `AI 메뉴 스마트 입력 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '메뉴 정보만 스마트 입력 완료');
-                                            } else {
-                                              showInfoToast(useAiSmartFill ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.');
-                                            }
-                                          } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
-                                        }}
-                                        className="shrink-0 p-1 rounded-md border border-slate-200 bg-white text-slate-400 hover:bg-blue-50 hover:text-[#3182F6] hover:border-blue-200 transition-colors"
-                                        title="메뉴만 스마트 붙여넣기"
-                                      >
-                                        <Sparkles size={9} />
-                                      </button>
-                                    </div>
                                     {p.receipt?.items?.map((m, mIdx) => (
                                       <div key={mIdx} className="flex justify-between items-center text-xs group/item">
                                         <div className="flex items-center gap-2 flex-1">
@@ -10911,7 +10884,30 @@ const App = () => {
                                       </div>
                                     ))}
                                   </div>
-                                  <button onClick={(e) => { e.stopPropagation(); addMenuItem(dIdx, pIdx); }} className="w-full py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-[#3182F6] hover:bg-white transition-all">+ 메뉴 추가</button>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <button onClick={(e) => { e.stopPropagation(); addMenuItem(dIdx, pIdx); }} className="py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6]/30 hover:bg-blue-50/50 transition-all">+ 메뉴 추가</button>
+                                    <button
+                                      type="button"
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                          const result = await analyzeClipboardSmartFill({ mode: 'menus', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                                          const parsed = result?.parsed;
+                                          if (parsed?.menus?.length) {
+                                            setAiLearningCapture({ itemId: p.id, rawSource: result.rawPayload, aiResult: parsed, inputType: result.inputType });
+                                            setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: buildSmartFillMenuItems(parsed.menus) }; return d; });
+                                            showInfoToast(isAiSmartFillSource(result?.source) ? `AI 메뉴 스마트 입력 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '메뉴 정보만 스마트 입력 완료');
+                                          } else {
+                                            showInfoToast(useAiSmartFill ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.');
+                                          }
+                                        } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
+                                      }}
+                                      className="py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50/50 transition-all flex items-center justify-center gap-1"
+                                      title="메뉴만 스마트 붙여넣기"
+                                    >
+                                      <Sparkles size={10} /> 자동채우기
+                                    </button>
+                                  </div>
 
                                   {/* 플랜 B 목록 → 카드 상단 ◀▶ 캐러셀로 이동 */}
                                 </div>

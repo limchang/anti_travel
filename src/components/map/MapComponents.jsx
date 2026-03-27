@@ -176,18 +176,57 @@ export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColo
 };
 
 // 같은 위치 타임라인 마커 그룹 (예: 6 | 7)
-export const buildGroupedTimelineMarkerIcon = (items, isFocused) => {
+export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = false) => {
   const n = items.length;
-  const cellW = isFocused ? 32 : 26;
-  const h = isFocused ? 36 : 28;
-  const dividerW = 1;
-  const totalW = cellW * n + dividerW * (n - 1);
+  const sz = isFocused ? 36 : 28;
   const radius = isFocused ? 10 : 8;
   const tailH = isFocused ? 7 : 6;
-  const totalH = h + tailH;
+  const tailW = isFocused ? 6 : 5;
   const shadow = isFocused
     ? 'drop-shadow(0 5px 14px rgba(15,23,42,0.45))'
     : 'drop-shadow(0 3px 8px rgba(15,23,42,0.32))';
+
+  // 이름 표시 모드: 각 아이템을 가로 pill로 위로 쌓기
+  if (showName) {
+    const nameMaxW = isFocused ? 120 : 90;
+    const rowH = sz;
+    const gap = 3;
+    const totalH = n * rowH + (n - 1) * gap + tailH;
+    const totalW = sz + nameMaxW;
+    const tailColor = items[items.length - 1]?.color || items[0].color;
+
+    const rows = items.map((item, i) => {
+      const label = item.label || item.order;
+      return `
+        <div style="display:flex;align-items:center;border-radius:${radius}px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${item.color};overflow:hidden;background:#fff;${i > 0 ? `margin-top:${gap}px;` : ''}">
+          <div style="width:${sz}px;height:${rowH}px;background:${item.color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span style="font-size:${isFocused ? '16px' : '13px'};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${item.order}</span>
+          </div>
+          <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '12px' : '10px'};font-weight:900;color:#334155;line-height:${rowH}px;">
+            ${label}
+          </div>
+        </div>`;
+    }).join('');
+
+    return L.divIcon({
+      className: '',
+      html: `
+        <div style="display:flex;flex-direction:column;align-items:flex-start;cursor:pointer;filter:${shadow};">
+          ${rows}
+          <div style="margin-left:${sz / 2 - tailW}px;width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${tailColor};margin-top:-1px;"></div>
+        </div>
+      `,
+      iconSize: [totalW, totalH],
+      iconAnchor: [sz / 2, totalH],
+    });
+  }
+
+  // 기본: 숫자만 가로로 합치기
+  const cellW = isFocused ? 32 : 26;
+  const h = sz;
+  const dividerW = 1;
+  const totalW = cellW * n + dividerW * (n - 1);
+  const totalH = h + tailH;
 
   const cells = items.map((item, i) => {
     const isFirst = i === 0;
@@ -205,7 +244,6 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused) => {
       </div>`;
   }).join('');
 
-  // 꼬리는 중앙에
   const tailColor = items[Math.floor(n / 2)]?.color || items[0].color;
 
   return L.divIcon({
@@ -1048,7 +1086,7 @@ export const RoutePreviewCanvas = ({
                   key={`timeline-group-${point._groupItems.map(gi => gi.pointId).join('-')}`}
                   position={point.position}
                   bubblingMouseEvents={false}
-                  icon={buildGroupedTimelineMarkerIcon(point._groupItems, isFocused)}
+                  icon={buildGroupedTimelineMarkerIcon(point._groupItems, isFocused, showLibraryNames)}
                   eventHandlers={interactive && typeof onMarkerClick === 'function' ? {
                     click: (e) => {
                       const items = point._groupItems;

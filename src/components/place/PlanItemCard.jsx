@@ -75,7 +75,7 @@ const PlanItemCard = ({
   return (
     <>
       {/* 본체 */}
-      <div className="p-4 flex flex-col gap-2.5" onClick={onContainerClick}>
+      <div className={`flex flex-col gap-2.5 ${hideNameRow ? 'px-4 pb-4 pt-2' : 'p-4'}`} onClick={onContainerClick}>
         {/* 이름 행 */}
         {!hideNameRow && (
           <SharedNameRow

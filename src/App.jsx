@@ -7282,12 +7282,6 @@ const App = () => {
         </div>
       )}
 
-      {isMobileLayout && (navFloatingExpanded || bottomPanelExpanded) && (
-        <div
-          className="fixed inset-0 z-[210] bg-slate-950/10"
-          onClick={() => { setNavFloatingExpanded(false); setBottomPanelExpanded(false); }}
-        />
-      )}
 
       {/* ── Col1: 예산 + 일정 네비게이션 ── */}
       <div
@@ -7296,7 +7290,7 @@ const App = () => {
           : 'flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-visible z-[290]'
         }
         style={(mapEditMode || isMobileLayout)
-          ? { left: isMobileLayout ? 8 : 16, top: 60, width: navFloatingExpanded ? (isMobileLayout ? Math.min(320, viewportWidth - 16) : 340) : 48, maxHeight: navFloatingExpanded ? 'calc(100vh - 80px)' : 48, transition: 'width 0.3s, max-height 0.3s' }
+          ? { left: 16, top: 60, width: navFloatingExpanded ? Math.min(340, viewportWidth - 32) : 48, maxHeight: navFloatingExpanded ? 'calc(100vh - 80px)' : 48, transition: 'width 0.3s, max-height 0.3s' }
           : { width: leftSidebarWidth, transition: panelResizingRef.current?.side === 'left' ? 'none' : 'width 0.3s' }
         }
         onClick={(mapEditMode || isMobileLayout) && !navFloatingExpanded ? () => setNavFloatingExpanded(true) : undefined}
@@ -7798,7 +7792,7 @@ const App = () => {
           : 'flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[220] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] overflow-visible'
         }
         style={(mapEditMode || isMobileLayout)
-          ? { right: isMobileLayout ? 8 : 16, top: 60, width: bottomPanelExpanded ? (isMobileLayout ? Math.min(320, viewportWidth - 16) : 340) : 48, maxHeight: bottomPanelExpanded ? 'calc(100vh - 80px)' : 48, transition: 'width 0.3s, max-height 0.3s' }
+          ? { right: 16, top: 60, width: bottomPanelExpanded ? Math.min(340, viewportWidth - 32) : 48, maxHeight: bottomPanelExpanded ? 'calc(100vh - 80px)' : 48, transition: 'width 0.3s, max-height 0.3s' }
           : { right: 0, width: rightSidebarWidth, transition: panelResizingRef.current?.side === 'right' ? 'none' : 'width 0.3s' }
         }
         onClick={(mapEditMode || isMobileLayout) && !bottomPanelExpanded ? () => setBottomPanelExpanded(true) : undefined}

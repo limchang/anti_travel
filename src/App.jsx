@@ -8129,6 +8129,8 @@ const App = () => {
                     {/* ── 고정 영역: 지도 + 카테고리 필터 ── */}
                     <div className="shrink-0 px-2 pt-0 flex flex-col gap-1.5">
                     {/* 지도 뷰 */}
+                    {(() => {
+                      const mapContent = (
                     <div id="right-panel-map-overview" className={mapEditMode && !isMobileLayout
                       ? 'fixed inset-0 top-12 z-[100]'
                       : 'shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-hidden shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2 max-h-[40vh]'
@@ -8268,6 +8270,11 @@ const App = () => {
                         </div>
                       </div>
                     </div>
+                      );
+                      return mapEditMode && !isMobileLayout
+                        ? createPortal(mapContent, document.body)
+                        : mapContent;
+                    })()}
                     {/* 카테고리 필터 + 일정 추가 */}
                     <div className="flex items-start gap-1.5 mb-1">
                       <div className="flex flex-1 flex-wrap gap-1 min-w-0">

@@ -7843,8 +7843,8 @@ const App = () => {
             <Package size={14} className="text-[#3182F6] shrink-0" />
             {bottomPanelExpanded && <span className="text-[12px] font-black text-slate-700 flex-1">내 장소</span>}
             {bottomPanelExpanded && (
-              <button type="button" onClick={(e) => { e.stopPropagation(); setBottomPanelExpanded(false); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors">
-                <X size={12} />
+              <button type="button" onClick={(e) => { e.stopPropagation(); setShowPlaceMenu(prev => !prev); }} className={`shrink-0 w-6 h-6 flex items-center justify-center rounded-lg transition-colors ${showPlaceMenu ? 'bg-blue-50 text-[#3182F6]' : 'hover:bg-slate-100 text-slate-400'}`} title="옵션">
+                <SlidersHorizontal size={12} />
               </button>
             )}
           </div>
@@ -8210,7 +8210,19 @@ const App = () => {
                         />
                         {/* 오버레이 버튼: 상단 중앙 바 */}
                         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/90 backdrop-blur-md shadow-lg border border-slate-200/50" data-no-map-clear="true">
-                          {/* 좌: Day 필터 */}
+                          {/* 기준시 */}
+                          {(() => {
+                            const { refTime } = getActiveRefContext();
+                            if (!refTime) return null;
+                            const wdMap = { sun: '일', mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토' };
+                            const { todayKey: tk } = getActiveRefContext();
+                            const dl = wdMap[tk] || '';
+                            let tl = `(${dl}) ${refTime}`;
+                            if (tripStartDate) { const ad = itinerary.days?.find(dd => dd.day === activeDay); if (ad) { const dt = new Date(tripStartDate); dt.setDate(dt.getDate() + (ad.day - 1)); tl = `${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}(${dl}) ${refTime}`; }}
+                            return <span className="text-[9px] font-black text-slate-500">{tl}</span>;
+                          })()}
+                          <div className="w-px h-4 bg-slate-200" />
+                          {/* Day 필터 */}
                           <div className="flex items-center gap-1.5">
                             <button
                               type="button"
@@ -8347,26 +8359,8 @@ const App = () => {
                           className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black border transition-colors ${showPlaceCategoryManager ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300'}`}
                         ><SlidersHorizontal size={10} /></button>
                       </div>
-                      {/* 기준시 */}
-                      {(() => {
-                        const { refTime } = getActiveRefContext();
-                        if (!refTime) return null;
-                        const wdMap = { sun: '일', mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토' };
-                        const { todayKey: tk } = getActiveRefContext();
-                        const dayLabel = wdMap[tk] || '';
-                        let timeLabel = `(${dayLabel}) ${refTime}`;
-                        if (tripStartDate) {
-                          const activeDayData2 = itinerary.days?.find(dd => dd.day === activeDay);
-                          if (activeDayData2) {
-                            const dt = new Date(tripStartDate);
-                            dt.setDate(dt.getDate() + (activeDayData2.day - 1));
-                            timeLabel = `${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getDate()).padStart(2, '0')}(${dayLabel}) ${refTime}`;
-                          }
-                        }
-                        return <span className="shrink-0 text-[9px] font-black text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">{timeLabel}</span>;
-                      })()}
-                      {/* 옵션 */}
-                      <button type="button" onClick={() => setShowPlaceMenu(prev => !prev)} className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-lg border transition-colors ${showPlaceMenu ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300'}`} title="옵션"><SlidersHorizontal size={12} /></button>
+                      {/* 기준시 — 지도 상단 바로 이동됨 */}
+                      {/* 옵션 — 내장소 헤더로 이동됨 */}
                       {/* 장소 추가 — 하단 플로팅으로 이동 */}
                     </div>
                     {showPlaceCategoryManager && (

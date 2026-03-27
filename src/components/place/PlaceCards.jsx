@@ -603,11 +603,11 @@ export const PlaceLibraryCard = ({
         {nameRowActions}
       </div>
     )}
-    {jinaLoading && (
+    {superFillLoading && (
       <div className="px-4 pt-3 pb-1">
-        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2">
-          <svg className="animate-spin shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
-          <span className="text-[10px] font-bold text-emerald-600">v2 지도검색 중... 네이버 지도에서 정보를 가져오고 있습니다</span>
+        <div className="flex items-center gap-2 rounded-xl bg-blue-50 border border-blue-200 px-3 py-2">
+          <svg className="animate-spin shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3182F6" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+          <span className="text-[10px] font-bold text-blue-600">슈퍼 자동채우기 중...</span>
         </div>
       </div>
     )}

@@ -269,6 +269,35 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
   const iconSz = isFocused ? 18 : 14;
   const tailW = isFocused ? 6 : 5;
   const tailH = isFocused ? 7 : 6;
+
+  // showName 모드: 아이콘 + 이름을 가로로 표시
+  const showName = arguments[12] ?? false;
+  const displayName = placeName || '';
+  if (showName && displayName && !isCluster) {
+    const nameMaxW = isFocused ? 120 : 90;
+    const pillH = sz;
+    const totalH = pillH + tailH;
+    const totalW = sz + nameMaxW;
+    return L.divIcon({
+      className: '',
+      html: `
+        <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
+          <div style="display:flex;align-items:center;border-radius:${radius};border:${borderStyle};box-shadow:0 0 0 1.5px ${categoryColor};overflow:hidden;background:#fff;">
+            <div style="width:${sz}px;height:${pillH}px;background:${categoryColor};display:flex;align-items:center;justify-content:center;shrink:0;">
+              <svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5)) drop-shadow(0 0 2px rgba(0,0,0,0.25));">${svgIcon}</svg>
+            </div>
+            <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '11px' : '9px'};font-weight:900;color:#334155;line-height:${pillH}px;">
+              ${displayName}
+            </div>
+          </div>
+          <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${categoryColor};margin-top:-1px;"></div>
+        </div>
+      `,
+      iconSize: [totalW, totalH],
+      iconAnchor: [sz / 2, totalH],
+    });
+  }
+
   const totalH = sz + tailH;
   return L.divIcon({
     className: '',
@@ -411,6 +440,13 @@ export const LeafletMapViewportController = ({
   scopeKey = '',
 }) => {
   const map = useMap();
+  const [currentZoom, setCurrentZoom] = useState(() => map.getZoom());
+  useEffect(() => {
+    const onZoom = () => setCurrentZoom(map.getZoom());
+    map.on('zoomend', onZoom);
+    return () => map.off('zoomend', onZoom);
+  }, [map]);
+  const showLibraryNames = currentZoom >= 13;
   const boundsSignature = useMemo(
     () => boundsPoints.map((point) => `${point[0].toFixed(5)}:${point[1].toFixed(5)}`).join('|'),
     [boundsPoints]
@@ -1065,7 +1101,7 @@ export const RoutePreviewCanvas = ({
                 position={point.position}
                 bubblingMouseEvents={false}
                 icon={point.kind === 'place'
-                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors, point.primaryType || '', clusterTypes, point.label || '', clusterNames)
+                  ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors, point.primaryType || '', clusterTypes, point.label || '', clusterNames, showLibraryNames)
                   : buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
                 eventHandlers={interactive ? {
                   click: (e) => {

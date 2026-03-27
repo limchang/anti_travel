@@ -10148,26 +10148,7 @@ const App = () => {
                                   const shipEndAddress = getShipEndAddress(p);
                                   return (
                                     <>
-                                      {/* 페리 이름 */}
-                                      <div className="flex items-center gap-1.5">
-                                        <Anchor size={11} className="text-blue-400 shrink-0" />
-                                        <input
-                                          value={p.activity}
-                                          onChange={(e) => updateActivityName(dIdx, pIdx, e.target.value)}
-                                          onFocus={(e) => e.target.select()}
-                                          className="flex-1 min-w-0 bg-transparent text-[15px] font-black text-blue-900 leading-tight focus:outline-none truncate"
-                                          onClick={(e) => e.stopPropagation()}
-                                          placeholder="페리 이름"
-                                        />
-                                        <button
-                                          type="button"
-                                          onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}
-                                          className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                                          title="일정 수정"
-                                        >
-                                          <Pencil size={11} />
-                                        </button>
-                                      </div>
+                                      {/* 페리 이름 — 색 헤더에 표시됨 */}
                                       {/* 루트 배너 */}
                                       {/* 루트 배너 */}
                                       <div className="flex items-stretch gap-3">
@@ -10296,25 +10277,7 @@ const App = () => {
                               </div>
                             ) : isLodge ? (
                               <div className="flex flex-col gap-2.5" onClick={(e) => e.stopPropagation()}>
-                                <div className="flex items-center gap-1.5">
-                                  <Bed size={11} className="text-indigo-400 shrink-0" />
-                                  <input
-                                    value={p.activity}
-                                    onChange={(e) => updateActivityName(dIdx, pIdx, e.target.value)}
-                                    onFocus={(e) => e.target.select()}
-                                    className="flex-1 min-w-0 bg-transparent text-[15px] font-black text-indigo-900 leading-tight focus:outline-none truncate"
-                                    onClick={(e) => e.stopPropagation()}
-                                    placeholder="숙소 이름"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}
-                                    className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                                    title="일정 수정"
-                                  >
-                                    <Pencil size={11} />
-                                  </button>
-                                </div>
+                                {/* 숙소 이름 — 색 헤더에 표시됨 */}
                                 <SharedAddressRow
                                   value={p.receipt?.address || p.address || p.sourceLodgeAddress || ''}
                                   onChange={(e) => {
@@ -10514,18 +10477,7 @@ const App = () => {
                                   const arrivalTime = `${String(Math.floor(arrivalMins / 60) % 24).padStart(2, '0')}:${String(arrivalMins % 60).padStart(2, '0')}`;
                                   return (
                                     <>
-                                      {/* 이름 행 */}
-                                      <div className="flex items-center gap-1.5">
-                                        <Home size={11} className="text-amber-500 shrink-0" />
-                                        <input
-                                          value={p.activity}
-                                          onChange={(e) => updateActivityName(dIdx, pIdx, e.target.value)}
-                                          onFocus={(e) => e.target.select()}
-                                          className="flex-1 min-w-0 bg-transparent text-[15px] font-black text-slate-800 leading-tight outline-none placeholder:text-slate-300 focus:outline-none truncate"
-                                          placeholder="출발지 이름"
-                                        />
-                                        <button onClick={(e) => { e.stopPropagation(); setEditingItemId(p.id); setEditDraft(createPlanEditorDraft(p)); }} className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors" title="일정 수정"><Pencil size={11} /></button>
-                                      </div>
+                                      {/* 이름 행 — 색 헤더에 표시됨 */}
 
                                       {/* 루트 배너 */}
                                       {/* 루트 배너 */}

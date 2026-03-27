@@ -7326,7 +7326,7 @@ const App = () => {
       {/* ── Col1: 예산 + 일정 네비게이션 ── */}
       <div
         className={mapEditMode && !isMobileLayout
-          ? `flex flex-col fixed z-[280] bg-white/95 backdrop-blur-lg rounded-2xl border border-slate-200 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.25)] overflow-hidden ${navFloatingExpanded ? '' : 'cursor-pointer'}`
+          ? `flex flex-col fixed z-[280] bg-slate-900/95 backdrop-blur-lg rounded-2xl shadow-[0_16px_48px_-16px_rgba(0,0,0,0.5)] overflow-hidden ${navFloatingExpanded ? '' : 'cursor-pointer'}`
           : 'flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-visible z-[290]'
         }
         style={mapEditMode && !isMobileLayout
@@ -7352,11 +7352,11 @@ const App = () => {
           <>
             {/* ── 고정 헤더 ── */}
             {mapEditMode && !isMobileLayout ? (
-              <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 shrink-0">
-                <CalendarDays size={14} className="text-[#3182F6] shrink-0" />
-                {navFloatingExpanded && <span className="text-[12px] font-black text-slate-700 flex-1">일정</span>}
+              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10 shrink-0">
+                <CalendarDays size={14} className="text-white/70 shrink-0" />
+                {navFloatingExpanded && <span className="text-[12px] font-black text-white flex-1">{tripRegion || 'Anti Planer'}</span>}
                 {navFloatingExpanded && (
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setNavFloatingExpanded(false); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setNavFloatingExpanded(false); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/50 transition-colors">
                     <X size={12} />
                   </button>
                 )}
@@ -7382,7 +7382,7 @@ const App = () => {
                     {/* 스티키 날짜 라벨 */}
                     <button
                       type="button"
-                      className={`sticky top-0 z-10 w-full flex items-center gap-2 px-2.5 py-1.5 mb-1.5 rounded-xl ${activeDay === d.day ? 'bg-[#3182F6] text-white shadow-[0_4px_12px_-4px_rgba(49,130,246,0.4)]' : 'bg-white text-slate-500 shadow-[0_2px_8px_-4px_rgba(15,23,42,0.1)] hover:bg-slate-50'}`}
+                      className={`sticky top-0 z-10 w-full flex items-center gap-2 px-2.5 py-1.5 mb-1.5 rounded-xl ${activeDay === d.day ? 'bg-white/15 text-white' : 'bg-transparent text-white/50 hover:bg-white/5'}`}
                       onClick={() => handleNavClick(d.day)}
                     >
                       <span className="text-[12px] font-black tracking-tight">{getNavDateLabelForDay(d.day).primary}</span>
@@ -7563,16 +7563,16 @@ const App = () => {
                                       endTouchDragLock();
                                     }}
                                     onClick={() => handleNavClick(d.day, p.id)}
-                                    className={(() => { const _layout = isLastLodge ? 'flex flex-col' : 'grid grid-cols-[4.2rem_1fr_auto]'; const _state = p._timingConflict ? 'border-red-200 bg-red-50/85 shadow-[0_8px_18px_-16px_rgba(239,68,68,0.55)] hover:bg-red-100/80' : isLastLodge ? 'mt-2 border-indigo-200 bg-[linear-gradient(180deg,rgba(238,242,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-20px_rgba(99,102,241,0.28)] hover:border-indigo-300 hover:bg-indigo-50/90' : isActive ? 'border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_14px_24px_-18px_rgba(49,130,246,0.42)]' : `${navCatStyle.border} ${navCatStyle.bg} ${navCatStyle.shadow} hover:brightness-[0.97]`; return `${_layout} items-center gap-1.5 rounded-[14px] border px-2 py-1.5 text-left transition-colors relative overflow-hidden ${_state}`; })()}
+                                    className={(() => { const _layout = isLastLodge ? 'flex flex-col' : 'grid grid-cols-[4.2rem_1fr_auto]'; const _state = p._timingConflict ? 'bg-red-500/20' : isActive ? 'bg-white/10' : 'hover:bg-white/5'; return `${_layout} items-center gap-1.5 rounded-lg px-2 py-1.5 text-left transition-colors relative overflow-hidden ${_state}`; })()}
                                   >
                                     {/* 퀵뷰 좌측 악센트 바 */}
                                     <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[14px] ${navCatStyle.accent}`} />
                                     {isLastLodge ? (
                                       <div className="grid w-full min-w-0 grid-cols-[4.2rem_1fr_auto] items-center gap-1.5">
-                                        <div className="flex items-center gap-0.5 bg-white rounded-lg px-0.5 py-px border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
+                                        <div className="flex items-center gap-0.5 bg-white/10 rounded-lg px-0.5 py-px border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
                                           <span className="w-[18px] h-[18px] rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{getNavItemOrder(p, pIdx, navPlanItems)}</span>
                                           <span
-                                            className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}
+                                            className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-400' : isFixedTimeNav ? 'font-black text-blue-400 cursor-pointer hover:opacity-70' : isActive ? 'font-black text-white' : 'font-bold text-white/50'}`}
                                             onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
                                           >{p.time || '--:--'}</span>
                                         </div>
@@ -7581,7 +7581,7 @@ const App = () => {
                                             className={`shrink-0 scale-[0.88] origin-left transition-opacity cursor-pointer hover:scale-100 ${isActive ? 'opacity-100' : 'opacity-70'}`}
                                             onClick={(e) => { e.stopPropagation(); const realPIdx = (itinerary.days?.[dNavIdx]?.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) openPlanEditModal(dNavIdx, realPIdx); }}
                                           >{getCategoryBadge(navPrimaryType)}</div>
-                                          <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-600' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-500'}`}>{p.activity}</span>
+                                          <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-400' : isActive ? 'font-black text-white' : 'font-bold text-white/60'}`}>{p.activity}</span>
                                           {isRouteLoadingNav && (
                                             <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[8px] font-black leading-none text-[#3182F6]">
                                               <LoaderCircle size={8} className="animate-spin" />
@@ -7614,10 +7614,10 @@ const App = () => {
                                       </div>
                                     ) : (
                                       <>
-                                        <div className="flex items-center gap-0.5 bg-white rounded-lg px-0.5 py-px border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
+                                        <div className="flex items-center gap-0.5 bg-white/10 rounded-lg px-0.5 py-px border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
                                           <span className="w-[18px] h-[18px] rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{getNavItemOrder(p, pIdx, navPlanItems)}</span>
                                           <span
-                                            className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-400'}`}
+                                            className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-400' : isFixedTimeNav ? 'font-black text-blue-400 cursor-pointer hover:opacity-70' : isActive ? 'font-black text-white' : 'font-bold text-white/50'}`}
                                             onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
                                           >{p.time || '--:--'}</span>
                                         </div>
@@ -7626,7 +7626,7 @@ const App = () => {
                                             className={`shrink-0 scale-[0.88] origin-left transition-opacity cursor-pointer hover:scale-100 ${isActive ? 'opacity-100' : 'opacity-70'}`}
                                             onClick={(e) => { e.stopPropagation(); const realPIdx = (itinerary.days?.[dNavIdx]?.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) openPlanEditModal(dNavIdx, realPIdx); }}
                                           >{getCategoryBadge(navPrimaryType)}</div>
-                                          <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-600' : isActive ? 'font-black text-slate-700' : 'font-bold text-slate-500'}`}>{p.activity}</span>
+                                          <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-400' : isActive ? 'font-black text-white' : 'font-bold text-white/60'}`}>{p.activity}</span>
                                           {isRouteLoadingNav && (
                                             <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[8px] font-black leading-none text-[#3182F6]">
                                               <LoaderCircle size={8} className="animate-spin" />

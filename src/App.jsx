@@ -6887,17 +6887,11 @@ const App = () => {
           <div className="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center">
             <MapIcon size={14} className="text-white" />
           </div>
-          <span className="text-[14px] font-black text-slate-800 tracking-tight">Anti Planer</span>
-          {(() => {
-            const { refTime } = getActiveRefContext();
-            if (!refTime) return null;
-            const wdMap = { sun: '일', mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토' };
-            const { todayKey: tk } = getActiveRefContext();
-            const dl = wdMap[tk] || '';
-            let tl = `(${dl}) ${refTime}`;
-            if (tripStartDate) { const ad = itinerary.days?.find(dd => dd.day === activeDay); if (ad) { const dt = new Date(tripStartDate); dt.setDate(dt.getDate() + (ad.day - 1)); tl = `${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}(${dl}) ${refTime}`; }}
-            return <span className="text-[10px] font-bold text-slate-400 ml-2">{tl}</span>;
-          })()}
+          <button type="button" onClick={() => setShowPlanManager(true)} className="flex items-center gap-1.5 text-left hover:opacity-80 transition-opacity">
+            <span className="text-[14px] font-black text-slate-800 tracking-tight">{tripRegion || 'Anti Planer'}</span>
+            {tripStartDate && <span className="text-[10px] font-bold text-slate-400">{tripStartDate} · {tripNights}박</span>}
+            <ChevronDown size={10} className="text-slate-400" />
+          </button>
         </div>
         <div className="flex-1" />
         <button
@@ -8229,7 +8223,7 @@ const App = () => {
                                   setOverviewMapRouteVisible(true);
                                 }
                               }}
-                              className={`shrink-0 rounded-lg border px-2.5 py-1 text-[11px] font-black shadow-sm backdrop-blur-md transition-colors ${overviewMapScope === 'all' && overviewMapRouteVisible ? 'border-[#3182F6]/50 bg-[#3182F6] text-white' : overviewMapScope === 'all' && !overviewMapRouteVisible ? 'border-white/30 bg-white/20 text-white/50 line-through' : 'border-white/30 bg-white/20 text-white/90 hover:bg-white/30'}`}
+                              className={`shrink-0 rounded-lg border px-2.5 py-1 text-[11px] font-black shadow-sm backdrop-blur-md transition-colors ${overviewMapScope === 'all' && overviewMapRouteVisible ? 'border-[#3182F6]/50 bg-[#3182F6] text-white' : overviewMapScope === 'all' && !overviewMapRouteVisible ? 'border-white/30 bg-white/20 text-white/50 line-through' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-[#3182F6]'}`}
                             >전체</button>
                             {mapDayOptions.map((option) => {
                               const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
@@ -8238,7 +8232,7 @@ const App = () => {
                                   key={`lib-map-day-ov-${option.day}`}
                                   type="button"
                                   onClick={() => { setOverviewMapScope('day'); setOverviewMapDayFilter(option.day); setOverviewMapRouteVisible(true); }}
-                                  className={`shrink-0 rounded-lg border px-2.5 py-1 text-[11px] font-black shadow-sm backdrop-blur-md transition-colors ${active ? 'border-[#3182F6]/50 bg-[#3182F6] text-white' : 'border-white/30 bg-white/20 text-white/90 hover:bg-white/30'}`}
+                                  className={`shrink-0 rounded-lg border px-2.5 py-1 text-[11px] font-black shadow-sm backdrop-blur-md transition-colors ${active ? 'border-[#3182F6]/50 bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-[#3182F6]'}`}
                                 >{option.label}</button>
                               );
                             })}
@@ -8248,14 +8242,14 @@ const App = () => {
                             <button
                               type="button"
                               onClick={() => setShowOverviewLibraryPoints((v) => !v)}
-                              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-black shadow-sm backdrop-blur-md transition-all ${showOverviewLibraryPoints ? 'border-[#3182F6]/60 bg-[#3182F6]/80 text-white' : 'border-white/30 bg-white/20 text-white/90 hover:bg-white/30'}`}
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-black shadow-sm backdrop-blur-md transition-all ${showOverviewLibraryPoints ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-[#3182F6]'}`}
                             >
                               <Package size={12} /><span>내장소</span>
                             </button>
                             <button
                               type="button"
                               onClick={() => setHideLongRouteSegments((v) => !v)}
-                              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-black shadow-sm backdrop-blur-md transition-all ${hideLongRouteSegments ? 'border-orange-300/60 bg-orange-500/80 text-white' : 'border-white/30 bg-white/20 text-white/90 hover:bg-white/30'}`}
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-black shadow-sm backdrop-blur-md transition-all ${hideLongRouteSegments ? 'border-orange-400 bg-orange-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-[#3182F6]'}`}
                             >
                               <Eye size={12} /><span>{hideLongRouteSegments ? '장거리 숨김' : '장거리 표시'}</span>
                             </button>
@@ -8264,7 +8258,7 @@ const App = () => {
                                 key={action.id}
                                 type="button"
                                 onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
-                                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-black shadow-sm backdrop-blur-md transition-all ${action.hidden ? 'border-orange-300/60 bg-orange-500/80 text-white' : 'border-white/30 bg-white/20 text-white/90 hover:bg-white/30'}`}
+                                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-black shadow-sm backdrop-blur-md transition-all ${action.hidden ? 'border-orange-400 bg-orange-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-[#3182F6]'}`}
                               >
                                 <Anchor size={12} /><span>{action.id.endsWith('ship-start') ? '출발' : '도착'}</span>
                               </button>
@@ -8272,7 +8266,7 @@ const App = () => {
                             <button
                               type="button"
                               onClick={() => setMapTileStyle(prev => (prev + 1) % 3)}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-black shadow-sm backdrop-blur-md transition-all border-white/30 bg-white/20 text-white/90 hover:bg-white/30"
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-black shadow-sm backdrop-blur-md transition-all border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-[#3182F6]"
                               title="지도 스타일 변경"
                             >
                               <MapIcon size={12} />{['기본', '회색', '다크'][mapTileStyle]}
@@ -8281,7 +8275,7 @@ const App = () => {
                               type="button"
                               onClick={refreshRoutePreviewMap}
                               disabled={routePreviewManualRefreshing}
-                              className={`flex items-center justify-center w-8 h-8 rounded-lg border shadow-sm backdrop-blur-md transition-all ${routePreviewManualRefreshing ? 'border-blue-300/60 bg-blue-500/60 text-white' : 'border-white/30 bg-white/20 text-white/90 hover:bg-white/30'}`}
+                              className={`flex items-center justify-center w-8 h-8 rounded-lg border shadow-sm backdrop-blur-md transition-all ${routePreviewManualRefreshing ? 'border-blue-400 bg-blue-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-[#3182F6]'}`}
                             >
                               <RotateCcw size={14} className={routePreviewManualRefreshing ? 'animate-spin' : ''} />
                             </button>
@@ -8373,14 +8367,7 @@ const App = () => {
                       })()}
                       {/* 옵션 */}
                       <button type="button" onClick={() => setShowPlaceMenu(prev => !prev)} className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-lg border transition-colors ${showPlaceMenu ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]' : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300'}`} title="옵션"><SlidersHorizontal size={12} /></button>
-                      {/* 장소 추가 */}
-                      <button
-                        type="button"
-                        onClick={() => { setShowAddPlaceMenu(v => !v); }}
-                        className={`shrink-0 flex items-center gap-1 px-3 py-1 rounded-lg text-[11px] font-black border transition-colors whitespace-nowrap ${showAddPlaceMenu ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-[#3182F6] text-white border-[#3182F6] hover:bg-blue-600'}`}
-                      >
-                        <Plus size={12} /> 장소 추가
-                      </button>
+                      {/* 장소 추가 — 하단 플로팅으로 이동 */}
                     </div>
                     {showPlaceCategoryManager && (
                       <div className="mb-1.5 rounded-[12px] border border-slate-200 bg-white px-2.5 py-2 shadow-sm">
@@ -8732,6 +8719,16 @@ const App = () => {
                 );
               })()}
             </div>
+          {/* 장소 추가 플로팅 버튼 */}
+          {mapEditMode && !isMobileLayout && bottomPanelExpanded && (
+            <button
+              type="button"
+              onClick={() => setShowAddPlaceMenu(v => !v)}
+              className="absolute bottom-4 right-4 flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#3182F6] text-white text-[12px] font-black shadow-[0_8px_24px_-8px_rgba(49,130,246,0.4)] hover:bg-blue-600 transition-colors z-10"
+            >
+              <Plus size={14} /> 장소 추가
+            </button>
+          )}
           </React.Fragment>
         )
         }

@@ -9978,8 +9978,14 @@ const App = () => {
 
                       {/* 🟢 카드 본체 (내부 라운드 셀) */}
                       <div className={`relative w-full flex flex-col border overflow-hidden rounded-[24px] transition-[border-color,box-shadow] duration-200 ${stateStyles}`}>
-                        {/* 카테고리 악센트 바 */}
-                        {!isHome && !isLodge && !isLodgeTagged && !isShip && <div className={`h-[3px] w-full ${_tlCatStyle.accent}`} />}
+                        {/* 카테고리 색 헤더 (일반 장소만) */}
+                        {!isHome && !isLodge && !isLodgeTagged && !isShip && (
+                          <div className={`flex items-center gap-2 px-3 py-2 ${_tlCatStyle.accent}`}>
+                            <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30">{getCategoryBadge(getPreferredNavCategory(p.types))}</div>
+                            <span className="text-[13px] font-black text-white truncate flex-1">{p.activity || '이름 없음'}</span>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors" title="일정 수정"><Pencil size={12} /></button>
+                          </div>
+                        )}
                         {/* Plan B 페이지 인디케이터 */}
                         {hasPlanB && (
                           <div className="absolute top-2 right-2 z-20 pointer-events-none">
@@ -10683,6 +10689,7 @@ const App = () => {
                                 return (
                                   <PlanItemCard
                                     item={p}
+                                    hideNameRow
                                     isExpanded={isExpanded}
                                     onActivityChange={(val) => updateActivityName(dIdx, pIdx, val)}
                                     onActivityKeyDown={async (e) => {

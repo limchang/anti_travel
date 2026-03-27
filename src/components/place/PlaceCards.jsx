@@ -574,7 +574,7 @@ export const PlaceLibraryCard = ({
             setJinaLoading(true);
             try { await onJinaSmartFill(); } finally { setJinaLoading(false); }
           }}
-          className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-black transition-colors ${jinaLoading ? 'border-emerald-300 bg-emerald-50 text-emerald-500' : 'border-emerald-200 bg-emerald-50/50 text-emerald-600 hover:border-emerald-400 hover:bg-emerald-50'}`}
+          className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black transition-colors ${jinaLoading ? 'bg-white/30 text-white/70' : 'bg-white/20 text-white hover:bg-white/30'}`}
           title="네이버 지도에서 주소·영업시간·메뉴를 자동으로 가져옵니다"
         >
           {jinaLoading ? <svg className="animate-spin shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> : <Search size={11} className="shrink-0" />}
@@ -584,10 +584,10 @@ export const PlaceLibraryCard = ({
       <button
         type="button"
         onClick={onEdit}
-        className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+        className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors"
         title="장소 수정"
       >
-        <Pencil size={11} />
+        <Pencil size={12} />
       </button>
     </div>
   );
@@ -598,8 +598,14 @@ export const PlaceLibraryCard = ({
     data-map-focus-card="true"
     className={`w-full group relative overflow-hidden rounded-[24px] border bg-white shadow-[0_8px_24px_-10px_rgba(15,23,42,0.10)] transition-[border-color,box-shadow] duration-200 ${highlighted ? 'border-[#3182F6] shadow-[0_0_0_3px_rgba(49,130,246,0.18)]' : categoryBorder ? `${categoryBorder} hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)]` : 'border-slate-200 hover:shadow-[0_12px_28px_-10px_rgba(15,23,42,0.14)] hover:border-slate-300'} ${cardProps.className || ''}`.trim()}
   >
-    {/* 카테고리 악센트 바 */}
-    {categoryAccent && <div className={`h-[3px] w-full ${categoryAccent}`} />}
+    {/* 카테고리 색 헤더 */}
+    {categoryAccent && (
+      <div className={`flex items-center gap-2 px-3 py-2 ${categoryAccent}`}>
+        <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30">{chips}</div>
+        <span className="text-[13px] font-black text-white truncate flex-1">{place.name || '이름 없음'}</span>
+        {nameRowActions}
+      </div>
+    )}
     {jinaLoading && (
       <div className="px-4 pt-3 pb-1">
         <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2">
@@ -611,6 +617,7 @@ export const PlaceLibraryCard = ({
     <PlanItemCard
       item={place}
       readOnly
+      hideNameRow={!!categoryAccent}
       showReceipt={showPrice && !isCompact}
       isExpanded={isExpanded}
       compact={isCompact}

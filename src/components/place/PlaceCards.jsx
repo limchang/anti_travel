@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { TAG_OPTIONS, normalizeTagOrder, toggleTagSelection, getTagButtonClass } from '../../utils/constants.js';
 import { SharedNameRow, SharedAddressRow, SharedBusinessRow, SharedMemoRow, SharedTotalFooter } from '../shared/SharedComponents.jsx';
+import PlanItemCard from './PlanItemCard.jsx';
 
 
 const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', className = '' }) => {
@@ -546,11 +547,9 @@ export const PlaceLibraryCard = ({
   businessSummary = '미설정',
   isExpanded = false,
   onEdit,
-  onOpenMap,
   onBusinessEdit,
   onBusinessQuickEdit,
   onToggleExpand,
-  onDelete,
   getMenuQtyValue,
   getMenuLineTotalValue,
   extraContent = null,
@@ -563,9 +562,7 @@ export const PlaceLibraryCard = ({
   categoryBorder = '',
 }) => {
   const [jinaLoading, setJinaLoading] = React.useState(false);
-  const visibleMenus = (place.receipt?.items || []).filter((menu) => menu && menu.selected !== false);
   const isCompact = viewMode === 'compact';
-  const hasMemo = Boolean(String(place.memo || '').trim());
   const nameRowActions = (
     <div className="flex items-center gap-1">
       {onJinaSmartFill && (
@@ -611,69 +608,33 @@ export const PlaceLibraryCard = ({
         </div>
       </div>
     )}
-    <div className="p-5 flex flex-col gap-2.5">
-      <SharedNameRow
-        value={place.name || ''}
-        readOnly
-        placeholder="장소 이름"
-        prefixContent={chips}
-        onContainerClick={(event) => {
-          event.stopPropagation();
-          // prefixContent(카테고리 칩) 클릭 시 지도 열기 방지
-          const target = event.target instanceof Element ? event.target : null;
-          if (target?.closest('[data-no-drag]') || target?.closest('button')) return;
-          if (typeof onOpenMap === 'function') onOpenMap(event);
-        }}
-        actionButton={nameRowActions}
-      />
-      {(baseDistance != null || statusChip) && (
+    <PlanItemCard
+      item={place}
+      readOnly
+      showReceipt={showPrice && !isCompact}
+      isExpanded={isExpanded}
+      compact={isCompact}
+      businessSummary={businessSummary}
+      quickEditSegments={buildBusinessQuickEditSegments(place.business || {})}
+      onBusinessQuickEdit={(fieldKey) => onBusinessQuickEdit?.(fieldKey)}
+      onBusinessToggle={onBusinessEdit}
+      onContainerClick={(e) => e.stopPropagation()}
+      namePrefix={chips}
+      nameActions={nameRowActions}
+      addressLeading={<MapPin size={11} className="text-[#3182F6] shrink-0" />}
+      statusChip={(baseDistance != null || statusChip) ? (
         <div className="flex items-center gap-1.5 flex-wrap pr-12" data-no-drag="true">
           {baseDistance != null && (
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-200 bg-blue-50 text-blue-600">
-              {baseDistance}km
-            </span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-200 bg-blue-50 text-blue-600">{baseDistance}km</span>
           )}
           {statusChip}
         </div>
-      )}
-      {!isCompact && (
-        <SharedAddressRow
-          value={place.address || place.receipt?.address || ''}
-          onChange={() => {}}
-          onContainerClick={(event) => event.stopPropagation()}
-          leading={<MapPin size={11} className="text-[#3182F6] shrink-0" />}
-        />
-      )}
-      <SharedBusinessRow
-        summary={businessSummary}
-        placeholder="영업 정보 (선택)"
-        onContainerClick={(event) => event.stopPropagation()}
-        onToggle={onBusinessEdit}
-        quickEditSegments={buildBusinessQuickEditSegments(place.business || {})}
-        onQuickEdit={(fieldKey) => onBusinessQuickEdit?.(fieldKey)}
-      />
-      {(!isCompact || hasMemo) && (
-        <SharedMemoRow value={place.memo || ''} onChange={() => {}} readOnly onContainerClick={(event) => event.stopPropagation()} />
-      )}
-      {extraContent}
-    </div>
-    {showPrice && isExpanded && !isCompact && (
-      <div className="px-5 py-4 animate-in slide-in-from-top-1 bg-white border-b border-slate-100 border-dashed">
-        <div className="space-y-1.5">
-          {visibleMenus.map((menu, idx) => (
-            <div key={`${menu?.name || 'menu'}-${idx}`} className="flex items-center justify-between text-[10px]">
-              <span className="text-slate-600 font-bold truncate">{menu?.name || '-'}</span>
-              <span className="text-slate-400 font-bold">x{getMenuQtyValue(menu)}</span>
-              <span className="text-[#3182F6] font-black">₩{getMenuLineTotalValue(menu).toLocaleString()}</span>
-            </div>
-          ))}
-          {visibleMenus.length === 0 && (
-            <p className="text-[10px] text-slate-400 font-semibold">체크된 메뉴가 없습니다.</p>
-          )}
-        </div>
-      </div>
-    )}
-    {showPrice && !isCompact && <SharedTotalFooter expanded={isExpanded} total={place.price} onToggle={onToggleExpand} />}
+      ) : null}
+      extraContent={extraContent}
+      onReceiptToggle={onToggleExpand}
+      getMenuQty={getMenuQtyValue}
+      getMenuLineTotal={getMenuLineTotalValue}
+    />
   </div>
   );
 };

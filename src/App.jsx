@@ -6,6 +6,7 @@ import { MapContainer, Marker, Pane, Polyline, Popup, TileLayer, Tooltip, useMap
 import { db, auth, messaging } from './firebase';
 import { PlaceAddForm } from './components/place/PlaceAddForm';
 import { PlaceEditorCard, PlaceLibraryCard } from './components/place/PlaceCards';
+import PlanItemCard from './components/place/PlanItemCard';
 import updateLog from './update-log.json';
 import { collection, doc, getDoc, getDocs, setDoc, query, limit } from 'firebase/firestore';
 
@@ -10605,308 +10606,196 @@ const App = () => {
                                 })()}
                               </div>
                             ) : (
-                              <>
-                                {/* 1행: 카테고리 칩 + 이름 */}
-                                <SharedNameRow
-                                  value={p.activity}
-                                  onChange={(e) => updateActivityName(dIdx, pIdx, e.target.value)}
-                                  onFocus={(e) => e.target.select()}
-                                  onKeyDown={async (e) => {
-                                    if (e.key === 'Enter' && p.activity.trim()) {
-                                      e.preventDefault();
-                                      setLastAction('주소 검색 중...');
-                                      const result = await searchAddressFromPlaceName(getPlaceSearchName(p), tripRegion);
-                                      if (result?.address) { updateAddress(dIdx, pIdx, result.address); setLastAction(`주소 자동 입력: ${result.address}`); }
-                                      else setLastAction('주소를 찾을 수 없습니다.');
-                                    }
-                                  }}
-                                  placeholder="일정 이름 입력 후 Enter"
-                                  onContainerClick={(e) => e.stopPropagation()}
-                                  prefixContent={
+                              (() => {
+                                /* 주소 관련 IIFE 로직을 미리 변수로 추출 */
+                                let _isSearchingAddr = false;
+                                const _addrLeading = (
+                                  <button
+                                    type="button"
+                                    title="내 장소 정렬 기준 설정"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setBasePlanRef({ id: p.id, name: p.activity, address: p.receipt?.address || '' });
+                                      setLastAction(`'${p.activity}'을(를) 거리 계산 기준으로 설정했습니다.`);
+                                    }}
+                                    className="shrink-0 transition-colors hover:bg-amber-50 p-1 -ml-1 rounded-md"
+                                  >
+                                    <MapPin size={12} className={basePlanRef?.id === p.id ? "text-amber-500" : "text-[#3182F6]"} />
+                                  </button>
+                                );
+                                const _addrActions = (
+                                  <>
                                     <button
                                       type="button"
-                                      className={`flex items-center gap-0.5 flex-nowrap shrink-0 cursor-pointer rounded-lg px-1 py-0.5 -ml-0.5 transition-colors border ${tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx ? 'bg-blue-50 border-[#3182F6]/30' : 'border-transparent hover:bg-slate-100/80 hover:border-slate-200'}`}
-                                      title="클릭하여 태그 편집"
-                                      onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx, types: [...(p.types || ['place'])], position: { x: r.left, y: r.bottom } }); }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openNaverPlaceSearch(getPlaceSearchName(p), p.receipt?.address || p.address || '');
+                                      }}
+                                      title="네이버 지도에서 장소 검색"
+                                      className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
                                     >
-                                      {mainChips.length > 0 || subChips.length > 0 ? <>{mainChips}{subChips}</> : <span className="text-[9px] font-black text-slate-300">태그</span>}
-                                      <ChevronDown size={8} className="text-slate-300 ml-0.5" />
+                                      <MapIcon size={9} />
                                     </button>
-                                  }
-                                  actionButton={
-                                    <div className="flex items-center gap-1">
-                                      {/* subChips 앞으로 이동 */}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        void requestPerplexityNearbyRecommendations(dIdx, pIdx);
+                                      }}
+                                      title="AI로 근처 추천 받기"
+                                      className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-violet-200 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+                                    >
+                                      <Star size={9} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const handleForcedAutoAddr = async () => {
+                                          if (_isSearchingAddr || !p.activity?.trim()) return;
+                                          _isSearchingAddr = true;
+                                          try {
+                                            const found = await searchAddressFromPlaceName(getPlaceSearchName(p), tripRegion);
+                                            if (found?.address) {
+                                              updateAddress(dIdx, pIdx, found.address, true);
+                                              setLastAction(`'${p.activity}' 주소 및 지도 정보를 강제 새로고침했습니다.`);
+                                            }
+                                          } catch (e) { /* silent */ }
+                                          finally { _isSearchingAddr = false; }
+                                        };
+                                        void handleForcedAutoAddr();
+                                      }}
+                                      title="일정 이름으로 주소 및 지도 정보 강제 새로고침"
+                                      className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                    >
+                                      <Sparkles size={11} />
+                                    </button>
+                                  </>
+                                );
+                                return (
+                                  <PlanItemCard
+                                    item={p}
+                                    isExpanded={isExpanded}
+                                    onActivityChange={(val) => updateActivityName(dIdx, pIdx, val)}
+                                    onActivityKeyDown={async (e) => {
+                                      if (e.key === 'Enter' && p.activity.trim()) {
+                                        e.preventDefault();
+                                        setLastAction('주소 검색 중...');
+                                        const result = await searchAddressFromPlaceName(getPlaceSearchName(p), tripRegion);
+                                        if (result?.address) { updateAddress(dIdx, pIdx, result.address); setLastAction(`주소 자동 입력: ${result.address}`); }
+                                        else setLastAction('주소를 찾을 수 없습니다.');
+                                      }
+                                    }}
+                                    onContainerClick={(e) => e.stopPropagation()}
+                                    namePrefix={
                                       <button
                                         type="button"
-                                        onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}
-                                        className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                                        title="일정 수정"
+                                        className={`flex items-center gap-0.5 flex-nowrap shrink-0 cursor-pointer rounded-lg px-1 py-0.5 -ml-0.5 transition-colors border ${tagEditorTarget?.dayIdx === dIdx && tagEditorTarget?.pIdx === pIdx ? 'bg-blue-50 border-[#3182F6]/30' : 'border-transparent hover:bg-slate-100/80 hover:border-slate-200'}`}
+                                        title="클릭하여 태그 편집"
+                                        onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setTagEditorTarget(prev => prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx, types: [...(p.types || ['place'])], position: { x: r.left, y: r.bottom } }); }}
                                       >
-                                        <Pencil size={11} />
+                                        {mainChips.length > 0 || subChips.length > 0 ? <>{mainChips}{subChips}</> : <span className="text-[9px] font-black text-slate-300">태그</span>}
+                                        <ChevronDown size={8} className="text-slate-300 ml-0.5" />
                                       </button>
+                                    }
+                                    nameActions={
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }}
+                                          className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                          title="일정 수정"
+                                        >
+                                          <Pencil size={11} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            try {
+                                              const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                                              const parsed = result?.parsed;
+                                              if (parsed) {
+                                                setAiLearningCapture({ itemId: p.id, rawSource: result.rawPayload, aiResult: parsed, inputType: result.inputType });
+                                                if (parsed.name) updateActivityName(dIdx, pIdx, parsed.name);
+                                                if (parsed.address) updateAddress(dIdx, pIdx, parsed.address);
+                                                if (parsed.business) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
+                                                if (parsed.menus.length) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: buildSmartFillMenuItems(parsed.menus) }; return d; });
+                                                showInfoToast(isAiSmartFillSource(result?.source) ? `AI 스마트 전체 붙여넣기 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '스마트 전체 붙여넣기 완료');
+                                              } else {
+                                                showInfoToast(useAiSmartFill ? 'Groq가 붙여넣을 내용을 찾지 못했습니다.' : '붙여넣을 내용을 찾지 못했습니다.');
+                                              }
+                                            } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
+                                          }}
+                                          className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                                          title="스마트 전체 붙여넣기"
+                                        >
+                                          <Sparkles size={11} />
+                                        </button>
+                                      </div>
+                                    }
+                                    onAddressChange={(val) => updateAddress(dIdx, pIdx, val)}
+                                    addressLeading={_addrLeading}
+                                    addressActions={_addrActions}
+                                    businessSummary={formatBusinessSummary(p.business, p)}
+                                    businessWarning={[businessWarning, p._timingConflict ? '시간 충돌: 고정/잠금 조건으로 자동 계산 불가' : ''].filter(Boolean).join(' | ') || ''}
+                                    quickEditSegments={buildBusinessQuickEditSegments(p.business || {})}
+                                    onBusinessQuickEdit={(fieldKey) => applyBusinessQuickEditAction(dIdx, pIdx, fieldKey)}
+                                    onBusinessToggle={() => setBusinessEditorTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx, fieldKey: null }))}
+                                    businessActions={
                                       <button
                                         type="button"
                                         onClick={async () => {
                                           try {
-                                            const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                                            const result = await analyzeClipboardSmartFill({ mode: 'business', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
                                             const parsed = result?.parsed;
-                                            if (parsed) {
-                                              setAiLearningCapture({
-                                                itemId: p.id,
-                                                rawSource: result.rawPayload,
-                                                aiResult: parsed,
-                                                inputType: result.inputType
-                                              });
-                                              if (parsed.name) updateActivityName(dIdx, pIdx, parsed.name);
-                                              if (parsed.address) updateAddress(dIdx, pIdx, parsed.address);
-                                              if (parsed.business) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
-                                              if (parsed.menus.length) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: buildSmartFillMenuItems(parsed.menus) }; return d; });
-                                              showInfoToast(isAiSmartFillSource(result?.source) ? `AI 스마트 전체 붙여넣기 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '스마트 전체 붙여넣기 완료');
+                                            if (parsed?.business) {
+                                              setAiLearningCapture({ itemId: p.id, rawSource: result.rawPayload, aiResult: parsed, inputType: result.inputType });
+                                              setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
+                                              showInfoToast(isAiSmartFillSource(result?.source) ? `AI 영업정보 스마트 입력 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '영업 정보만 스마트 입력 완료');
                                             } else {
-                                              showInfoToast(useAiSmartFill ? 'Groq가 붙여넣을 내용을 찾지 못했습니다.' : '붙여넣을 내용을 찾지 못했습니다.');
+                                              showInfoToast(useAiSmartFill ? 'Groq가 영업 정보를 찾지 못했습니다.' : '영업 정보를 찾지 못했습니다.');
                                             }
                                           } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
                                         }}
-                                        className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                                        title="스마트 전체 붙여넣기"
+                                        className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors"
+                                        title="영업정보만 스마트 붙여넣기"
                                       >
                                         <Sparkles size={11} />
                                       </button>
-                                    </div>
-                                  }
-                                />
-
-                                {/* 3행: 주소 박스 (수정 + 자동검색) */}
-                                {(() => {
-                                  let isSearchingAddr = false;
-                                  const handleAutoAddr = async () => {
-                                    if (isSearchingAddr || !p.activity?.trim()) return;
-                                    isSearchingAddr = true;
-                                    try {
-                                      const found = await searchAddressFromPlaceName(getPlaceSearchName(p), tripRegion);
-                                      if (found?.address) updateAddress(dIdx, pIdx, found.address);
-                                    } catch (e) { /* silent */ }
-                                    finally { isSearchingAddr = false; }
-                                  };
-                                  return (
-                                    <SharedAddressRow
-                                      value={p.receipt?.address || ''}
-                                      onChange={(e) => updateAddress(dIdx, pIdx, e.target.value)}
-                                      onContainerClick={(e) => e.stopPropagation()}
-                                      leading={
-                                        <button
-                                          type="button"
-                                          title="내 장소 정렬 기준 설정"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setBasePlanRef({ id: p.id, name: p.activity, address: p.receipt?.address || '' });
-                                            setLastAction(`'${p.activity}'을(를) 거리 계산 기준으로 설정했습니다.`);
-                                          }}
-                                          className="shrink-0 transition-colors hover:bg-amber-50 p-1 -ml-1 rounded-md"
-                                        >
-                                          <MapPin size={12} className={basePlanRef?.id === p.id ? "text-amber-500" : "text-[#3182F6]"} />
-                                        </button>
-                                      }
-                                      actions={
-                                        <>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              openNaverPlaceSearch(getPlaceSearchName(p), p.receipt?.address || p.address || '');
-                                            }}
-                                            title="네이버 지도에서 장소 검색"
-                                            className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                                          >
-                                            <MapIcon size={9} />
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              void requestPerplexityNearbyRecommendations(dIdx, pIdx);
-                                            }}
-                                            title="AI로 근처 추천 받기"
-                                            className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-violet-200 hover:text-violet-600 hover:bg-violet-50 transition-colors"
-                                          >
-                                            <Star size={9} />
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              const handleForcedAutoAddr = async () => {
-                                                if (isSearchingAddr || !p.activity?.trim()) return;
-                                                isSearchingAddr = true;
-                                                try {
-                                                  const found = await searchAddressFromPlaceName(getPlaceSearchName(p), tripRegion);
-                                                  if (found?.address) {
-                                                    updateAddress(dIdx, pIdx, found.address, true); // forceRefresh=true
-                                                    setLastAction(`'${p.activity}' 주소 및 지도 정보를 강제 새로고침했습니다.`);
-                                                  }
-                                                } catch (e) { /* silent */ }
-                                                finally { isSearchingAddr = false; }
-                                              };
-                                              void handleForcedAutoAddr();
-                                            }}
-                                            title="일정 이름으로 주소 및 지도 정보 강제 새로고침"
-
-                                            className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                                          >
-                                            <Sparkles size={11} />
-                                          </button>
-                                        </>
-                                      }
-                                    />
-                                  );
-                                })()}
-                                {businessWarning && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (businessWarning.includes('운영 시작 전 방문') || businessWarning.includes('영업 전')) {
-                                        applyBusinessWarningFix(dIdx, pIdx);
-                                      }
+                                    }
+                                    businessExpanded={businessEditorTarget?.dayIdx === dIdx && businessEditorTarget?.pIdx === pIdx ? (
+                                      <div className="mt-1.5">
+                                        <p className="text-[9px] text-slate-400 font-semibold mb-1.5">현재 일정 시간과 충돌하면 위에 빨간 경고가 표시됩니다.</p>
+                                        <BusinessHoursEditor
+                                          business={p.business || {}}
+                                          focusField={businessEditorTarget?.dayIdx === dIdx && businessEditorTarget?.pIdx === pIdx ? businessEditorTarget?.fieldKey : null}
+                                          onChange={(b) => updatePlanBusiness(dIdx, pIdx, b)}
+                                        />
+                                      </div>
+                                    ) : null}
+                                    onMemoChange={(val) => updateMemo(dIdx, pIdx, val)}
+                                    onMenuUpdate={(mIdx, field, value) => updateMenuData(dIdx, pIdx, mIdx, field, value)}
+                                    onMenuDelete={(mIdx) => deleteMenuItem(dIdx, pIdx, mIdx)}
+                                    onMenuAdd={() => addMenuItem(dIdx, pIdx)}
+                                    onSmartPasteMenus={async () => {
+                                      try {
+                                        const result = await analyzeClipboardSmartFill({ mode: 'menus', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                                        if (result?.parsed?.menus?.length) {
+                                          setAiLearningCapture({ itemId: p.id, rawSource: result.rawPayload, aiResult: result.parsed, inputType: result.inputType });
+                                          setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: buildSmartFillMenuItems(result.parsed.menus) }; return d; });
+                                          showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 메뉴 스마트 입력 완료' : '메뉴 정보만 스마트 입력 완료');
+                                        } else { showInfoToast(useAiSmartFill ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.'); }
+                                      } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
                                     }}
-                                    className="w-full px-2.5 py-1 rounded-lg border border-red-200 bg-red-50 text-red-600 text-[10px] font-black text-left hover:bg-red-100/80 transition-colors"
-                                    title={businessWarning.includes('운영 시작 전 방문') ? '클릭하면 운영 시작 시간으로 보정합니다.' : undefined}
-                                  >
-                                    {businessWarning}
-                                  </button>
-                                )}
-                                {p._timingConflict && (
-                                  <div
-                                    className="w-full px-2.5 py-1 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-[10px] font-black text-left"
-                                    title="고정/잠금 조건 때문에 자동 보정이 불가능한 구간입니다."
-                                  >
-                                    시간 충돌: 고정/잠금 조건으로 자동 계산 불가
-                                  </div>
-                                )}
-                                <SharedBusinessRow
-                                  summary={formatBusinessSummary(p.business, p)}
-                                  onContainerClick={(e) => e.stopPropagation()}
-                                  quickEditSegments={buildBusinessQuickEditSegments(p.business || {})}
-                                  onQuickEdit={(fieldKey) => applyBusinessQuickEditAction(dIdx, pIdx, fieldKey)}
-                                  onToggle={() => setBusinessEditorTarget(prev => (prev?.dayIdx === dIdx && prev?.pIdx === pIdx ? null : { dayIdx: dIdx, pIdx, fieldKey: null }))}
-                                  actionButton={
-                                    <button
-                                      type="button"
-                                      onClick={async () => {
-                                        try {
-                                          const result = await analyzeClipboardSmartFill({ mode: 'business', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
-                                          const parsed = result?.parsed;
-                                          if (parsed?.business) {
-                                            setAiLearningCapture({
-                                              itemId: p.id,
-                                              rawSource: result.rawPayload,
-                                              aiResult: parsed,
-                                              inputType: result.inputType
-                                            });
-                                            setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
-                                            showInfoToast(isAiSmartFillSource(result?.source) ? `AI 영업정보 스마트 입력 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '영업 정보만 스마트 입력 완료');
-                                          } else {
-                                            showInfoToast(useAiSmartFill ? 'Groq가 영업 정보를 찾지 못했습니다.' : '영업 정보를 찾지 못했습니다.');
-                                          }
-                                        } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
-                                      }}
-                                      className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors"
-                                      title="영업정보만 스마트 붙여넣기"
-                                    >
-                                      <Sparkles size={11} />
-                                    </button>
-                                  }
-                                  expanded={businessEditorTarget?.dayIdx === dIdx && businessEditorTarget?.pIdx === pIdx ? (
-                                    <div className="mt-1.5">
-                                      <p className="text-[9px] text-slate-400 font-semibold mb-1.5">현재 일정 시간과 충돌하면 위에 빨간 경고가 표시됩니다.</p>
-                                      <BusinessHoursEditor
-                                        business={p.business || {}}
-                                        focusField={businessEditorTarget?.dayIdx === dIdx && businessEditorTarget?.pIdx === pIdx ? businessEditorTarget?.fieldKey : null}
-                                        onChange={(b) => updatePlanBusiness(dIdx, pIdx, b)}
-                                      />
-                                    </div>
-                                  ) : null}
-                                />
-
-                                {/* 4행: 메모 입력란 */}
-                                {String(p.memo || '').trim() ? (
-                                  <SharedMemoRow
-                                    value={p.memo || ''}
-                                    onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
-                                    onContainerClick={(e) => e.stopPropagation()}
+                                    onReceiptToggle={(e) => { e.stopPropagation(); toggleReceipt(p.id); }}
+                                    getMenuQty={getMenuQty}
+                                    getMenuLineTotal={getMenuLineTotal}
                                   />
-                                ) : null}
-                              </>
+                                );
+                              })()
                             )}
                           </div>
                         </div>
-
-                        {/* 🟩 하단 영수증 영역 (전체 너비 100%) */}
-                        {
-                          p.type !== 'backup' && (
-                            <div className="overflow-hidden border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
-                              {isExpanded && (
-                                <div className="px-5 py-4 animate-in slide-in-from-top-1 bg-white border-b border-slate-100 border-dashed">
-                                  <div className="space-y-3 mb-3">
-                                    {p.receipt?.items?.map((m, mIdx) => (
-                                      <div key={mIdx} className="flex justify-between items-center text-xs group/item">
-                                        <div className="flex items-center gap-2 flex-1">
-                                          <div className="cursor-pointer text-slate-300 hover:text-[#3182F6]" onClick={(e) => { e.stopPropagation(); updateMenuData(dIdx, pIdx, mIdx, 'toggle'); }}>
-                                            {m.selected ? <CheckSquare size={14} className="text-[#3182F6]" /> : <Square size={14} />}
-                                          </div>
-                                          <input data-plan-menu-name={`${dIdx}-${pIdx}-${mIdx}`} value={m.name} onChange={(e) => updateMenuData(dIdx, pIdx, mIdx, 'name', e.target.value)} onClick={(e) => e.stopPropagation()} className="bg-transparent border-none outline-none text-slate-700 font-bold w-full" />
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <MenuPriceInput value={m.price} onCommit={(nextPrice) => updateMenuData(dIdx, pIdx, mIdx, 'price', nextPrice)} onClick={(e) => e.stopPropagation()} className="w-16 text-right font-bold text-slate-500 bg-transparent border-none outline-none placeholder:text-slate-300 focus:border-b focus:border-slate-300" />
-                                          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded p-0.5 shadow-sm">
-                                            <button onClick={(e) => { e.stopPropagation(); updateMenuData(dIdx, pIdx, mIdx, 'qty', -1); }}><Minus size={10} /></button>
-                                            <span className="w-4 text-center text-[10px]">{getMenuQty(m)}</span>
-                                            <button onClick={(e) => { e.stopPropagation(); updateMenuData(dIdx, pIdx, mIdx, 'qty', 1); }}><Plus size={10} /></button>
-                                          </div>
-                                          <span className="w-20 text-right font-black text-[#3182F6]">₩{getMenuLineTotal(m).toLocaleString()}</span>
-                                          <button onClick={(e) => { e.stopPropagation(); deleteMenuItem(dIdx, pIdx, mIdx); }} className="text-slate-300 hover:text-red-500"><Trash2 size={12} /></button>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        try {
-                                          const result = await analyzeClipboardSmartFill({ mode: 'menus', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
-                                          const parsed = result?.parsed;
-                                          if (parsed?.menus?.length) {
-                                            setAiLearningCapture({ itemId: p.id, rawSource: result.rawPayload, aiResult: parsed, inputType: result.inputType });
-                                            setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: buildSmartFillMenuItems(parsed.menus) }; return d; });
-                                            showInfoToast(isAiSmartFillSource(result?.source) ? `AI 메뉴 스마트 입력 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '메뉴 정보만 스마트 입력 완료');
-                                          } else {
-                                            showInfoToast(useAiSmartFill ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.');
-                                          }
-                                        } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
-                                      }}
-                                      className="py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50/50 transition-colors flex items-center justify-center gap-1"
-                                      title="메뉴만 스마트 붙여넣기"
-                                    >
-                                      <Sparkles size={10} /> 자동채우기
-                                    </button>
-                                    <button onClick={(e) => { e.stopPropagation(); addMenuItem(dIdx, pIdx); }} className="py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6]/30 hover:bg-blue-50/50 transition-colors">+ 메뉴 추가</button>
-                                  </div>
-
-                                  {/* 플랜 B 목록 → 카드 상단 ◀▶ 캐러셀로 이동 */}
-                                </div>
-                              )}
-
-                              {/* ✅ 하단 통합 요금 정보 */}
-                              <SharedTotalFooter
-                                expanded={isExpanded}
-                                total={p.price}
-                                onToggle={(e) => { e.stopPropagation(); toggleReceipt(p.id); }}
-                              />
-                            </div>
-                          )
-                        }
                       </div>
                     </div>{/* /Plan B drag box */}
 
@@ -11306,83 +11195,34 @@ const App = () => {
                   <input type="text" inputMode="numeric" defaultValue={qvEndTime} key={`qv-e-${qvItem.id}-${qvEndTime}`} onBlur={(e) => { let raw = e.target.value.replace(/[^0-9:]/g, ''); if (/^\d{3,4}$/.test(raw)) { const pd = raw.padStart(4, '0'); raw = pd.slice(0, 2) + ':' + pd.slice(2); } const m = raw.match(/^(\d{1,2}):(\d{2})$/); if (m) { const h = Math.min(24, Math.max(0, parseInt(m[1], 10))); const min = h === 24 ? 0 : Math.min(59, Math.max(0, parseInt(m[2], 10))); setPlanEndTimeValue(qvDIdx, qvPIdx, `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`); } }} onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }} onFocus={(e) => e.target.select()} onClick={(e) => e.stopPropagation()} placeholder="HH:MM" maxLength={5} className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[5rem] ${qvEndFixed ? 'text-[#3182F6]' : 'text-slate-800'}`} />
                 </div>
               </div>
-              {/* 본체 — 타임라인 카드와 동일 구조 */}
-              <div className="p-4 flex flex-col gap-2.5">
-                <SharedNameRow
-                  value={qvItem.activity || ''}
-                  readOnly
-                  prefixContent={<div className="shrink-0">{getCategoryBadge(qvPrimaryType)}</div>}
-                  actionButton={
-                    <button type="button" onClick={() => { setMapQuickViewItem(null); openPlanEditModal(qvDIdx, qvPIdx); }} className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors" title="일정 수정"><Pencil size={11} /></button>
-                  }
-                />
-                <SharedAddressRow value={qvAddr} readOnly placeholder="주소 정보 없음" />
-                {qvBizWarn && (
-                  <div className="w-full px-2.5 py-1 rounded-lg border border-red-200 bg-red-50 text-red-600 text-[10px] font-black text-left">{qvBizWarn}</div>
-                )}
-                <SharedBusinessRow
-                  summary={qvBizSummary}
-                  quickEditSegments={buildBusinessQuickEditSegments(qvItem.business || {})}
-                  onQuickEdit={(fieldKey) => applyBusinessQuickEditAction(qvDIdx, qvPIdx, fieldKey)}
-                  onToggle={() => setBusinessEditorTarget(prev => (prev?.dayIdx === qvDIdx && prev?.pIdx === qvPIdx ? null : { dayIdx: qvDIdx, pIdx: qvPIdx, fieldKey: null }))}
-                />
-                {String(qvItem.memo || '').trim() && (
-                  <SharedMemoRow value={qvItem.memo || ''} readOnly />
-                )}
-              </div>
-              {/* 영수증 — 내일정과 동일 */}
-              <div className="overflow-hidden border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
-                {qvIsExpanded && (
-                  <div className="px-5 py-4 bg-white border-b border-slate-100 border-dashed">
-                    <div className="space-y-3 mb-3">
-                      {(qvItem.receipt?.items || []).map((m, mIdx) => (
-                        <div key={mIdx} className="flex justify-between items-center text-xs group/item">
-                          <div className="flex items-center gap-2 flex-1">
-                            <div className="cursor-pointer text-slate-300 hover:text-[#3182F6]" onClick={(e) => { e.stopPropagation(); updateMenuData(qvDIdx, qvPIdx, mIdx, 'toggle'); }}>
-                              {m.selected ? <CheckSquare size={14} className="text-[#3182F6]" /> : <Square size={14} />}
-                            </div>
-                            <input data-plan-menu-name={`qv-${qvDIdx}-${qvPIdx}-${mIdx}`} value={m.name} onChange={(e) => updateMenuData(qvDIdx, qvPIdx, mIdx, 'name', e.target.value)} onClick={(e) => e.stopPropagation()} className="bg-transparent border-none outline-none text-slate-700 font-bold w-full" />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <MenuPriceInput value={m.price} onCommit={(nextPrice) => updateMenuData(qvDIdx, qvPIdx, mIdx, 'price', nextPrice)} onClick={(e) => e.stopPropagation()} className="w-16 text-right font-bold text-slate-500 bg-transparent border-none outline-none placeholder:text-slate-300" />
-                            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded p-0.5 shadow-sm">
-                              <button onClick={(e) => { e.stopPropagation(); updateMenuData(qvDIdx, qvPIdx, mIdx, 'qty', -1); }}><Minus size={10} /></button>
-                              <span className="w-4 text-center text-[10px]">{getMenuQty(m)}</span>
-                              <button onClick={(e) => { e.stopPropagation(); updateMenuData(qvDIdx, qvPIdx, mIdx, 'qty', 1); }}><Plus size={10} /></button>
-                            </div>
-                            <span className="w-20 text-right font-black text-[#3182F6]">₩{getMenuLineTotal(m).toLocaleString()}</span>
-                            <button onClick={(e) => { e.stopPropagation(); deleteMenuItem(qvDIdx, qvPIdx, mIdx); }} className="text-slate-300 hover:text-red-500"><Trash2 size={12} /></button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            const result = await analyzeClipboardSmartFill({ mode: 'menus', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
-                            const parsed = result?.parsed;
-                            if (parsed?.menus?.length) {
-                              setAiLearningCapture({ itemId: qvItem.id, rawSource: result.rawPayload, aiResult: parsed, inputType: result.inputType });
-                              setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[qvDIdx].plan[qvPIdx].receipt = { ...(d.days[qvDIdx].plan[qvPIdx].receipt || {}), items: buildSmartFillMenuItems(parsed.menus) }; return d; });
-                              showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 메뉴 스마트 입력 완료' : '메뉴 정보만 스마트 입력 완료');
-                            } else {
-                              showInfoToast(useAiSmartFill ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.');
-                            }
-                          } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
-                        }}
-                        className="py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50/50 transition-colors flex items-center justify-center gap-1"
-                      >
-                        <Sparkles size={10} /> 자동채우기
-                      </button>
-                      <button onClick={(e) => { e.stopPropagation(); addMenuItem(qvDIdx, qvPIdx); }} className="py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6]/30 hover:bg-blue-50/50 transition-colors">+ 메뉴 추가</button>
-                    </div>
-                  </div>
-                )}
-                <SharedTotalFooter expanded={qvIsExpanded} total={qvTotal} onToggle={(e) => { e.stopPropagation(); toggleReceipt(qvItem.id); }} />
-              </div>
+              <PlanItemCard
+                item={qvItem}
+                readOnly
+                isExpanded={qvIsExpanded}
+                businessSummary={qvBizSummary}
+                businessWarning={qvBizWarn || ''}
+                quickEditSegments={buildBusinessQuickEditSegments(qvItem.business || {})}
+                onBusinessQuickEdit={(fieldKey) => applyBusinessQuickEditAction(qvDIdx, qvPIdx, fieldKey)}
+                onBusinessToggle={() => setBusinessEditorTarget(prev => (prev?.dayIdx === qvDIdx && prev?.pIdx === qvPIdx ? null : { dayIdx: qvDIdx, pIdx: qvPIdx, fieldKey: null }))}
+                namePrefix={<div className="shrink-0">{getCategoryBadge(qvPrimaryType)}</div>}
+                nameActions={<button type="button" onClick={() => { setMapQuickViewItem(null); openPlanEditModal(qvDIdx, qvPIdx); }} className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors" title="일정 수정"><Pencil size={11} /></button>}
+                onMenuUpdate={(mIdx, field, value) => updateMenuData(qvDIdx, qvPIdx, mIdx, field, value)}
+                onMenuDelete={(mIdx) => deleteMenuItem(qvDIdx, qvPIdx, mIdx)}
+                onMenuAdd={() => addMenuItem(qvDIdx, qvPIdx)}
+                onSmartPasteMenus={async () => {
+                  try {
+                    const result = await analyzeClipboardSmartFill({ mode: 'menus', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                    if (result?.parsed?.menus?.length) {
+                      setAiLearningCapture({ itemId: qvItem.id, rawSource: result.rawPayload, aiResult: result.parsed, inputType: result.inputType });
+                      setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[qvDIdx].plan[qvPIdx].receipt = { ...(d.days[qvDIdx].plan[qvPIdx].receipt || {}), items: buildSmartFillMenuItems(result.parsed.menus) }; return d; });
+                      showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 메뉴 스마트 입력 완료' : '메뉴 정보만 스마트 입력 완료');
+                    } else { showInfoToast(useAiSmartFill ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.'); }
+                  } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
+                }}
+                onReceiptToggle={(e) => { e.stopPropagation(); toggleReceipt(qvItem.id); }}
+                getMenuQty={getMenuQty}
+                getMenuLineTotal={getMenuLineTotal}
+              />
               </div>
             </div>
           </>

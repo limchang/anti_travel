@@ -6,7 +6,6 @@ import {
   Minus,
   Pencil,
   Plus,
-  Search,
   Sparkles,
   Square,
   Star,
@@ -177,7 +176,6 @@ export const PlaceEditorCard = ({
   onSmartPasteMenus,
   onSmartPasteAddress,
   onSuperSmartPaste,
-  onJinaSmartFill,
   onNameInput = null,
   onNamePaste = null,
   createDraft,
@@ -289,38 +287,21 @@ export const PlaceEditorCard = ({
       )}
 
       <div className="p-4 flex flex-col gap-3 shrink-0">
-        {(onSuperSmartPaste || onJinaSmartFill) && (
+        {onSuperSmartPaste && (
           <div className="flex gap-2">
-            {onSuperSmartPaste && (
-              <button
-                type="button"
-                onClick={wrapSmartPaste(onSuperSmartPaste)}
-                disabled={smartPasteLoading}
-                className="flex-1 py-2.5 bg-gradient-to-r from-[#3182F6] to-indigo-500 rounded-xl text-white text-[12px] font-black flex items-center justify-center gap-2 shadow-[0_8px_16px_-6px_rgba(49,130,246,0.25)] hover:shadow-[0_12px_20px_-8px_rgba(49,130,246,0.35)] active:scale-[0.98] transition-all disabled:opacity-50"
-              >
-                {smartPasteLoading ? (
-                  <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
-                ) : (
-                  <Sparkles size={14} className="animate-pulse" />
-                )}
-                <span>✦ AI 자동채우기</span>
-              </button>
-            )}
-            {onJinaSmartFill && (
-              <button
-                type="button"
-                onClick={wrapSmartPaste(onJinaSmartFill)}
-                disabled={smartPasteLoading}
-                className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl text-white text-[12px] font-black flex items-center justify-center gap-2 shadow-[0_8px_16px_-6px_rgba(16,185,129,0.25)] hover:shadow-[0_12px_20px_-8px_rgba(16,185,129,0.35)] active:scale-[0.98] transition-all disabled:opacity-50"
-              >
-                {smartPasteLoading ? (
-                  <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
-                ) : (
-                  <Search size={14} />
-                )}
-                <span>v2 지도검색</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={wrapSmartPaste(onSuperSmartPaste)}
+              disabled={smartPasteLoading}
+              className="flex-1 py-2.5 bg-gradient-to-r from-[#3182F6] to-indigo-500 rounded-xl text-white text-[12px] font-black flex items-center justify-center gap-2 shadow-[0_8px_16px_-6px_rgba(49,130,246,0.25)] hover:shadow-[0_12px_20px_-8px_rgba(49,130,246,0.35)] active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              {smartPasteLoading ? (
+                <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+              ) : (
+                <Sparkles size={14} className="animate-pulse" />
+              )}
+              <span>✦ 슈퍼 자동채우기</span>
+            </button>
           </div>
         )}
 
@@ -568,28 +549,28 @@ export const PlaceLibraryCard = ({
   buildBusinessQuickEditSegments,
   viewMode = 'default',
   highlighted = false,
-  onJinaSmartFill,
+  onSuperSmartFill,
   showPrice = true,
   categoryAccent = '',
   categoryBorder = '',
 }) => {
-  const [jinaLoading, setJinaLoading] = React.useState(false);
+  const [superFillLoading, setSuperFillLoading] = React.useState(false);
   const isCompact = viewMode === 'compact';
   const nameRowActions = (
     <div className="flex items-center gap-1">
-      {onJinaSmartFill && (
+      {onSuperSmartFill && (
         <button
           type="button"
-          disabled={jinaLoading}
+          disabled={superFillLoading}
           onClick={async (e) => {
             e.stopPropagation();
-            setJinaLoading(true);
-            try { await onJinaSmartFill(); } finally { setJinaLoading(false); }
+            setSuperFillLoading(true);
+            try { await onSuperSmartFill(); } finally { setSuperFillLoading(false); }
           }}
-          className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${jinaLoading ? 'bg-white/30 text-white/70' : 'bg-white/20 text-white hover:bg-white/30'}`}
-          title="슈퍼채우기 — 주소·영업시간·메뉴를 자동으로 가져옵니다"
+          className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${superFillLoading ? 'bg-white/30 text-white/70' : 'bg-white/20 text-white hover:bg-white/30'}`}
+          title="슈퍼 자동채우기 — 클립보드에서 주소·영업시간·메뉴를 자동으로 가져옵니다"
         >
-          {jinaLoading ? <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> : <Sparkles size={14} />}
+          {superFillLoading ? <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> : <Sparkles size={14} />}
         </button>
       )}
       <button

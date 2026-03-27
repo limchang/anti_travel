@@ -46,7 +46,6 @@ export const PlaceAddForm = ({
   isAiSmartFillSource,
   getSmartFillErrorMessage,
   autoRunSuperFill = false,
-  runJinaSmartFill,
 }) => {
   const [draft, setDraft] = React.useState(() => createPlaceEditorDraft({
     name: newPlaceName,
@@ -313,35 +312,6 @@ export const PlaceAddForm = ({
           }
         }}
         onSuperSmartPaste={() => runSuperFill(draft)}
-        onJinaSmartFill={runJinaSmartFill ? async () => {
-          try {
-            onNotify?.('v2: 네이버 지도 검색 + AI 분석 중...');
-            const normalizedSettings = normalizeAiSmartFillConfig(aiSettings);
-            const result = await runJinaSmartFill({
-              placeName: draft.name || newPlaceName,
-              regionHint,
-              runGroqPostProcess: aiEnabled ? runGroqSmartFill : null,
-              aiSettings: aiEnabled ? normalizedSettings : null,
-              jinaApiKey: normalizedSettings.perplexityApiKey || '',
-            });
-            if (result) {
-              setDraft((current) => createPlaceEditorDraft({
-                ...current,
-                name: result.name || current.name,
-                address: result.address || current.address,
-                business: result.business ? normalizeBusiness({ ...current.business, ...result.business }) : current.business,
-                receipt: {
-                  ...(current.receipt || {}),
-                  items: result.menus?.length ? result.menus : current.receipt?.items,
-                },
-              }));
-              if (result.name) setNewPlaceName(result.name);
-              onNotify?.(`Jina v2: ${result.name || '장소'} 정보를 불러왔습니다.`);
-            }
-          } catch (err) {
-            onNotify?.(`Jina v2 실패: ${err?.message || '알 수 없는 오류'}`);
-          }
-        } : undefined}
         onSmartPasteAddress={async () => {
           try {
             const result = await analyzeClipboardSmartFill({ mode: 'address', aiEnabled, aiSettings });

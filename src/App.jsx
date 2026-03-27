@@ -11246,155 +11246,89 @@ const App = () => {
         const qvTime = qvItem.time || '--:--';
         const qvEndMins = timeToMinutes(qvTime) + (Number(qvItem.duration) || 0);
         const qvEndTime = `${String(Math.floor(qvEndMins / 60) % 24).padStart(2, '0')}:${String(qvEndMins % 60).padStart(2, '0')}`;
-        const panelW = 340;
-        // 지도 영역 위에 고정 배치
+        const qvDIdx = mapQuickViewItem.dayIdx;
+        const qvPIdx = mapQuickViewItem.pIdx;
+        const qvDurLocked = !!qvItem.isDurationFixed;
+        const qvEndFixed = !!qvItem.isEndTimeFixed;
+        const qvCatStyle = getCategoryCardStyle(qvPrimaryType);
+        const qvIsExpanded = expandedId === qvItem.id;
+        const qvMenus = (qvItem.receipt?.items || []).filter(m => m?.selected !== false);
+        // 지도 영역 중앙 고정
         const mapEl = document.getElementById('right-panel-map-overview');
         const mapRect = mapEl?.getBoundingClientRect();
-        const cx = mapQuickViewItem.x || (mapRect ? mapRect.left + mapRect.width / 2 : window.innerWidth / 2);
-        const cy = mapQuickViewItem.y || (mapRect ? mapRect.top + mapRect.height / 2 : window.innerHeight / 2);
-        // 클릭 지점 바로 옆에 배치
-        const qvLeft = Math.max(8, Math.min(window.innerWidth - panelW - 8, cx + 12));
-        const qvTop = Math.max(8, Math.min(window.innerHeight - 300, cy - 40));
+        const panelW = 380;
+        const qvLeft = mapRect ? mapRect.left + (mapRect.width - panelW) / 2 : (window.innerWidth - panelW) / 2;
+        const qvTop = mapRect ? mapRect.top + 16 : 80;
         return (
           <>
             <div className="fixed inset-0 z-[99998]" onClick={() => setMapQuickViewItem(null)} />
-            <div className="fixed z-[99999] rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_48px_-16px_rgba(15,23,42,0.3)] overflow-hidden animate-in slide-in-from-bottom-2" style={{ left: qvLeft, top: qvTop, width: panelW }}>
-              {/* 시간 바 — 편집 가능 */}
-              {(() => {
-                const qvDIdx = mapQuickViewItem.dayIdx;
-                const qvPIdx = mapQuickViewItem.pIdx;
-                const qvDurLocked = !!qvItem.isDurationFixed;
-                const qvEndFixed = !!qvItem.isEndTimeFixed;
-                return (
-              <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-slate-50 border-b border-slate-100" data-no-drag="true">
-                {/* START */}
+            <div
+              className={`fixed z-[99999] rounded-[24px] border overflow-hidden animate-in slide-in-from-bottom-2 ${qvCatStyle.bg} ${qvCatStyle.border} shadow-[0_24px_48px_-16px_rgba(15,23,42,0.3)]`}
+              style={{ left: Math.max(8, qvLeft), top: Math.max(8, qvTop), width: panelW, maxHeight: mapRect ? mapRect.height - 32 : '80vh' }}
+            >
+              <div className="overflow-y-auto max-h-[inherit]">
+              {/* 카테고리 악센트 바 */}
+              <div className={`h-[3px] w-full ${qvCatStyle.accent}`} />
+              {/* 시간 바 */}
+              <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 bg-slate-50/80 border-b border-slate-100" data-no-drag="true">
                 <div className="flex flex-col items-center gap-0.5 flex-1">
                   <button type="button" onClick={(e) => { e.stopPropagation(); toggleTimeFix(qvDIdx, qvPIdx); }} className={`text-[8px] font-black tracking-widest uppercase transition-colors ${qvItem.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}>Start {qvItem.isTimeFixed ? '🔒' : ''}</button>
-                  <input
-                    type="text" inputMode="numeric"
-                    defaultValue={qvTime}
-                    key={`qv-start-${qvItem.id}-${qvTime}`}
-                    onBlur={(e) => {
-                      let raw = e.target.value.replace(/[^0-9:]/g, '');
-                      if (/^\d{3,4}$/.test(raw)) { const pd = raw.padStart(4, '0'); raw = pd.slice(0, 2) + ':' + pd.slice(2); }
-                      const m = raw.match(/^(\d{1,2}):(\d{2})$/);
-                      if (m) {
-                        const h = Math.min(24, Math.max(0, parseInt(m[1], 10)));
-                        const min = h === 24 ? 0 : Math.min(59, Math.max(0, parseInt(m[2], 10)));
-                        setStartTimeValue(qvDIdx, qvPIdx, `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
-                      }
-                    }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
-                    onFocus={(e) => e.target.select()}
-                    onClick={(e) => e.stopPropagation()}
-                    placeholder="HH:MM" maxLength={5}
-                    className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[4.5rem] ${qvItem.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}
-                  />
+                  <input type="text" inputMode="numeric" defaultValue={qvTime} key={`qv-s-${qvItem.id}-${qvTime}`} onBlur={(e) => { let raw = e.target.value.replace(/[^0-9:]/g, ''); if (/^\d{3,4}$/.test(raw)) { const pd = raw.padStart(4, '0'); raw = pd.slice(0, 2) + ':' + pd.slice(2); } const m = raw.match(/^(\d{1,2}):(\d{2})$/); if (m) { const h = Math.min(24, Math.max(0, parseInt(m[1], 10))); const min = h === 24 ? 0 : Math.min(59, Math.max(0, parseInt(m[2], 10))); setStartTimeValue(qvDIdx, qvPIdx, `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`); } }} onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }} onFocus={(e) => e.target.select()} onClick={(e) => e.stopPropagation()} placeholder="HH:MM" maxLength={5} className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[5rem] ${qvItem.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-800'}`} />
                 </div>
-                {/* DURATION */}
                 <div className="flex flex-col items-center gap-0.5 flex-1">
                   <button type="button" onClick={(e) => { e.stopPropagation(); toggleDurationFix(qvDIdx, qvPIdx); }} className={`text-[8px] font-black tracking-widest uppercase transition-colors ${qvDurLocked ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}>Duration {qvDurLocked ? '🔒' : ''}</button>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center justify-center gap-1">
                     <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(qvDIdx, qvPIdx, -15); }} className="text-slate-300 hover:text-[#3182F6] transition-colors text-[13px] font-black">&lt;</button>
-                    <div className="flex items-baseline gap-0">
-                      <input
-                        type="text" inputMode="numeric"
-                        defaultValue={String(qvItem.duration || 0)}
-                        key={`qv-dur-${qvItem.id}-${qvItem.duration}`}
-                        onBlur={(e) => {
-                          const v = parseInt(e.target.value, 10);
-                          if (Number.isFinite(v) && v >= 0) {
-                            const delta = v - (qvItem.duration || 0);
-                            if (delta !== 0) updateDuration(qvDIdx, qvPIdx, delta);
-                          }
-                        }}
-                        onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
-                        onFocus={(e) => e.target.select()}
-                        onClick={(e) => e.stopPropagation()}
-                        maxLength={4}
-                        className={`bg-transparent text-right text-[16px] font-black tabular-nums outline-none w-[2.5rem] ${qvDurLocked ? 'text-[#3182F6]' : 'text-slate-500'}`}
-                      /><span className={`text-[13px] font-black ${qvDurLocked ? 'text-[#3182F6]' : 'text-slate-400'}`}>분</span>
-                    </div>
+                    <input type="text" inputMode="numeric" defaultValue={`${String(Math.floor((qvItem.duration || 0) / 60)).padStart(2, '0')}:${String((qvItem.duration || 0) % 60).padStart(2, '0')}`} key={`qv-d-${qvItem.id}-${qvItem.duration}`} onBlur={(e) => { let raw = e.target.value.replace(/[^0-9:]/g, ''); if (/^\d{1,4}$/.test(raw)) { const pd = raw.padStart(4, '0'); raw = pd.slice(0, 2) + ':' + pd.slice(2); } const m = raw.match(/^(\d{1,2}):(\d{2})$/); if (m) { const h = Math.max(0, parseInt(m[1], 10)); const min = Math.min(59, Math.max(0, parseInt(m[2], 10))); const totalMins = h * 60 + min; const delta = totalMins - (qvItem.duration || 0); if (delta !== 0) updateDuration(qvDIdx, qvPIdx, delta); } }} onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }} onFocus={(e) => e.target.select()} onClick={(e) => e.stopPropagation()} placeholder="HH:MM" maxLength={5} className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[5rem] ${qvDurLocked ? 'text-[#3182F6]' : 'text-slate-500'}`} />
                     <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(qvDIdx, qvPIdx, 15); }} className="text-slate-300 hover:text-[#3182F6] transition-colors text-[13px] font-black">&gt;</button>
                   </div>
                 </div>
-                {/* END */}
                 <div className="flex flex-col items-center gap-0.5 flex-1">
                   <button type="button" onClick={(e) => { e.stopPropagation(); toggleEndTimeFix(qvDIdx, qvPIdx); }} className={`text-[8px] font-black tracking-widest uppercase transition-colors ${qvEndFixed ? 'text-[#3182F6]' : 'text-slate-400 hover:text-slate-600'}`}>End {qvEndFixed ? '🔒' : ''}</button>
-                  <input
-                    type="text" inputMode="numeric"
-                    defaultValue={qvEndTime}
-                    key={`qv-end-${qvItem.id}-${qvEndTime}`}
-                    onBlur={(e) => {
-                      let raw = e.target.value.replace(/[^0-9:]/g, '');
-                      if (/^\d{3,4}$/.test(raw)) { const pd = raw.padStart(4, '0'); raw = pd.slice(0, 2) + ':' + pd.slice(2); }
-                      const m = raw.match(/^(\d{1,2}):(\d{2})$/);
-                      if (m) {
-                        const h = Math.min(24, Math.max(0, parseInt(m[1], 10)));
-                        const min = h === 24 ? 0 : Math.min(59, Math.max(0, parseInt(m[2], 10)));
-                        setPlanEndTimeValue(qvDIdx, qvPIdx, `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
-                      }
-                    }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
-                    onFocus={(e) => e.target.select()}
-                    onClick={(e) => e.stopPropagation()}
-                    placeholder="HH:MM" maxLength={5}
-                    className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[4.5rem] ${qvEndFixed ? 'text-[#3182F6]' : 'text-slate-800'}`}
-                  />
+                  <input type="text" inputMode="numeric" defaultValue={qvEndTime} key={`qv-e-${qvItem.id}-${qvEndTime}`} onBlur={(e) => { let raw = e.target.value.replace(/[^0-9:]/g, ''); if (/^\d{3,4}$/.test(raw)) { const pd = raw.padStart(4, '0'); raw = pd.slice(0, 2) + ':' + pd.slice(2); } const m = raw.match(/^(\d{1,2}):(\d{2})$/); if (m) { const h = Math.min(24, Math.max(0, parseInt(m[1], 10))); const min = h === 24 ? 0 : Math.min(59, Math.max(0, parseInt(m[2], 10))); setPlanEndTimeValue(qvDIdx, qvPIdx, `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`); } }} onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }} onFocus={(e) => e.target.select()} onClick={(e) => e.stopPropagation()} placeholder="HH:MM" maxLength={5} className={`bg-transparent text-center text-[16px] font-black tabular-nums outline-none w-[5rem] ${qvEndFixed ? 'text-[#3182F6]' : 'text-slate-800'}`} />
                 </div>
               </div>
-                );
-              })()}
-              {/* 본체 */}
-              <div className="p-5 flex flex-col gap-2.5">
-                {/* 카테고리 + 이름 */}
-                <div className="flex items-center gap-2">
-                  <div className="shrink-0">{getCategoryBadge(qvPrimaryType)}</div>
-                  <span className="text-[15px] font-black text-slate-800 truncate flex-1">{qvItem.activity || '이름 없음'}</span>
-                  <button
-                    type="button"
-                    onClick={() => { setMapQuickViewItem(null); openPlanEditModal(mapQuickViewItem.dayIdx, mapQuickViewItem.pIdx); }}
-                    className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
-                    title="일정 수정"
-                  ><Pencil size={12} /></button>
-                </div>
-                {/* 주소 */}
-                {qvAddr && (
-                  <div className="flex items-center gap-2 text-slate-500">
-                    <MapPin size={12} className="text-[#3182F6] shrink-0" />
-                    <span className="text-[11px] font-bold truncate">{qvAddr}</span>
-                  </div>
+              {/* 본체 — 타임라인 카드와 동일 구조 */}
+              <div className="p-4 flex flex-col gap-2.5">
+                <SharedNameRow
+                  value={qvItem.activity || ''}
+                  readOnly
+                  prefixContent={<div className="shrink-0">{getCategoryBadge(qvPrimaryType)}</div>}
+                  actionButton={
+                    <button type="button" onClick={() => { setMapQuickViewItem(null); openPlanEditModal(qvDIdx, qvPIdx); }} className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors" title="일정 수정"><Pencil size={11} /></button>
+                  }
+                />
+                <SharedAddressRow value={qvAddr} readOnly placeholder="주소 정보 없음" />
+                {qvBizWarn && (
+                  <div className="w-full px-2.5 py-1 rounded-lg border border-red-200 bg-red-50 text-red-600 text-[10px] font-black text-left">{qvBizWarn}</div>
                 )}
-                {/* 영업 정보 */}
-                {qvBizSummary && qvBizSummary !== '미설정' && (
-                  <div className="flex items-center gap-2">
-                    <Clock size={12} className="text-slate-400 shrink-0" />
-                    <span className={`text-[11px] font-bold ${qvBizWarn ? 'text-red-500' : 'text-slate-500'}`}>
-                      {qvBizWarn ? `⚠ ${qvBizWarn}` : qvBizSummary}
-                    </span>
-                  </div>
-                )}
-                {/* 메모 */}
+                <SharedBusinessRow
+                  summary={qvBizSummary}
+                  quickEditSegments={buildBusinessQuickEditSegments(qvItem.business || {})}
+                  onQuickEdit={(fieldKey) => applyBusinessQuickEditAction(qvDIdx, qvPIdx, fieldKey)}
+                  onToggle={() => setBusinessEditorTarget(prev => (prev?.dayIdx === qvDIdx && prev?.pIdx === qvPIdx ? null : { dayIdx: qvDIdx, pIdx: qvPIdx, fieldKey: null }))}
+                />
                 {String(qvItem.memo || '').trim() && (
-                  <p className="text-[11px] font-medium text-slate-500 bg-slate-50/80 rounded-xl px-2.5 py-2">{qvItem.memo}</p>
-                )}
-                {/* 메뉴 목록 */}
-                {(qvItem.receipt?.items || []).filter(m => m?.selected !== false).length > 0 && (
-                  <div className="flex flex-col gap-1 bg-slate-50/80 rounded-xl px-2.5 py-2">
-                    {(qvItem.receipt?.items || []).filter(m => m?.selected !== false).map((m, mIdx) => (
-                      <div key={mIdx} className="flex items-center justify-between text-[10px]">
-                        <span className="text-slate-600 font-bold truncate flex-1">{m?.name || '-'}</span>
-                        <span className="text-slate-400 font-bold mx-2">x{Math.max(1, Number(m?.qty) || 1)}</span>
-                        <span className="text-[#3182F6] font-black tabular-nums">₩{((Number(m?.price) || 0) * Math.max(1, Number(m?.qty) || 1)).toLocaleString()}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <SharedMemoRow value={qvItem.memo || ''} readOnly />
                 )}
               </div>
-              {/* 가격 푸터 — 항상 표시 */}
-              <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/50">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total</span>
-                <span className="text-[16px] font-black text-[#3182F6] tabular-nums">₩{qvTotal.toLocaleString()}</span>
+              {/* 영수증 — 접기/펼치기 */}
+              <div className="overflow-hidden border-t border-slate-100">
+                {qvIsExpanded && qvMenus.length > 0 && (
+                  <div className="px-5 py-4 bg-white border-b border-slate-100 border-dashed">
+                    <div className="space-y-1.5">
+                      {qvMenus.map((m, mIdx) => (
+                        <div key={mIdx} className="flex items-center justify-between text-[10px]">
+                          <span className="text-slate-600 font-bold truncate flex-1">{m?.name || '-'}</span>
+                          <span className="text-slate-400 font-bold mx-2">x{Math.max(1, Number(m?.qty) || 1)}</span>
+                          <span className="text-[#3182F6] font-black tabular-nums">₩{((Number(m?.price) || 0) * Math.max(1, Number(m?.qty) || 1)).toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <SharedTotalFooter expanded={qvIsExpanded} total={qvTotal} onToggle={(e) => { e.stopPropagation(); toggleReceipt(qvItem.id); }} />
+              </div>
               </div>
             </div>
           </>

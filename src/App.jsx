@@ -3043,9 +3043,9 @@ const App = () => {
           });
           const addr = getRouteAddress(found.item, 'to');
           setBasePlanRef({ id: found.item.id, name: found.item.activity || found.item.name || '', address: addr || '' });
-          // 지도 이동 완료 후 퀵뷰 표시
+          // 지도 이동 완료 후 마커 위치에 퀵뷰 표시
           setTimeout(() => {
-            setMapQuickViewItem({ dayIdx: found.dayIdx, pIdx: found.pIdx });
+            setMapQuickViewItem({ dayIdx: found.dayIdx, pIdx: found.pIdx, x: lastClickPosRef.current.x, y: lastClickPosRef.current.y });
           }, 80);
           return;
         }
@@ -11251,12 +11251,16 @@ const App = () => {
         const qvCatStyle = getCategoryCardStyle(qvPrimaryType);
         const qvIsExpanded = expandedId === qvItem.id;
         const qvMenus = (qvItem.receipt?.items || []).filter(m => m?.selected !== false);
-        // 지도 영역 좌상단 고정
+        // 마커 클릭 위치 기준 배치
         const mapEl = document.getElementById('right-panel-map-overview');
         const mapRect = mapEl?.getBoundingClientRect();
         const panelW = 360;
-        const qvLeft = mapRect ? mapRect.left + 12 : 12;
-        const qvTop = mapRect ? mapRect.top + 12 : 80;
+        const clickX = mapQuickViewItem.x || (mapRect ? mapRect.left + mapRect.width / 2 : window.innerWidth / 2);
+        const clickY = mapQuickViewItem.y || (mapRect ? mapRect.top + mapRect.height / 2 : window.innerHeight / 2);
+        // 마커 오른쪽에 표시, 화면 밖이면 왼쪽에
+        const spaceRight = window.innerWidth - clickX;
+        const qvLeft = spaceRight > panelW + 20 ? clickX + 16 : Math.max(8, clickX - panelW - 16);
+        const qvTop = Math.max(8, Math.min(window.innerHeight - 400, clickY - 60));
         // 일정 순번 계산
         const qvOrderNum = (() => {
           let num = 0;
@@ -11326,18 +11330,54 @@ const App = () => {
                   <SharedMemoRow value={qvItem.memo || ''} readOnly />
                 )}
               </div>
-              {/* 영수증 — 접기/펼치기 */}
-              <div className="overflow-hidden border-t border-slate-100">
-                {qvIsExpanded && qvMenus.length > 0 && (
+              {/* 영수증 — 내일정과 동일 */}
+              <div className="overflow-hidden border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                {qvIsExpanded && (
                   <div className="px-5 py-4 bg-white border-b border-slate-100 border-dashed">
-                    <div className="space-y-1.5">
-                      {qvMenus.map((m, mIdx) => (
-                        <div key={mIdx} className="flex items-center justify-between text-[10px]">
-                          <span className="text-slate-600 font-bold truncate flex-1">{m?.name || '-'}</span>
-                          <span className="text-slate-400 font-bold mx-2">x{Math.max(1, Number(m?.qty) || 1)}</span>
-                          <span className="text-[#3182F6] font-black tabular-nums">₩{((Number(m?.price) || 0) * Math.max(1, Number(m?.qty) || 1)).toLocaleString()}</span>
+                    <div className="space-y-3 mb-3">
+                      {(qvItem.receipt?.items || []).map((m, mIdx) => (
+                        <div key={mIdx} className="flex justify-between items-center text-xs group/item">
+                          <div className="flex items-center gap-2 flex-1">
+                            <div className="cursor-pointer text-slate-300 hover:text-[#3182F6]" onClick={(e) => { e.stopPropagation(); updateMenuData(qvDIdx, qvPIdx, mIdx, 'toggle'); }}>
+                              {m.selected ? <CheckSquare size={14} className="text-[#3182F6]" /> : <Square size={14} />}
+                            </div>
+                            <input data-plan-menu-name={`qv-${qvDIdx}-${qvPIdx}-${mIdx}`} value={m.name} onChange={(e) => updateMenuData(qvDIdx, qvPIdx, mIdx, 'name', e.target.value)} onClick={(e) => e.stopPropagation()} className="bg-transparent border-none outline-none text-slate-700 font-bold w-full" />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MenuPriceInput value={m.price} onCommit={(nextPrice) => updateMenuData(qvDIdx, qvPIdx, mIdx, 'price', nextPrice)} onClick={(e) => e.stopPropagation()} className="w-16 text-right font-bold text-slate-500 bg-transparent border-none outline-none placeholder:text-slate-300" />
+                            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded p-0.5 shadow-sm">
+                              <button onClick={(e) => { e.stopPropagation(); updateMenuData(qvDIdx, qvPIdx, mIdx, 'qty', -1); }}><Minus size={10} /></button>
+                              <span className="w-4 text-center text-[10px]">{getMenuQty(m)}</span>
+                              <button onClick={(e) => { e.stopPropagation(); updateMenuData(qvDIdx, qvPIdx, mIdx, 'qty', 1); }}><Plus size={10} /></button>
+                            </div>
+                            <span className="w-20 text-right font-black text-[#3182F6]">₩{getMenuLineTotal(m).toLocaleString()}</span>
+                            <button onClick={(e) => { e.stopPropagation(); deleteMenuItem(qvDIdx, qvPIdx, mIdx); }} className="text-slate-300 hover:text-red-500"><Trash2 size={12} /></button>
+                          </div>
                         </div>
                       ))}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={(e) => { e.stopPropagation(); addMenuItem(qvDIdx, qvPIdx); }} className="py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6]/30 hover:bg-blue-50/50 transition-colors">+ 메뉴 추가</button>
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            const result = await analyzeClipboardSmartFill({ mode: 'menus', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
+                            const parsed = result?.parsed;
+                            if (parsed?.menus?.length) {
+                              setAiLearningCapture({ itemId: qvItem.id, rawSource: result.rawPayload, aiResult: parsed, inputType: result.inputType });
+                              setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[qvDIdx].plan[qvPIdx].receipt = { ...(d.days[qvDIdx].plan[qvPIdx].receipt || {}), items: buildSmartFillMenuItems(parsed.menus) }; return d; });
+                              showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 메뉴 스마트 입력 완료' : '메뉴 정보만 스마트 입력 완료');
+                            } else {
+                              showInfoToast(useAiSmartFill ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.');
+                            }
+                          } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
+                        }}
+                        className="py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50/50 transition-colors flex items-center justify-center gap-1"
+                      >
+                        <Sparkles size={10} /> 자동채우기
+                      </button>
                     </div>
                   </div>
                 )}

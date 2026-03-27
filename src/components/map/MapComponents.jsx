@@ -118,8 +118,7 @@ const MAP_CATEGORY_ICON = {
 export const MAP_CATEGORY_EMOJI = MAP_CATEGORY_ICON; // 하위 호환
 export const getMapCategoryEmoji = (type = 'place') => MAP_CATEGORY_ICON[type] || MAP_CATEGORY_ICON.place;
 
-export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#FFFFFF', categoryLabel = '', isFirst = false, isLast = false, extraTailH = 0) => {
-  // 일정 마커: 단색 배경 + 흰 번호 — 선명하고 진하게
+export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColor = '#FFFFFF', categoryLabel = '', isFirst = false, isLast = false, extraTailH = 0, placeName = '', showName = false) => {
   const sz = isFocused ? 36 : 28;
   const tailW = isFocused ? 6 : 5;
   const tailH = (isFocused ? 7 : 6) + extraTailH;
@@ -127,36 +126,47 @@ export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColo
   const badgeText = isFirst ? 'START' : (isLast ? 'END' : '');
   const badgeColor = isFirst ? '#10B981' : '#EF4444';
   const badgeH = badgeText ? 14 : 0;
-  const totalH = badgeH + (badgeH ? 2 : 0) + sz + tailH;
   const shadow = isFocused
     ? 'drop-shadow(0 5px 14px rgba(15,23,42,0.45))'
     : 'drop-shadow(0 3px 8px rgba(15,23,42,0.32))';
+
+  // 이름 표시 모드: 숫자 아이콘 위에 이름 라벨을 세로 스택
+  if (showName && placeName) {
+    const nameMaxW = isFocused ? 130 : 100;
+    const nameFontSz = isFocused ? '11px' : '10px';
+    const nameH = isFocused ? 20 : 18;
+    const totalH = badgeH + (badgeH ? 2 : 0) + nameH + sz + tailH;
+    const totalW = Math.max(sz, nameMaxW);
+    return L.divIcon({
+      className: '',
+      html: `
+        <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
+          ${badgeText ? `<div style="margin-bottom:2px;padding:0 5px;height:${badgeH}px;border-radius:999px;background:${badgeColor};color:#fff;font-size:7px;font-weight:900;line-height:${badgeH}px;white-space:nowrap;letter-spacing:0.06em;">${badgeText}</div>` : ''}
+          <div style="max-width:${nameMaxW}px;padding:1px 6px;border-radius:6px;background:rgba(255,255,255,0.92);border:1.5px solid ${dayColor};margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${nameFontSz};font-weight:900;color:#334155;line-height:${nameH - 2}px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.1);">
+            ${placeName}
+          </div>
+          <div style="width:${sz}px;height:${sz}px;border-radius:${radius}px;background:${dayColor};border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${dayColor};display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:${isFocused ? '16px' : '13px'};font-weight:900;color:#fff;line-height:1;letter-spacing:-0.5px;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${label}</span>
+          </div>
+          ${extraTailH > 0 ? `<div style="display:flex;flex-direction:column;align-items:center;margin-top:-1px;"><div style="width:${tailW-1}px;height:${extraTailH}px;background:${dayColor};"></div><div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${isFocused?7:6}px solid ${dayColor};"></div></div>` : `<div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${dayColor};margin-top:-1px;"></div>`}
+        </div>
+      `,
+      iconSize: [totalW, totalH],
+      iconAnchor: [totalW / 2, totalH],
+    });
+  }
+
+  // 기본: 숫자만
+  const totalH = badgeH + (badgeH ? 2 : 0) + sz + tailH;
   return L.divIcon({
     className: '',
     html: `
       <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
-        ${badgeText ? `<div style="
-          margin-bottom:2px;padding:0 5px;height:${badgeH}px;border-radius:999px;
-          background:${badgeColor};color:#fff;font-size:7px;font-weight:900;
-          line-height:${badgeH}px;white-space:nowrap;letter-spacing:0.06em;
-        ">${badgeText}</div>` : ''}
-        <div style="
-          width:${sz}px;height:${sz}px;border-radius:${radius}px;
-          background:${dayColor};
-          border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);
-          box-shadow:0 0 0 1.5px ${dayColor};
-          display:flex;align-items:center;justify-content:center;
-        ">
-          <span style="
-            font-size:${isFocused ? '16px' : '13px'};font-weight:900;
-            color:#fff;line-height:1;letter-spacing:-0.5px;
-            text-shadow:0 1px 3px rgba(0,0,0,0.25);
-          ">${label}</span>
+        ${badgeText ? `<div style="margin-bottom:2px;padding:0 5px;height:${badgeH}px;border-radius:999px;background:${badgeColor};color:#fff;font-size:7px;font-weight:900;line-height:${badgeH}px;white-space:nowrap;letter-spacing:0.06em;">${badgeText}</div>` : ''}
+        <div style="width:${sz}px;height:${sz}px;border-radius:${radius}px;background:${dayColor};border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${dayColor};display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:${isFocused ? '16px' : '13px'};font-weight:900;color:#fff;line-height:1;letter-spacing:-0.5px;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${label}</span>
         </div>
-        ${extraTailH > 0 ? `<div style="display:flex;flex-direction:column;align-items:center;margin-top:-1px;">
-          <div style="width:${tailW-1}px;height:${extraTailH}px;background:${dayColor};"></div>
-          <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${isFocused?7:6}px solid ${dayColor};"></div>
-        </div>` : `<div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${dayColor};margin-top:-1px;"></div>`}
+        ${extraTailH > 0 ? `<div style="display:flex;flex-direction:column;align-items:center;margin-top:-1px;"><div style="width:${tailW-1}px;height:${extraTailH}px;background:${dayColor};"></div><div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${isFocused?7:6}px solid ${dayColor};"></div></div>` : `<div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${dayColor};margin-top:-1px;"></div>`}
       </div>
     `,
     iconSize: [sz, totalH],
@@ -285,7 +295,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
             <div style="width:${sz}px;height:${pillH}px;background:${categoryColor};display:flex;align-items:center;justify-content:center;shrink:0;">
               <svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5)) drop-shadow(0 0 2px rgba(0,0,0,0.25));">${svgIcon}</svg>
             </div>
-            <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '11px' : '9px'};font-weight:900;color:#334155;line-height:${pillH}px;">
+            <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '12px' : '10px'};font-weight:900;color:#334155;line-height:${pillH}px;">
               ${displayName}
             </div>
           </div>
@@ -1067,10 +1077,10 @@ export const RoutePreviewCanvas = ({
             }
             return (
             <Marker
-              key={`timeline-point-${point.pointId}`}
+              key={`timeline-point-${point.pointId}-z${showLibraryNames ? 'n' : 'i'}`}
               position={point.position}
               bubblingMouseEvents={false}
-              icon={buildTimelineMarkerIcon(point.color, String(point.order), point.isFocused, point.categoryColor, point.categoryLabel, point.isFirst, point.isLast)}
+              icon={buildTimelineMarkerIcon(point.color, String(point.order), point.isFocused, point.categoryColor, point.categoryLabel, point.isFirst, point.isLast, 0, point.label || '', showLibraryNames)}
               eventHandlers={interactive && typeof onMarkerClick === 'function' ? {
                 click: () => onMarkerClick({
                   kind: 'timeline',

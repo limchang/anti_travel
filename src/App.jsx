@@ -8737,12 +8737,20 @@ const App = () => {
       >
         {/* 일정 목록 */}
         <div
-          className={`w-full pb-32 ${showTimelineOverlay ? 'px-4 max-w-[480px] mx-auto bg-white rounded-t-[28px] shadow-[0_-8px_40px_rgba(0,0,0,0.15)] pt-6 min-h-screen' : isMobileLayout ? 'px-4 pt-8' : 'px-4 max-w-[500px] mx-auto pt-8'}`}
+          className={`w-full pb-32 ${showTimelineOverlay ? 'px-4 max-w-[480px] mx-auto bg-white rounded-t-2xl shadow-[0_-8px_40px_rgba(0,0,0,0.15)] pt-4 min-h-screen relative' : isMobileLayout ? 'px-4 pt-8' : 'px-4 max-w-[500px] mx-auto pt-8'}`}
           onTouchStart={handleMainColumnTouchStart}
           onTouchEnd={handleMainColumnTouchEnd}
           onTouchCancel={handleMainColumnTouchEnd}
           data-no-swipe={false}
         >
+          {/* 오버레이 닫기 핸들 */}
+          {showTimelineOverlay && (
+            <div className="sticky top-0 z-10 flex items-center justify-center py-2">
+              <button type="button" onClick={() => setShowTimelineOverlay(false)} className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-[11px] font-black text-slate-500 transition-colors">
+                <ChevronDown size={12} /> 지도로 돌아가기
+              </button>
+            </div>
+          )}
           {isSharedReadOnly && (
             <div className={`mx-auto mb-3 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-[11px] font-black text-amber-700 max-w-full`}>
               공유 일정 보기 모드입니다. (편집 권한 없음)
@@ -9720,7 +9728,7 @@ const App = () => {
             const { usedPct, timingConflictCount, budgetExceeded, compactHeroAlert, revisitCount, newCount, revisitPct, newPct, categorySpendRows, visitPlanCount, visitPerHour, travelIntensity, averageSpanHours, averageTravelHoursLabel, lodgingConstraintCount } = heroStats;
             const heroCompactActive = heroPinnedCompact && !heroSummaryExpanded;
             return (
-              <div ref={heroSpacerRef} className="mb-1.5 relative" style={{ minHeight: heroCompactActive ? 122 : '20rem' }}>
+              <div ref={heroSpacerRef} className={`mb-1.5 relative ${showTimelineOverlay ? 'hidden' : ''}`} style={{ minHeight: heroCompactActive ? 122 : '20rem' }}>
                 {/* 풀 카드 (최상단) */}
                 <div
                   className="fixed top-0 z-[120]"

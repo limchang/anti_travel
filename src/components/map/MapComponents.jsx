@@ -176,7 +176,7 @@ export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColo
 };
 
 // 같은 위치 타임라인 마커 그룹 (예: 6 | 7)
-export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = false) => {
+export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = false, showAddButton = false) => {
   const n = items.length;
   const sz = isFocused ? 36 : 28;
   const radius = isFocused ? 10 : 8;
@@ -189,10 +189,13 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = fals
   // 이름 표시 모드: 하나의 카드 안에 행을 쌓기
   if (showName) {
     const nameMaxW = isFocused ? 120 : 90;
+    const addBtnSz = isFocused ? 20 : 16;
+    const hasAnyAdd = showAddButton && items.some(it => it._isOverlay);
+    const addColW = hasAnyAdd ? (addBtnSz + 8) : 0;
     const rowH = sz; // 아이콘 정사각형 유지
     const totalCardH = n * rowH;
     const totalH = totalCardH + tailH;
-    const totalW = sz + nameMaxW;
+    const totalW = sz + nameMaxW + addColW;
     const tailColor = items[items.length - 1]?.color || items[0].color;
 
     const rows = items.map((item, i) => {
@@ -202,14 +205,21 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = fals
       const iconContent = isOverlay
         ? `<svg width="${isFocused ? 16 : 13}" height="${isFocused ? 16 : 13}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5));">${getMapCategoryEmoji(item.primaryType || item.categoryLabel || '')}</svg>`
         : `<span style="font-size:${isFocused ? '14px' : '11px'};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${item.order}</span>`;
+      const addBtn = (hasAnyAdd && isOverlay) ? `
+        <div data-group-idx="${i}" data-library-add="true" style="width:${addColW}px;height:${rowH}px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">
+          <div style="width:${addBtnSz}px;height:${addBtnSz}px;border-radius:${addBtnSz}px;background:rgba(49,130,246,0.12);display:flex;align-items:center;justify-content:center;">
+            <svg width="${isFocused ? 11 : 9}" height="${isFocused ? 11 : 9}" viewBox="0 0 24 24" fill="none" stroke="#3182F6" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </div>` : (hasAnyAdd ? `<div style="width:${addColW}px;height:${rowH}px;flex-shrink:0;"></div>` : '');
       return `
-        <div style="display:flex;align-items:center;height:${rowH}px;${!isLast ? `border-bottom:1px solid rgba(0,0,0,0.06);` : ''}">
+        <div data-group-idx="${i}" style="display:flex;align-items:center;height:${rowH}px;${!isLast ? `border-bottom:1px solid rgba(0,0,0,0.06);` : ''}">
           <div style="width:${sz}px;height:${rowH}px;background:${item.color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             ${iconContent}
           </div>
-          <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '11px' : '10px'};font-weight:900;color:#334155;line-height:${rowH}px;">
+          <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '11px' : '10px'};font-weight:900;color:#334155;line-height:${rowH}px;flex:1;">
             ${label}
           </div>
+          ${addBtn}
         </div>`;
     }).join('');
 
@@ -293,10 +303,11 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
       const clusterIconSz = isFocused ? 14 : 11;
       const visibleN = Math.min(clusterCount, 5);
       const hasOverflow = clusterCount > 5;
-      const addBtnW = showAddButton ? (isFocused ? 28 : 24) : 0;
+      const addBtnSzC = isFocused ? 20 : 16;
+      const addColWC = showAddButton ? (addBtnSzC + 8) : 0;
       const totalCardH = (visibleN + (hasOverflow ? 1 : 0)) * rowH;
       const totalH = totalCardH + tailH;
-      const totalW = sz + nameMaxW + addBtnW;
+      const totalW = sz + nameMaxW + addColWC;
       const rows = Array.from({ length: visibleN }, (_, i) => {
         const color = colors[i] || colors[colors.length - 1] || categoryColor;
         const type = types[i] || categoryType || categoryLabel;
@@ -304,8 +315,10 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
         const svgIcon = getMapCategoryEmoji(type);
         const isLast = !hasOverflow && i === visibleN - 1;
         const addBtn = showAddButton ? `
-          <div data-cluster-idx="${i}" data-library-add="true" style="width:${addBtnW}px;height:${rowH}px;background:#3182F6;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;border-left:1px solid rgba(255,255,255,0.5);">
-            <svg width="${isFocused ? 13 : 11}" height="${isFocused ? 13 : 11}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <div data-cluster-idx="${i}" data-library-add="true" style="width:${addColWC}px;height:${rowH}px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">
+            <div style="width:${addBtnSzC}px;height:${addBtnSzC}px;border-radius:${addBtnSzC}px;background:rgba(49,130,246,0.12);display:flex;align-items:center;justify-content:center;">
+              <svg width="${isFocused ? 11 : 9}" height="${isFocused ? 11 : 9}" viewBox="0 0 24 24" fill="none" stroke="#3182F6" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
           </div>` : '';
         return `
           <div data-cluster-idx="${i}" style="display:flex;align-items:center;height:${rowH}px;cursor:pointer;${!isLast ? `border-bottom:1px solid rgba(0,0,0,0.06);` : ''}">
@@ -392,13 +405,16 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
   const displayName = placeName || '';
   if (showName && displayName && !isCluster) {
     const nameMaxW = isFocused ? 120 : 90;
-    const addBtnW = showAddButton ? (isFocused ? 28 : 24) : 0;
+    const addBtnSz = isFocused ? 20 : 16;
+    const addColW = showAddButton ? (addBtnSz + 8) : 0;
     const pillH = sz;
     const totalH = pillH + tailH;
-    const totalW = sz + nameMaxW + addBtnW;
+    const totalW = sz + nameMaxW + addColW;
     const addBtnHtml = showAddButton ? `
-      <div data-library-add="true" style="width:${addBtnW}px;height:${pillH}px;background:#3182F6;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;border-left:1px solid rgba(255,255,255,0.5);border-radius:0 ${radius} ${radius} 0;">
-        <svg width="${isFocused ? 14 : 12}" height="${isFocused ? 14 : 12}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <div data-library-add="true" style="width:${addColW}px;height:${pillH}px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">
+        <div style="width:${addBtnSz}px;height:${addBtnSz}px;border-radius:${addBtnSz}px;background:rgba(49,130,246,0.12);display:flex;align-items:center;justify-content:center;">
+          <svg width="${isFocused ? 11 : 9}" height="${isFocused ? 11 : 9}" viewBox="0 0 24 24" fill="none" stroke="#3182F6" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </div>
       </div>` : '';
     return L.divIcon({
       className: '',
@@ -406,10 +422,10 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
         <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
           <div style="position:relative;display:flex;align-items:center;border-radius:${radius};border:${borderStyle};box-shadow:0 0 0 1.5px ${categoryColor};overflow:visible;background:#fff;">
             ${starBadge}
-            <div style="width:${sz}px;height:${pillH}px;background:${categoryColor};display:flex;align-items:center;justify-content:center;shrink:0;border-radius:${radius} 0 0 ${showAddButton ? '0' : radius};">
+            <div style="width:${sz}px;height:${pillH}px;background:${categoryColor};display:flex;align-items:center;justify-content:center;shrink:0;border-radius:${radius} 0 0 ${radius};">
               <svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5)) drop-shadow(0 0 2px rgba(0,0,0,0.25));">${svgIcon}</svg>
             </div>
-            <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '12px' : '10px'};font-weight:900;color:#334155;line-height:${pillH}px;">
+            <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '12px' : '10px'};font-weight:900;color:#334155;line-height:${pillH}px;flex:1;">
               ${displayName}
             </div>
             ${addBtnHtml}
@@ -1220,11 +1236,21 @@ export const RoutePreviewCanvas = ({
                   key={`timeline-group-${point._groupItems.map(gi => gi.pointId).join('-')}`}
                   position={point.position}
                   bubblingMouseEvents={false}
-                  icon={buildGroupedTimelineMarkerIcon(point._groupItems, isFocused, showLibraryNames)}
+                  icon={buildGroupedTimelineMarkerIcon(point._groupItems, isFocused, showLibraryNames, !!(activeItemId && showLibraryNames))}
                   eventHandlers={interactive && typeof onMarkerClick === 'function' ? {
                     mouseover: (e) => { e.target.setZIndexOffset(10000); },
                     mouseout: (e) => { e.target.setZIndexOffset(0); },
                     click: (e) => {
+                      // + 버튼 클릭 감지
+                      const addEl = e.originalEvent?.target instanceof Element ? e.originalEvent.target.closest('[data-library-add]') : null;
+                      if (addEl) {
+                        const idx = parseInt(addEl.closest('[data-group-idx]')?.getAttribute('data-group-idx') ?? '-1', 10);
+                        const target = point._groupItems[idx];
+                        if (target?._isOverlay && typeof onLibraryMarkerAddClick === 'function') {
+                          onLibraryMarkerAddClick({ id: target.id, label: target.label });
+                          return;
+                        }
+                      }
                       const items = point._groupItems;
                       // data-group-idx 속성으로 정확히 어느 셀인지 판단
                       const orig = e.originalEvent;

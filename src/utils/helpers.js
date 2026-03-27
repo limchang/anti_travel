@@ -344,7 +344,7 @@ export const compressBeforeFixedItems = (dayPlan) => {
         if (t.types?.includes('ship') || isOvernightLodgeTimelineItem(t)) continue;
         const dur = Math.max(0, Number(t.duration) || 0);
         const cut = Math.min(rem, dur - 5);
-        if (cut > 0) { t.duration = dur - cut; syncBaseDuration(t, t.duration); rem -= cut; needed -= cut; }
+        if (cut > 0) { t.duration = dur - cut; rem -= cut; needed -= cut; }
       }
       if (rem <= 0) break;
     }

@@ -4574,15 +4574,39 @@ const App = () => {
       const nextMinutes = Math.max(0, currentMinutes + delta);
 
       if (delta < 0) {
-        // 보정시간 줄이기 → 이전 일정 소요시간 증가
+        // 보정시간 줄이기 → ledger 역순으로 이전 일정 소요시간 복구
         const reducedMinutes = Math.max(0, currentMinutes - nextMinutes);
         if (reducedMinutes > 0) {
-          const prevEntry = getPreviousMainPlanEntryByIndex(nextData.days, dayIdx, pIdx);
-          const prevItem = prevEntry?.item;
-          if (prevItem && !prevItem.types?.includes('ship')) {
-            const nextDuration = Math.max(0, Number(prevItem.duration) || 0) + reducedMinutes;
-            prevItem.duration = nextDuration;
-            syncBaseDuration(prevItem, nextDuration);
+          let remaining = reducedMinutes;
+          const dayPlan = nextData.days[dayIdx].plan;
+
+          // 1단계: ledger 역순 복구 (늘릴 때 줄였던 일정에 정확히 되돌림)
+          if (Array.isArray(item._bufferAdjustmentLedger) && item._bufferAdjustmentLedger.length > 0) {
+            while (remaining > 0 && item._bufferAdjustmentLedger.length > 0) {
+              const last = item._bufferAdjustmentLedger[item._bufferAdjustmentLedger.length - 1];
+              const target = dayPlan[last.targetPIdx];
+              if (!target) { item._bufferAdjustmentLedger.pop(); continue; }
+              const owed = Math.abs(last.delta);
+              const restore = Math.min(owed, remaining);
+              target.duration = (Number(target.duration) || 0) + restore;
+              syncBaseDuration(target, target.duration);
+              remaining -= restore;
+              if (restore >= owed) {
+                item._bufferAdjustmentLedger.pop();
+              } else {
+                last.delta += restore; // 부분 복구 (음수값이 0에 가까워짐)
+              }
+            }
+          }
+
+          // 2단계: ledger 소진 후 남은 분은 직전 일정으로 fallback
+          if (remaining > 0) {
+            const prevEntry = getPreviousMainPlanEntryByIndex(nextData.days, dayIdx, pIdx);
+            const prevItem = prevEntry?.item;
+            if (prevItem && !prevItem.types?.includes('ship')) {
+              prevItem.duration = (Number(prevItem.duration) || 0) + remaining;
+              syncBaseDuration(prevItem, prevItem.duration);
+            }
           }
         }
         item.bufferTimeOverride = `${nextMinutes}분`;
@@ -4593,20 +4617,22 @@ const App = () => {
         if (item.isTimeFixed) {
           // 시간 잠금 상태: 이전 일정 소요시간을 줄여서 여백 확보 (시작시간 불변)
           let remaining = delta;
-          // 1단계~2단계: 이전 일정들을 역순으로 순회하며 소요시간 감소
           const dayPlan = nextData.days[dayIdx].plan;
+          if (!item._bufferAdjustmentLedger) item._bufferAdjustmentLedger = [];
           for (let i = pIdx - 1; i >= 0 && remaining > 0; i--) {
             const candidate = dayPlan[i];
-            if (!candidate || candidate.types?.includes('ship') || candidate.types?.includes('lodge')) continue;
+            if (!candidate || candidate.type === 'backup') continue;
+            if (candidate.types?.includes('ship') || candidate.types?.includes('lodge')) continue;
+            if (candidate.isDurationFixed || candidate.isEndTimeFixed) continue;
             const candidateDur = Math.max(0, Number(candidate.duration) || 0);
             const reducible = Math.max(0, candidateDur - 5); // 최소 5분 남김
             if (reducible <= 0) continue;
             const absorb = Math.min(reducible, remaining);
             candidate.duration = candidateDur - absorb;
             syncBaseDuration(candidate, candidate.duration);
+            item._bufferAdjustmentLedger.push({ targetPIdx: i, delta: -absorb });
             remaining -= absorb;
           }
-          // 보정시간 자체는 그대로 유지 (시작시간 고정이므로 재계산이 처리)
           item.bufferTimeOverride = `${nextMinutes}분`;
           item._manualBufferTimeOverride = `${nextMinutes}분`;
           item._isBufferCoordinated = false;
@@ -4684,6 +4710,7 @@ const App = () => {
       item.bufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
       item._manualBufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
       item._isBufferCoordinated = false;
+      item._bufferAdjustmentLedger = [];
       computedBufferMins = DEFAULT_BUFFER_MINS;
       applied = true;
 
@@ -4723,6 +4750,7 @@ const App = () => {
           item._manualBufferTimeOverride = `${DEFAULT_BUFFER_MINS}분`;
         }
         item._isBufferCoordinated = false;
+        item._bufferAdjustmentLedger = [];
       }
       draft.days[dayIdx].plan = recalculateSchedule(dayPlan);
       if (item.isTimeFixed) {
@@ -5443,6 +5471,11 @@ const App = () => {
       const sourcePlan = nextData.days[sourceDayIdx].plan;
       const targetPlan = nextData.days[targetDayIdx].plan;
       const [item] = sourcePlan.splice(sourcePIdx, 1);
+
+      // 일정 이동 시 ledger 무효화 (인덱스가 변경되므로)
+      sourcePlan.forEach(it => { if (it) it._bufferAdjustmentLedger = []; });
+      targetPlan.forEach(it => { if (it) it._bufferAdjustmentLedger = []; });
+      if (item) item._bufferAdjustmentLedger = [];
 
       // 같은 일차 내에서 뒤로 이동할 경우 인덱스 보정
       let targetIdx = insertAfterPIdx + 1;

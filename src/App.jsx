@@ -7362,12 +7362,30 @@ const App = () => {
           <>
             {/* ── 고정 헤더 ── */}
             {mapEditMode && !isMobileLayout ? (
-              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-100 shrink-0">
-                <CalendarDays size={14} className="text-slate-400 shrink-0" />
-                {navFloatingExpanded && <span className="text-[12px] font-black text-slate-800 flex-1">{tripRegion || 'Anti Planer'}</span>}
-                {navFloatingExpanded && (
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setNavFloatingExpanded(false); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors">
-                    <X size={12} />
+              <div className="flex flex-col border-b border-slate-100 shrink-0">
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <CalendarDays size={14} className="text-slate-400 shrink-0" />
+                  {navFloatingExpanded && (
+                    <button type="button" onClick={() => setShowPlanManager(true)} className="flex items-center gap-1 text-left hover:opacity-80 transition-opacity flex-1 min-w-0">
+                      <span className="text-[12px] font-black text-slate-800 truncate">{tripRegion || 'Anti Planer'}</span>
+                      <ChevronDown size={9} className="text-slate-400 shrink-0" />
+                    </button>
+                  )}
+                  {navFloatingExpanded && (
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setNavFloatingExpanded(false); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors">
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+                {navFloatingExpanded && tripStartDate && (
+                  <button type="button" onClick={() => setShowDatePicker(v => !v)} className="flex items-center gap-2 px-3 pb-2 hover:opacity-80 transition-opacity">
+                    <Calendar size={10} className="text-slate-400 shrink-0" />
+                    <span className="text-[10px] font-bold text-slate-500">
+                      {tripStartDate.replace(/-/g, '. ')}{tripEndDate ? ` ~ ${tripEndDate.replace(/-/g, '. ')}` : ''}
+                    </span>
+                    <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                      {tripDays > 0 ? `${tripNights}박 ${tripDays}일` : `${itinerary.days?.length || 0}일`}
+                    </span>
                   </button>
                 )}
               </div>

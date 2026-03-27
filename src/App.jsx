@@ -10640,17 +10640,6 @@ const App = () => {
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        void requestPerplexityNearbyRecommendations(dIdx, pIdx);
-                                      }}
-                                      title="AI로 근처 추천 받기"
-                                      className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-violet-200 hover:text-violet-600 hover:bg-violet-50 transition-colors"
-                                    >
-                                      <Star size={9} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
                                         const handleForcedAutoAddr = async () => {
                                           if (_isSearchingAddr || !p.activity?.trim()) return;
                                           _isSearchingAddr = true;

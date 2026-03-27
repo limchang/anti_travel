@@ -7742,7 +7742,7 @@ const App = () => {
               </nav>
             </div>
 
-            <NavBottomMenu
+            {!(mapEditMode && !isMobileLayout) && <NavBottomMenu
               showNavMenu={showNavMenu} setShowNavMenu={setShowNavMenu}
               canManagePlan={canManagePlan}
               leftSidebarWidth={leftSidebarWidth}
@@ -7798,7 +7798,7 @@ const App = () => {
               }}
               handleLogin={handleLogin} handleLogout={handleLogout}
               auth={auth}
-            />
+            />}
           </>
         )}
         {/* 버전 뱃지 — 비활성화 */}
@@ -7806,11 +7806,11 @@ const App = () => {
 
       <div
         className={mapEditMode && !isMobileLayout
-          ? `flex flex-col fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-[220] shadow-[0_-8px_32px_rgba(0,0,0,0.08)] overflow-hidden`
+          ? `flex flex-col fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-[220] shadow-[0_-8px_32px_rgba(0,0,0,0.08)]`
           : 'flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[220] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] overflow-visible'
         }
         style={mapEditMode && !isMobileLayout
-          ? { maxHeight: bottomPanelExpanded ? '45vh' : '0px', transition: 'max-height 0.3s' }
+          ? { maxHeight: bottomPanelExpanded ? '45vh' : '40px', transition: 'max-height 0.3s' }
           : { right: 0, width: rightSidebarWidth, transition: panelResizingRef.current?.side === 'right' ? 'none' : 'width 0.3s' }
         }
       >
@@ -7822,6 +7822,18 @@ const App = () => {
           >
             <div className="absolute inset-y-0 left-0 w-1 bg-transparent group-hover:bg-[#3182F6]/30 transition-colors" />
           </div>
+        )}
+        {/* 하단 패널 토글 핸들 */}
+        {mapEditMode && !isMobileLayout && (
+          <button
+            type="button"
+            onClick={() => setBottomPanelExpanded(prev => !prev)}
+            className="w-full h-10 flex items-center justify-center gap-2 bg-white hover:bg-slate-50 transition-colors shrink-0 cursor-pointer"
+          >
+            <div className="w-8 h-1 rounded-full bg-slate-300" />
+            <span className="text-[10px] font-black text-slate-400">{bottomPanelExpanded ? '내장소 접기' : '내장소 펼치기'}</span>
+            <ChevronDown size={12} className={`text-slate-400 transition-transform ${bottomPanelExpanded ? 'rotate-180' : ''}`} />
+          </button>
         )}
         {isMobileLayout && col2Collapsed ? (
           <div className="flex-1 flex flex-col items-center justify-center">

@@ -1606,23 +1606,35 @@ const App = () => {
         if (droptargetEl) {
           const parsedTarget = parseInsertDropTargetValue(droptargetEl.dataset.droptarget);
           if (parsedTarget) {
-            setDropTarget(parsedTarget);
-            setDropOnItem(null);
-            setDragBottomTarget('');
+            const prev = useDragStore.getState();
+            if (prev.dropTarget?.dayIdx !== parsedTarget.dayIdx || prev.dropTarget?.insertAfterPIdx !== parsedTarget.insertAfterPIdx) {
+              setDropTarget(parsedTarget);
+              setDropOnItem(null);
+              setDragBottomTarget('');
+            }
           }
         } else if (dropitemEl) {
           const [dIdx, pIdx] = dropitemEl.dataset.dropitem.split('-').map(Number);
-          setDropOnItem({ dayIdx: dIdx, pIdx });
-          setDropTarget(null);
-          setDragBottomTarget('');
+          const prev = useDragStore.getState();
+          if (prev.dropOnItem?.dayIdx !== dIdx || prev.dropOnItem?.pIdx !== pIdx) {
+            setDropOnItem({ dayIdx: dIdx, pIdx });
+            setDropTarget(null);
+            setDragBottomTarget('');
+          }
         } else if (dropActionEl) {
-          setDragBottomTarget(dropActionEl.getAttribute('data-drag-action') || '');
-          setDropTarget(null);
-          setDropOnItem(null);
+          const action = dropActionEl.getAttribute('data-drag-action') || '';
+          if (useDragStore.getState().dragBottomTarget !== action) {
+            setDragBottomTarget(action);
+            setDropTarget(null);
+            setDropOnItem(null);
+          }
         } else {
-          setDropTarget(null);
-          setDropOnItem(null);
-          setDragBottomTarget('');
+          const prev = useDragStore.getState();
+          if (prev.dropTarget || prev.dropOnItem) {
+            setDropTarget(null);
+            setDropOnItem(null);
+            setDragBottomTarget('');
+          }
         }
         setIsDroppingOnDeleteZone(!!dropdelEl);
       }

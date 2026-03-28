@@ -7382,6 +7382,7 @@ const App = () => {
 
       {/* ── Col1: 예산 + 일정 네비게이션 ── */}
       <div
+        data-nav-dropzone="true"
         className={(mapEditMode || isMobileLayout)
           ? `flex flex-col fixed z-[280] bg-white/95 backdrop-blur-lg rounded-2xl border border-slate-200/50 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.2)] overflow-visible ${navFloatingExpanded ? '' : 'cursor-pointer'}`
           : 'flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-visible z-[290]'
@@ -7565,7 +7566,22 @@ const App = () => {
                                         setDraggingFromTimeline(navDragPayload);
                                       });
                                     }}
-                                    onDragEnd={() => {
+                                    onDragEnd={(e) => {
+                                      // 유효한 드롭 타겟에 안 떨어졌으면 삭제
+                                      const droppedOnLibrary = e.target?.closest?.('[data-library-dropzone]') || document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-library-dropzone]');
+                                      const droppedOnNav = e.target?.closest?.('[data-nav-dropzone]') || document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-nav-dropzone]');
+                                      if (!droppedOnLibrary && !droppedOnNav && !dropTarget && draggingFromTimeline) {
+                                        const src = itinerary.days?.[draggingFromTimeline.dayIdx]?.plan?.[draggingFromTimeline.pIdx];
+                                        if (src && window.confirm(`'${src.activity || '일정'}'을 삭제하시겠습니까?`)) {
+                                          saveHistory();
+                                          setItinerary(prev => {
+                                            const next = JSON.parse(JSON.stringify(prev));
+                                            next.days[draggingFromTimeline.dayIdx].plan.splice(draggingFromTimeline.pIdx, 1);
+                                            return next;
+                                          });
+                                          triggerUndoToast(`'${src.activity || '일정'}' 삭제됨`);
+                                        }
+                                      }
                                       desktopDragRef.current = null;
                                       setDraggingFromTimeline(null);
                                       setDropTarget(null);
@@ -11083,16 +11099,7 @@ const App = () => {
 
 
 
-          <DragActionBar
-            draggingFromTimeline={draggingFromTimeline}
-            dragBottomTarget={dragBottomTarget}
-            setDragBottomTarget={setDragBottomTarget}
-            getActiveTimelineDragPayload={getActiveTimelineDragPayload}
-            applyTimelineBottomAction={applyTimelineBottomAction}
-            triggerUndoToast={triggerUndoToast}
-            setDraggingFromTimeline={setDraggingFromTimeline}
-            desktopDragRef={desktopDragRef}
-          />
+          {/* DragActionBar 제거 — 네비 밖 드롭 = 삭제, 내장소 드롭 = 이동 */}
           <DragGhost
             draggingFromLibrary={draggingFromLibrary}
             draggingFromTimeline={draggingFromTimeline}

@@ -7518,114 +7518,22 @@ const App = () => {
                                     onClick={() => { setActiveDay(d.day); setActiveItemId(p.id); }}
                                     onMouseEnter={() => { setFocusedMapTarget({ kind: 'timeline', id: p.id }); }}
                                     onMouseLeave={() => { setFocusedMapTarget(prev => prev?.id === p.id ? null : prev); }}
-                                    className={(() => { const _layout = isLastLodge ? 'flex flex-col' : 'grid grid-cols-[auto_1fr_auto]'; const _state = p._timingConflict ? 'bg-red-50' : isActive ? 'bg-blue-50/50' : 'hover:bg-slate-50'; return `${_layout} items-center gap-1 rounded-lg px-1.5 py-1.5 text-left transition-colors relative overflow-hidden border-b border-slate-100/80 ${_state}`; })()}
+                                    className={`flex items-center gap-1.5 px-2 py-1.5 mb-1 text-left transition-colors cursor-pointer ${navCatStyle.accent} ${isActive ? 'ring-2 ring-[#3182F6]' : 'hover:opacity-90'} ${p._timingConflict ? 'ring-2 ring-red-400' : ''}`}
                                   >
-                                    {isLastLodge ? (
-                                      <div className="grid w-full min-w-0 grid-cols-[auto_1fr_auto] items-center gap-1">
-                                        <div className="flex items-center gap-1">
-                                          <span className="w-[18px] h-[18px] rounded-[2px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{getNavItemOrder(p, pIdx, navPlanItems)}</span>
-                                          <span
-                                            className={`text-[10px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-bold text-slate-600' : 'font-bold text-slate-400'}`}
-                                            onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
-                                          >{p.time || '--:--'}</span>
-                                        </div>
-                                        <div className="min-w-0 flex items-center gap-1.5 overflow-hidden">
-                                          <div
-                                            className={`shrink-0 scale-[0.88] origin-left transition-opacity cursor-pointer hover:scale-100 ${isActive ? 'opacity-100' : 'opacity-70'}`}
-                                            onClick={(e) => { e.stopPropagation(); const realPIdx = (itinerary.days?.[dNavIdx]?.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) openPlanEditModal(dNavIdx, realPIdx); }}
-                                          >{getCategoryBadge(navPrimaryType)}</div>
-                                          <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-500' : isActive ? 'font-black text-slate-800' : 'font-bold text-slate-500'}`}>{p.activity}</span>
-                                          {isRouteLoadingNav && (
-                                            <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[8px] font-black leading-none text-[#3182F6]">
-                                              <LoaderCircle size={8} className="animate-spin" />
-                                              경로
-                                            </span>
-                                          )}
-                                          {(p.alternatives?.length || 0) > 0 && (
-                                            <span className={`shrink-0 text-[8px] leading-none px-1.5 py-0.5 rounded border ${isActive ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-amber-500 bg-amber-50/70 border-amber-200/80'}`}>
-                                              B {p.alternatives.length}
-                                            </span>
-                                          )}
-                                        </div>
-                                        {navDisplayDuration > 0 ? (
-                                          <div className="shrink-0 flex items-center gap-1">
-                                            {navBizWarn && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={navBizWarn} />}
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                openNaverPlaceSearch(getPlaceSearchName(p), p.receipt?.address || p.address || '');
-                                              }}
-                                              data-no-drag="true"
-                                              className={`text-[8px] font-black rounded-md px-1.5 py-0.5 leading-none whitespace-nowrap border transition-colors ${navDisplayDuration >= 120 ? 'text-orange-500 bg-orange-50 border-orange-200 hover:bg-orange-100' : isActive ? 'text-slate-500 bg-slate-100 border-slate-200 hover:text-[#3182F6]' : 'text-slate-400 bg-slate-50 border-slate-200 hover:text-[#3182F6] hover:bg-slate-100'}`}
-                                              title="네이버 지도에서 장소 검색"
-                                            >
-                                              {fmtDur(navDisplayDuration)}
-                                            </button>
-                                          </div>
-                                        ) : <span />}
-                                      </div>
-                                    ) : (
-                                      <>
-                                        <div className="flex items-center gap-1">
-                                          <span className="w-[18px] h-[18px] rounded-[2px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{getNavItemOrder(p, pIdx, navPlanItems)}</span>
-                                          <span
-                                            className={`text-[10px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-bold text-slate-600' : 'font-bold text-slate-400'}`}
-                                            onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
-                                          >{p.time || '--:--'}</span>
-                                        </div>
-                                        <div className="min-w-0 flex items-center gap-1.5 overflow-hidden">
-                                          <div
-                                            className={`shrink-0 scale-[0.88] origin-left transition-opacity cursor-pointer hover:scale-100 ${isActive ? 'opacity-100' : 'opacity-70'}`}
-                                            onClick={(e) => { e.stopPropagation(); const realPIdx = (itinerary.days?.[dNavIdx]?.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) openPlanEditModal(dNavIdx, realPIdx); }}
-                                          >{getCategoryBadge(navPrimaryType)}</div>
-                                          <span className={`truncate text-[10px] leading-none ${p._timingConflict ? 'font-black text-red-500' : isActive ? 'font-black text-slate-800' : 'font-bold text-slate-500'}`}>{p.activity}</span>
-                                          {isRouteLoadingNav && (
-                                            <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[8px] font-black leading-none text-[#3182F6]">
-                                              <LoaderCircle size={8} className="animate-spin" />
-                                              경로
-                                            </span>
-                                          )}
-                                          {(p.alternatives?.length || 0) > 0 && (
-                                            <span className={`shrink-0 text-[8px] leading-none px-1.5 py-0.5 rounded border ${isActive ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-amber-500 bg-amber-50/70 border-amber-200/80'}`}>
-                                              B {p.alternatives.length}
-                                            </span>
-                                          )}
-                                        </div>
-                                        {!p.types?.includes('ship') && (() => {
-                                          const dispDur = navDisplayDuration;
-                                          if (!(dispDur > 0)) return null;
-                                          return (
-                                            <div className="shrink-0 flex items-center gap-1">
-                                              {navBizWarn && <span className="w-1.5 h-1.5 rounded-full bg-red-400" title={navBizWarn} />}
-                                              <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  openNaverPlaceSearch(getPlaceSearchName(p), p.receipt?.address || p.address || '');
-                                                }}
-                                                data-no-drag="true"
-                                                className={`text-[8px] font-black rounded-md px-1.5 py-0.5 leading-none whitespace-nowrap border transition-colors ${dispDur >= 120 ? 'text-orange-500 bg-orange-50 border-orange-200 hover:bg-orange-100' : isActive ? 'text-slate-500 bg-slate-100 border-slate-200 hover:text-[#3182F6]' : 'text-slate-400 bg-slate-50 border-slate-200 hover:text-[#3182F6] hover:bg-slate-100'}`}
-                                                title="네이버 지도에서 장소 검색"
-                                              >
-                                                {fmtDur(dispDur)}
-                                              </button>
-                                            </div>
-                                          );
-                                        })()}
-                                        {isActive && (
-                                          <button
-                                            type="button"
-                                            data-no-drag="true"
-                                            onClick={(e) => { e.stopPropagation(); handleNavClick(d.day, p.id); }}
-                                            className="shrink-0 w-5 h-5 flex items-center justify-center rounded bg-[#3182F6] text-white hover:bg-blue-600 transition-colors"
-                                            title="지도에서 보기"
-                                          >
-                                            <ChevronRight size={12} />
-                                          </button>
-                                        )}
-                                      </>
+                                    {/* 번호 */}
+                                    <span className="w-5 h-5 flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{getNavItemOrder(p, pIdx, navPlanItems)}</span>
+                                    {/* 카테고리 뱃지 */}
+                                    <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30 scale-[0.85] origin-left">{getCategoryBadge(navPrimaryType)}</div>
+                                    {/* 이름 */}
+                                    <span className="text-[11px] font-black text-white truncate flex-1">{p.activity || '이름 없음'}</span>
+                                    {/* 시간 */}
+                                    <span className="text-[9px] font-bold text-white/70 tabular-nums shrink-0">{p.time || '--:--'}</span>
+                                    {/* 소요시간 */}
+                                    {navDisplayDuration > 0 && (
+                                      <span className={`text-[8px] font-black px-1 py-0.5 shrink-0 ${navDisplayDuration >= 120 ? 'bg-orange-500/30 text-white' : 'bg-white/20 text-white/80'}`}>{fmtDur(navDisplayDuration)}</span>
                                     )}
+                                    {/* 영업 경고 */}
+                                    {navBizWarn && <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" title={navBizWarn} />}
                                   </div>
                                   {p._timingConflict && navConflictRecommendation && (
                                     <div className="grid grid-cols-[auto_1fr_auto] items-center gap-1 px-1 py-0.5">

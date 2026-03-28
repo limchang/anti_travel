@@ -241,21 +241,18 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = fals
   // 기본: 숫자만 가로로 합치기
   const cellW = isFocused ? 32 : 26;
   const h = sz;
-  const dividerW = 1;
-  const totalW = cellW * n + dividerW * (n - 1);
-  const totalH = h + tailH;
+  const gapW = 3;
+  const totalW = cellW * n + gapW * (n - 1) + 6;
+  const totalH = h + tailH + 4;
 
   const cells = items.map((item, i) => {
-    const isFirst = i === 0;
-    const isLast = i === n - 1;
-    const br = `border-radius:${isFirst ? `${radius}px 0 0 ${radius}px` : isLast ? `0 ${radius}px ${radius}px 0` : '0'};`;
     return `
       <div data-group-idx="${i}" style="
-        width:${cellW}px;height:${h}px;${br}
+        width:${cellW}px;height:${h}px;border-radius:${radius}px;
         background:${item.color};
         display:flex;align-items:center;justify-content:center;
         cursor:pointer;
-        ${i > 0 ? `border-left:${dividerW}px solid rgba(255,255,255,0.5);` : ''}
+        ${i > 0 ? `margin-left:${gapW}px;` : ''}
       ">
         <span style="font-size:${isFocused?'15px':'12px'};font-weight:900;color:#fff;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${item.order}</span>
       </div>`;
@@ -267,7 +264,7 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = fals
     className: '',
     html: `
       <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
-        <div style="display:flex;border-radius:${radius}px;border:${isFocused?'2.5px':'2px'} solid rgba(255,255,255,0.9);overflow:hidden;box-shadow:0 0 0 1.5px ${tailColor};">
+        <div style="display:flex;align-items:center;border-radius:${radius + 2}px;border:${isFocused?'2.5px':'2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};padding:2px;background:rgba(255,255,255,0.9);">
           ${cells}
         </div>
         <div style="width:0;height:0;border-left:${isFocused?6:5}px solid transparent;border-right:${isFocused?6:5}px solid transparent;border-top:${tailH}px solid ${tailColor};margin-top:-1px;"></div>

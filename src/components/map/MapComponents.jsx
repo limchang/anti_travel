@@ -881,18 +881,27 @@ export const RoutePreviewCanvas = ({
       .filter((point) => point.isFocused)
       .map((point) => point.position);
   }, [focusedTarget?.kind, overlayEntries, segmentEntries, showOverlayMarkers, showRouteLines, showTimelineMarkers, timelineEntries]);
-  const lastHoveredElRef = useRef(null);
+  const lastHoveredRef = useRef({ el: null, parent: null, next: null });
   const bringToFront = (e) => {
-    // 이전 hover 마커 원복
-    if (lastHoveredElRef.current && lastHoveredElRef.current !== e.target.getElement()) {
-      lastHoveredElRef.current.style.zIndex = '';
-    }
-    e.target.setZIndexOffset(10000);
     const el = e.target.getElement();
-    if (el) {
-      el.style.zIndex = '99999';
-      lastHoveredElRef.current = el;
+    if (!el) return;
+    // 이전 hover 마커를 원래 pane으로 복원
+    const prev = lastHoveredRef.current;
+    if (prev.el && prev.el !== el && prev.parent) {
+      prev.el.style.zIndex = '';
+      try { prev.parent.insertBefore(prev.el, prev.next); } catch {}
     }
+    // 현재 마커를 최상위로: 맵 컨테이너의 marker-pane 최상위로 이동
+    const mapContainer = el.closest('.leaflet-map-pane');
+    const originalParent = el.parentNode;
+    const originalNext = el.nextSibling;
+    if (mapContainer) {
+      // 맵 pane 바로 아래에 임시로 옮겨서 모든 pane 위에 표시
+      el.style.zIndex = '99999';
+      el.style.position = 'absolute';
+      mapContainer.appendChild(el);
+    }
+    lastHoveredRef.current = { el, parent: originalParent, next: originalNext };
   };
   const rawVisibleTimelineEntries = showTimelineMarkers ? timelineEntries : [];
   const visibleSegmentEntries = showRouteLines

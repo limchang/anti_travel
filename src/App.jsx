@@ -6927,14 +6927,6 @@ const App = () => {
         <div className="flex-1" />
         <button
           type="button"
-          onClick={() => setShowTimelineOverlay(prev => !prev)}
-          className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all shrink-0 ${showTimelineOverlay ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
-          title={showTimelineOverlay ? '지도 보기' : '상세 일정 편집'}
-        >
-          <Pencil size={14} />
-        </button>
-        <button
-          type="button"
           onClick={() => setIsEditMode(prev => !prev)}
           className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all shrink-0 ${isEditMode ? 'border-amber-300 bg-amber-50 text-amber-600' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
           title={isEditMode ? '편집 잠금' : '드래그 편집 활성화'}
@@ -8121,6 +8113,15 @@ const App = () => {
                         />
                         {/* 오버레이 버튼: 상단 중앙 바 */}
                         <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-1 flex-wrap px-2 py-1.5 bg-white/90 backdrop-blur-md shadow-lg border border-slate-200/50 max-w-[calc(100vw-32px)]" data-no-map-clear="true">
+                          {/* 상세 일정 편집 */}
+                          <button
+                            type="button"
+                            onClick={() => setShowTimelineOverlay(prev => !prev)}
+                            className={`flex items-center gap-1 h-8 px-2.5 border text-[11px] font-black transition-all shrink-0 ${showTimelineOverlay ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+                          >
+                            <Pencil size={11} />
+                            <span className="hidden sm:inline">{showTimelineOverlay ? '닫기' : '일정'}</span>
+                          </button>
                           {/* 기준시 */}
                           {(() => {
                             const { refTime } = getActiveRefContext();
@@ -8568,15 +8569,15 @@ const App = () => {
 
       <div
         className={showTimelineOverlay
-          ? 'fixed inset-0 z-[250] flex flex-col items-center bg-slate-950/40 backdrop-blur-sm overflow-y-auto pt-14 pb-8'
+          ? 'fixed z-[250] flex flex-col bg-white border border-slate-200 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.25)] overflow-y-auto'
           : `flex-1 flex flex-col items-center w-full min-h-screen ${mapEditMode || isMobileLayout ? 'max-w-0 overflow-hidden' : 'bg-slate-50'}`
         }
-        style={showTimelineOverlay ? {} : { marginLeft: mapEditMode || isMobileLayout ? 0 : mainContentLeftInset, marginRight: mapEditMode || isMobileLayout ? 0 : mainContentRightInset }}
-        onClick={showTimelineOverlay ? (e) => { if (e.target === e.currentTarget) setShowTimelineOverlay(false); } : undefined}
+        style={showTimelineOverlay ? { left: '50%', transform: 'translateX(-50%)', top: 108, width: Math.min(340, viewportWidth - 32), maxHeight: 'calc(100vh - 120px)' } : { marginLeft: mapEditMode || isMobileLayout ? 0 : mainContentLeftInset, marginRight: mapEditMode || isMobileLayout ? 0 : mainContentRightInset }}
+        onClick={undefined}
       >
         {/* 일정 목록 */}
         <div
-          className={`w-full pb-32 ${showTimelineOverlay ? 'px-4 max-w-[480px] mx-auto bg-white rounded-t-2xl shadow-[0_-8px_40px_rgba(0,0,0,0.15)] pt-4 min-h-screen relative' : isMobileLayout ? 'px-4 pt-8' : 'px-4 max-w-[500px] mx-auto pt-8'}`}
+          className={`w-full pb-16 ${showTimelineOverlay ? 'px-3 pt-3' : isMobileLayout ? 'px-4 pt-8' : 'px-4 max-w-[500px] mx-auto pt-8'}`}
           onTouchStart={handleMainColumnTouchStart}
           onTouchEnd={handleMainColumnTouchEnd}
           onTouchCancel={handleMainColumnTouchEnd}

@@ -8245,7 +8245,7 @@ const App = () => {
                           activeItemId={activeItemId}
                         />
                         {/* 오버레이 버튼: 상단 중앙 바 */}
-                        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-1 flex-wrap px-2 py-1.5 rounded-xl bg-white/90 backdrop-blur-md shadow-lg border border-slate-200/50 max-w-[calc(100vw-32px)]" data-no-map-clear="true">
+                        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-1 flex-wrap px-2 py-1.5 rounded-xl bg-white/90 backdrop-blur-md shadow-lg border border-slate-200/50 max-w-[calc(100vw-32px)]" data-no-map-clear="true">
                             {/* 기준시 */}
                             {(() => {
                               const { refTime } = getActiveRefContext();

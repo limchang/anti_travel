@@ -79,19 +79,19 @@ transition-all    0개 ✅
 drop-shadow       7개 (마커 컨테이너)
 stopPropagation   116개 ⚠️
 z-index 종류      25개 ⚠️
-JSON 깊은복사      86개 ⚠️
+structuredClone    86개 ✅ (JSON.parse/stringify에서 교체)
 ```
 
 ---
 
 ## 미해결 — P0 (CRITICAL)
 
-- [ ] **경로 초기 로드 불안정** — 2초 딜레이 후 refreshRoutePreviewMap 호출하지만 불안정. geo 동기화 완료 이벤트 기반으로 변경 필요
+- [x] **경로 초기 로드** — 2초 딜레이 → geo 동기화 완료 감지 방식으로 변경 완료
 
 ## 미해결 — P1 (HIGH)
 
 - [ ] **Zustand destructure 패턴** — App에서 전부 꺼내써서 리렌더 감소 없음. 하위 컴포넌트에서 직접 구독해야 효과
-- [ ] **JSON.parse(JSON.stringify) 86곳** → structuredClone 또는 immer
+- [x] **JSON.parse(JSON.stringify) 86곳** → structuredClone 교체 완료
 - [ ] **z-index 25종 → CSS 변수로 실제 적용** — 현재 변수만 정의, 코드에서 아직 미사용
 - [ ] **App.jsx 컴포넌트 분리** — 최소 5개 추출:
   - NavPanel.jsx / PlacesPanel.jsx / MapOverlayBar.jsx / QuickViewModal.jsx / TimelineOverlay.jsx

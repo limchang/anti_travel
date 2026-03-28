@@ -7722,34 +7722,6 @@ const App = () => {
                   </div>
                 ))}
               </nav>
-              {/* ── 일정 개요 ── */}
-              {(() => {
-                const { usedPct, visitPlanCount, visitPerHour, travelIntensity } = heroStats;
-                const totalDays = itinerary.days?.length || 0;
-                const totalItems = (itinerary.days || []).reduce((s, d) => s + (d.plan || []).filter(p => p.type !== 'backup').length, 0);
-                return (
-                  <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-2">
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <div className="rounded-lg bg-slate-50 px-2.5 py-2">
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">일정</p>
-                        <p className="text-[13px] font-black text-slate-700 mt-0.5">{totalDays}일 {totalItems}개</p>
-                      </div>
-                      <div className="rounded-lg bg-slate-50 px-2.5 py-2">
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">예산</p>
-                        <p className="text-[13px] font-black text-slate-700 mt-0.5">{usedPct}%<span className="text-[9px] font-bold text-slate-400 ml-1">사용</span></p>
-                      </div>
-                      <div className="rounded-lg bg-slate-50 px-2.5 py-2">
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">여행 강도</p>
-                        <p className="text-[13px] font-black text-slate-700 mt-0.5">{travelIntensity.label}</p>
-                      </div>
-                      <div className="rounded-lg bg-slate-50 px-2.5 py-2">
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">방문 밀도</p>
-                        <p className="text-[13px] font-black text-slate-700 mt-0.5">{visitPerHour.toFixed(1)}<span className="text-[9px] font-bold text-slate-400 ml-0.5">개/h</span></p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
 
             {!(mapEditMode || isMobileLayout) && <NavBottomMenu
@@ -7813,6 +7785,39 @@ const App = () => {
         )}
         {/* 버전 뱃지 — 비활성화 */}
       </div>
+
+      {/* ── 일정 개요 플로팅 위젯 ── */}
+      {(mapEditMode || isMobileLayout) && (() => {
+        const { usedPct, visitPerHour, travelIntensity } = heroStats;
+        const totalDays = itinerary.days?.length || 0;
+        const totalItems = (itinerary.days || []).reduce((s, d) => s + (d.plan || []).filter(p => p.type !== 'backup').length, 0);
+        return (
+          <div
+            className="fixed z-[270] bg-white/95 backdrop-blur-lg rounded-2xl border border-slate-200/50 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.2)]"
+            style={{ left: 16, bottom: 16, width: Math.min(340, viewportWidth - 32) }}
+            data-no-map-clear="true"
+          >
+            <div className="grid grid-cols-4 gap-0 divide-x divide-slate-100">
+              <div className="px-2.5 py-2.5 text-center">
+                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">일정</p>
+                <p className="text-[12px] font-black text-slate-700 mt-0.5">{totalDays}일 {totalItems}개</p>
+              </div>
+              <div className="px-2.5 py-2.5 text-center">
+                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">예산</p>
+                <p className="text-[12px] font-black text-slate-700 mt-0.5">{usedPct}%</p>
+              </div>
+              <div className="px-2.5 py-2.5 text-center">
+                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">강도</p>
+                <p className="text-[12px] font-black text-slate-700 mt-0.5">{travelIntensity.label}</p>
+              </div>
+              <div className="px-2.5 py-2.5 text-center">
+                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">밀도</p>
+                <p className="text-[12px] font-black text-slate-700 mt-0.5">{visitPerHour.toFixed(1)}/h</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div
         className={(mapEditMode || isMobileLayout)

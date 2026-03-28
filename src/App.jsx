@@ -33,6 +33,8 @@ import { SmartFillGuideModal, GUIDE_DOC_PATH, isLegacySmartFillGuideContent } fr
 import useUIStore from './stores/useUIStore.js';
 import useToastStore from './stores/useToastStore.js';
 import useMapStore from './stores/useMapStore.js';
+import useDragStore from './stores/useDragStore.js';
+import useEditorStore from './stores/useEditorStore.js';
 import {
   Navigation, MessageSquare, LogOut, User as UserIcon,
   Hourglass, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
@@ -218,6 +220,43 @@ const App = () => {
     mapExpanded, setMapExpanded,
   } = useMapStore();
 
+  const {
+    draggingFromLibrary, setDraggingFromLibrary,
+    draggingFromTimeline, setDraggingFromTimeline,
+    isDroppingOnDeleteZone, setIsDroppingOnDeleteZone,
+    dragBottomTarget, setDragBottomTarget,
+    dropTarget, setDropTarget,
+    dropOnItem, setDropOnItem,
+    isDragCopy, setIsDragCopy,
+    dragCoord, setDragCoord,
+    touchDragLock, setTouchDragLock,
+  } = useDragStore();
+
+  const {
+    editingPlaceId, setEditingPlaceId,
+    editPlaceDraft, setEditPlaceDraft,
+    editingPlanTarget, setEditingPlanTarget,
+    editPlanDraft, setEditPlanDraft,
+    isAddingPlace, setIsAddingPlace,
+    isAddingPlaceAutoFill, setIsAddingPlaceAutoFill,
+    newPlaceName, setNewPlaceName,
+    newPlaceTypes, setNewPlaceTypes,
+    tagEditorTarget, setTagEditorTarget,
+    businessEditorTarget, setBusinessEditorTarget,
+    viewingPlanIdx, setViewingPlanIdx,
+    ferryEditField, setFerryEditField,
+    expandedId, setExpandedId,
+    expandedPlaceId, setExpandedPlaceId,
+    pendingPlanMenuFocus, setPendingPlanMenuFocus,
+    timeControllerTarget, setTimeControllerTarget,
+    timeControlStep, setTimeControlStep,
+    timelineEndTimeDraft, setTimelineEndTimeDraft,
+    lodgeCheckoutDraft, setLodgeCheckoutDraft,
+    isTimeWheelDragging, setIsTimeWheelDragging,
+    planVariantPicker, setPlanVariantPicker,
+    libraryTypeModal, setLibraryTypeModal,
+  } = useEditorStore();
+
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState('');
@@ -374,7 +413,7 @@ const App = () => {
 
   const entryChooserShownRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [draggingFromLibrary, setDraggingFromLibrary] = useState(null);
+  // draggingFromLibrary → useDragStore
   const [mobileSelectedLibraryPlace, setMobileSelectedLibraryPlace] = useState(null);
   const [placeFilterTags, setPlaceFilterTags] = useState([]); // 내 장소 필터링 태그
   const filterLongPressTimerRef = useRef(null);
@@ -382,36 +421,36 @@ const App = () => {
   // showPlaceCategoryManager → useUIStore
   // showPlaceMenu → useUIStore
   const [showPlaceTrash, setShowPlaceTrash] = useState(false);
-  const [draggingFromTimeline, setDraggingFromTimeline] = useState(null);
-  const [isDroppingOnDeleteZone, setIsDroppingOnDeleteZone] = useState(false);
-  const [dragBottomTarget, setDragBottomTarget] = useState('');
-  const [dropTarget, setDropTarget] = useState(null);
-  const [dropOnItem, setDropOnItem] = useState(null); // { dayIdx, pIdx } — Plan B 드롭 대상
-  const [isDragCopy, setIsDragCopy] = useState(false); // Ctrl+드래그 시 복사 모드
-  const [dragCoord, setDragCoord] = useState({ x: 0, y: 0 });
+  // draggingFromTimeline → useDragStore
+  // isDroppingOnDeleteZone → useDragStore
+  // dragBottomTarget → useDragStore
+  // dropTarget → useDragStore
+  // dropOnItem → useDragStore
+  // isDragCopy → useDragStore
+  // dragCoord → useDragStore
   const desktopDragRef = useRef(null);
   const ctrlHeldRef = useRef(false);
   const saveItineraryRef = useRef(null);
-  const [isAddingPlace, setIsAddingPlace] = useState(false);
-  const [isAddingPlaceAutoFill, setIsAddingPlaceAutoFill] = useState(false);
+  // isAddingPlace → useEditorStore
+  // isAddingPlaceAutoFill → useEditorStore
   const addPlaceLongPressTimerRef = React.useRef(null);
   // showAddPlaceMenu → useUIStore
   // showBulkAddModal → useUIStore
   const [bulkAddText, setBulkAddText] = useState('');
   const [bulkAddParsed, setBulkAddParsed] = useState([]); // [{ name, address, types, selected }]
   const [bulkAddLoading, setBulkAddLoading] = useState(false);
-  const [newPlaceName, setNewPlaceName] = useState('');
-  const [newPlaceTypes, setNewPlaceTypes] = useState(['food']);
+  // newPlaceName → useEditorStore
+  // newPlaceTypes → useEditorStore
   const resetNewPlaceDraft = useCallback(() => {
     setNewPlaceName('');
     setNewPlaceTypes(['food']);
     setIsAddingPlace(false);
     setIsAddingPlaceAutoFill(false);
   }, []);
-  const [editingPlaceId, setEditingPlaceId] = useState(null);
-  const [editPlaceDraft, setEditPlaceDraft] = useState(null);
-  const [editingPlanTarget, setEditingPlanTarget] = useState(null);
-  const [editPlanDraft, setEditPlanDraft] = useState(null);
+  // editingPlaceId → useEditorStore
+  // editPlaceDraft → useEditorStore
+  // editingPlanTarget → useEditorStore
+  // editPlanDraft → useEditorStore
   const [useAiSmartFill, setUseAiSmartFill] = useState(() => safeLocalStorageGet('use_ai_smart_fill', 'true') === 'true');
   const [aiSmartFillConfig, setAiSmartFillConfig] = useState(() => {
     const raw = safeLocalStorageGet('ai_smart_fill_config', '');
@@ -452,14 +491,14 @@ const App = () => {
   const infoToastTimerRef = React.useRef(null);
   const dragEditHintToastRef = React.useRef(0);
   const mobileLibraryLongPressRef = useRef({ timer: null, startX: 0, startY: 0, placeId: '', triggered: false });
-  const [expandedId, setExpandedId] = useState(null);
-  const [expandedPlaceId, setExpandedPlaceId] = useState(null);
-  const [pendingPlanMenuFocus, setPendingPlanMenuFocus] = useState(null); // { dayIdx, pIdx, menuIdx }
-  const [timeControllerTarget, setTimeControllerTarget] = useState(null); // { kind, dayIdx, pIdx, left, top, width }
-  const [timeControlStep, setTimeControlStep] = useState(1);
-  const [timelineEndTimeDraft, setTimelineEndTimeDraft] = useState(null); // { key, value }
-  const [lodgeCheckoutDraft, setLodgeCheckoutDraft] = useState(null); // { key, value }
-  const [isTimeWheelDragging, setIsTimeWheelDragging] = useState(false);
+  // expandedId → useEditorStore
+  // expandedPlaceId → useEditorStore
+  // pendingPlanMenuFocus → useEditorStore
+  // timeControllerTarget → useEditorStore
+  // timeControlStep → useEditorStore
+  // timelineEndTimeDraft → useEditorStore
+  // lodgeCheckoutDraft → useEditorStore
+  // isTimeWheelDragging → useEditorStore
   const [isManualPlanSaving, setIsManualPlanSaving] = useState(false);
   const timeControllerAutoCloseTimerRef = useRef(null);
   const saveQueueRef = useRef({ inFlight: false, pending: null });
@@ -553,7 +592,7 @@ const App = () => {
   // Web Push (FCM) 비활성화 (사용량 최소화)
 
 
-  const [planVariantPicker, setPlanVariantPicker] = useState(null); // { dayIdx, pIdx, left, top }
+  // planVariantPicker → useEditorStore
   const conflictAlertKeyRef = useRef('');
   const [lastAction, setLastAction] = useState("3일차 시작 일정이 수정되었습니다.");
   const [aiSuggestions, setAiSuggestions] = useState({});
@@ -573,7 +612,7 @@ const App = () => {
   const touchStartPosRef = useRef({ x: 0, y: 0, tracking: false });
   const isDraggingActiveRef = useRef(false);
   const dragGhostRef = useRef(null);
-  const [touchDragLock, setTouchDragLock] = useState(false);
+  // touchDragLock → useDragStore
   const touchLockStateRef = useRef({ overflow: '', touchAction: '' });
   const touchDragSourceRef = useRef(null); // { kind, place?, payload?, startX, startY }
   const executeTouchDropRef = useRef(null);
@@ -779,10 +818,10 @@ const App = () => {
   const [leftPanelW, setLeftPanelW] = useState(() => { try { return Number(localStorage.getItem('leftPanelW')) || 280; } catch { return 280; } });
   const [rightPanelW, setRightPanelW] = useState(() => { try { return Number(localStorage.getItem('rightPanelW')) || 440; } catch { return 440; } });
   const panelResizingRef = React.useRef(null); // { side: 'left'|'right', startX, startW }
-  const [tagEditorTarget, setTagEditorTarget] = useState(null); // {dayIdx, pIdx}
-  const [businessEditorTarget, setBusinessEditorTarget] = useState(null); // {dayIdx, pIdx}
-  const [viewingPlanIdx, setViewingPlanIdx] = useState({}); // {[itemId]: altIdx} — -1 = main plan A
-  const [ferryEditField, setFerryEditField] = useState(null); // { pId, field: 'load'|'depart' }
+  // tagEditorTarget → useEditorStore
+  // businessEditorTarget → useEditorStore
+  // viewingPlanIdx → useEditorStore
+  // ferryEditField → useEditorStore
   const [routeCache, setRouteCache] = useState(() => {
     try {
       const saved = localStorage.getItem('anti_planer_route_cache');
@@ -805,7 +844,7 @@ const App = () => {
   // showOverviewLibraryPoints → useMapStore
   const [showLibraryCategoryModal, setShowLibraryCategoryModal] = useState(false);
   // focusedLibraryMarkerId → useMapStore
-  const [libraryTypeModal, setLibraryTypeModal] = useState(null); // { placeId, types: [] }
+  // libraryTypeModal → useEditorStore
   const [libraryCategoryModalPos, setLibraryCategoryModalPos] = useState({ top: 200, right: 16 });
   const routePreviewSegmentCacheRef = useRef({});
   useEffect(() => {

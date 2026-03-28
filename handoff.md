@@ -57,27 +57,15 @@
 
 ### P0: 치명적
 - [ ] **경로 초기 로드 불안정** — refreshRoutePreviewMap이 최초에 제대로 실행 안 됨. 2초 딜레이 후 호출하지만 불안정. 근본 원인: geo 동기화 완료 시점과 경로 빌드 시점 불일치
-- [ ] **dead code 정리** — `{false && isMobileLayout && col1Collapsed}` (line ~7437), `{false ? null : ...}` (line ~7878)
-- [ ] **App_utf8.jsx 중복 파일** — 삭제 필요
+- [x] **dead code 정리** — `{false && ...}`, `{false ? null : ...}` 제거 완료
+- [x] **App_utf8.jsx 중복 파일** — 삭제 완료 (-4,266줄)
 
 ### P1: 높은 우선순위
 - [ ] **Zustand destructure 패턴 개선** — 현재 App에서 전부 꺼내쓰므로 실질적 리렌더 감소 없음. 하위 컴포넌트에서 직접 `useUIStore(s => s.showNavMenu)` 사용해야 효과 있음
 - [ ] **JSON.parse(JSON.stringify) 86곳** → immer 또는 structuredClone으로 교체
-- [ ] **z-index 체계화** — CSS variables로 레이어 시스템 정의
-  ```css
-  :root {
-    --z-map: 1;
-    --z-panel: 220;
-    --z-nav: 280;
-    --z-menubar: 310;
-    --z-modal: 400;
-    --z-dropdown: 9990;
-    --z-quickview: 10000;
-    --z-toast: 10100;
-  }
-  ```
-- [ ] **CSS `[class*="rounded"]` 규칙 정리** — 현재 모든 rounded를 0으로 강제. 직각 디자인 원하면 Tailwind config에서 `borderRadius: { DEFAULT: '0' }` 설정이 올바른 방법
-- [ ] **resize 핸들러 디바운스** — `setViewportWidth`가 매 resize마다 호출
+- [x] **z-index 체계화** — CSS variables 레이어 시스템 정의 완료 (index.css :root)
+- [x] **CSS rounded 규칙 정리** — `[class*="rounded"]` !important 제거 → tailwind.config.js borderRadius: 0 으로 올바르게 설정
+- [x] **resize 핸들러 디바운스** — rAF 디바운스 적용 완료
 
 ---
 

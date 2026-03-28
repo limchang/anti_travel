@@ -1231,7 +1231,7 @@ export const RoutePreviewCanvas = ({
           })()}
         </Pane>
         <Pane name="route-labels" style={{ zIndex: 470 }}>
-          {visibleSegmentEntries.map((segment) => {
+          {mapZoom >= 10 && visibleSegmentEntries.map((segment) => {
             if (!segment.midPos || segment.isFallbackLine) return null;
             const mins = segment.durationMins;
             if (!mins || mins < 5) return null;

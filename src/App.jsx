@@ -2498,6 +2498,15 @@ const App = () => {
     }
   }, [attachRoutePreviewSegments, resolveRoutePreviewDays, routePreviewSourceSignature]);
 
+  // 앱 시작 시 경로 강제 새로고침
+  const routeInitialLoadRef = useRef(false);
+  useEffect(() => {
+    if (routeInitialLoadRef.current) return;
+    routeInitialLoadRef.current = true;
+    const timer = setTimeout(() => refreshRoutePreviewMap(), 1500);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // 장소 추가/삭제 시 지도 자동 새로고침 + 추가된 장소 포커스
   const prevPlacesLenRef = React.useRef((itinerary.places || []).length);
   useEffect(() => {

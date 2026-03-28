@@ -6987,11 +6987,10 @@ const App = () => {
       {editingPlaceId && editPlaceDraft && (
         <div
           className="fixed inset-0 z-[400] flex items-center justify-center"
-          style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }}
           onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }}
         >
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-          <div className="relative flex justify-center px-3" style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }} onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-[420px] px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceEditorCard
               className="mx-auto"
               maxModalHeight="85vh"
@@ -7128,11 +7127,10 @@ const App = () => {
       {editingPlanTarget && editPlanDraft && (
         <div
           className="fixed inset-0 z-[400] flex items-center justify-center"
-          style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }}
           onClick={() => { setEditingPlanTarget(null); setEditPlanDraft(null); }}
         >
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-          <div className="relative flex justify-center px-3" style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }} onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-[420px] px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceEditorCard
               className="mx-auto"
               maxModalHeight="85vh"
@@ -7262,11 +7260,10 @@ const App = () => {
       {isAddingPlace && (
         <div
           className="fixed inset-0 z-[400] flex items-center justify-center"
-          style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }}
           onClick={resetNewPlaceDraft}
         >
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-          <div className="relative flex justify-center px-3" style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }} onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-[420px] px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceAddForm
               newPlaceName={newPlaceName}
               setNewPlaceName={setNewPlaceName}

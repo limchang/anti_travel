@@ -312,9 +312,9 @@ const App = () => {
   const [perplexityNearbyModal, setPerplexityNearbyModal] = useState({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' });
   const [showAiSettings, setShowAiSettings] = useState(false);
   const [navAiExpanded, setNavAiExpanded] = useState(false);
-  const [navFloatingExpanded, setNavFloatingExpanded] = useState(true);
+  const [navFloatingExpanded, setNavFloatingExpanded] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1100);
   const [showTimelineOverlay, setShowTimelineOverlay] = useState(false);
-  const [bottomPanelExpanded, setBottomPanelExpanded] = useState(true);
+  const [bottomPanelExpanded, setBottomPanelExpanded] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1100);
   const [showPlanOptions, setShowPlanOptions] = useState(false);
   const [showNavMenu, setShowNavMenu] = useState(false);
   const [highlightedPlaceId, setHighlightedPlaceId] = useState(null);

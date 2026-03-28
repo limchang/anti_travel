@@ -9,7 +9,7 @@ const useEditorStore = create((set, get) => ({
   isAddingPlace: false,
   isAddingPlaceAutoFill: false,
   newPlaceName: '',
-  newPlaceTypes: ['place'],
+  newPlaceTypes: ['food'],
 
   // Editor targets
   tagEditorTarget: null,
@@ -20,7 +20,7 @@ const useEditorStore = create((set, get) => ({
   expandedPlaceId: null,
   pendingPlanMenuFocus: null,
   timeControllerTarget: null,
-  timeControlStep: 5,
+  timeControlStep: 1,
   timelineEndTimeDraft: null,
   lodgeCheckoutDraft: null,
   isTimeWheelDragging: false,

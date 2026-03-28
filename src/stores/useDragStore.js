@@ -4,11 +4,11 @@ const useDragStore = create((set, get) => ({
   draggingFromLibrary: null,
   draggingFromTimeline: null,
   isDroppingOnDeleteZone: false,
-  dragBottomTarget: null,
+  dragBottomTarget: '',
   dropTarget: null,
   dropOnItem: null,
   isDragCopy: false,
-  dragCoord: null,
+  dragCoord: { x: 0, y: 0 },
   touchDragLock: false,
 
   setDraggingFromLibrary: (v) => set({ draggingFromLibrary: v }),
@@ -27,7 +27,7 @@ const useDragStore = create((set, get) => ({
     dropTarget: null,
     dropOnItem: null,
     isDragCopy: false,
-    dragCoord: null,
+    dragCoord: { x: 0, y: 0 },
   }),
 }));
 

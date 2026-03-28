@@ -14,7 +14,7 @@ const useEditorStore = create((set, get) => ({
   // Editor targets
   tagEditorTarget: null,
   businessEditorTarget: null,
-  viewingPlanIdx: null,
+  viewingPlanIdx: {},
   ferryEditField: null,
   expandedId: null,
   expandedPlaceId: null,

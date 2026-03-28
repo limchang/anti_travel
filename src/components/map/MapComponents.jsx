@@ -911,7 +911,7 @@ export const RoutePreviewCanvas = ({
     // 줌 레벨에 따른 클러스터 반경 계산 (픽셀 40px 기준 → 도 단위 변환)
     // 위도 1도 ≈ 111km, 줌 z에서 1픽셀 ≈ 156543 * cos(lat) / 2^z 미터
     const metersPerPixel = 156543 / Math.pow(2, mapZoom);
-    const clusterRadiusDeg = (metersPerPixel * 70) / 111320; // 70px 반경
+    const clusterRadiusDeg = (metersPerPixel * (showLibraryNames ? 140 : 70)) / 111320; // 이름 모드 140px, 아이콘 모드 70px
 
     // 1) 내장소(place) 마커끼리 근접 클러스터링 (줌 기반 반경)
     const placeEntries = rawVisibleOverlayEntries.filter((e) => e.kind === 'place');

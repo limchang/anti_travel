@@ -7769,8 +7769,8 @@ const App = () => {
               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                 {/* 장소 추가 */}
                 <div className="relative">
-                  <button type="button" onClick={() => setShowAddPlaceMenu(v => !v)} className="flex items-center gap-1 px-2 py-1 bg-[#3182F6] text-white text-[10px] font-black hover:bg-blue-600 transition-colors shrink-0">
-                    <Plus size={10} /> 추가
+                  <button type="button" onClick={() => setShowAddPlaceMenu(v => !v)} className="flex items-center gap-1 h-8 px-2.5 bg-[#3182F6] text-white text-[11px] font-black hover:bg-blue-600 transition-colors shrink-0">
+                    <Plus size={11} /> 추가
                   </button>
                   {showAddPlaceMenu && (
                     <>
@@ -7791,7 +7791,7 @@ const App = () => {
                 </div>
                 {/* 카테고리 필터 */}
                 <div className="relative">
-                  <button type="button" onClick={() => setShowPlaceCategoryManager(prev => !prev)} className={`flex items-center gap-1 px-2 py-1 border text-[10px] font-black transition-all shrink-0 ${placeFilterTags.length === 0 ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-[#3182F6]'}`}>
+                  <button type="button" onClick={() => setShowPlaceCategoryManager(prev => !prev)} className={`flex items-center gap-1 h-8 px-2.5 border text-[11px] font-black transition-all shrink-0 ${placeFilterTags.length === 0 ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-[#3182F6]'}`}>
                     {placeFilterTags.length === 0 ? '전체' : (() => { const _fto = [...TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit'), ...customPlaceCategories.map(t => ({ value: t, label: getCustomTagLabel(t) }))]; const allKnown = _fto.map(t => t.value); const active = allKnown.filter(v => !placeFilterTags.includes(v) && (categoryCounts[v] || 0) > 0); return active.length === 1 ? (_fto.find(t => t.value === active[0])?.label || active[0]) : `${active.length}개`; })()}
                     <ChevronDown size={9} />
                   </button>
@@ -8195,8 +8195,8 @@ const App = () => {
                             let datePart = '';
                             if (tripStartDate) { const ad = itinerary.days?.find(dd => dd.day === activeDay); if (ad) { const dt = new Date(tripStartDate); dt.setDate(dt.getDate() + (ad.day - 1)); datePart = `${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}`; }}
                             return (
-                              <span className="flex items-center gap-1 px-2 py-1 border border-slate-200 bg-white text-[10px] font-black text-slate-500 shrink-0">
-                                <Clock size={10} />
+                              <span className="flex items-center gap-1 h-8 px-2.5 border border-slate-200 bg-white text-[11px] font-black text-slate-500 shrink-0">
+                                <Clock size={11} />
                                 기준 {datePart} {refTime}
                               </span>
                             );
@@ -8213,7 +8213,7 @@ const App = () => {
                                   setOverviewMapRouteVisible(true);
                                 }
                               }}
-                              className={`shrink-0 border px-2 py-1 text-[11px] font-black transition-colors ${overviewMapScope === 'all' && overviewMapRouteVisible ? 'border-[#3182F6]/50 bg-[#3182F6] text-white' : overviewMapScope === 'all' && !overviewMapRouteVisible ? 'border-slate-200 bg-slate-100 text-slate-300 line-through' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
+                              className={`shrink-0 border h-8 px-2.5 text-[11px] font-black transition-colors flex items-center ${overviewMapScope === 'all' && overviewMapRouteVisible ? 'border-[#3182F6]/50 bg-[#3182F6] text-white' : overviewMapScope === 'all' && !overviewMapRouteVisible ? 'border-slate-200 bg-slate-100 text-slate-300 line-through' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
                             >전체</button>
                             {mapDayOptions.map((option) => {
                               const active = overviewMapScope === 'day' && Number(overviewMapDayFilter) === Number(option.day);
@@ -8222,7 +8222,7 @@ const App = () => {
                                   key={`lib-map-day-ov-${option.day}`}
                                   type="button"
                                   onClick={() => { setOverviewMapScope('day'); setOverviewMapDayFilter(option.day); setOverviewMapRouteVisible(true); }}
-                                  className={`shrink-0 border px-2 py-1 text-[11px] font-black transition-colors ${active ? 'border-[#3182F6]/50 bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
+                                  className={`shrink-0 border h-8 px-2.5 text-[11px] font-black transition-colors flex items-center ${active ? 'border-[#3182F6]/50 bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
                                 >{option.label}</button>
                               );
                             })}
@@ -8230,7 +8230,7 @@ const App = () => {
                             <button
                               type="button"
                               onClick={() => setShowOverviewLibraryPoints((v) => !v)}
-                              className={`flex items-center gap-0.5 px-2 py-1 border text-[10px] font-black transition-all ${showOverviewLibraryPoints ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
+                              className={`flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-all ${showOverviewLibraryPoints ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
                               title="내장소"
                             >
                               <Package size={10} />
@@ -8238,7 +8238,7 @@ const App = () => {
                             <button
                               type="button"
                               onClick={() => setHideLongRouteSegments((v) => !v)}
-                              className={`flex items-center gap-0.5 px-2 py-1 border text-[10px] font-black transition-all ${hideLongRouteSegments ? 'border-orange-400 bg-orange-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
+                              className={`flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-all ${hideLongRouteSegments ? 'border-orange-400 bg-orange-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
                               title={hideLongRouteSegments ? '장거리 숨김' : '장거리 표시'}
                             >
                               <Eye size={10} />
@@ -8248,7 +8248,7 @@ const App = () => {
                                 key={action.id}
                                 type="button"
                                 onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
-                                className={`flex items-center gap-0.5 px-2 py-1 border text-[10px] font-black transition-all ${action.hidden ? 'border-orange-400 bg-orange-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
+                                className={`flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-all ${action.hidden ? 'border-orange-400 bg-orange-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
                                 title={action.id.endsWith('ship-start') ? '출발' : '도착'}
                               >
                                 <Anchor size={10} />
@@ -8257,7 +8257,7 @@ const App = () => {
                             <button
                               type="button"
                               onClick={() => setMapTileStyle(prev => (prev + 1) % 3)}
-                              className="flex items-center gap-0.5 px-2 py-1 border text-[10px] font-black transition-all border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]"
+                              className="flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-all border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]"
                               title="지도 스타일 변경"
                             >
                               <MapIcon size={10} />
@@ -8266,7 +8266,7 @@ const App = () => {
                               type="button"
                               onClick={refreshRoutePreviewMap}
                               disabled={routePreviewManualRefreshing}
-                              className={`flex items-center justify-center px-2 py-1 border text-[10px] font-black transition-all ${routePreviewManualRefreshing ? 'border-blue-400 bg-blue-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
+                              className={`flex items-center justify-center h-8 w-8 border text-[11px] font-black transition-all ${routePreviewManualRefreshing ? 'border-blue-400 bg-blue-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
                               title="새로고침"
                             >
                               <RotateCcw size={10} className={routePreviewManualRefreshing ? 'animate-spin' : ''} />

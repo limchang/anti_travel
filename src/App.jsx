@@ -8352,7 +8352,7 @@ const App = () => {
                           {placeFilterTags.length === 0 ? '전체' : (() => {
                             const allKnown = filterTagOptions.map(t => t.value);
                             const active = allKnown.filter(v => !placeFilterTags.includes(v) && (categoryCounts[v] || 0) > 0);
-                            return active.length === 1 ? (filterTagOptions.find(t => t.value === active[0])?.label || active[0]) : `${active.length}개 선택`;
+                            return active.length === 1 ? (filterTagOptions.find(t => t.value === active[0])?.label || active[0]) : `${active.length}개`;
                           })()}
                           <ChevronDown size={10} />
                         </button>
@@ -8364,23 +8364,25 @@ const App = () => {
                                 type="button"
                                 onClick={() => { setPlaceFilterTags([]); setShowPlaceCategoryManager(false); }}
                                 className={`w-full flex items-center gap-2 px-2.5 py-2 text-left text-[11px] font-black transition-colors ${placeFilterTags.length === 0 ? 'bg-blue-50 text-[#3182F6]' : 'text-slate-700 hover:bg-slate-50'}`}
-                              >
-                                <span className="w-4 h-4 flex items-center justify-center border border-slate-300 text-[8px]">{placeFilterTags.length === 0 ? '✓' : ''}</span>
-                                모두 표시
-                              </button>
-                              {filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0).map(t => {
-                                const excluded = placeFilterTags.includes(t.value);
+                              >전체</button>
+                              {filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0 && t.value !== 'stay').map(t => {
+                                const allKnown = filterTagOptions.map(x => x.value).filter(v => v !== 'stay');
+                                const activeFilters = allKnown.filter(v => !placeFilterTags.includes(v) && (categoryCounts[v] || 0) > 0);
+                                const isSelected = activeFilters.length === 1 && activeFilters[0] === t.value;
                                 return (
                                   <button
                                     key={t.value}
                                     type="button"
-                                    onClick={() => setPlaceFilterTags(prev => excluded ? prev.filter(v => v !== t.value) : [...prev, t.value])}
-                                    className={`w-full flex items-center gap-2 px-2.5 py-2 text-left text-[11px] font-black transition-colors ${excluded ? 'text-slate-300 hover:bg-slate-50' : 'text-slate-700 hover:bg-slate-50'}`}
+                                    onClick={() => {
+                                      const others = allKnown.filter(v => v !== t.value && (categoryCounts[v] || 0) > 0);
+                                      setPlaceFilterTags(others);
+                                      setShowPlaceCategoryManager(false);
+                                    }}
+                                    className={`w-full flex items-center gap-2 px-2.5 py-2 text-left text-[11px] font-black transition-colors ${isSelected ? 'bg-blue-50 text-[#3182F6]' : 'text-slate-700 hover:bg-slate-50'}`}
                                   >
-                                    <span className={`w-4 h-4 flex items-center justify-center border text-[8px] ${excluded ? 'border-slate-200' : 'border-[#3182F6] bg-[#3182F6] text-white'}`}>{excluded ? '' : '✓'}</span>
                                     <span className="flex items-center gap-1">
                                       {getCategoryBadge(t.value)}
-                                      <span className={excluded ? 'opacity-40' : ''}>{t.label}</span>
+                                      {t.label}
                                     </span>
                                     <span className="ml-auto text-[9px] text-slate-400">{categoryCounts[t.value]}</span>
                                   </button>

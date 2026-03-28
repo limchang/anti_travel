@@ -646,7 +646,7 @@ export const LeafletMapViewportController = ({
     }, 60);
     return () => window.clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scopeKey, boundsSignature]);
+  }, [scopeKey]); // boundsSignature 제거 — 경로 변경 시 지도 화면 유지
 
   // focusedPoints가 바뀔 때 포커스 이동 (줌 강제 변경 없음 - 사용자 줌 유지)
   useEffect(() => {

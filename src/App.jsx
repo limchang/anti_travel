@@ -2498,16 +2498,18 @@ const App = () => {
     }
   }, [attachRoutePreviewSegments, resolveRoutePreviewDays, routePreviewSourceSignature]);
 
-  // 페이지 로딩 완료 후 경로 새로고침
+  // 일정 데이터 로드 후 경로 강제 새로고침 (1회)
+  const routeInitDoneRef = useRef(false);
   useEffect(() => {
-    const onLoad = () => refreshRoutePreviewMap();
-    if (document.readyState === 'complete') {
+    if (routeInitDoneRef.current) return;
+    if (!itinerary.days?.length) return; // 일정 아직 없으면 대기
+    routeInitDoneRef.current = true;
+    // geo 동기화 + 렌더 안정화 대기 후 실행
+    const timer = setTimeout(() => {
       refreshRoutePreviewMap();
-    } else {
-      window.addEventListener('load', onLoad);
-      return () => window.removeEventListener('load', onLoad);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [itinerary.days?.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 장소 추가/삭제 시 지도 자동 새로고침 + 추가된 장소 포커스
   const prevPlacesLenRef = React.useRef((itinerary.places || []).length);

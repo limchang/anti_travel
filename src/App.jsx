@@ -7304,6 +7304,17 @@ const App = () => {
             <div className="absolute inset-y-0 right-0 w-1 bg-transparent group-hover:bg-[#3182F6]/30 transition-colors" />
           </div>
         )}
+        {/* 외부 접기 버튼 (우측 바깥) */}
+        {(mapEditMode || isMobileLayout) && navFloatingExpanded && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setNavFloatingExpanded(false); }}
+            className="absolute top-2 -right-8 w-7 h-7 flex items-center justify-center bg-white border border-slate-200 shadow-sm text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors z-10"
+            title="접기"
+          >
+            <ChevronLeft size={14} />
+          </button>
+        )}
         {false && isMobileLayout && col1Collapsed ? (
           <div className="flex-1 flex items-center justify-center">
             <MapIcon size={14} className="text-slate-300" />
@@ -7324,11 +7335,6 @@ const App = () => {
                   {navFloatingExpanded && (
                     <button type="button" onClick={(e) => { e.stopPropagation(); setShowPlanOptions(true); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" title="일정 옵션">
                       <SlidersHorizontal size={12} />
-                    </button>
-                  )}
-                  {navFloatingExpanded && (
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setNavFloatingExpanded(false); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" title="접기">
-                      <ChevronLeft size={14} />
                     </button>
                   )}
                 </div>
@@ -7844,6 +7850,17 @@ const App = () => {
             <div className="absolute inset-y-0 left-0 w-1 bg-transparent group-hover:bg-[#3182F6]/30 transition-colors" />
           </div>
         )}
+        {/* 외부 접기 버튼 (좌측 바깥) */}
+        {(mapEditMode || isMobileLayout) && bottomPanelExpanded && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setBottomPanelExpanded(false); }}
+            className="absolute top-2 -left-8 w-7 h-7 flex items-center justify-center bg-white border border-slate-200 shadow-sm text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors z-10"
+            title="접기"
+          >
+            <ChevronRight size={14} />
+          </button>
+        )}
         {/* 플로팅 헤더 */}
         {(mapEditMode || isMobileLayout) && (
           <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 shrink-0">
@@ -7876,9 +7893,6 @@ const App = () => {
                 </div>
                 <button type="button" onClick={(e) => { e.stopPropagation(); setShowPlaceMenu(prev => !prev); }} className={`shrink-0 w-6 h-6 flex items-center justify-center rounded-lg transition-colors ${showPlaceMenu ? 'bg-blue-50 text-[#3182F6]' : 'hover:bg-slate-100 text-slate-400'}`} title="옵션">
                   <SlidersHorizontal size={12} />
-                </button>
-                <button type="button" onClick={(e) => { e.stopPropagation(); setBottomPanelExpanded(false); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" title="접기">
-                  <ChevronRight size={14} />
                 </button>
               </>
             ) : (
@@ -8245,8 +8259,8 @@ const App = () => {
                           activeItemId={activeItemId}
                         />
                         {/* 오버레이 버튼: 상단 중앙 바 */}
-                        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[500] flex flex-col gap-1 px-2 py-1.5 bg-white/90 backdrop-blur-md shadow-lg border border-slate-200/50 max-w-[calc(100vw-32px)]" data-no-map-clear="true">
-                          {/* 1행: 기준시 */}
+                        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-1 flex-wrap px-2 py-1.5 bg-white/90 backdrop-blur-md shadow-lg border border-slate-200/50 max-w-[calc(100vw-32px)]" data-no-map-clear="true">
+                          {/* 기준시 */}
                           {(() => {
                             const { refTime } = getActiveRefContext();
                             if (!refTime) return null;
@@ -8256,14 +8270,13 @@ const App = () => {
                             let datePart = '';
                             if (tripStartDate) { const ad = itinerary.days?.find(dd => dd.day === activeDay); if (ad) { const dt = new Date(tripStartDate); dt.setDate(dt.getDate() + (ad.day - 1)); datePart = `${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}`; }}
                             return (
-                              <div className="flex items-center gap-1 text-[10px] font-black text-slate-500">
+                              <span className="flex items-center gap-1 px-2 py-1 border border-slate-200 bg-white text-[10px] font-black text-slate-500 shrink-0">
                                 <Clock size={10} />
-                                <span>기준시각 {datePart} {refTime}</span>
-                              </div>
+                                기준 {datePart} {refTime}
+                              </span>
                             );
                           })()}
-                          {/* 2행: 경로 표시 전체/Day */}
-                          <div className="flex items-center gap-1">
+                          {/* 경로 표시 전체/Day */}
                             <button
                               type="button"
                               onClick={() => {
@@ -8288,9 +8301,7 @@ const App = () => {
                                 >{option.label}</button>
                               );
                             })}
-                          </div>
-                          {/* 3행: 나머지 토글 */}
-                          <div className="flex items-center gap-1">
+                            {/* 토글 버튼들 */}
                             <button
                               type="button"
                               onClick={() => setShowOverviewLibraryPoints((v) => !v)}
@@ -8335,7 +8346,6 @@ const App = () => {
                             >
                               <RotateCcw size={10} className={routePreviewManualRefreshing ? 'animate-spin' : ''} />
                             </button>
-                          </div>
                         </div>
                       </div>
                     </div>

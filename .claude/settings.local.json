@@ -22,7 +22,21 @@
       "Bash(firebase deploy:*)",
       "Bash(npm run:*)",
       "Skill(keybindings-help)",
-      "Skill(keybindings-help:*)"
+      "Skill(keybindings-help:*)",
+      "Bash(pip show:*)",
+      "Bash(python:*)",
+      "Bash(npm install:*)",
+      "Bash(curl:*)",
+      "Bash(echo $PATH:*)",
+      "Bash(chmod +x:*)",
+      "Bash(powershell.exe:*)",
+      "mcp__agentation__agentation_get_all_pending",
+      "mcp__agentation__agentation_watch_annotations",
+      "mcp__agentation__agentation_acknowledge"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "agentation"
+  ]
 }

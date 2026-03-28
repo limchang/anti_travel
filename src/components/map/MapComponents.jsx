@@ -1487,7 +1487,7 @@ export const RoutePreviewCanvas = ({
           지도 배경을 불러오지 못해 경로만 표시합니다.
         </div>
       )}
-      <div className="pointer-events-none absolute bottom-2 right-2 rounded-md border border-white/70 bg-white/80 px-1.5 py-0.5 text-[9px] font-black text-slate-500 shadow-sm backdrop-blur-sm">
+      <div className="pointer-events-none absolute bottom-2 right-2 rounded-md border border-white/70 bg-white/80 px-1.5 py-0.5 text-[9px] font-black text-slate-500 shadow-sm m">
         z{mapZoom}
       </div>
       {/* 우클릭 컨텍스트 메뉴 */}

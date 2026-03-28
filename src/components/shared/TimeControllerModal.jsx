@@ -85,7 +85,7 @@ const TimeControllerModal = ({
     <div
       data-time-modal="true"
       data-no-drag="true"
-      className={`fixed z-[291] rounded-[24px] border border-slate-200 bg-white/96 p-2.5 backdrop-blur-xl animate-in ${replaceMode ? 'shadow-[0_12px_26px_-18px_rgba(15,23,42,0.26)]' : 'shadow-[0_24px_50px_-24px_rgba(15,23,42,0.45)]'}`}
+      className={`fixed z-[291] rounded-[24px] border border-slate-200 bg-white/96 p-2.5 l animate-in ${replaceMode ? 'shadow-[0_12px_26px_-18px_rgba(15,23,42,0.26)]' : 'shadow-[0_24px_50px_-24px_rgba(15,23,42,0.45)]'}`}
       style={{ left, top, width: panelWidth, height: panelHeight }}
       onClick={(e) => e.stopPropagation()}
       onPointerDown={bumpTimeControllerAutoClose}

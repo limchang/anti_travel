@@ -4,7 +4,7 @@ import { Package, Trash2, PlusCircle, Move, CalendarDays, Map as MapIcon } from 
 export const MobileTabBar = ({ isMobileLayout, col1Collapsed, col2Collapsed, setCol1Collapsed, setCol2Collapsed }) => {
   if (!isMobileLayout) return null;
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[230] flex h-14 items-stretch border-t border-slate-200 bg-white/97 backdrop-blur-xl shadow-[0_-6px_20px_-10px_rgba(15,23,42,0.12)]">
+    <div className="fixed inset-x-0 bottom-0 z-[230] flex h-14 items-stretch border-t border-slate-200 bg-white l shadow-[0_-6px_20px_-10px_rgba(15,23,42,0.12)]">
       <button
         type="button"
         onClick={() => { setCol1Collapsed(true); setCol2Collapsed(true); }}
@@ -92,7 +92,7 @@ export const DragGhost = ({ draggingFromLibrary, draggingFromTimeline, dragCoord
   return (
     <div
       ref={dragGhostRef}
-      className="fixed pointer-events-none z-[9999] bg-white/96 backdrop-blur-xl border border-[#3182F6]/25 rounded-full px-3.5 py-2 shadow-[0_12px_28px_rgba(49,130,246,0.22)] flex items-center gap-2.5 animate-in fade-in zoom-in duration-150"
+      className="fixed pointer-events-none z-[9999] bg-white l border border-[#3182F6]/25 rounded-full px-3.5 py-2 shadow-[0_12px_28px_rgba(49,130,246,0.22)] flex items-center gap-2.5 animate-in fade-in zoom-in duration-150"
       style={{
         left: 0,
         top: 0,

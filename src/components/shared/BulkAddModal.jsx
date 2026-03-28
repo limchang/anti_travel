@@ -44,7 +44,7 @@ const BulkAddModal = ({
   if (!showBulkAddModal) return null;
   return (
             <>
-              <div className="fixed inset-0 z-[400] bg-black/30 backdrop-blur-sm" onClick={() => setShowBulkAddModal(false)} />
+              <div className="fixed inset-0 z-[400] bg-black/30 m" onClick={() => setShowBulkAddModal(false)} />
               <div className="fixed z-[401] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl flex flex-col" style={{ maxHeight: 'min(96vh, 1100px)' }}>
                 <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
                   <p className="text-[14px] font-black text-slate-800">여러 장소 추가하기</p>

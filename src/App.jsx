@@ -6715,7 +6715,7 @@ const App = () => {
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-100 rounded-full blur-[120px] opacity-60 animate-pulse" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-100 rounded-full blur-[120px] opacity-60 animate-pulse" style={{ animationDelay: '1s' }} />
 
-        <div className="bg-white/88 backdrop-blur-2xl border border-white/90 p-6 sm:p-8 rounded-[36px] shadow-[0_30px_70px_rgba(15,23,42,0.08)] max-w-[440px] w-full z-10">
+        <div className="bg-white  border border-white/90 p-6 sm:p-8 rounded-[36px] shadow-[0_30px_70px_rgba(15,23,42,0.08)] max-w-[440px] w-full z-10">
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-3 text-center">
               <div className="w-16 h-16 bg-gradient-to-br from-[#3182F6] to-indigo-500 rounded-3xl flex items-center justify-center mx-auto shadow-lg shadow-blue-500/20">
@@ -6731,7 +6731,7 @@ const App = () => {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200/90 bg-white/88 shadow-[0_12px_28px_-18px_rgba(15,23,42,0.16)] overflow-hidden">
+            <div className="rounded-2xl border border-slate-200/90 bg-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.16)] overflow-hidden">
               <div className="px-4 py-3 flex items-center gap-2 text-[12px] font-black text-slate-700">
                 <div className="w-7 h-7 rounded-xl bg-blue-50 flex items-center justify-center text-[#3182F6]">
                   <Calendar size={14} />
@@ -6920,7 +6920,7 @@ const App = () => {
             ? warnText
               ? 'border-orange-300 bg-orange-50/95 text-orange-600 ring-2 ring-orange-200/70 shadow-[0_18px_30px_-16px_rgba(251,146,60,0.5)] scale-[1.01]'
               : 'border-[#3182F6]/30 bg-blue-50/95 text-[#3182F6] ring-2 ring-blue-200/70 shadow-[0_18px_30px_-16px_rgba(49,130,246,0.4)] scale-[1.01]'
-            : 'border-slate-200 bg-white/96 text-slate-400'
+            : 'border-slate-200 bg-white text-slate-400'
             }`}
         >
           {/* 왼쪽 셀: DROP 액션 */}
@@ -6990,7 +6990,7 @@ const App = () => {
       violet: 'bg-violet-500 text-white',
     };
     const inactiveClass = compact
-      ? 'bg-white/85 text-slate-400 hover:bg-white hover:text-slate-700 border border-white/70'
+      ? 'bg-white text-slate-400 hover:bg-white hover:text-slate-700 border border-white/70'
       : 'bg-slate-50 text-slate-400 hover:bg-slate-100';
     return (
       <>
@@ -7086,7 +7086,7 @@ const App = () => {
           className="fixed inset-0 z-[400] flex items-center justify-center"
           onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }}
         >
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/30 " />
           <div className="relative w-full max-w-[420px] px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceEditorCard
               className="mx-auto"
@@ -7226,7 +7226,7 @@ const App = () => {
           className="fixed inset-0 z-[400] flex items-center justify-center"
           onClick={() => { setEditingPlanTarget(null); setEditPlanDraft(null); }}
         >
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/30 " />
           <div className="relative w-full max-w-[420px] px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceEditorCard
               className="mx-auto"
@@ -7359,7 +7359,7 @@ const App = () => {
           className="fixed inset-0 z-[400] flex items-center justify-center"
           onClick={resetNewPlaceDraft}
         >
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/30 " />
           <div className="relative w-full max-w-[420px] px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceAddForm
               newPlaceName={newPlaceName}
@@ -7404,7 +7404,7 @@ const App = () => {
       <div
         data-nav-dropzone="true"
         className={(mapEditMode || isMobileLayout)
-          ? `flex flex-col fixed z-[280] bg-white/95 backdrop-blur-lg rounded-2xl border border-slate-200/50 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.2)] overflow-visible ${navFloatingExpanded ? '' : 'cursor-pointer'}`
+          ? `flex flex-col fixed z-[280] bg-white  rounded-2xl border border-slate-200/50 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.2)] overflow-visible ${navFloatingExpanded ? '' : 'cursor-pointer'}`
           : 'flex flex-col fixed left-0 top-0 bottom-0 bg-white border-r border-[#E5E8EB] shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-visible z-[290]'
         }
         style={(mapEditMode || isMobileLayout)
@@ -7746,7 +7746,7 @@ const App = () => {
           const totalItems = (itinerary.days || []).reduce((s, d) => s + (d.plan || []).filter(p => p.type !== 'backup').length, 0);
           return (
             <div
-              className="absolute left-0 right-0 z-[1] bg-white/95 backdrop-blur-lg rounded-2xl border border-slate-200/50 shadow-[0_12px_32px_-12px_rgba(15,23,42,0.18)]"
+              className="absolute left-0 right-0 z-[1] bg-white  rounded-2xl border border-slate-200/50 shadow-[0_12px_32px_-12px_rgba(15,23,42,0.18)]"
               style={{ top: 'calc(100% + 8px)' }}
               data-no-map-clear="true"
             >
@@ -7777,7 +7777,7 @@ const App = () => {
       <div
         className={(mapEditMode || isMobileLayout)
           ? `flex flex-col fixed z-[220] bg-white rounded-2xl border border-slate-200 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.25)] overflow-visible`
-          : 'flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[220] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] overflow-visible'
+          : 'flex flex-col fixed top-0 bottom-0 bg-white  border-l border-slate-100/60 z-[220] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] overflow-visible'
         }
         style={(mapEditMode || isMobileLayout)
           ? { right: 16, top: 60, width: bottomPanelExpanded ? Math.min(340, viewportWidth - 32) : 48, maxHeight: bottomPanelExpanded ? 'calc(100vh - 80px)' : 48, transition: 'width 0.3s, max-height 0.3s' }
@@ -8234,7 +8234,7 @@ const App = () => {
                           activeItemId={activeItemId}
                         />
                         {/* 오버레이 버튼: 상단 중앙 바 */}
-                        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-1 flex-wrap px-2 py-1.5 bg-white/90 backdrop-blur-md shadow-lg border border-slate-200/50 max-w-[calc(100vw-32px)]" data-no-map-clear="true">
+                        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-1 flex-wrap px-2 py-1.5 bg-white  shadow-lg border border-slate-200/50 max-w-[calc(100vw-32px)]" data-no-map-clear="true">
                           {/* 상세 일정 편집 */}
                           <button
                             type="button"
@@ -8370,7 +8370,7 @@ const App = () => {
                     <div id="place-library-scroll" className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-2 pt-2 pb-4 flex flex-col gap-2">
                     {draggingFromTimeline && (
                       <div
-                        className={`w-full mb-2 rounded-[20px] border-2 border-dashed px-4 py-4 flex items-center justify-center gap-3 text-center transition-all ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6] shadow-[0_12px_26px_-18px_rgba(49,130,246,0.45)]' : 'border-slate-200 bg-white/90 text-slate-500'}`}
+                        className={`w-full mb-2 rounded-[20px] border-2 border-dashed px-4 py-4 flex items-center justify-center gap-3 text-center transition-all ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6] shadow-[0_12px_26px_-18px_rgba(49,130,246,0.45)]' : 'border-slate-200 bg-white text-slate-500'}`}
                         data-drag-action="move_to_library"
                         onDragOver={(e) => { e.preventDefault(); setDragBottomTarget('move_to_library'); }}
                         onDragLeave={() => setDragBottomTarget(prev => (prev === 'move_to_library' ? '' : prev))}
@@ -8734,7 +8734,7 @@ const App = () => {
                 <div className="fixed inset-0 z-[169]" onClick={() => setPlanVariantPicker(null)} />
                 <div
                   data-plan-picker="true"
-                  className="fixed z-[170] w-[250px] rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_18px_36px_-18px_rgba(15,23,42,0.35)] p-2.5"
+                  className="fixed z-[170] w-[250px] rounded-2xl border border-slate-200 bg-white  shadow-[0_18px_36px_-18px_rgba(15,23,42,0.35)] p-2.5"
                   style={{ left: planVariantPicker.left, top: planVariantPicker.top }}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -8762,7 +8762,7 @@ const App = () => {
 
           {showEntryChooser && !user?.isGuest && !sharedSource?.ownerId && (
             <>
-              <div className="fixed inset-0 z-[404] bg-black/25 backdrop-blur-[1px]" />
+              <div className="fixed inset-0 z-[404] bg-black/25 " />
               <div className="fixed z-[405] inset-0 flex items-center justify-center p-4">
                 <div className="w-[min(640px,94vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)] p-5">
                   <div className="flex items-center justify-between mb-3">
@@ -9373,9 +9373,9 @@ const App = () => {
           )}
 
           {showOverviewMapModal && (
-            <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/42 px-4 py-6 backdrop-blur-sm" onClick={() => setShowOverviewMapModal(false)}>
+            <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/42 px-4 py-6 " onClick={() => setShowOverviewMapModal(false)}>
               <div
-                className="w-full max-w-[980px] rounded-[28px] border border-white/70 bg-white/96 p-4 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)]"
+                className="w-full max-w-[980px] rounded-[28px] border border-white/70 bg-white p-4 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)]"
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="flex items-center gap-3">
@@ -9426,9 +9426,9 @@ const App = () => {
             </div>
           )}
           {showPlaceMapModal && (
-            <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/42 px-4 py-6 backdrop-blur-sm" onClick={() => setShowPlaceMapModal(false)}>
+            <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/42 px-4 py-6 " onClick={() => setShowPlaceMapModal(false)}>
               <div
-                className="w-full max-w-[840px] rounded-[28px] border border-white/70 bg-white/96 p-4 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)]"
+                className="w-full max-w-[840px] rounded-[28px] border border-white/70 bg-white p-4 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)]"
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="flex items-center gap-3">
@@ -9482,7 +9482,7 @@ const App = () => {
             const totalCount = checklistGroups.reduce((s, g) => s + g.items.length, 0);
             const checkedCount = checklistGroups.reduce((s, g) => s + g.items.filter(i => i.checked).length, 0);
             return (
-              <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-950/50 px-4 py-8 backdrop-blur-sm" style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }} onClick={() => setShowChecklistModal(false)}>
+              <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-950/50 px-4 py-8 " style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }} onClick={() => setShowChecklistModal(false)}>
                 <div className="relative w-full max-h-[80vh] flex flex-col rounded-[28px] border border-white/70 bg-white shadow-[0_30px_80px_-20px_rgba(15,23,42,0.4)]" style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }} onClick={e => e.stopPropagation()}>
                   {/* 헤더 */}
                   <div className="flex items-center gap-3 px-5 pt-5 pb-3 border-b border-slate-100">
@@ -9728,7 +9728,7 @@ const App = () => {
                         {heroCompactActive && compactHeroAlert && (
                           <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-[12] flex h-8 items-start justify-center bg-transparent transition-opacity duration-200 ease-out ${heroCompactBudgetBarVisible ? 'opacity-100' : 'opacity-0'}`}>
                             <span
-                              className={`mt-1 inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black tracking-tight shadow-[0_10px_22px_-18px_rgba(15,23,42,0.45)] backdrop-blur-md ${compactHeroAlert.tone === 'danger'
+                              className={`mt-1 inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black tracking-tight shadow-[0_10px_22px_-18px_rgba(15,23,42,0.45)]  ${compactHeroAlert.tone === 'danger'
                                 ? 'border-red-200/80 bg-red-50/88 text-red-600'
                                 : 'border-amber-200/80 bg-amber-50/88 text-amber-600'
                                 }`}
@@ -10109,7 +10109,7 @@ const App = () => {
                             <button
                               type="button"
                               data-plan-picker-trigger="true"
-                              className="pointer-events-auto text-[11px] font-black px-2 py-1 rounded-lg border min-w-[44px] text-center text-slate-500 bg-white/95 border-slate-200 shadow-[0_8px_16px_-10px_rgba(15,23,42,0.35)] hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
+                              className="pointer-events-auto text-[11px] font-black px-2 py-1 rounded-lg border min-w-[44px] text-center text-slate-500 bg-white border-slate-200 shadow-[0_8px_16px_-10px_rgba(15,23,42,0.35)] hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const rect = e.currentTarget.getBoundingClientRect();
@@ -10456,14 +10456,14 @@ const App = () => {
                                           {checkinTarget && (
                                             <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 w-full relative z-10">
                                               <div className="flex flex-col items-center">
-                                                <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, 1); }} className="w-7 h-5 flex items-center justify-center rounded-md text-indigo-300 hover:text-indigo-600 hover:bg-white/80 transition-colors"><ChevronUp size={12} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, 1); }} className="w-7 h-5 flex items-center justify-center rounded-md text-indigo-300 hover:text-indigo-600 hover:bg-white transition-colors"><ChevronUp size={12} /></button>
                                                 <span className="text-[22px] font-black tracking-tight tabular-nums text-indigo-900 leading-none">{checkinHour}</span>
-                                                <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, -1); }} className="w-7 h-5 flex items-center justify-center rounded-md text-indigo-300 hover:text-indigo-600 hover:bg-white/80 transition-colors"><ChevronDown size={12} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); updateStartHour(dIdx, pIdx, -1); }} className="w-7 h-5 flex items-center justify-center rounded-md text-indigo-300 hover:text-indigo-600 hover:bg-white transition-colors"><ChevronDown size={12} /></button>
                                               </div>
                                               <div className="flex flex-col items-center">
-                                                <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, lodgeStep); }} className="w-7 h-5 flex items-center justify-center rounded-md text-indigo-300 hover:text-indigo-600 hover:bg-white/80 transition-colors"><ChevronUp size={12} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, lodgeStep); }} className="w-7 h-5 flex items-center justify-center rounded-md text-indigo-300 hover:text-indigo-600 hover:bg-white transition-colors"><ChevronUp size={12} /></button>
                                                 <span className="text-[22px] font-black tracking-tight tabular-nums text-indigo-900 leading-none">{checkinMinute}</span>
-                                                <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, -lodgeStep); }} className="w-7 h-5 flex items-center justify-center rounded-md text-indigo-300 hover:text-indigo-600 hover:bg-white/80 transition-colors"><ChevronDown size={12} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); updateStartMinute(dIdx, pIdx, -lodgeStep); }} className="w-7 h-5 flex items-center justify-center rounded-md text-indigo-300 hover:text-indigo-600 hover:bg-white transition-colors"><ChevronDown size={12} /></button>
                                               </div>
                                               <div className="col-span-2 grid grid-cols-4 gap-1">
                                                 {renderTimeStepButtons({
@@ -10510,7 +10510,7 @@ const App = () => {
                                                 }}
                                                 title="체크아웃 시간 직접 입력"
                                                 placeholder="01:00"
-                                                className="w-[100px] rounded-xl border border-violet-200 bg-white/90 px-3 py-1.5 text-center text-[16px] font-black tabular-nums text-violet-700 outline-none focus:border-violet-400"
+                                                className="w-[100px] rounded-xl border border-violet-200 bg-white px-3 py-1.5 text-center text-[16px] font-black tabular-nums text-violet-700 outline-none focus:border-violet-400"
                                               />
                                               <div className="text-[10px] font-bold text-violet-400">종료시간을 다시 입력하면 시작 기준으로 자동 재계산됩니다.</div>
                                             </div>
@@ -11055,7 +11055,7 @@ const App = () => {
 
           {isMobileLayout && mobileSelectedLibraryPlace && (
             <div className="fixed inset-x-0 bottom-16 z-[319] flex justify-center px-4">
-              <div className="flex w-full max-w-[360px] items-center gap-3 rounded-2xl border border-[#3182F6]/20 bg-white/96 px-4 py-3 shadow-[0_18px_34px_-18px_rgba(49,130,246,0.38)] backdrop-blur-xl">
+              <div className="flex w-full max-w-[360px] items-center gap-3 rounded-2xl border border-[#3182F6]/20 bg-white px-4 py-3 shadow-[0_18px_34px_-18px_rgba(49,130,246,0.38)] ">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-[#3182F6]">
                   <Package size={16} />
                 </div>
@@ -11078,7 +11078,7 @@ const App = () => {
           {
             infoToast && (
               <div className="fixed inset-x-0 bottom-20 z-[320] flex justify-center px-4">
-                <div className="flex items-center gap-3 bg-white/95 backdrop-blur-xl border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl shadow-[0_14px_30px_-16px_rgba(15,23,42,0.45)]">
+                <div className="flex items-center gap-3 bg-white  border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl shadow-[0_14px_30px_-16px_rgba(15,23,42,0.45)]">
                   <span className="text-[12px] font-bold">{infoToast}</span>
                   {infoToastAction && (
                     <button
@@ -11101,7 +11101,7 @@ const App = () => {
           {
             undoToast && (
               <div className="fixed inset-x-0 bottom-20 z-[320] flex justify-center px-4">
-                <div className="flex items-center gap-3 bg-white/95 backdrop-blur-xl border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl shadow-[0_14px_30px_-16px_rgba(15,23,42,0.45)]">
+                <div className="flex items-center gap-3 bg-white  border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl shadow-[0_14px_30px_-16px_rgba(15,23,42,0.45)]">
                   <span className="text-[12px] font-bold">{undoMessage || "변경 사항이 저장되었습니다"}</span>
                   <button
                     onClick={() => { handleUndo(); setUndoToast(false); }}

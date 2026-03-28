@@ -5513,28 +5513,28 @@ const App = () => {
 
 
   const getCategoryBadge = (type) => {
-    const style = "flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0";
-    const ic = 10;
+    const style = "flex items-center justify-center w-6 h-6 border shrink-0";
+    const ic = 12;
     switch (type) {
-      case 'food': return <div key={type} className={`${style} text-rose-500 bg-red-50 border-red-100`}><Utensils size={ic} /> 식당</div>;
-      case 'cafe': return <div key={type} className={`${style} text-amber-900 bg-amber-50 border-amber-200`}><Coffee size={ic} /> 카페</div>;
-      case 'tour': return <div key={type} className={`${style} text-purple-600 bg-purple-50 border-purple-100`}><Camera size={ic} /> 관광</div>;
-      case 'lodge': return <div key={type} className={`${style} text-indigo-600 bg-indigo-50 border-indigo-100`}><Bed size={ic} /> 숙소</div>;
-      case 'stay': return <div key={type} className={`${style} text-violet-600 bg-violet-50 border-violet-100`}><MoonStar size={ic} /> 숙박</div>;
-      case 'rest': return <div key={type} className={`${style} text-cyan-600 bg-cyan-50 border-cyan-100`}><Hourglass size={ic} /> 휴식</div>;
-      case 'ship': return <div key={type} className={`${style} text-blue-600 bg-blue-50 border-blue-100`}><Anchor size={ic} /> 페리</div>;
-      case 'openrun': return <div key={type} className={`${style} text-red-500 bg-red-50 border-red-100`}><Timer size={ic} /> 오픈런</div>;
-      case 'view': return <div key={type} className={`${style} text-sky-600 bg-sky-50 border-sky-100`}><Eye size={ic} /> 뷰맛집</div>;
-      case 'experience': return <div key={type} className={`${style} text-emerald-600 bg-emerald-50 border-emerald-100`}><Star size={ic} /> 체험</div>;
-      case 'souvenir': return <div key={type} className={`${style} text-teal-600 bg-teal-50 border-teal-100`}><Gift size={ic} /> 기념품샵</div>;
-      case 'snack': return <div key={type} className={`${style} text-yellow-700 bg-yellow-50 border-yellow-200`}><Soup size={ic} /> 분식</div>;
-      case 'pickup': return <div key={type} className={`${style} text-orange-500 bg-orange-50 border-orange-100`}><Package size={ic} /> 픽업</div>;
-      case 'home': return <div key={type} className={`${style} text-amber-700 bg-amber-50 border-amber-100`}><Home size={ic} /> 집</div>;
-      case 'quick': return <div key={type} className={`${style} text-yellow-600 bg-yellow-50 border-yellow-200`}><Zap size={ic} /> 퀵등록</div>;
-      case 'new': return <span key="new" className={style + ' text-emerald-600 bg-emerald-50 border-emerald-200'}>신규</span>;
-      case 'revisit': return <span key="revisit" className={style + ' text-blue-600 bg-blue-50 border-blue-200'}>재방문</span>;
-      case 'place': return <div key={type} className={`${style} text-slate-500 bg-slate-100 border-slate-200`}><MapIcon size={ic} /> 장소</div>;
-      default: return <div key={type} className={`${style} text-slate-500 bg-slate-100 border-slate-200`}>{getCustomTagLabel(type)}</div>;
+      case 'food': return <div key={type} className={`${style} text-rose-500 bg-red-50 border-red-100`}><Utensils size={ic} /></div>;
+      case 'cafe': return <div key={type} className={`${style} text-amber-900 bg-amber-50 border-amber-200`}><Coffee size={ic} /></div>;
+      case 'tour': return <div key={type} className={`${style} text-purple-600 bg-purple-50 border-purple-100`}><Camera size={ic} /></div>;
+      case 'lodge': return <div key={type} className={`${style} text-indigo-600 bg-indigo-50 border-indigo-100`}><Bed size={ic} /></div>;
+      case 'stay': return <div key={type} className={`${style} text-violet-600 bg-violet-50 border-violet-100`}><MoonStar size={ic} /></div>;
+      case 'rest': return <div key={type} className={`${style} text-cyan-600 bg-cyan-50 border-cyan-100`}><Hourglass size={ic} /></div>;
+      case 'ship': return <div key={type} className={`${style} text-blue-600 bg-blue-50 border-blue-100`}><Anchor size={ic} /></div>;
+      case 'openrun': return <div key={type} className={`${style} text-red-500 bg-red-50 border-red-100`}><Timer size={ic} /></div>;
+      case 'view': return <div key={type} className={`${style} text-sky-600 bg-sky-50 border-sky-100`}><Eye size={ic} /></div>;
+      case 'experience': return <div key={type} className={`${style} text-emerald-600 bg-emerald-50 border-emerald-100`}><Star size={ic} /></div>;
+      case 'souvenir': return <div key={type} className={`${style} text-teal-600 bg-teal-50 border-teal-100`}><Gift size={ic} /></div>;
+      case 'snack': return <div key={type} className={`${style} text-yellow-700 bg-yellow-50 border-yellow-200`}><Soup size={ic} /></div>;
+      case 'pickup': return <div key={type} className={`${style} text-orange-500 bg-orange-50 border-orange-100`}><Package size={ic} /></div>;
+      case 'home': return <div key={type} className={`${style} text-amber-700 bg-amber-50 border-amber-100`}><Home size={ic} /></div>;
+      case 'quick': return <div key={type} className={`${style} text-yellow-600 bg-yellow-50 border-yellow-200`}><Zap size={ic} /></div>;
+      case 'new': return <div key="new" className={style + ' text-emerald-600 bg-emerald-50 border-emerald-200'}><Star size={ic} /></div>;
+      case 'revisit': return <div key="revisit" className={style + ' text-blue-600 bg-blue-50 border-blue-200'}><RotateCcw size={ic} /></div>;
+      case 'place': return <div key={type} className={`${style} text-slate-500 bg-slate-100 border-slate-200`}><MapIcon size={ic} /></div>;
+      default: return <div key={type} className={`${style} text-slate-500 bg-slate-100 border-slate-200`}><MapIcon size={ic} /></div>;
     }
   };
   const getPreferredNavCategory = (types = [], fallbackType = 'place') => {
@@ -7520,8 +7520,8 @@ const App = () => {
                                   >
                                     {/* 시간 */}
                                     <span className="text-[11px] font-black text-white tabular-nums leading-none text-center">{p.time || '--:--'}</span>
-                                    {/* 카테고리 아이콘 (셀 유지) */}
-                                    <div className="w-6 h-6 flex items-center justify-center border border-white/30 bg-white/15 shrink-0">{getCategoryBadge(navPrimaryType)?.props?.children?.[0] || <MapIcon size={12} />}</div>
+                                    {/* 카테고리 아이콘 */}
+                                    <div className="shrink-0 [&>div]:!bg-white/20 [&>div]:!border-white/30 [&>div]:!text-white">{getCategoryBadge(navPrimaryType)}</div>
                                     {/* 이름 */}
                                     <span className="text-[12px] font-black text-white truncate">{p.activity || '이름 없음'}</span>
                                     {/* 우측: 소요시간 */}

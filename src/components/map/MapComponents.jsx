@@ -123,9 +123,9 @@ export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColo
   const tailW = isFocused ? 6 : 5;
   const tailH = (isFocused ? 7 : 6) + extraTailH;
   const radius = 0;
-  const badgeText = isFirst ? 'START' : (isLast ? 'END' : '');
-  const badgeColor = isFirst ? '#10B981' : '#EF4444';
-  const badgeH = badgeText ? 14 : 0;
+  const badgeText = '';
+  const badgeColor = '';
+  const badgeH = 0;
   const shadow = isFocused
     ? 'drop-shadow(0 5px 14px rgba(15,23,42,0.45))'
     : 'drop-shadow(0 3px 8px rgba(15,23,42,0.32))';

@@ -31,6 +31,8 @@ import { TimeInput, buildBusinessQuickEditSegments, BusinessHoursEditor, DateRan
 import { loadKakaoMapSdk, ROUTE_PREVIEW_DEFAULT_CENTER, toLeafletLatLng, getMapCategoryColor, getMapCategoryLabel, MAP_CATEGORY_EMOJI, getMapCategoryEmoji, buildTimelineMarkerIcon, buildGroupedTimelineMarkerIcon, buildLibraryMarkerIcon, buildOverlayMarkerIcon, buildSegmentLabelIcon, calcBearingDeg, buildArrowIcon, sampleRouteArrows, LeafletMapViewportController, LeafletMapBackgroundClickHandler, LeafletMapContextMenuHandler, POPUP_TAG_OPTIONS, RoutePreviewCanvas } from './components/map/MapComponents.jsx';
 import { SmartFillGuideModal, GUIDE_DOC_PATH, isLegacySmartFillGuideContent } from './components/shared/SmartFillGuideModal.jsx';
 import useUIStore from './stores/useUIStore.js';
+import useToastStore from './stores/useToastStore.js';
+import useMapStore from './stores/useMapStore.js';
 import {
   Navigation, MessageSquare, LogOut, User as UserIcon,
   Hourglass, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
@@ -195,6 +197,26 @@ const App = () => {
     bottomPanelExpanded, setBottomPanelExpanded,
     highlightedPlaceId, setHighlightedPlaceId,
   } = useUIStore();
+
+  const {
+    undoToast, setUndoToast, undoMessage, setUndoMessage,
+    infoToast, setInfoToast, infoToastAction, setInfoToastAction,
+  } = useToastStore();
+
+  const {
+    mapEditMode, setMapEditMode, mapTileStyle, setMapTileStyle,
+    overviewMapScope, setOverviewMapScope, overviewMapDayFilter, setOverviewMapDayFilter,
+    overviewMapRouteVisible, setOverviewMapRouteVisible,
+    showOverviewLibraryPoints, setShowOverviewLibraryPoints,
+    hideLongRouteSegments, setHideLongRouteSegments,
+    hiddenRoutePreviewEndpoints, setHiddenRoutePreviewEndpoints,
+    focusedMapTarget, setFocusedMapTarget,
+    focusedLibraryMarkerId, setFocusedLibraryMarkerId,
+    mapQuickViewItem, setMapQuickViewItem,
+    qvDragOffset, setQvDragOffset,
+    panelMapScope, setPanelMapScope, panelMapDayFilter, setPanelMapDayFilter,
+    mapExpanded, setMapExpanded,
+  } = useMapStore();
 
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -425,10 +447,7 @@ const App = () => {
   }, [itinerary.places]);
   const [history, setHistory] = useState([]);
   const [pendingAutoRouteJobs, setPendingAutoRouteJobs] = useState([]);
-  const [undoToast, setUndoToast] = useState(false);
-  const [undoMessage, setUndoMessage] = useState("");
-  const [infoToast, setInfoToast] = useState('');
-  const [infoToastAction, setInfoToastAction] = useState(null); // { type, label }
+  // toast states → useToastStore
   const undoToastTimerRef = React.useRef(null);
   const infoToastTimerRef = React.useRef(null);
   const dragEditHintToastRef = React.useRef(0);
@@ -753,9 +772,7 @@ const App = () => {
   const [placeDistanceSync, setPlaceDistanceSync] = useState({ active: false, total: 0, done: 0, percent: 0, baseName: '' });
   const [col1Collapsed, setCol1Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
   const [col2Collapsed, setCol2Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
-  const [mapEditMode, setMapEditMode] = useState(true);
-  const [mapQuickViewItem, setMapQuickViewItem] = useState(null); // { dayIdx, pIdx, x, y }
-  const [qvDragOffset, setQvDragOffset] = useState({ x: 0, y: 0 });
+  // mapEditMode, mapQuickViewItem, qvDragOffset → useMapStore
   const qvDragRef = useRef(null); // { startX, startY, origOffX, origOffY }
   const lastClickPosRef = useRef({ x: 0, y: 0 });
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));
@@ -785,9 +802,9 @@ const App = () => {
   const [routePreviewDays, setRoutePreviewDays] = useState([]);
   const [routePreviewLoading, setRoutePreviewLoading] = useState(false);
   const [routePreviewManualRefreshing, setRoutePreviewManualRefreshing] = useState(false);
-  const [showOverviewLibraryPoints, setShowOverviewLibraryPoints] = useState(false);
+  // showOverviewLibraryPoints → useMapStore
   const [showLibraryCategoryModal, setShowLibraryCategoryModal] = useState(false);
-  const [focusedLibraryMarkerId, setFocusedLibraryMarkerId] = useState(null); // 내장소 마커 두 단계 클릭: 첫 클릭 = + 모드
+  // focusedLibraryMarkerId → useMapStore
   const [libraryTypeModal, setLibraryTypeModal] = useState(null); // { placeId, types: [] }
   const [libraryCategoryModalPos, setLibraryCategoryModalPos] = useState({ top: 200, right: 16 });
   const routePreviewSegmentCacheRef = useRef({});
@@ -805,16 +822,7 @@ const App = () => {
   const routePreviewBuildKeyRef = useRef('');
   const routePreviewAutoRetryKeyRef = useRef('');
 
-  const [hiddenRoutePreviewEndpoints, setHiddenRoutePreviewEndpoints] = useState({});
-  const [hideLongRouteSegments, setHideLongRouteSegments] = useState(false);
-  const [mapTileStyle, setMapTileStyle] = useState(0); // 0=osm, 1=gray, 2=dark
-  const [overviewMapScope, setOverviewMapScope] = useState('all');
-  const [overviewMapDayFilter, setOverviewMapDayFilter] = useState(null);
-  const [overviewMapRouteVisible, setOverviewMapRouteVisible] = useState(true);
-  const [panelMapScope, setPanelMapScope] = useState('all');
-  const [panelMapDayFilter, setPanelMapDayFilter] = useState(null);
-  const [mapExpanded, setMapExpanded] = useState(() => (typeof window === 'undefined' ? true : window.innerWidth >= 1100));
-  const [focusedMapTarget, setFocusedMapTarget] = useState(null);
+  // map states → useMapStore
   const [showOverviewMapModal, setShowOverviewMapModal] = useState(false);
   const [showPlaceMapModal, setShowPlaceMapModal] = useState(false);
   // showChecklistModal → useUIStore

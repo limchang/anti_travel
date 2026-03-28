@@ -1249,8 +1249,8 @@ export const RoutePreviewCanvas = ({
                   bubblingMouseEvents={false}
                   icon={buildGroupedTimelineMarkerIcon(point._groupItems, isFocused, showLibraryNames, !!(activeItemId && showLibraryNames))}
                   eventHandlers={interactive && typeof onMarkerClick === 'function' ? {
-                    mouseover: (e) => { e.target.setZIndexOffset(10000); const el = e.target.getElement(); if (el) el.style.zIndex = '99999'; },
-                    mouseout: (e) => { e.target.setZIndexOffset(0); const el = e.target.getElement(); if (el) el.style.zIndex = ''; },
+                    mouseover: (e) => { e.target.setZIndexOffset(10000); const el = e.target.getElement(); if (el) { el.style.zIndex = '99999'; const pane = el.closest('.leaflet-pane'); if (pane) pane.style.zIndex = '9999'; } },
+                    mouseout: (e) => { e.target.setZIndexOffset(0); const el = e.target.getElement(); if (el) { el.style.zIndex = ''; const pane = el.closest('.leaflet-pane'); if (pane) pane.style.zIndex = ''; } },
                     click: (e) => {
                       // + 버튼 클릭 감지
                       const addEl = e.originalEvent?.target instanceof Element ? e.originalEvent.target.closest('[data-library-add]') : null;
@@ -1298,8 +1298,8 @@ export const RoutePreviewCanvas = ({
               bubblingMouseEvents={false}
               icon={buildTimelineMarkerIcon(point.color, String(point.order), point.isFocused, point.categoryColor, point.categoryLabel, point.isFirst, point.isLast, 0, point.label || '', showLibraryNames)}
               eventHandlers={interactive && typeof onMarkerClick === 'function' ? {
-                mouseover: (e) => { e.target.setZIndexOffset(10000); const el = e.target.getElement(); if (el) el.style.zIndex = '99999'; },
-                mouseout: (e) => { e.target.setZIndexOffset(0); const el = e.target.getElement(); if (el) el.style.zIndex = ''; },
+                mouseover: (e) => { e.target.setZIndexOffset(10000); const el = e.target.getElement(); if (el) { el.style.zIndex = '99999'; const pane = el.closest('.leaflet-pane'); if (pane) pane.style.zIndex = '9999'; } },
+                mouseout: (e) => { e.target.setZIndexOffset(0); const el = e.target.getElement(); if (el) { el.style.zIndex = ''; const pane = el.closest('.leaflet-pane'); if (pane) pane.style.zIndex = ''; } },
                 click: () => onMarkerClick({
                   kind: 'timeline',
                   id: point.id,
@@ -1334,8 +1334,8 @@ export const RoutePreviewCanvas = ({
                   ? buildLibraryMarkerIcon(point.categoryColor || '#2563EB', point.categoryLabel || '내장소', isFocusedLibrary, false, 0, timelineFocusActive, clusterCount, clusterColors, point.primaryType || '', clusterTypes, point.label || '', clusterNames, showLibraryNames, point.starred, !!(activeItemId && showLibraryNames))
                   : buildOverlayMarkerIcon(point.fillColor, point.glyph, point.isFocused)}
                 eventHandlers={interactive ? {
-                  mouseover: (e) => { e.target.setZIndexOffset(10000); const el = e.target.getElement(); if (el) el.style.zIndex = '99999'; },
-                  mouseout: (e) => { e.target.setZIndexOffset(0); const el = e.target.getElement(); if (el) el.style.zIndex = ''; },
+                  mouseover: (e) => { e.target.setZIndexOffset(10000); const el = e.target.getElement(); if (el) { el.style.zIndex = '99999'; const pane = el.closest('.leaflet-pane'); if (pane) pane.style.zIndex = '9999'; } },
+                  mouseout: (e) => { e.target.setZIndexOffset(0); const el = e.target.getElement(); if (el) { el.style.zIndex = ''; const pane = el.closest('.leaflet-pane'); if (pane) pane.style.zIndex = ''; } },
                   click: (e) => {
                     // + 버튼 클릭 감지
                     const addEl = e.originalEvent?.target instanceof Element ? e.originalEvent.target.closest('[data-library-add]') : null;

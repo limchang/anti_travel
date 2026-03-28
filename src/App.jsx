@@ -7484,7 +7484,6 @@ const App = () => {
                               }
                               return (
                                 <React.Fragment key={p.id}>
-                                  {isLastLodge && <div className="mt-1.5 border-t border-dashed border-indigo-100/90" />}
                                   <div role="button" tabIndex={0}
                                     id={`nav-item-${p.id}`}
                                     draggable={isEditMode}

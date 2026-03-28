@@ -7624,7 +7624,7 @@ const App = () => {
                                     {/* 우측: 소요시간 */}
                                     <div className="flex items-center gap-1 shrink-0">
                                       {navDisplayDuration > 0 && (
-                                        <span className={`text-[9px] font-black px-1 py-0.5 shrink-0 ${navDisplayDuration >= 120 ? 'bg-orange-500/30 text-white' : 'bg-white text-white/80'}`}>{fmtDur(navDisplayDuration)}</span>
+                                        <span className={`text-[9px] font-black px-1 py-0.5 shrink-0 ${navDisplayDuration >= 120 ? 'bg-orange-500/30 text-white' : 'bg-white/20 text-white'}`}>{fmtDur(navDisplayDuration)}</span>
                                       )}
                                     </div>
                                   </div>

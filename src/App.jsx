@@ -228,7 +228,7 @@ const App = () => {
     dropTarget, setDropTarget,
     dropOnItem, setDropOnItem,
     isDragCopy, setIsDragCopy,
-    dragCoord, setDragCoord,
+    /* dragCoord는 ref로 처리 — 리렌더 방지 */
     touchDragLock, setTouchDragLock,
   } = useDragStore();
 
@@ -612,6 +612,7 @@ const App = () => {
   const touchStartPosRef = useRef({ x: 0, y: 0, tracking: false });
   const isDraggingActiveRef = useRef(false);
   const dragGhostRef = useRef(null);
+  const dragCoordRef = useRef({ x: 0, y: 0 });
   const emptyDragImgRef = useRef(null);
   if (!emptyDragImgRef.current && typeof Image !== 'undefined') {
     emptyDragImgRef.current = new Image();
@@ -1593,7 +1594,10 @@ const App = () => {
       if (isDraggingActiveRef.current) {
         e.preventDefault();
         lastTouchYRef.current = t.clientY;
-        setDragCoord({ x: t.clientX, y: t.clientY });
+        dragCoordRef.current = { x: t.clientX, y: t.clientY };
+        if (dragGhostRef.current) {
+          dragGhostRef.current.style.transform = `translate3d(${t.clientX}px, ${t.clientY}px, 0) translate(-50%, -120%)`;
+        }
         const el = document.elementFromPoint(t.clientX, t.clientY);
         const droptargetEl = el?.closest('[data-droptarget]');
         const dropitemEl = el?.closest('[data-dropitem]');
@@ -11107,7 +11111,7 @@ const App = () => {
           <DragGhost
             draggingFromLibrary={draggingFromLibrary}
             draggingFromTimeline={draggingFromTimeline}
-            dragCoord={dragCoord}
+            dragCoord={dragCoordRef.current}
             dragGhostRef={dragGhostRef}
             itinerary={itinerary}
           />

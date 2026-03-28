@@ -736,6 +736,8 @@ const App = () => {
   const [col2Collapsed, setCol2Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
   const [mapEditMode, setMapEditMode] = useState(true);
   const [mapQuickViewItem, setMapQuickViewItem] = useState(null); // { dayIdx, pIdx, x, y }
+  const [qvDragOffset, setQvDragOffset] = useState({ x: 0, y: 0 });
+  const qvDragRef = useRef(null); // { startX, startY, origOffX, origOffY }
   const lastClickPosRef = useRef({ x: 0, y: 0 });
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));
   const [leftPanelW, setLeftPanelW] = useState(() => { try { return Number(localStorage.getItem('leftPanelW')) || 280; } catch { return 280; } });
@@ -3041,6 +3043,7 @@ const App = () => {
         if (mapEditMode) {
           // 지도 이동 없이 즉시 퀵뷰 표시 (마커가 이미 보이는 상태)
           setMapQuickViewItem({ dayIdx: found.dayIdx, pIdx: found.pIdx, x: lastClickPosRef.current.x, y: lastClickPosRef.current.y });
+          setQvDragOffset({ x: 0, y: 0 });
           setActiveDay(found.dayNum);
           setActiveItemId(found.item.id);
           return;
@@ -3056,6 +3059,7 @@ const App = () => {
       if (mapEditMode) {
         // 지도 편집 모드: 내장소 즉시 퀵뷰 (지도 이동 불필요 — 마커가 이미 보이는 상태)
         setMapQuickViewItem({ placeId: target.id, x: lastClickPosRef.current.x, y: lastClickPosRef.current.y });
+        setQvDragOffset({ x: 0, y: 0 });
       } else {
         document.getElementById(`library-place-${target.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
@@ -8136,6 +8140,7 @@ const App = () => {
                             // 지도 편집 모드: 내장소 마커 클릭 시 즉시 퀵뷰
                             if (mapEditMode && placeId && !String(placeId).includes('cluster')) {
                               setMapQuickViewItem({ placeId, x: lastClickPosRef.current.x, y: lastClickPosRef.current.y });
+                              setQvDragOffset({ x: 0, y: 0 });
                             }
                           }}
                           onLibraryMarkerTypeEdit={(placeId, event) => {
@@ -11186,12 +11191,26 @@ const App = () => {
           <>
             <div className="fixed inset-0 z-[99998]" onClick={() => setMapQuickViewItem(null)} />
             <div
-              className={`fixed z-[99999] rounded-2xl border overflow-hidden animate-in slide-in-from-left-2 bg-white ${qvCatStyle.border} shadow-[0_24px_48px_-16px_rgba(15,23,42,0.3)]`}
-              style={{ left: Math.max(8, qvLeft), top: Math.max(8, qvTop), width: panelW, maxHeight: mapRect ? mapRect.height - 24 : '80vh' }}
+              className={`fixed z-[99999] rounded-2xl border overflow-hidden bg-white ${qvCatStyle.border} shadow-[0_24px_48px_-16px_rgba(15,23,42,0.3)]`}
+              style={{ left: Math.max(8, qvLeft) + qvDragOffset.x, top: Math.max(8, qvTop) + qvDragOffset.y, width: panelW, maxHeight: mapRect ? mapRect.height - 24 : '80vh' }}
             >
               <div className="overflow-y-auto max-h-[inherit]">
-              {/* 헤더: 카테고리 + 이름 + 버튼 */}
-              <div className={`flex items-center gap-2 px-3 py-2.5 ${qvCatStyle.accent}`}>
+              {/* 헤더: 카테고리 + 이름 + 버튼 (드래그 가능) */}
+              <div
+                className={`flex items-center gap-2 px-3 py-2.5 cursor-grab active:cursor-grabbing select-none ${qvCatStyle.accent}`}
+                onMouseDown={(e) => {
+                  if (e.target.closest('button,input,textarea,a')) return;
+                  e.preventDefault();
+                  qvDragRef.current = { startX: e.clientX, startY: e.clientY, origOffX: qvDragOffset.x, origOffY: qvDragOffset.y };
+                  const onMove = (ev) => {
+                    if (!qvDragRef.current) return;
+                    setQvDragOffset({ x: qvDragRef.current.origOffX + ev.clientX - qvDragRef.current.startX, y: qvDragRef.current.origOffY + ev.clientY - qvDragRef.current.startY });
+                  };
+                  const onUp = () => { qvDragRef.current = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+                  window.addEventListener('mousemove', onMove);
+                  window.addEventListener('mouseup', onUp);
+                }}
+              >
                 {!isPlaceQuickView && <span className="w-6 h-6 rounded-[7px] flex items-center justify-center text-[11px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[(qvDIdx ?? 0) % ROUTE_PREVIEW_COLORS.length], border: '2px solid rgba(255,255,255,0.9)', boxShadow: `0 0 0 1px ${ROUTE_PREVIEW_COLORS[(qvDIdx ?? 0) % ROUTE_PREVIEW_COLORS.length]}` }}>{qvOrderNum}</span>}
                 <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30">{getCategoryBadge(qvPrimaryType)}</div>
                 <span className="text-[13px] font-black text-white truncate flex-1">{qvItem.activity || qvItem.name || '이름 없음'}</span>

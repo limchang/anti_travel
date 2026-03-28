@@ -881,22 +881,15 @@ export const RoutePreviewCanvas = ({
       .filter((point) => point.isFocused)
       .map((point) => point.position);
   }, [focusedTarget?.kind, overlayEntries, segmentEntries, showOverlayMarkers, showRouteLines, showTimelineMarkers, timelineEntries]);
-  const lastHoveredPaneRef = useRef(null);
+  const lastHoveredMarkerRef = useRef(null);
   const bringToFront = (e) => {
-    const el = e.target.getElement();
-    if (!el) return;
-    // 이전 pane z-index 복원
-    if (lastHoveredPaneRef.current) {
-      lastHoveredPaneRef.current.style.zIndex = '';
+    // 이전 hover 마커 원복
+    if (lastHoveredMarkerRef.current && lastHoveredMarkerRef.current !== e.target) {
+      lastHoveredMarkerRef.current.setZIndexOffset(0);
     }
-    // 마커의 pane z-index를 최상위로
-    const pane = el.closest('.leaflet-pane');
-    if (pane) {
-      pane.style.zIndex = '9999';
-      lastHoveredPaneRef.current = pane;
-    }
-    // 마커 자체도 pane 내에서 최상위
+    // 같은 pane 안에서 최상위로
     e.target.setZIndexOffset(10000);
+    lastHoveredMarkerRef.current = e.target;
   };
   const rawVisibleTimelineEntries = showTimelineMarkers ? timelineEntries : [];
   const visibleSegmentEntries = showRouteLines

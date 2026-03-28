@@ -7502,7 +7502,7 @@ const App = () => {
                                       endTouchDragLock();
                                     }}
                                     onClick={() => { setActiveDay(d.day); setActiveItemId(p.id); }}
-                                    className={`grid grid-cols-[1.2rem_2.8rem_1.5rem_1fr_auto] items-center gap-1 px-2 py-2 mb-0.5 text-left transition-colors cursor-pointer ${navCatStyle.accent} ${navBizWarn ? 'ring-1 ring-inset ring-red-400/60' : ''} ${isActive ? 'ring-2 ring-inset ring-[#3182F6]' : 'hover:opacity-90'} ${p._timingConflict ? 'ring-2 ring-inset ring-red-400' : ''}`}
+                                    className={`grid grid-cols-[1.2rem_2.8rem_1.5rem_1fr_auto] items-center gap-1 px-2 py-2 mb-0.5 text-left transition-colors cursor-pointer ${navCatStyle.accent} ${navBizWarn ? 'ring-1 ring-inset ring-red-400/60' : ''} ${isActive ? '' : 'hover:opacity-90'} ${p._timingConflict ? 'ring-2 ring-inset ring-red-400' : ''}`}
                                   >
                                     {/* 순서 번호 */}
                                     <span className="w-5 h-5 flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{getNavItemOrder(p, pIdx, navPlanItems)}</span>

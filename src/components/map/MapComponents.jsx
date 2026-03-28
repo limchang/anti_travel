@@ -852,9 +852,12 @@ export const RoutePreviewCanvas = ({
   const segmentBoundsPoints = useMemo(() => (
     boundsSegments.flatMap((segment) => segment.positions)
   ), [boundsSegments]);
-  const timelineBoundsPoints = useMemo(() => (
-    showTimelineMarkers ? timelineEntries.map((point) => point.position) : []
-  ), [showTimelineMarkers, timelineEntries]);
+  const timelineBoundsPoints = useMemo(() => {
+    if (!showTimelineMarkers) return [];
+    // home(집) 카테고리 제외하여 일정 몰린 곳 위주로 bounds 잡기
+    const nonHome = timelineEntries.filter(p => p.categoryLabel !== '집');
+    return (nonHome.length > 0 ? nonHome : timelineEntries).map(p => p.position);
+  }, [showTimelineMarkers, timelineEntries]);
   // 경로가 있으면 경로 영역만, 없으면 마커 → 내장소 순서로 fallback
   const allBoundsPoints = useMemo(() => (
     segmentBoundsPoints.length > 0

@@ -3134,6 +3134,7 @@ const App = () => {
     setMobileSelectedLibraryPlace(null);
     setFocusedLibraryMarkerId(null);
     setActiveItemId(null);
+    setMapQuickViewItem(null);
   }, []);
   const handleOverviewMapMarkerClick = useCallback((target) => {
     if (!target) return;
@@ -11237,7 +11238,7 @@ const App = () => {
         })();
         return (
           <>
-            <div className="fixed inset-0 z-[99998]" onClick={() => setMapQuickViewItem(null)} />
+            {/* 배경 클릭 차단 제거 — 지도 마커 + 버튼 클릭 허용 */}
             <div
               className={`fixed z-[99999] rounded-2xl border overflow-hidden bg-white ${qvCatStyle.border} shadow-[0_24px_48px_-16px_rgba(15,23,42,0.3)]`}
               style={{ left: Math.max(8, qvLeft) + qvDragOffset.x, top: Math.max(8, qvTop) + qvDragOffset.y, width: panelW, maxHeight: mapRect ? mapRect.height - 24 : '80vh' }}

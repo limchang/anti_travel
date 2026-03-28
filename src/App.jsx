@@ -6895,11 +6895,14 @@ const App = () => {
             <ChevronDown size={10} className="text-slate-400 shrink-0" />
           </button>
           {tripStartDate && (
-            <button type="button" onClick={() => setShowDatePicker(v => !v)} className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors shrink-0">
+            <button type="button" onClick={() => setShowDatePicker(v => !v)} className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors shrink-0">
               <Calendar size={10} />
-              {tripStartDate} · {tripNights}박
+              <span className="hidden sm:inline">{tripStartDate} ·</span> {tripNights}박
             </button>
           )}
+          <button type="button" onClick={() => setShowPlanOptions(true)} className="w-8 h-8 flex items-center justify-center border border-slate-200 bg-white text-slate-500 hover:border-slate-300 transition-colors shrink-0" title="일정 옵션">
+            <SlidersHorizontal size={14} />
+          </button>
         </div>
         <div className="flex-1" />
         <button
@@ -7321,34 +7324,11 @@ const App = () => {
           </div>
         ) : (
           <>
-            {/* ── 고정 헤더 ── */}
+            {/* ── 고정 헤더 (최소화) ── */}
             {(mapEditMode || isMobileLayout) ? (
-              <div className="flex flex-col border-b border-slate-100 shrink-0">
-                <div className="flex items-center gap-2 px-3 py-2">
-                  <CalendarDays size={14} className="text-slate-400 shrink-0" />
-                  {navFloatingExpanded && (
-                    <button type="button" onClick={() => setShowPlanManager(true)} className="flex items-center gap-1 text-left hover:opacity-80 transition-opacity flex-1 min-w-0">
-                      <span className="text-[12px] font-black text-slate-800 truncate">{tripRegion || 'Anti Planer'}</span>
-                      <ChevronDown size={9} className="text-slate-400 shrink-0" />
-                    </button>
-                  )}
-                  {navFloatingExpanded && (
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowPlanOptions(true); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" title="일정 옵션">
-                      <SlidersHorizontal size={12} />
-                    </button>
-                  )}
-                </div>
-                {navFloatingExpanded && tripStartDate && (
-                  <button type="button" onClick={() => setShowDatePicker(v => !v)} className="flex items-center gap-2 px-3 pb-2 hover:opacity-80 transition-opacity">
-                    <Calendar size={10} className="text-slate-400 shrink-0" />
-                    <span className="text-[10px] font-bold text-slate-500">
-                      {tripStartDate.replace(/-/g, '. ')}{tripEndDate ? ` ~ ${tripEndDate.replace(/-/g, '. ')}` : ''}
-                    </span>
-                    <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-                      {tripDays > 0 ? `${tripNights}박 ${tripDays}일` : `${itinerary.days?.length || 0}일`}
-                    </span>
-                  </button>
-                )}
+              <div className="flex items-center px-3 py-2 border-b border-slate-100 shrink-0">
+                <CalendarDays size={14} className="text-slate-400 shrink-0" />
+                {navFloatingExpanded && <span className="ml-2 text-[11px] font-black text-slate-600 flex-1">일정</span>}
               </div>
             ) : (
               <div className="px-5 pt-5 pb-3 border-b border-slate-100 bg-white shrink-0">
@@ -7865,36 +7845,60 @@ const App = () => {
         {(mapEditMode || isMobileLayout) && (
           <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 shrink-0">
             {bottomPanelExpanded ? (
-              <>
-                <div className="relative flex-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddPlaceMenu(v => !v)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#3182F6] text-white text-[11px] font-black hover:bg-blue-600 transition-colors"
-                  >
-                    <Plus size={12} /> 장소 추가
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                {/* 장소 추가 */}
+                <div className="relative">
+                  <button type="button" onClick={() => setShowAddPlaceMenu(v => !v)} className="flex items-center gap-1 px-2 py-1 bg-[#3182F6] text-white text-[10px] font-black hover:bg-blue-600 transition-colors shrink-0">
+                    <Plus size={10} /> 추가
                   </button>
                   {showAddPlaceMenu && (
                     <>
                       <div className="fixed inset-0 z-[9980]" onClick={() => setShowAddPlaceMenu(false)} />
-                      <div className="absolute left-0 top-9 z-[9990] w-[200px] rounded-[14px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
-                        <button type="button" onClick={() => { setShowAddPlaceMenu(false); const allTagValues = TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map(t => t.value); const activeTags = allTagValues.filter(v => !placeFilterTags.includes(v)); if (activeTags.length === 1 && activeTags[0] !== 'food') setNewPlaceTypes([activeTags[0]]); setIsAddingPlaceAutoFill(false); setIsAddingPlace(true); }} className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[10px] text-[11px] font-black text-slate-700 hover:bg-slate-50">
+                      <div className="absolute left-0 top-8 z-[9990] w-[200px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
+                        <button type="button" onClick={() => { setShowAddPlaceMenu(false); const allTagValues = TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit').map(t => t.value); const activeTags = allTagValues.filter(v => !placeFilterTags.includes(v)); if (activeTags.length === 1 && activeTags[0] !== 'food') setNewPlaceTypes([activeTags[0]]); setIsAddingPlaceAutoFill(false); setIsAddingPlace(true); }} className="w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-black text-slate-700 hover:bg-slate-50">
                           <Plus size={11} className="text-slate-400" /> 장소 추가
                         </button>
-                        <button type="button" onClick={async () => { setShowAddPlaceMenu(false); showInfoToast('⚡ 클립보드에서 장소 정보를 분석 중…'); try { const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig }); const parsed = result?.parsed; if (parsed?.name) { let address = parsed.address || ''; if (!address) { const sr = await searchAddressFromPlaceName(parsed.name, tripRegion); if (sr?.address) address = sr.address; } addPlace({ name: parsed.name, types: ['quick', ...(parsed.types?.filter(t => t !== 'place') || [])], menus: parsed.menus || [], address, memo: '', business: parsed.business || {} }, { unselectedMenus: true }); showInfoToast(`⚡ '${parsed.name}' 추가됨`); } else { showInfoToast('정보를 찾지 못했습니다.'); setIsAddingPlace(true); } } catch { showInfoToast('오류 발생'); setIsAddingPlace(true); } }} className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[10px] text-[11px] font-black text-slate-700 hover:bg-slate-50">
+                        <button type="button" onClick={async () => { setShowAddPlaceMenu(false); showInfoToast('⚡ 클립보드에서 장소 정보를 분석 중…'); try { const result = await analyzeClipboardSmartFill({ mode: 'all', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig }); const parsed = result?.parsed; if (parsed?.name) { let address = parsed.address || ''; if (!address) { const sr = await searchAddressFromPlaceName(parsed.name, tripRegion); if (sr?.address) address = sr.address; } addPlace({ name: parsed.name, types: ['quick', ...(parsed.types?.filter(t => t !== 'place') || [])], menus: parsed.menus || [], address, memo: '', business: parsed.business || {} }, { unselectedMenus: true }); showInfoToast(`⚡ '${parsed.name}' 추가됨`); } else { showInfoToast('정보를 찾지 못했습니다.'); setIsAddingPlace(true); } } catch { showInfoToast('오류 발생'); setIsAddingPlace(true); } }} className="w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-black text-slate-700 hover:bg-slate-50">
                           <Sparkles size={11} className="text-blue-500" /> 슈퍼 자동채우기
                         </button>
-                        <button type="button" onClick={() => { setShowAddPlaceMenu(false); setBulkAddText(''); setBulkAddParsed([]); setShowBulkAddModal(true); }} className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[10px] text-[11px] font-black text-slate-700 hover:bg-slate-50">
+                        <button type="button" onClick={() => { setShowAddPlaceMenu(false); setBulkAddText(''); setBulkAddParsed([]); setShowBulkAddModal(true); }} className="w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-black text-slate-700 hover:bg-slate-50">
                           <AlignLeft size={11} className="text-emerald-500" /> 여러 장소 추가
                         </button>
                       </div>
                     </>
                   )}
                 </div>
-                <button type="button" onClick={(e) => { e.stopPropagation(); setShowPlaceMenu(prev => !prev); }} className={`shrink-0 w-6 h-6 flex items-center justify-center rounded-lg transition-colors ${showPlaceMenu ? 'bg-blue-50 text-[#3182F6]' : 'hover:bg-slate-100 text-slate-400'}`} title="옵션">
+                {/* 카테고리 필터 */}
+                <div className="relative">
+                  <button type="button" onClick={() => setShowPlaceCategoryManager(prev => !prev)} className={`flex items-center gap-1 px-2 py-1 border text-[10px] font-black transition-all shrink-0 ${placeFilterTags.length === 0 ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-[#3182F6]'}`}>
+                    {placeFilterTags.length === 0 ? '전체' : (() => { const allKnown = filterTagOptions.map(t => t.value); const active = allKnown.filter(v => !placeFilterTags.includes(v) && (categoryCounts[v] || 0) > 0); return active.length === 1 ? (filterTagOptions.find(t => t.value === active[0])?.label || active[0]) : `${active.length}개`; })()}
+                    <ChevronDown size={9} />
+                  </button>
+                  {showPlaceCategoryManager && (
+                    <>
+                      <div className="fixed inset-0 z-[9980]" onClick={() => setShowPlaceCategoryManager(false)} />
+                      <div className="absolute left-0 top-8 z-[9990] w-[200px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
+                        <button type="button" onClick={() => { setPlaceFilterTags([]); setShowPlaceCategoryManager(false); }} className={`w-full flex items-center gap-2 px-2.5 py-2 text-left text-[11px] font-black transition-colors ${placeFilterTags.length === 0 ? 'bg-blue-50 text-[#3182F6]' : 'text-slate-700 hover:bg-slate-50'}`}>전체</button>
+                        {filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0 && t.value !== 'stay').map(t => {
+                          const allKnown = filterTagOptions.map(x => x.value).filter(v => v !== 'stay');
+                          const activeFilters = allKnown.filter(v => !placeFilterTags.includes(v) && (categoryCounts[v] || 0) > 0);
+                          const isSelected = activeFilters.length === 1 && activeFilters[0] === t.value;
+                          return (
+                            <button key={t.value} type="button" onClick={() => { const others = allKnown.filter(v => v !== t.value && (categoryCounts[v] || 0) > 0); setPlaceFilterTags(others); setShowPlaceCategoryManager(false); }} className={`w-full flex items-center gap-2 px-2.5 py-2 text-left text-[11px] font-black transition-colors ${isSelected ? 'bg-blue-50 text-[#3182F6]' : 'text-slate-700 hover:bg-slate-50'}`}>
+                              <span className="flex items-center gap-1">{getCategoryBadge(t.value)} {t.label}</span>
+                              <span className="ml-auto text-[9px] text-slate-400">{categoryCounts[t.value]}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+                <span className="flex-1" />
+                <button type="button" onClick={(e) => { e.stopPropagation(); setShowPlaceMenu(prev => !prev); }} className={`shrink-0 w-6 h-6 flex items-center justify-center transition-colors ${showPlaceMenu ? 'bg-blue-50 text-[#3182F6]' : 'hover:bg-slate-100 text-slate-400'}`} title="옵션">
                   <SlidersHorizontal size={12} />
                 </button>
-              </>
+              </div>
             ) : (
               <Plus size={14} className="text-[#3182F6] mx-auto" />
             )}
@@ -8354,59 +8358,6 @@ const App = () => {
                         ? createPortal(mapContent, document.body)
                         : mapContent;
                     })()}
-                    {/* 카테고리 필터 + 일정 추가 */}
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => setShowPlaceCategoryManager(prev => !prev)}
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 border text-[11px] font-black transition-all ${placeFilterTags.length === 0 ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-[#3182F6]'}`}
-                        >
-                          <SlidersHorizontal size={11} />
-                          {placeFilterTags.length === 0 ? '전체' : (() => {
-                            const allKnown = filterTagOptions.map(t => t.value);
-                            const active = allKnown.filter(v => !placeFilterTags.includes(v) && (categoryCounts[v] || 0) > 0);
-                            return active.length === 1 ? (filterTagOptions.find(t => t.value === active[0])?.label || active[0]) : `${active.length}개`;
-                          })()}
-                          <ChevronDown size={10} />
-                        </button>
-                        {showPlaceCategoryManager && (
-                          <>
-                            <div className="fixed inset-0 z-[9980]" onClick={() => setShowPlaceCategoryManager(false)} />
-                            <div className="absolute left-0 top-9 z-[9990] w-[220px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
-                              <button
-                                type="button"
-                                onClick={() => { setPlaceFilterTags([]); setShowPlaceCategoryManager(false); }}
-                                className={`w-full flex items-center gap-2 px-2.5 py-2 text-left text-[11px] font-black transition-colors ${placeFilterTags.length === 0 ? 'bg-blue-50 text-[#3182F6]' : 'text-slate-700 hover:bg-slate-50'}`}
-                              >전체</button>
-                              {filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0 && t.value !== 'stay').map(t => {
-                                const allKnown = filterTagOptions.map(x => x.value).filter(v => v !== 'stay');
-                                const activeFilters = allKnown.filter(v => !placeFilterTags.includes(v) && (categoryCounts[v] || 0) > 0);
-                                const isSelected = activeFilters.length === 1 && activeFilters[0] === t.value;
-                                return (
-                                  <button
-                                    key={t.value}
-                                    type="button"
-                                    onClick={() => {
-                                      const others = allKnown.filter(v => v !== t.value && (categoryCounts[v] || 0) > 0);
-                                      setPlaceFilterTags(others);
-                                      setShowPlaceCategoryManager(false);
-                                    }}
-                                    className={`w-full flex items-center gap-2 px-2.5 py-2 text-left text-[11px] font-black transition-colors ${isSelected ? 'bg-blue-50 text-[#3182F6]' : 'text-slate-700 hover:bg-slate-50'}`}
-                                  >
-                                    <span className="flex items-center gap-1">
-                                      {getCategoryBadge(t.value)}
-                                      {t.label}
-                                    </span>
-                                    <span className="ml-auto text-[9px] text-slate-400">{categoryCounts[t.value]}</span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
                     {showPlaceCategoryManager && (
                       <div className="mb-1.5 rounded-[12px] border border-slate-200 bg-white px-2.5 py-2 shadow-sm">
                         <p className="text-[10px] font-black text-slate-600">카테고리 관리</p>

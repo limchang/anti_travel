@@ -2460,7 +2460,7 @@ const App = () => {
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-100 rounded-full blur-[120px] opacity-60 animate-pulse" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-100 rounded-full blur-[120px] opacity-60 animate-pulse" style={{ animationDelay: '1s' }} />
 
-        <div className="bg-white/80 backdrop-blur-2xl border border-white p-12 rounded-[48px] shadow-[0_32px_80px_rgba(0,0,0,0.06)] max-w-[480px] w-full text-center flex flex-col gap-8 z-10">
+        <div className="bg-white/80  border border-white p-12 rounded-[48px] shadow-[0_32px_80px_rgba(0,0,0,0.06)] max-w-[480px] w-full text-center flex flex-col gap-8 z-10">
           <div className="flex flex-col gap-3">
             <div className="w-16 h-16 bg-gradient-to-br from-[#3182F6] to-indigo-500 rounded-3xl flex items-center justify-center mx-auto shadow-lg shadow-blue-500/20 mb-2 transform hover:scale-110 transition-transform">
               <Navigation size={32} className="text-white fill-white/20" />
@@ -2515,7 +2515,7 @@ const App = () => {
       {/* ── 장소 수정 모달 ── */}
       {editingPlaceId && editPlaceDraft && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }}>
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/30 " />
           <div className="relative bg-white rounded-2xl shadow-2xl w-[440px] max-h-[85vh] overflow-y-auto no-scrollbar" onClick={(e) => e.stopPropagation()}>
             <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
               <p className="text-[12px] font-black text-slate-600">장소 수정</p>
@@ -2764,7 +2764,7 @@ const App = () => {
       </div>
 
       <div
-        className="flex flex-col fixed top-0 bottom-0 bg-white/80 backdrop-blur-3xl border-l border-slate-100/60 z-[140] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-hidden"
+        className="flex flex-col fixed top-0 bottom-0 bg-white/80  border-l border-slate-100/60 z-[140] shadow-[-8px_0_32px_rgba(0,0,0,0.02)] transition-all duration-300 overflow-hidden"
         style={{ right: 0, width: col2Collapsed ? 44 : 310 }}
       >
         {col2Collapsed ? (
@@ -3180,7 +3180,7 @@ const App = () => {
               <div className="mb-8 sticky top-0 z-[120]">
                 {/* 컴팩트 스티키 바 (스크롤 시) */}
                 {heroCollapsed && (
-                  <div className="bg-white/90 backdrop-blur-2xl border border-slate-200/80 rounded-[20px] px-5 py-3.5 flex items-center justify-between gap-4 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.08)] mx-4 mt-2">
+                  <div className="bg-white/90  border border-slate-200/80 rounded-[20px] px-5 py-3.5 flex items-center justify-between gap-4 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.08)] mx-4 mt-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
                         <MapPin size={12} className="text-[#3182F6]" />
@@ -3229,7 +3229,7 @@ const App = () => {
                           <div className="relative flex items-center gap-2">
                             <button
                               onClick={() => setShowDatePicker(v => !v)}
-                              className="flex items-center gap-2.5 bg-white/20 backdrop-blur-md border border-white/20 px-4 py-2 rounded-2xl transition-all group hover:bg-white/30"
+                              className="flex items-center gap-2.5 bg-white/20  border border-white/20 px-4 py-2 rounded-2xl transition-all group hover:bg-white/30"
                             >
                               <Calendar size={14} className="text-white group-hover:scale-110 transition-transform shrink-0" />
                               <div className="flex items-center gap-1.5 pt-0.5">
@@ -3242,7 +3242,7 @@ const App = () => {
                                 </span>
                               </div>
                             </button>
-                            <div className="px-4 py-2 bg-black/10 backdrop-blur-sm border border-white/10 rounded-2xl">
+                            <div className="px-4 py-2 bg-black/10  border border-white/10 rounded-2xl">
                               <span className="text-[12px] font-black text-white/90">
                                 {tripDays > 0 ? `${tripNights}박 ${tripDays}일` : `${itinerary.days?.length || 0}일 일정`}
                               </span>
@@ -3265,7 +3265,7 @@ const App = () => {
 
                         {/* 🌟 2. 예산 현황 요약 (연결된 셀 스타일) */}
                         <div className="flex flex-col gap-8">
-                          <div className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.04)] rounded-[32px] overflow-hidden flex flex-col pt-8 pb-7 px-8 items-center text-center">
+                          <div className="bg-white/70  border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.04)] rounded-[32px] overflow-hidden flex flex-col pt-8 pb-7 px-8 items-center text-center">
                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Total Remaining Budget</p>
                             <p className="text-[48px] font-black text-[#3182F6] leading-none tabular-nums tracking-tighter mb-8">
                               ₩{budgetSummary.remaining.toLocaleString()}
@@ -4167,7 +4167,7 @@ const App = () => {
           </div>
         </div>
 
-        <footer className="fixed bottom-0 bg-white/95 backdrop-blur-xl border-t px-8 py-3.5 flex items-center gap-3 z-[130] shadow-[0_-5px_20px_rgba(0,0,0,0.02)]" style={{ left: col1Collapsed ? 44 : 260, right: col2Collapsed ? 44 : 300 }}>
+        <footer className="fixed bottom-0 bg-white/95  border-t px-8 py-3.5 flex items-center gap-3 z-[130] shadow-[0_-5px_20px_rgba(0,0,0,0.02)]" style={{ left: col1Collapsed ? 44 : 260, right: col2Collapsed ? 44 : 300 }}>
           <MessageSquare size={16} className="text-[#3182F6] shrink-0" />
           <p className="text-[12px] font-bold text-slate-500 truncate flex-1">"{lastAction}"</p>
         </footer>
@@ -4196,7 +4196,7 @@ const App = () => {
         {(draggingFromLibrary || draggingFromTimeline) && (
           <div
             ref={dragGhostRef}
-            className="fixed pointer-events-none z-[9999] bg-white/95 backdrop-blur-xl border-2 border-[#3182F6] rounded-2xl px-5 py-3.5 shadow-[0_20px_50px_rgba(49,130,246,0.3)] flex items-center gap-4 animate-in fade-in zoom-in duration-200"
+            className="fixed pointer-events-none z-[9999] bg-white/95  border-2 border-[#3182F6] rounded-2xl px-5 py-3.5 shadow-[0_20px_50px_rgba(49,130,246,0.3)] flex items-center gap-4 animate-in fade-in zoom-in duration-200"
             style={{
               left: 0,
               top: 0,

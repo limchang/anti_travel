@@ -27,8 +27,8 @@ input, textarea, [contenteditable] {
 .leaflet-container {
   border-radius: 0 !important;
 }
-/* 모달, 카드, 패널 등 큰 요소 직각 강제 */
-.rounded-2xl, .rounded-xl, .rounded-\[14px\], .rounded-\[16px\], .rounded-\[18px\] {
+/* 모든 요소 직각 강제 */
+[class*="rounded"] {
   border-radius: 0 !important;
 }
 

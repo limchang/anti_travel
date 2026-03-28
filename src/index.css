@@ -23,6 +23,11 @@ input, textarea, [contenteditable] {
   user-select: text;
 }
 
+/* Leaflet 지도 컨테이너 곡률 제거 */
+.leaflet-container {
+  border-radius: 0 !important;
+}
+
 /* 내장소 마커 팝업 스타일 오버라이드 */
 .library-marker-popup {
   z-index: 9999 !important;

@@ -122,7 +122,7 @@ export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColo
   const sz = isFocused ? 36 : 28;
   const tailW = isFocused ? 6 : 5;
   const tailH = (isFocused ? 7 : 6) + extraTailH;
-  const radius = isFocused ? 10 : 8;
+  const radius = isFocused ? 4 : 3;
   const badgeText = isFirst ? 'START' : (isLast ? 'END' : '');
   const badgeColor = isFirst ? '#10B981' : '#EF4444';
   const badgeH = badgeText ? 14 : 0;
@@ -179,7 +179,7 @@ export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColo
 export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = false, showAddButton = false) => {
   const n = items.length;
   const sz = isFocused ? 36 : 28;
-  const radius = isFocused ? 10 : 8;
+  const radius = isFocused ? 4 : 3;
   const tailH = isFocused ? 7 : 6;
   const tailW = isFocused ? 6 : 5;
   const shadow = isFocused

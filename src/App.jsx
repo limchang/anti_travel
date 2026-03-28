@@ -972,9 +972,13 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const onResize = () => setViewportWidth(window.innerWidth);
+    let rafId;
+    const onResize = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => setViewportWidth(window.innerWidth));
+    };
     window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    return () => { window.removeEventListener('resize', onResize); cancelAnimationFrame(rafId); };
   }, []);
 
   // 패널 너비 드래그 리사이즈
@@ -7434,12 +7438,6 @@ const App = () => {
             <ChevronLeft size={14} />
           </button>
         )}
-        {false && isMobileLayout && col1Collapsed ? (
-          <div className="flex-1 flex items-center justify-center">
-            <MapIcon size={14} className="text-slate-300" />
-          </div>
-        ) : (
-          <>
             {/* ── 고정 헤더 (최소화) ── */}
             {(mapEditMode || isMobileLayout) ? (
               <div className="flex items-center px-3 py-2 border-b border-slate-100 shrink-0">
@@ -7737,8 +7735,6 @@ const App = () => {
               handleLogin={handleLogin} handleLogout={handleLogout}
               auth={auth}
             />}
-          </>
-        )}
         {/* 버전 뱃지 — 비활성화 */}
         {/* ── 일정 개요 위젯 (네비 바로 아래) ── */}
         {(mapEditMode || isMobileLayout) && navFloatingExpanded && (() => {
@@ -7875,10 +7871,6 @@ const App = () => {
             )}
           </div>
         )}
-        {false ? (
-          null
-        ) : (
-          <React.Fragment>
             {/* ── 고정 헤더 (플로팅 모드에서는 위 핸들이 대체) ── */}
             {!(mapEditMode || isMobileLayout) && (
             <div className="px-2 pt-5 pb-2.5 border-b border-slate-100/60 shrink-0 bg-white">
@@ -8687,9 +8679,6 @@ const App = () => {
                 );
               })()}
             </div>
-          </React.Fragment>
-        )
-        }
       </div>
 
       <div

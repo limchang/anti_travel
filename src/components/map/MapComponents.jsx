@@ -122,7 +122,7 @@ export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColo
   const sz = isFocused ? 36 : 28;
   const tailW = isFocused ? 6 : 5;
   const tailH = (isFocused ? 7 : 6) + extraTailH;
-  const radius = isFocused ? 10 : 8;
+  const radius = isFocused ? 3 : 2;
   const badgeText = isFirst ? 'START' : (isLast ? 'END' : '');
   const badgeColor = isFirst ? '#10B981' : '#EF4444';
   const badgeH = badgeText ? 14 : 0;
@@ -186,7 +186,7 @@ export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColo
 export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = false, showAddButton = false) => {
   const n = items.length;
   const sz = isFocused ? 36 : 28;
-  const radius = isFocused ? 10 : 8;
+  const radius = isFocused ? 3 : 2;
   const tailH = isFocused ? 7 : 6;
   const tailW = isFocused ? 6 : 5;
   const shadow = isFocused
@@ -291,10 +291,10 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
     ? 'drop-shadow(0 4px 10px rgba(15,23,42,0.35))'
     : 'drop-shadow(0 2px 5px rgba(15,23,42,0.22))';
   const borderStyle = isFocused ? `2px solid rgba(255,255,255,0.95)` : `2px solid rgba(255,255,255,0.85)`;
-  const radius = isFocused ? '10px' : '8px';
+  const radius = isFocused ? '3px' : '2px';
 
   if (isCluster) {
-    const cRadius = isFocused ? 10 : 8;
+    const cRadius = isFocused ? 3 : 2;
     const tailH = isFocused ? 7 : 6;
     const tailW = isFocused ? 6 : 5;
     const colors = clusterColors.length ? clusterColors : [categoryColor];

@@ -7326,6 +7326,11 @@ const App = () => {
                       <SlidersHorizontal size={12} />
                     </button>
                   )}
+                  {navFloatingExpanded && (
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setNavFloatingExpanded(false); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" title="접기">
+                      <ChevronLeft size={14} />
+                    </button>
+                  )}
                 </div>
                 {navFloatingExpanded && tripStartDate && (
                   <button type="button" onClick={() => setShowDatePicker(v => !v)} className="flex items-center gap-2 px-3 pb-2 hover:opacity-80 transition-opacity">
@@ -7871,6 +7876,9 @@ const App = () => {
                 </div>
                 <button type="button" onClick={(e) => { e.stopPropagation(); setShowPlaceMenu(prev => !prev); }} className={`shrink-0 w-6 h-6 flex items-center justify-center rounded-lg transition-colors ${showPlaceMenu ? 'bg-blue-50 text-[#3182F6]' : 'hover:bg-slate-100 text-slate-400'}`} title="옵션">
                   <SlidersHorizontal size={12} />
+                </button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); setBottomPanelExpanded(false); }} className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" title="접기">
+                  <ChevronRight size={14} />
                 </button>
               </>
             ) : (

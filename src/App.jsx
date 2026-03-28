@@ -612,6 +612,11 @@ const App = () => {
   const touchStartPosRef = useRef({ x: 0, y: 0, tracking: false });
   const isDraggingActiveRef = useRef(false);
   const dragGhostRef = useRef(null);
+  const emptyDragImgRef = useRef(null);
+  if (!emptyDragImgRef.current && typeof Image !== 'undefined') {
+    emptyDragImgRef.current = new Image();
+    emptyDragImgRef.current.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+  }
   // touchDragLock → useDragStore
   const touchLockStateRef = useRef({ overflow: '', touchAction: '' });
   const touchDragSourceRef = useRef(null); // { kind, place?, payload?, startX, startY }
@@ -7551,6 +7556,7 @@ const App = () => {
                                       const copy = ctrlHeldRef.current;
                                       desktopDragRef.current = { kind: 'timeline', payload: navDragPayload, copy };
                                       e.dataTransfer.effectAllowed = copy ? 'copy' : 'move';
+                                      if (emptyDragImgRef.current) e.dataTransfer.setDragImage(emptyDragImgRef.current, 0, 0);
                                       try {
                                         e.dataTransfer.setData('text/plain', `timeline:${p.id || `${dNavIdx}-${pIdx}`}`);
                                       } catch (_) { /* noop */ }
@@ -8437,6 +8443,7 @@ const App = () => {
                               if (isInteractiveTarget) { e.preventDefault(); return; }
                               desktopDragRef.current = { kind: 'library', place, copy };
                               e.dataTransfer.effectAllowed = copy ? 'copy' : 'move';
+                              if (emptyDragImgRef.current) e.dataTransfer.setDragImage(emptyDragImgRef.current, 0, 0);
                               try {
                                 e.dataTransfer.setData('text/plain', `library:${place.id || place.name || 'item'}`);
                               } catch (_) { /* noop */ }
@@ -8542,6 +8549,7 @@ const App = () => {
                                         const copy = true;
                                         desktopDragRef.current = { kind: 'library', place: segmentPayload, copy };
                                         e.dataTransfer.effectAllowed = 'copy';
+                                        if (emptyDragImgRef.current) e.dataTransfer.setDragImage(emptyDragImgRef.current, 0, 0);
                                         try {
                                           e.dataTransfer.setData('text/plain', `library-segment:${segmentPayload.id}`);
                                         } catch (_) { /* noop */ }
@@ -9988,6 +9996,7 @@ const App = () => {
                         const payload = { dayIdx: dIdx, pIdx, planPos: hasPlanB ? planPos : undefined };
                         desktopDragRef.current = { kind: 'timeline', payload, copy };
                         e.dataTransfer.effectAllowed = copy ? 'copy' : 'move';
+                        if (emptyDragImgRef.current) e.dataTransfer.setDragImage(emptyDragImgRef.current, 0, 0);
                         try {
                           e.dataTransfer.setData('text/plain', `timeline:${p.id || `${dIdx}-${pIdx}`}`);
                         } catch (_) { /* noop */ }

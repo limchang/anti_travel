@@ -881,27 +881,22 @@ export const RoutePreviewCanvas = ({
       .filter((point) => point.isFocused)
       .map((point) => point.position);
   }, [focusedTarget?.kind, overlayEntries, segmentEntries, showOverlayMarkers, showRouteLines, showTimelineMarkers, timelineEntries]);
-  const lastHoveredRef = useRef({ el: null, parent: null, next: null });
+  const lastHoveredPaneRef = useRef(null);
   const bringToFront = (e) => {
     const el = e.target.getElement();
     if (!el) return;
-    // 이전 hover 마커를 원래 pane으로 복원
-    const prev = lastHoveredRef.current;
-    if (prev.el && prev.el !== el && prev.parent) {
-      prev.el.style.zIndex = '';
-      try { prev.parent.insertBefore(prev.el, prev.next); } catch {}
+    // 이전 pane z-index 복원
+    if (lastHoveredPaneRef.current) {
+      lastHoveredPaneRef.current.style.zIndex = '';
     }
-    // 현재 마커를 최상위로: 맵 컨테이너의 marker-pane 최상위로 이동
-    const mapContainer = el.closest('.leaflet-map-pane');
-    const originalParent = el.parentNode;
-    const originalNext = el.nextSibling;
-    if (mapContainer) {
-      // 맵 pane 바로 아래에 임시로 옮겨서 모든 pane 위에 표시
-      el.style.zIndex = '99999';
-      el.style.position = 'absolute';
-      mapContainer.appendChild(el);
+    // 마커의 pane z-index를 최상위로
+    const pane = el.closest('.leaflet-pane');
+    if (pane) {
+      pane.style.zIndex = '9999';
+      lastHoveredPaneRef.current = pane;
     }
-    lastHoveredRef.current = { el, parent: originalParent, next: originalNext };
+    // 마커 자체도 pane 내에서 최상위
+    e.target.setZIndexOffset(10000);
   };
   const rawVisibleTimelineEntries = showTimelineMarkers ? timelineEntries : [];
   const visibleSegmentEntries = showRouteLines

@@ -30,6 +30,7 @@ import { OrderedTagPicker, SharedNameRow, SharedAddressRow, SharedBusinessRow, S
 import { TimeInput, buildBusinessQuickEditSegments, BusinessHoursEditor, DateRangePicker, TimeWheelColumn } from './components/shared/BusinessComponents.jsx';
 import { loadKakaoMapSdk, ROUTE_PREVIEW_DEFAULT_CENTER, toLeafletLatLng, getMapCategoryColor, getMapCategoryLabel, MAP_CATEGORY_EMOJI, getMapCategoryEmoji, buildTimelineMarkerIcon, buildGroupedTimelineMarkerIcon, buildLibraryMarkerIcon, buildOverlayMarkerIcon, buildSegmentLabelIcon, calcBearingDeg, buildArrowIcon, sampleRouteArrows, LeafletMapViewportController, LeafletMapBackgroundClickHandler, LeafletMapContextMenuHandler, POPUP_TAG_OPTIONS, RoutePreviewCanvas } from './components/map/MapComponents.jsx';
 import { SmartFillGuideModal, GUIDE_DOC_PATH, isLegacySmartFillGuideContent } from './components/shared/SmartFillGuideModal.jsx';
+import useUIStore from './stores/useUIStore.js';
 import {
   Navigation, MessageSquare, LogOut, User as UserIcon,
   Hourglass, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
@@ -175,7 +176,25 @@ const TIME_WHEEL_ITEM_HEIGHT = 28;
 const askPlanBMoveMode = (item) => item?.alternatives?.length > 0 ? window.confirm(`Plan B도 함께 이동하시겠습니까? (취소 시 현재 기준 일정만 이동합니다)`) : false;
 const App = () => {
 
-
+  // ── Zustand UI Store ──
+  const {
+    showPlanManager, setShowPlanManager,
+    showAiSettings, setShowAiSettings,
+    showChecklistModal, setShowChecklistModal,
+    showSmartFillGuide, setShowSmartFillGuide,
+    showUpdateModal, setShowUpdateModal,
+    showDatePicker, setShowDatePicker,
+    showNavMenu, setShowNavMenu,
+    showTimelineOverlay, setShowTimelineOverlay,
+    showPlanOptions, setShowPlanOptions,
+    showBulkAddModal, setShowBulkAddModal,
+    showAddPlaceMenu, setShowAddPlaceMenu,
+    showPlaceMenu, setShowPlaceMenu,
+    showPlaceCategoryManager, setShowPlaceCategoryManager,
+    navFloatingExpanded, setNavFloatingExpanded,
+    bottomPanelExpanded, setBottomPanelExpanded,
+    highlightedPlaceId, setHighlightedPlaceId,
+  } = useUIStore();
 
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -303,23 +322,23 @@ const App = () => {
   const [currentPlanId, setCurrentPlanId] = useState(() => safeLocalStorageGet('last_plan_id', 'main'));
   const [planList, setPlanList] = useState([]);
   const emptyPlanRecoveryKeyRef = useRef('');
-  const [showPlanManager, setShowPlanManager] = useState(false);
+  // showPlanManager → useUIStore
   const [showEntryChooser, setShowEntryChooser] = useState(false);
   const [newPlanRegion, setNewPlanRegion] = useState('');
   const [newPlanTitle, setNewPlanTitle] = useState('');
   const [showShareManager, setShowShareManager] = useState(false);
   const [navDayMenu, setNavDayMenu] = useState(null); // { dayIdx, day }
   const [perplexityNearbyModal, setPerplexityNearbyModal] = useState({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' });
-  const [showAiSettings, setShowAiSettings] = useState(false);
+  // showAiSettings → useUIStore
   const [navAiExpanded, setNavAiExpanded] = useState(false);
-  const [navFloatingExpanded, setNavFloatingExpanded] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1100);
-  const [showTimelineOverlay, setShowTimelineOverlay] = useState(false);
-  const [bottomPanelExpanded, setBottomPanelExpanded] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1100);
-  const [showPlanOptions, setShowPlanOptions] = useState(false);
-  const [showNavMenu, setShowNavMenu] = useState(false);
-  const [highlightedPlaceId, setHighlightedPlaceId] = useState(null);
-  const [showSmartFillGuide, setShowSmartFillGuide] = useState(false);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  // navFloatingExpanded → useUIStore
+  // showTimelineOverlay → useUIStore
+  // bottomPanelExpanded → useUIStore
+  // showPlanOptions → useUIStore
+  // showNavMenu → useUIStore
+  // highlightedPlaceId → useUIStore
+  // showSmartFillGuide → useUIStore
+  // showUpdateModal → useUIStore
   const [shareCopied, setShareCopied] = useState(false);
   const [shareSettings, setShareSettings] = useState({ visibility: 'private', permission: 'viewer' });
   const [isSharedReadOnly, setIsSharedReadOnly] = useState(false);
@@ -338,8 +357,8 @@ const App = () => {
   const [placeFilterTags, setPlaceFilterTags] = useState([]); // 내 장소 필터링 태그
   const filterLongPressTimerRef = useRef(null);
   const filterLongPressFiredRef = useRef(false);
-  const [showPlaceCategoryManager, setShowPlaceCategoryManager] = useState(false);
-  const [showPlaceMenu, setShowPlaceMenu] = useState(false);
+  // showPlaceCategoryManager → useUIStore
+  // showPlaceMenu → useUIStore
   const [showPlaceTrash, setShowPlaceTrash] = useState(false);
   const [draggingFromTimeline, setDraggingFromTimeline] = useState(null);
   const [isDroppingOnDeleteZone, setIsDroppingOnDeleteZone] = useState(false);
@@ -354,8 +373,8 @@ const App = () => {
   const [isAddingPlace, setIsAddingPlace] = useState(false);
   const [isAddingPlaceAutoFill, setIsAddingPlaceAutoFill] = useState(false);
   const addPlaceLongPressTimerRef = React.useRef(null);
-  const [showAddPlaceMenu, setShowAddPlaceMenu] = useState(false);
-  const [showBulkAddModal, setShowBulkAddModal] = useState(false);
+  // showAddPlaceMenu → useUIStore
+  // showBulkAddModal → useUIStore
   const [bulkAddText, setBulkAddText] = useState('');
   const [bulkAddParsed, setBulkAddParsed] = useState([]); // [{ name, address, types, selected }]
   const [bulkAddLoading, setBulkAddLoading] = useState(false);
@@ -798,7 +817,7 @@ const App = () => {
   const [focusedMapTarget, setFocusedMapTarget] = useState(null);
   const [showOverviewMapModal, setShowOverviewMapModal] = useState(false);
   const [showPlaceMapModal, setShowPlaceMapModal] = useState(false);
-  const [showChecklistModal, setShowChecklistModal] = useState(false);
+  // showChecklistModal → useUIStore
   const [placeLibraryViewMode, setPlaceLibraryViewMode] = useState(() => safeLocalStorageGet('placeLibraryViewMode', 'single') || 'single');
   const [showPlacePrice, setShowPlacePrice] = useState(() => safeLocalStorageGet('showPlacePrice', 'true') === 'true');
   const [libraryGeoMap, setLibraryGeoMap] = useState({});
@@ -1840,7 +1859,7 @@ const App = () => {
 
   const MAX_BUDGET = itinerary.maxBudget || 1500000;
   const [editingBudget, setEditingBudget] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  // showDatePicker → useUIStore
   const totalTimelineItems = useMemo(
     () => (itinerary.days || []).reduce((sum, d) => sum + ((d?.plan || []).filter(p => p.type !== 'backup').length), 0),
     [itinerary.days]

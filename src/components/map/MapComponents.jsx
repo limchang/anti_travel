@@ -491,28 +491,31 @@ export const buildOverlayMarkerIcon = (fillColor, glyph, isFocused) => L.divIcon
 });
 
 export const buildSegmentLabelIcon = (color, label, isFocused) => {
-  const w = isFocused ? 64 : 54;
-  const h = isFocused ? 20 : 17;
+  const w = isFocused ? 64 : 50;
+  const h = isFocused ? 22 : 18;
   return L.divIcon({
     className: '',
     html: `
       <div style="
-        display:flex;
+        display:inline-flex;
         align-items:center;
         justify-content:center;
+        gap:3px;
         height:${h}px;
-        padding:0 4px;
-        border-radius:999px;
-        background:${color};
-        color:#fff;
+        padding:0 6px;
+        background:rgba(255,255,255,0.92);
+        color:${color};
         font-size:${isFocused ? '10px' : '9px'};
         font-weight:900;
         white-space:nowrap;
-        box-shadow:0 4px 12px -6px rgba(15,23,42,0.55);
-        border:2px solid rgba(255,255,255,0.9);
+        box-shadow:0 2px 8px -3px rgba(15,23,42,0.25);
+        border:1.5px solid ${color};
         pointer-events:none;
-        letter-spacing:-0.3px;
-      ">${label}</div>
+        letter-spacing:-0.2px;
+      ">
+        <svg width="${isFocused ? 10 : 8}" height="${isFocused ? 10 : 8}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        ${label}
+      </div>
     `,
     iconSize: [w, h],
     iconAnchor: [w / 2, h / 2],

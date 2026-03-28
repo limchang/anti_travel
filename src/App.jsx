@@ -2589,18 +2589,20 @@ const App = () => {
     }
   }, [attachRoutePreviewSegments, resolveRoutePreviewDays, routePreviewSourceSignature]);
 
-  // 일정 데이터 로드 후 경로 강제 새로고침 (1회)
+  // geo 동기화 완료 후 경로 강제 새로고침 (1회)
   const routeInitDoneRef = useRef(false);
   useEffect(() => {
     if (routeInitDoneRef.current) return;
-    if (!itinerary.days?.length) return; // 일정 아직 없으면 대기
+    if (!itinerary.days?.length) return;
+    // geo가 필요한 아이템이 있는지 확인
+    const needsGeo = itinerary.days.some(d => (d.plan || []).some(p => {
+      const addr = p.receipt?.address || p.address || '';
+      return addr && (!p.geo?.lat || !p.geo?.lng);
+    }));
+    if (needsGeo) return; // geo 동기화 아직 진행 중 → 다음 itinerary 변경 때 재시도
     routeInitDoneRef.current = true;
-    // geo 동기화 + 렌더 안정화 대기 후 실행
-    const timer = setTimeout(() => {
-      refreshRoutePreviewMap();
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [itinerary.days?.length]); // eslint-disable-line react-hooks/exhaustive-deps
+    refreshRoutePreviewMap();
+  }, [itinerary]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 장소 추가/삭제 시 지도 자동 새로고침 + 추가된 장소 포커스
   const prevPlacesLenRef = React.useRef((itinerary.places || []).length);
@@ -2673,7 +2675,7 @@ const App = () => {
       }
       if (cancelled) return;
       setItinerary((prev) => {
-        const nextData = JSON.parse(JSON.stringify(prev));
+        const nextData = structuredClone(prev);
         let changed = false;
         const routeRefreshJobs = new Map();
         const pushRouteRefreshJob = (dayIdx, targetIdx) => {
@@ -3363,7 +3365,7 @@ const App = () => {
 
   const updateMemo = (dayIdx, pIdx, val) => {
     setItinerary(prev => {
-      const draft = JSON.parse(JSON.stringify(prev));
+      const draft = structuredClone(prev);
       if (!draft.days?.[dayIdx]?.plan?.[pIdx]) return prev;
       draft.days[dayIdx].plan[pIdx].memo = val;
       return draft;
@@ -3435,7 +3437,7 @@ const App = () => {
     let correctionMins = 0;
     let correctedBufferMins = null;
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const dayPlan = nextData.days?.[dayIdx]?.plan || [];
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
@@ -3588,7 +3590,7 @@ const App = () => {
   const saveHistory = () => {
     setHistory(prev => {
       try {
-        const newHistory = [...prev, JSON.parse(JSON.stringify(itinerary))];
+        const newHistory = [...prev, structuredClone(itinerary)];
         return newHistory.slice(-20);
       } catch (e) { return prev; }
     });
@@ -4218,7 +4220,7 @@ const App = () => {
   // 실숙박 일정은 Day 경계를 강제하되, 시간 계산은 Day 구분 없이 전체 일정 흐름으로 이어서 맞춘다.
   useEffect(() => {
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       if (!Array.isArray(nextData.days)) return prev;
       const before = JSON.stringify(nextData.days);
 
@@ -4238,7 +4240,7 @@ const App = () => {
   const updateStartTime = (dayIdx, pIdx, delta) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const dayPlan = nextData.days[dayIdx].plan;
       const item = dayPlan[pIdx];
 
@@ -4293,7 +4295,7 @@ const App = () => {
     }
     if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const dayPlan = nextData.days?.[dayIdx]?.plan;
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
@@ -4311,7 +4313,7 @@ const App = () => {
   const updateLodgeCheckoutTime = (dayIdx, pIdx, delta) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
       const nextDayPlan = nextData.days?.[dayIdx + 1]?.plan || [];
       const nextFirstIdx = nextDayPlan.findIndex(candidate => candidate?.type !== 'backup');
@@ -4358,7 +4360,7 @@ const App = () => {
     saveHistory();
     let updated = false;
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
       const nextDayPlan = nextData.days?.[dayIdx + 1]?.plan || [];
       const nextFirstIdx = nextDayPlan.findIndex(candidate => candidate?.type !== 'backup');
@@ -4386,7 +4388,7 @@ const App = () => {
     let fixed = false;
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
       if (!item) return prev;
       item.lodgeCheckoutFixed = !item.lodgeCheckoutFixed;
@@ -4404,7 +4406,7 @@ const App = () => {
   const updateDuration = (dayIdx, pIdx, delta) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const dayPlan = nextData.days[dayIdx].plan;
       const item = dayPlan[pIdx];
       const maxDuration = isOvernightLodgeTimelineItem(item) ? 1440 : 1439;
@@ -4453,7 +4455,7 @@ const App = () => {
   const setDurationValue = (dayIdx, pIdx, minutes, options = {}) => {
     if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const dayPlan = nextData.days[dayIdx].plan;
       const item = dayPlan[pIdx];
       const maxDuration = isOvernightLodgeTimelineItem(item) ? 1440 : 1439;
@@ -4471,7 +4473,7 @@ const App = () => {
   const setDurationHourValue = (dayIdx, pIdx, nextHour, options = {}) => {
     if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const dayPlan = nextData.days?.[dayIdx]?.plan;
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
@@ -4496,7 +4498,7 @@ const App = () => {
     const targetMinute = Math.max(0, Math.min(59, Number(nextMinute) || 0));
     if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const dayPlan = nextData.days?.[dayIdx]?.plan;
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
@@ -4526,7 +4528,7 @@ const App = () => {
     }
     if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const dayPlan = nextData.days?.[dayIdx]?.plan;
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
@@ -4565,7 +4567,7 @@ const App = () => {
   const setPlanEndAbsoluteMinutes = (dayIdx, pIdx, nextAbsoluteMinutes, options = {}) => {
     if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const dayPlan = nextData.days?.[dayIdx]?.plan;
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
@@ -4599,7 +4601,7 @@ const App = () => {
   const updatePlanEndTime = (dayIdx, pIdx, delta) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const dayPlan = nextData.days?.[dayIdx]?.plan;
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
@@ -4619,7 +4621,7 @@ const App = () => {
     saveHistory();
     let locked = false;
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const dayPlan = nextData.days[dayIdx].plan;
       const item = dayPlan[pIdx];
       item.isDurationFixed = !item.isDurationFixed;
@@ -4633,7 +4635,7 @@ const App = () => {
   const updateWaitingTime = (dayIdx, pIdx, delta) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const dayPlan = nextData.days[dayIdx].plan;
       const item = dayPlan[pIdx];
 
@@ -4651,7 +4653,7 @@ const App = () => {
   const updateTravelTime = (dayIdx, pIdx, delta) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const dayPlan = nextData.days[dayIdx].plan;
       const item = dayPlan[pIdx];
 
@@ -4670,7 +4672,7 @@ const App = () => {
   const updateBufferTime = (dayIdx, pIdx, delta) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
       if (!item) return prev;
 
@@ -4779,7 +4781,7 @@ const App = () => {
     let computedBufferMins = 0;
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const dayPlan = nextData.days[dayIdx]?.plan || [];
       const currentIdx = dayPlan.findIndex((entry) => entry?.id === itemId);
       if (currentIdx < 0) return prev;
@@ -4831,7 +4833,7 @@ const App = () => {
   const resetTravelTime = (dayIdx, pIdx) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const autoTime = nextData.days[dayIdx].plan[pIdx].travelTimeAuto;
       nextData.days[dayIdx].plan[pIdx].travelTimeOverride = autoTime || '15분';
       nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
@@ -4843,7 +4845,7 @@ const App = () => {
   const toggleTimeFix = (dayIdx, pIdx, options = {}) => {
     if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
-      const draft = JSON.parse(JSON.stringify(prev));
+      const draft = structuredClone(prev);
       const dayPlan = draft.days?.[dayIdx]?.plan || [];
       const item = dayPlan?.[pIdx];
       if (!item) return prev;
@@ -4868,7 +4870,7 @@ const App = () => {
   const toggleDurationFix = (dayIdx, pIdx, options = {}) => {
     if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
-      const draft = JSON.parse(JSON.stringify(prev));
+      const draft = structuredClone(prev);
       const dayPlan = draft.days?.[dayIdx]?.plan || [];
       const p = draft.days[dayIdx].plan[pIdx];
       syncBaseDuration(p, p.duration);
@@ -4882,7 +4884,7 @@ const App = () => {
   const toggleEndTimeFix = (dayIdx, pIdx, options = {}) => {
     if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
-      const draft = JSON.parse(JSON.stringify(prev));
+      const draft = structuredClone(prev);
       const dayPlan = draft.days?.[dayIdx]?.plan || [];
       const p = draft.days[dayIdx].plan[pIdx];
       syncBaseDuration(p, p.duration);
@@ -4900,7 +4902,7 @@ const App = () => {
   };
   const updatePlanBusinessField = (dayIdx, pIdx, field, value) => {
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const item = nextData.days[dayIdx].plan[pIdx];
       item.business = normalizeBusiness(item.business || {});
       item.business[field] = value;
@@ -4909,14 +4911,14 @@ const App = () => {
   };
   const updatePlanBusiness = (dayIdx, pIdx, newBusiness) => {
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       nextData.days[dayIdx].plan[pIdx].business = normalizeBusiness(newBusiness || {});
       return nextData;
     });
   };
   const togglePlanClosedDay = (dayIdx, pIdx, weekday) => {
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const item = nextData.days[dayIdx].plan[pIdx];
       item.business = normalizeBusiness(item.business || {});
       item.business.closedDays = item.business.closedDays.includes(weekday)
@@ -4928,7 +4930,7 @@ const App = () => {
 
   const updateAddress = (dayIdx, pIdx, value, forceRefresh = false) => {
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const item = nextData.days[dayIdx].plan[pIdx];
       if (!item.receipt) item.receipt = { address: '', items: [] };
       item.receipt.address = value;
@@ -4940,7 +4942,7 @@ const App = () => {
 
   const updateActivityName = (dayIdx, pIdx, value) => {
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       nextData.days[dayIdx].plan[pIdx].activity = value;
       return nextData;
     });
@@ -4948,7 +4950,7 @@ const App = () => {
 
   const updatePlanTags = (dayIdx, pIdx, tags) => {
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const item = nextData.days[dayIdx].plan[pIdx];
       item.types = normalizeTagOrder(tags);
       if (item.types.includes('ship')) {
@@ -4986,7 +4988,7 @@ const App = () => {
     if (!Array.isArray(receipt.items)) receipt.items = [];
     receipt.address = nextDraft.address || receipt.address || '';
     setItinerary((prev) => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const item = nextData.days?.[dayIdx]?.plan?.[pIdx];
       if (!item) return prev;
       item.activity = nextDraft.name || item.activity || '';
@@ -5015,7 +5017,7 @@ const App = () => {
     if (!targetTag) return;
     saveHistory();
     setItinerary((prev) => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       nextData.places = (nextData.places || []).map((place) => ({
         ...place,
         types: normalizeTagOrder((Array.isArray(place?.types) ? place.types : []).filter((tag) => tag !== targetTag)),
@@ -5043,7 +5045,7 @@ const App = () => {
   const resetAllPlanTimeSettings = () => {
     saveHistory();
     setItinerary((prev) => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       if (!Array.isArray(nextData.days)) return prev;
       let updatedCount = 0;
 
@@ -5078,7 +5080,7 @@ const App = () => {
   const updateMenuData = (dayIdx, pIdx, menuIdx, field, value) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const planItem = nextData.days[dayIdx].plan[pIdx];
       const items = planItem.receipt?.items || [];
       const target = items[menuIdx];
@@ -5103,7 +5105,7 @@ const App = () => {
   const addMenuItem = (dayIdx, pIdx) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const planItem = nextData.days[dayIdx].plan[pIdx];
       if (!planItem.receipt) planItem.receipt = { address: '', items: [] };
       if (!planItem.receipt.items) planItem.receipt.items = [];
@@ -5116,7 +5118,7 @@ const App = () => {
   const deleteMenuItem = (dayIdx, pIdx, menuIdx) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const planItem = nextData.days[dayIdx].plan[pIdx];
       if (planItem.receipt && planItem.receipt.items) {
         planItem.receipt.items.splice(menuIdx, 1);
@@ -5128,7 +5130,7 @@ const App = () => {
 
   const updateShipPoint = (dayIdx, pIdx, field, value) => {
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       nextData.days[dayIdx].plan[pIdx][field] = value;
       applyGeoFieldsToRecord(nextData.days[dayIdx].plan[pIdx]);
       return nextData;
@@ -5137,7 +5139,7 @@ const App = () => {
 
   const updateFerryBoardTime = (dayIdx, pIdx, deltaMinutes) => {
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const item = nextData.days[dayIdx].plan[pIdx];
       const shipTimeline = getShipTimeline(item);
       const newBoard = Math.max(shipTimeline.loadEnd, shipTimeline.board + deltaMinutes);
@@ -5156,7 +5158,7 @@ const App = () => {
 
   const updateFerryLoadEndTime = (dayIdx, pIdx, deltaMinutes) => {
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const item = nextData.days[dayIdx].plan[pIdx];
       const shipTimeline = getShipTimeline(item);
       const newLoadEnd = Math.min(shipTimeline.board, Math.max(shipTimeline.loadStart, shipTimeline.loadEnd + deltaMinutes));
@@ -5173,7 +5175,7 @@ const App = () => {
 
   const updateFerrySailDuration = (dayIdx, pIdx, deltaMinutes) => {
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const item = nextData.days[dayIdx].plan[pIdx];
       const shipTimeline = getShipTimeline(item);
       const newSail = Math.max(30, (item.sailDuration ?? 240) + deltaMinutes);
@@ -5216,7 +5218,7 @@ const App = () => {
       const parsedDuration = parseFerryDurationInput(raw);
       const mins = Math.max(30, parsedDuration || 30);
       setItinerary(prev => {
-        const nextData = JSON.parse(JSON.stringify(prev));
+        const nextData = structuredClone(prev);
         const item = nextData.days[dayIdx].plan[pIdx];
         const shipTimeline = getShipTimeline(item);
         item.sailDuration = mins;
@@ -5230,7 +5232,7 @@ const App = () => {
     const time = parseFerryTimeInput(raw);
     if (!time) return;
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const item = nextData.days[dayIdx].plan[pIdx];
       const shipTimeline = getShipTimeline(item);
       if (field === 'load') {
@@ -5272,7 +5274,7 @@ const App = () => {
       : toAlternativeFromPlace(place || {});
     saveHistory();
     setItinerary(prev => {
-      const next = JSON.parse(JSON.stringify(prev));
+      const next = structuredClone(prev);
       const item = next.days[dayIdx].plan[pIdx];
       if (!item.alternatives) item.alternatives = [];
       item.alternatives.push(alt);
@@ -5285,7 +5287,7 @@ const App = () => {
     const alt = normalizeAlternative(itinerary.days[dayIdx].plan[pIdx].alternatives[altIdx]);
     saveHistory();
     setItinerary(prev => {
-      const next = JSON.parse(JSON.stringify(prev));
+      const next = structuredClone(prev);
       next.days[dayIdx].plan[pIdx].alternatives.splice(altIdx, 1);
       if (!next.places) next.places = [];
       next.places.push({
@@ -5308,7 +5310,7 @@ const App = () => {
   const insertAlternativeToTimeline = (targetDayIdx, insertAfterPIdx, sourceDayIdx, sourcePIdx, sourceAltIdx, options = {}) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const sourcePlanItem = nextData.days[sourceDayIdx]?.plan?.[sourcePIdx];
       const rawAlt = sourcePlanItem?.alternatives?.[sourceAltIdx];
       if (!rawAlt) return nextData;
@@ -5363,7 +5365,7 @@ const App = () => {
     saveHistory();
     let sourceIdToReset = null;
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const src = nextData.days[sourceDayIdx]?.plan?.[sourcePIdx];
       if (!src) return nextData;
 
@@ -5448,7 +5450,7 @@ const App = () => {
   const removeAlternative = (dayIdx, pIdx, altIdx) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const targetItem = nextData.days[dayIdx].plan[pIdx];
       if (targetItem.alternatives) {
         targetItem.alternatives.splice(altIdx, 1);
@@ -5462,7 +5464,7 @@ const App = () => {
   const swapAlternative = (dayIdx, pIdx, altIdx) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const item = nextData.days[dayIdx].plan[pIdx];
 
       if (!item.alternatives || !item.alternatives[altIdx]) return nextData;
@@ -5499,7 +5501,7 @@ const App = () => {
   const rotatePlan = (dayIdx, pIdx, dir) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const item = nextData.days[dayIdx].plan[pIdx];
       if (!item.alternatives || item.alternatives.length === 0) return nextData;
       const alts = item.alternatives;
@@ -5547,7 +5549,7 @@ const App = () => {
 
   const updateAlternative = (dayIdx, pIdx, altIdx, field, value) => {
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const alt = nextData.days[dayIdx].plan[pIdx].alternatives[altIdx];
       if (alt) {
         if (field === 'price') alt.price = value === '' ? 0 : Number(value);
@@ -5560,7 +5562,7 @@ const App = () => {
   const deletePlanItem = (dayIdx, pIdx) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       nextData.days[dayIdx].plan.splice(pIdx, 1);
       nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
       return nextData;
@@ -5572,7 +5574,7 @@ const App = () => {
   const movePlanItem = (sourceDayIdx, sourcePIdx, targetDayIdx, insertAfterPIdx) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const sourcePlan = nextData.days[sourceDayIdx].plan;
       const targetPlan = nextData.days[targetDayIdx].plan;
       const [item] = sourcePlan.splice(sourcePIdx, 1);
@@ -5983,7 +5985,7 @@ const App = () => {
     }
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       if (!nextData.places) nextData.places = [];
       nextData.places.push(libraryPlace);
       return nextData;
@@ -6006,7 +6008,7 @@ const App = () => {
     }
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       if (!nextData.places) nextData.places = [];
       nextData.places.push(libraryPlace);
       return nextData;
@@ -6025,7 +6027,7 @@ const App = () => {
     }
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       nextData.days[dayIdx].plan.splice(pIdx, 1);
       nextData.days[dayIdx].plan = recalculateSchedule(nextData.days[dayIdx].plan);
       if (!nextData.places) nextData.places = [];
@@ -6054,7 +6056,7 @@ const App = () => {
 
     saveHistory();
     setItinerary((prev) => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const targetDay = nextData.days?.[dayIdx];
       if (!targetDay) return prev;
       targetDay.plan = recalculateSchedule((targetDay.plan || []).filter((item) => item?.type === 'backup'));
@@ -6070,7 +6072,7 @@ const App = () => {
   const addInitialItem = (dayIdx = 0, placeData = null) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       if (!Array.isArray(nextData.days) || nextData.days.length === 0) {
         nextData.days = [{ day: 1, plan: [] }];
       }
@@ -6096,7 +6098,7 @@ const App = () => {
   const addNewItem = (dayIdx, insertIndex, types = ['place'], placeData = null, options = {}) => {
     if (!options?.skipHistory) saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const dayPlan = nextData.days[dayIdx].plan;
       const prevItem = dayPlan[insertIndex];
       const nextItem = dayPlan[insertIndex + 1];
@@ -6147,7 +6149,7 @@ const App = () => {
   const addSuggestionAsAlternative = (dayIdx, pIdx, suggestion) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const targetItem = nextData.days[dayIdx].plan[pIdx];
 
       if (!targetItem.alternatives) targetItem.alternatives = [];
@@ -6255,7 +6257,7 @@ const App = () => {
       if (isShipTarget) {
         saveHistory();
         setItinerary(prev => {
-          const nextData = JSON.parse(JSON.stringify(prev));
+          const nextData = structuredClone(prev);
           const p = nextData.days?.[dayIdx]?.plan?.[targetIdx];
           if (!p) return prev;
           p.distance = cachedDistance;
@@ -6299,7 +6301,7 @@ const App = () => {
         // 페리는 이동시간 자동 설정하지 않음 (사용자가 직접 입력한 boardTime/승선 시간 우선)
         saveHistory();
         setItinerary(prev => {
-          const nextData = JSON.parse(JSON.stringify(prev));
+          const nextData = structuredClone(prev);
           const p = nextData.days?.[dayIdx]?.plan?.[targetIdx];
           if (!p) return prev;
           p.distance = shipRoute.distance;
@@ -6402,7 +6404,7 @@ const App = () => {
   const applyRoute = (dayIdx, targetIdx, { distance, durationMins }) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       const p = nextData.days?.[dayIdx]?.plan?.[targetIdx];
       if (!p) return prev;
       p.distance = distance;
@@ -6418,7 +6420,7 @@ const App = () => {
   const addBackupItem = (dayIdx, insertIndex) => {
     saveHistory();
     setItinerary(prev => {
-      const nextData = JSON.parse(JSON.stringify(prev));
+      const nextData = structuredClone(prev);
       nextData.days[dayIdx].plan.splice(insertIndex + 1, 0, {
         id: `backup_${Date.now()}`,
         time: '-',
@@ -6508,7 +6510,7 @@ const App = () => {
     setManualSaveHistory(prev => [{
       savedAt: now,
       label,
-      snapshot: JSON.parse(JSON.stringify({ ...payload, collaborators })),
+      snapshot: structuredClone({ ...payload, collaborators }),
     }, ...prev].slice(0, 20));
   };
   saveItineraryRef.current = saveItineraryManually;
@@ -7119,7 +7121,7 @@ const App = () => {
                 if (!window.confirm('이 장소를 삭제하시겠습니까? (휴지통으로 이동)')) return;
                 const placeId = editPlaceDraft?.id || editingPlaceId;
                 setItinerary(prev => {
-                  const next = JSON.parse(JSON.stringify(prev));
+                  const next = structuredClone(prev);
                   const target = (next.places || []).find(p => p.id === placeId);
                   next.places = (next.places || []).filter(p => p.id !== placeId);
                   if (target) next.placeTrash = [...(next.placeTrash || []), target];
@@ -7253,7 +7255,7 @@ const App = () => {
                 if (target) {
                   saveHistory();
                   setItinerary(prev => {
-                    const next = JSON.parse(JSON.stringify(prev));
+                    const next = structuredClone(prev);
                     next.days[target.dayIdx].plan.splice(target.pIdx, 1);
                     return next;
                   });
@@ -7594,7 +7596,7 @@ const App = () => {
                                         if (src && window.confirm(`'${src.activity || '일정'}'을 삭제하시겠습니까?`)) {
                                           saveHistory();
                                           setItinerary(prev => {
-                                            const next = JSON.parse(JSON.stringify(prev));
+                                            const next = structuredClone(prev);
                                             next.days[draggingFromTimeline.dayIdx].plan.splice(draggingFromTimeline.pIdx, 1);
                                             return next;
                                           });
@@ -7705,7 +7707,7 @@ const App = () => {
                 if (!window.confirm(`${allItems.length}개 일정을 모두 내장소로 보내시겠습니까?\n(중복은 휴지통, 세그먼트는 삭제)`)) return;
                 saveHistory();
                 setItinerary(prev => {
-                  const next = JSON.parse(JSON.stringify(prev));
+                  const next = structuredClone(prev);
                   const existingIds = new Set((next.places || []).map(p => p.name?.toLowerCase()));
                   const newPlaces = [];
                   const dupTrash = [];
@@ -8511,11 +8513,11 @@ const App = () => {
                           addressActions={
                             <>
                               <button type="button" onClick={(e) => { e.stopPropagation(); openNaverPlaceSearch(place.name || '', place.address || place.receipt?.address || ''); }} title="네이버 지도에서 장소 검색" className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"><MapIcon size={9} /></button>
-                              <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(place.name || '', tripRegion); if (result?.address) { setItinerary(prev => { const next = JSON.parse(JSON.stringify(prev)); const target = (next.places || []).find(pl => pl.id === place.id); if (target) { target.address = result.address; if (!target.receipt) target.receipt = {}; target.receipt.address = result.address; } return next; }); showInfoToast(`'${place.name}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} title="주소 자동 채우기" className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"><Sparkles size={11} /></button>
+                              <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(place.name || '', tripRegion); if (result?.address) { setItinerary(prev => { const next = structuredClone(prev); const target = (next.places || []).find(pl => pl.id === place.id); if (target) { target.address = result.address; if (!target.receipt) target.receipt = {}; target.receipt.address = result.address; } return next; }); showInfoToast(`'${place.name}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} title="주소 자동 채우기" className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-[#3182F6] hover:text-[#3182F6] transition-colors"><Sparkles size={11} /></button>
                             </>
                           }
                           businessActions={
-                            <button type="button" onClick={async (e) => { e.stopPropagation(); try { const result = await analyzeClipboardSmartFill({ mode: 'business', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig }); const parsed = result?.parsed; if (parsed?.business) { setItinerary(prev => { const next = JSON.parse(JSON.stringify(prev)); const target = (next.places || []).find(pl => pl.id === place.id); if (target) target.business = normalizeBusiness(parsed.business); return next; }); showInfoToast('영업정보 스마트 입력 완료'); } else { showInfoToast('영업 정보를 찾지 못했습니다.'); } } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); } }} className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors" title="영업정보 스마트 붙여넣기"><Sparkles size={11} /></button>
+                            <button type="button" onClick={async (e) => { e.stopPropagation(); try { const result = await analyzeClipboardSmartFill({ mode: 'business', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig }); const parsed = result?.parsed; if (parsed?.business) { setItinerary(prev => { const next = structuredClone(prev); const target = (next.places || []).find(pl => pl.id === place.id); if (target) target.business = normalizeBusiness(parsed.business); return next; }); showInfoToast('영업정보 스마트 입력 완료'); } else { showInfoToast('영업 정보를 찾지 못했습니다.'); } } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); } }} className="shrink-0 p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-colors" title="영업정보 스마트 붙여넣기"><Sparkles size={11} /></button>
                           }
                           isExpanded={isPlaceExpanded}
                           viewMode={placeLibraryViewMode}
@@ -8526,7 +8528,7 @@ const App = () => {
                               const parsed = result?.parsed;
                               if (parsed) {
                                 setItinerary(prev => {
-                                  const next = JSON.parse(JSON.stringify(prev));
+                                  const next = structuredClone(prev);
                                   const target = (next.places || []).find(p => p.id === place.id);
                                   if (!target) return prev;
                                   if (parsed.address) { target.address = parsed.address; if (!target.receipt) target.receipt = {}; target.receipt.address = parsed.address; }
@@ -8660,7 +8662,7 @@ const App = () => {
                           }}
                           onToggleStar={() => {
                             setItinerary(prev => {
-                              const next = JSON.parse(JSON.stringify(prev));
+                              const next = structuredClone(prev);
                               const target = (next.places || []).find(p => p.id === place.id);
                               if (target) target.starred = !target.starred;
                               return next;
@@ -10245,9 +10247,9 @@ const App = () => {
                                           />
                                           <input
                                             value={p.receipt?.address || ''}
-                                            onChange={(e) => { e.stopPropagation(); setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...d.days[dIdx].plan[pIdx].receipt, address: e.target.value }; return d; }); }}
+                                            onChange={(e) => { e.stopPropagation(); setItinerary(prev => { const d = structuredClone(prev); d.days[dIdx].plan[pIdx].receipt = { ...d.days[dIdx].plan[pIdx].receipt, address: e.target.value }; return d; }); }}
                                             onClick={(e) => e.stopPropagation()}
-                                            onFocus={async (e) => { e.target.select(); if (p.startPoint) { const r = await searchAddressFromPlaceName(p.startPoint); if (r?.address) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...d.days[dIdx].plan[pIdx].receipt, address: r.address }; return d; }); } }}
+                                            onFocus={async (e) => { e.target.select(); if (p.startPoint) { const r = await searchAddressFromPlaceName(p.startPoint); if (r?.address) setItinerary(prev => { const d = structuredClone(prev); d.days[dIdx].plan[pIdx].receipt = { ...d.days[dIdx].plan[pIdx].receipt, address: r.address }; return d; }); } }}
                                             placeholder="클릭 시 자동 입력"
                                             className="w-full bg-transparent text-[11px] font-bold text-slate-500 outline-none truncate cursor-pointer"
                                           />
@@ -10364,7 +10366,7 @@ const App = () => {
                                   onChange={(e) => {
                                     e.stopPropagation();
                                     setItinerary((prev) => {
-                                      const next = JSON.parse(JSON.stringify(prev));
+                                      const next = structuredClone(prev);
                                       next.days[dIdx].plan[pIdx].receipt = {
                                         ...(next.days[dIdx].plan[pIdx].receipt || {}),
                                         address: e.target.value,
@@ -10572,7 +10574,7 @@ const App = () => {
                                             onChange={(v) => {
                                               const addr = typeof v === 'string' ? v : v?.target?.value || '';
                                               setItinerary(prev => {
-                                                const next = JSON.parse(JSON.stringify(prev));
+                                                const next = structuredClone(prev);
                                                 const item = next.days[dIdx]?.plan?.[pIdx];
                                                 if (!item) return prev;
                                                 item.address = addr.trim();
@@ -10621,7 +10623,7 @@ const App = () => {
                                                 raw = padded.slice(0, 2) + ':' + padded.slice(2);
                                               }
                                               setItinerary(prev => {
-                                                const next = JSON.parse(JSON.stringify(prev));
+                                                const next = structuredClone(prev);
                                                 const item = next.days[dIdx]?.plan?.[pIdx];
                                                 if (!item) return prev;
                                                 item.time = raw;
@@ -10642,7 +10644,7 @@ const App = () => {
                                                 const min = h === 24 ? 0 : Math.min(59, Math.max(0, parseInt(m[2], 10)));
                                                 const normalized = `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
                                                 setItinerary(prev => {
-                                                  const next = JSON.parse(JSON.stringify(prev));
+                                                  const next = structuredClone(prev);
                                                   const item = next.days[dIdx]?.plan?.[pIdx];
                                                   if (!item) return prev;
                                                   item.time = normalized;
@@ -10781,8 +10783,8 @@ const App = () => {
                                                 setAiLearningCapture({ itemId: p.id, rawSource: result.rawPayload, aiResult: parsed, inputType: result.inputType });
                                                 if (parsed.name) updateActivityName(dIdx, pIdx, parsed.name);
                                                 if (parsed.address) updateAddress(dIdx, pIdx, parsed.address);
-                                                if (parsed.business) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
-                                                if (parsed.menus.length) setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: buildSmartFillMenuItems(parsed.menus) }; return d; });
+                                                if (parsed.business) setItinerary(prev => { const d = structuredClone(prev); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
+                                                if (parsed.menus.length) setItinerary(prev => { const d = structuredClone(prev); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: buildSmartFillMenuItems(parsed.menus) }; return d; });
                                                 showInfoToast(isAiSmartFillSource(result?.source) ? `AI 스마트 전체 붙여넣기 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '스마트 전체 붙여넣기 완료');
                                               } else {
                                                 showInfoToast(useAiSmartFill ? 'Groq가 붙여넣을 내용을 찾지 못했습니다.' : '붙여넣을 내용을 찾지 못했습니다.');
@@ -10813,7 +10815,7 @@ const App = () => {
                                             const parsed = result?.parsed;
                                             if (parsed?.business) {
                                               setAiLearningCapture({ itemId: p.id, rawSource: result.rawPayload, aiResult: parsed, inputType: result.inputType });
-                                              setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
+                                              setItinerary(prev => { const d = structuredClone(prev); d.days[dIdx].plan[pIdx].business = normalizeBusiness(parsed.business); return d; });
                                               showInfoToast(isAiSmartFillSource(result?.source) ? `AI 영업정보 스마트 입력 완료${result?.usedImage ? ' (이미지 포함)' : ''}` : '영업 정보만 스마트 입력 완료');
                                             } else {
                                               showInfoToast(useAiSmartFill ? 'Groq가 영업 정보를 찾지 못했습니다.' : '영업 정보를 찾지 못했습니다.');
@@ -10845,7 +10847,7 @@ const App = () => {
                                         const result = await analyzeClipboardSmartFill({ mode: 'menus', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
                                         if (result?.parsed?.menus?.length) {
                                           setAiLearningCapture({ itemId: p.id, rawSource: result.rawPayload, aiResult: result.parsed, inputType: result.inputType });
-                                          setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: buildSmartFillMenuItems(result.parsed.menus) }; return d; });
+                                          setItinerary(prev => { const d = structuredClone(prev); d.days[dIdx].plan[pIdx].receipt = { ...(d.days[dIdx].plan[pIdx].receipt || {}), items: buildSmartFillMenuItems(result.parsed.menus) }; return d; });
                                           showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 메뉴 스마트 입력 완료' : '메뉴 정보만 스마트 입력 완료');
                                         } else { showInfoToast(useAiSmartFill ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.'); }
                                       } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }
@@ -11253,7 +11255,7 @@ const App = () => {
                 <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30">{getCategoryBadge(qvPrimaryType)}</div>
                 <span className="text-[13px] font-black text-white truncate flex-1">{qvItem.activity || qvItem.name || '이름 없음'}</span>
                 {isPlaceQuickView && (
-                  <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(qvItem.name || '', tripRegion); if (result?.address) { setItinerary(prev => { const next = JSON.parse(JSON.stringify(prev)); const target = (next.places || []).find(pl => pl.id === qvItem.id); if (target) { target.address = result.address; if (!target.receipt) target.receipt = {}; target.receipt.address = result.address; } return next; }); showInfoToast(`'${qvItem.name}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white text-white hover:bg-white transition-colors" title="주소 자동 채우기"><Sparkles size={12} /></button>
+                  <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(qvItem.name || '', tripRegion); if (result?.address) { setItinerary(prev => { const next = structuredClone(prev); const target = (next.places || []).find(pl => pl.id === qvItem.id); if (target) { target.address = result.address; if (!target.receipt) target.receipt = {}; target.receipt.address = result.address; } return next; }); showInfoToast(`'${qvItem.name}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white text-white hover:bg-white transition-colors" title="주소 자동 채우기"><Sparkles size={12} /></button>
                 )}
                 {isPlaceQuickView && (
                   <button type="button" onClick={() => { setMapQuickViewItem(null); const place = (itinerary.places || []).find(pl => pl.id === qvItem.id); if (place) { setEditingPlaceId(place.id); setEditPlaceDraft(createPlaceEditorDraft(place)); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white text-white hover:bg-white transition-colors" title="장소 수정"><Pencil size={12} /></button>
@@ -11303,7 +11305,7 @@ const App = () => {
                     const result = await analyzeClipboardSmartFill({ mode: 'menus', aiEnabled: useAiSmartFill, aiSettings: aiSmartFillConfig });
                     if (result?.parsed?.menus?.length) {
                       setAiLearningCapture({ itemId: qvItem.id, rawSource: result.rawPayload, aiResult: result.parsed, inputType: result.inputType });
-                      setItinerary(prev => { const d = JSON.parse(JSON.stringify(prev)); d.days[qvDIdx].plan[qvPIdx].receipt = { ...(d.days[qvDIdx].plan[qvPIdx].receipt || {}), items: buildSmartFillMenuItems(result.parsed.menus) }; return d; });
+                      setItinerary(prev => { const d = structuredClone(prev); d.days[qvDIdx].plan[qvPIdx].receipt = { ...(d.days[qvDIdx].plan[qvPIdx].receipt || {}), items: buildSmartFillMenuItems(result.parsed.menus) }; return d; });
                       showInfoToast(isAiSmartFillSource(result?.source) ? 'AI 메뉴 스마트 입력 완료' : '메뉴 정보만 스마트 입력 완료');
                     } else { showInfoToast(useAiSmartFill ? 'Groq가 메뉴 정보를 찾지 못했습니다.' : '메뉴 정보를 찾지 못했습니다.'); }
                   } catch (error) { showInfoToast(getSmartFillErrorMessage(error, useAiSmartFill)); }

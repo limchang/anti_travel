@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, X, MapPin, Pencil, Star, ChevronDown, ChevronUp, Clock, StickyNote } from 'lucide-react';
+import { Plus, X, MapPin, Pencil, Star, ChevronDown, ChevronUp, Clock, StickyNote, Utensils, Coffee, Camera, Bed, MoonStar, Hourglass, Anchor, Timer, Eye, Gift, Soup, Package, Home, Zap, RotateCcw, Map as MapIcon } from 'lucide-react';
 import { TAG_OPTIONS, TAG_VALUES, MODIFIER_TAGS, normalizeTagOrder, toggleTagSelection, getTagButtonClass, WEEKDAY_OPTIONS, formatClosedDaysSummary, EMPTY_BUSINESS } from '../../utils/constants.js';
 import { normalizeBusiness } from '../../utils/time.js';
 
@@ -31,19 +31,24 @@ export const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그'
   return (
     <div className={className}>
       <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1.5">{title}</p>
-      <div className="flex flex-wrap gap-1.5 items-center">
+      <div className="flex flex-wrap gap-1 items-center">
         {TAG_OPTIONS.map(t => {
           const active = selected.includes(t.value);
+          const iconMap = { food: <Utensils size={10} />, cafe: <Coffee size={10} />, tour: <Camera size={10} />, lodge: <Bed size={10} />, stay: <MoonStar size={10} />, rest: <Hourglass size={10} />, ship: <Anchor size={10} />, openrun: <Timer size={10} />, view: <Eye size={10} />, experience: <Star size={10} />, souvenir: <Gift size={10} />, snack: <Soup size={10} />, pickup: <Package size={10} />, home: <Home size={10} />, quick: <Zap size={10} />, new: <Star size={10} />, revisit: <RotateCcw size={10} />, place: <MapIcon size={10} /> };
+          const colorMap = { food: 'text-rose-500 bg-red-50 border-red-200', cafe: 'text-amber-900 bg-amber-50 border-amber-200', tour: 'text-purple-600 bg-purple-50 border-purple-200', lodge: 'text-indigo-600 bg-indigo-50 border-indigo-200', stay: 'text-violet-600 bg-violet-50 border-violet-200', rest: 'text-cyan-600 bg-cyan-50 border-cyan-200', ship: 'text-blue-600 bg-blue-50 border-blue-200', openrun: 'text-red-500 bg-red-50 border-red-200', view: 'text-sky-600 bg-sky-50 border-sky-200', experience: 'text-emerald-600 bg-emerald-50 border-emerald-200', souvenir: 'text-teal-600 bg-teal-50 border-teal-200', snack: 'text-yellow-700 bg-yellow-50 border-yellow-200', pickup: 'text-orange-500 bg-orange-50 border-orange-200', home: 'text-amber-700 bg-amber-50 border-amber-200', quick: 'text-yellow-600 bg-yellow-50 border-yellow-200', new: 'text-emerald-600 bg-emerald-50 border-emerald-200', revisit: 'text-blue-600 bg-blue-50 border-blue-200', place: 'text-slate-500 bg-slate-100 border-slate-200' };
+          const baseColor = colorMap[t.value] || 'text-slate-500 bg-slate-100 border-slate-200';
           return (
             <button key={t.value} type="button" onClick={() => onChange(toggleTagSelection(selected, t.value))}
-              className={`px-2 py-0.5 rounded-lg text-[10px] font-black border transition-colors ${getTagButtonClass(t.value, active)}`}>
+              className={`flex items-center gap-1 px-1.5 py-1 text-[10px] font-bold border transition-all ${active ? baseColor + ' ring-2 ring-inset ring-current' : 'text-slate-300 bg-slate-50 border-slate-100 hover:opacity-80'}`}>
+              {iconMap[t.value] || <MapIcon size={10} />}
               {t.label}
             </button>
           );
         })}
         {customTags.map(t => (
           <button key={t} type="button" onClick={() => onChange(normalizeTagOrder(selected.filter(v => v !== t)))}
-            className="px-2 py-0.5 rounded-lg text-[10px] font-black border transition-colors text-slate-600 bg-slate-100 border-slate-300 hover:bg-slate-200">
+            className="flex items-center gap-1 px-1.5 py-1 text-[10px] font-bold border transition-all text-slate-600 bg-slate-100 border-slate-200 ring-2 ring-inset ring-slate-400 hover:bg-slate-200">
+            <MapIcon size={10} />
             {t}
           </button>
         ))}

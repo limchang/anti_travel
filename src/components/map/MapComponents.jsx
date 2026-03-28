@@ -122,7 +122,7 @@ export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColo
   const sz = isFocused ? 36 : 28;
   const tailW = isFocused ? 6 : 5;
   const tailH = (isFocused ? 7 : 6) + extraTailH;
-  const radius = isFocused ? 3 : 2;
+  const radius = 0;
   const badgeText = isFirst ? 'START' : (isLast ? 'END' : '');
   const badgeColor = isFirst ? '#10B981' : '#EF4444';
   const badgeH = badgeText ? 14 : 0;
@@ -142,7 +142,7 @@ export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColo
       html: `
         <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
           ${badgeText ? `<div style="margin-bottom:2px;padding:0 5px;height:${badgeH}px;border-radius:999px;background:${badgeColor};color:#fff;font-size:7px;font-weight:900;line-height:${badgeH}px;white-space:nowrap;letter-spacing:0.06em;">${badgeText}</div>` : ''}
-          <div style="border-radius:${radius + 2}px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${dayColor};padding:${pad}px;background:rgba(255,255,255,0.9);">
+          <div style="border-radius:0px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${dayColor};padding:${pad}px;background:rgba(255,255,255,0.9);">
             <div style="display:flex;align-items:center;border-radius:${radius}px;overflow:hidden;">
               <div style="width:${sz}px;height:${pillH}px;background:${dayColor};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                 <span style="font-size:${isFocused ? '16px' : '13px'};font-weight:900;color:#fff;line-height:1;letter-spacing:-0.5px;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${label}</span>
@@ -169,7 +169,7 @@ export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColo
     html: `
       <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
         ${badgeText ? `<div style="margin-bottom:2px;padding:0 5px;height:${badgeH}px;border-radius:999px;background:${badgeColor};color:#fff;font-size:7px;font-weight:900;line-height:${badgeH}px;white-space:nowrap;letter-spacing:0.06em;">${badgeText}</div>` : ''}
-        <div style="border-radius:${radius + 2}px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${dayColor};padding:${pillPad}px;background:rgba(255,255,255,0.9);">
+        <div style="border-radius:0px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${dayColor};padding:${pillPad}px;background:rgba(255,255,255,0.9);">
           <div style="width:${sz}px;height:${sz}px;border-radius:${radius}px;background:${dayColor};display:flex;align-items:center;justify-content:center;">
             <span style="font-size:${isFocused ? '16px' : '13px'};font-weight:900;color:#fff;line-height:1;letter-spacing:-0.5px;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${label}</span>
           </div>
@@ -186,7 +186,7 @@ export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColo
 export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = false, showAddButton = false) => {
   const n = items.length;
   const sz = isFocused ? 36 : 28;
-  const radius = isFocused ? 3 : 2;
+  const radius = 0;
   const tailH = isFocused ? 7 : 6;
   const tailW = isFocused ? 6 : 5;
   const shadow = isFocused
@@ -236,7 +236,7 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = fals
       className: '',
       html: `
         <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
-          <div style="border-radius:${radius + 2}px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};padding:${pad}px;background:rgba(255,255,255,0.9);">
+          <div style="border-radius:0px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};padding:${pad}px;background:rgba(255,255,255,0.9);">
             ${rows}
           </div>
           <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${tailColor};margin-top:-1px;"></div>
@@ -273,7 +273,7 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = fals
     className: '',
     html: `
       <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
-        <div style="display:flex;align-items:center;border-radius:${radius + 2}px;border:${isFocused?'2.5px':'2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};padding:2px;background:rgba(255,255,255,0.9);">
+        <div style="display:flex;align-items:center;border-radius:0px;border:${isFocused?'2.5px':'2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};padding:2px;background:rgba(255,255,255,0.9);">
           ${cells}
         </div>
         <div style="width:0;height:0;border-left:${isFocused?6:5}px solid transparent;border-right:${isFocused?6:5}px solid transparent;border-top:${tailH}px solid ${tailColor};margin-top:-1px;"></div>
@@ -291,10 +291,10 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
     ? 'drop-shadow(0 4px 10px rgba(15,23,42,0.35))'
     : 'drop-shadow(0 2px 5px rgba(15,23,42,0.22))';
   const borderStyle = isFocused ? `2px solid rgba(255,255,255,0.95)` : `2px solid rgba(255,255,255,0.85)`;
-  const radius = isFocused ? '3px' : '2px';
+  const radius = '0px';
 
   if (isCluster) {
-    const cRadius = isFocused ? 3 : 2;
+    const cRadius = 0;
     const tailH = isFocused ? 7 : 6;
     const tailW = isFocused ? 6 : 5;
     const colors = clusterColors.length ? clusterColors : [categoryColor];
@@ -355,7 +355,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
         className: '',
         html: `
           <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
-            <div style="border-radius:${cRadius + 2}px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};padding:${padC}px;background:rgba(255,255,255,0.9);">
+            <div style="border-radius:0px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};padding:${padC}px;background:rgba(255,255,255,0.9);">
               ${rows}${overflowRow}
             </div>
             <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${tailColor};margin-top:-1px;"></div>
@@ -390,7 +390,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
       className: '',
       html: `
         <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
-          <div style="display:flex;align-items:center;border-radius:${cRadius + 2}px;border:${isFocused?'2.5px':'2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};padding:2px;background:rgba(255,255,255,0.9);">
+          <div style="display:flex;align-items:center;border-radius:0px;border:${isFocused?'2.5px':'2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};padding:2px;background:rgba(255,255,255,0.9);">
             ${cells}
           </div>
           <div style="width:0;height:0;border-left:${isFocused?6:5}px solid transparent;border-right:${isFocused?6:5}px solid transparent;border-top:${tailH}px solid ${tailColor};margin-top:-1px;"></div>
@@ -427,7 +427,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
       className: '',
       html: `
         <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
-          <div style="position:relative;border-radius:${radius + 2}px;border:${borderStyle};box-shadow:0 0 0 1.5px ${categoryColor};padding:${pad}px;background:rgba(255,255,255,0.9);overflow:visible;">
+          <div style="position:relative;border-radius:0px;border:${borderStyle};box-shadow:0 0 0 1.5px ${categoryColor};padding:${pad}px;background:rgba(255,255,255,0.9);overflow:visible;">
             ${starBadge}
             <div style="display:flex;align-items:center;border-radius:${radius}px;overflow:hidden;">
               <div style="width:${sz}px;height:${pillH}px;background:${categoryColor};display:flex;align-items:center;justify-content:center;flex-shrink:0;">

@@ -7516,16 +7516,12 @@ const App = () => {
                                       endTouchDragLock();
                                     }}
                                     onClick={() => { setActiveDay(d.day); setActiveItemId(p.id); }}
-                                    onMouseEnter={() => { setFocusedMapTarget({ kind: 'timeline', id: p.id }); }}
-                                    onMouseLeave={() => { setFocusedMapTarget(prev => prev?.id === p.id ? null : prev); }}
-                                    className={`grid grid-cols-[2.2rem_1.2rem_1fr_auto] items-center gap-1 px-2 py-2 mb-0.5 text-left transition-colors cursor-pointer ${navCatStyle.accent} ${navBizWarn ? 'ring-1 ring-red-400/60' : ''} ${isActive ? 'ring-2 ring-[#3182F6]' : 'hover:opacity-90'} ${p._timingConflict ? 'ring-2 ring-red-400' : ''}`}
+                                    className={`grid grid-cols-[2.8rem_1.5rem_1fr_auto] items-center gap-1.5 px-2 py-2 mb-0.5 text-left transition-colors cursor-pointer ${navCatStyle.accent} ${navBizWarn ? 'ring-1 ring-red-400/60' : ''} ${isActive ? 'ring-2 ring-[#3182F6]' : 'hover:opacity-90'} ${p._timingConflict ? 'ring-2 ring-red-400' : ''}`}
                                   >
-                                    {/* 시간 + 번호 */}
-                                    <div className="flex items-center gap-0.5 shrink-0">
-                                      <span className="text-[10px] font-black text-white/80 tabular-nums leading-none">{p.time || '--:--'}</span>
-                                    </div>
-                                    {/* 카테고리 아이콘 */}
-                                    <span className="w-5 h-5 flex items-center justify-center text-white/90 shrink-0">{getCategoryBadge(navPrimaryType)?.props?.children?.[0] || <MapIcon size={12} />}</span>
+                                    {/* 시간 */}
+                                    <span className="text-[11px] font-black text-white tabular-nums leading-none text-center">{p.time || '--:--'}</span>
+                                    {/* 카테고리 아이콘 (셀 유지) */}
+                                    <div className="w-6 h-6 flex items-center justify-center border border-white/30 bg-white/15 shrink-0">{getCategoryBadge(navPrimaryType)?.props?.children?.[0] || <MapIcon size={12} />}</div>
                                     {/* 이름 */}
                                     <span className="text-[12px] font-black text-white truncate">{p.activity || '이름 없음'}</span>
                                     {/* 우측: 소요시간 */}

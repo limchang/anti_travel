@@ -130,30 +130,33 @@ export const buildTimelineMarkerIcon = (dayColor, label, isFocused, categoryColo
     ? 'drop-shadow(0 5px 14px rgba(15,23,42,0.45))'
     : 'drop-shadow(0 3px 8px rgba(15,23,42,0.32))';
 
-  // 이름 표시 모드: 숫자 옆에 이름을 가로로 (내장소와 동일)
+  // 이름 표시 모드: 숫자 옆에 이름을 가로로 (pill 컨테이너)
   if (showName && placeName) {
     const nameMaxW = isFocused ? 120 : 90;
     const pillH = sz;
-    const totalH = badgeH + (badgeH ? 2 : 0) + pillH + tailH;
-    const totalW = sz + nameMaxW;
+    const pad = 2;
+    const totalH = badgeH + (badgeH ? 2 : 0) + pillH + pad * 2 + tailH;
+    const totalW = sz + nameMaxW + pad * 2;
     return L.divIcon({
       className: '',
       html: `
         <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
           ${badgeText ? `<div style="margin-bottom:2px;padding:0 5px;height:${badgeH}px;border-radius:999px;background:${badgeColor};color:#fff;font-size:7px;font-weight:900;line-height:${badgeH}px;white-space:nowrap;letter-spacing:0.06em;">${badgeText}</div>` : ''}
-          <div style="display:flex;align-items:center;border-radius:${radius}px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${dayColor};overflow:hidden;background:#fff;">
-            <div style="width:${sz}px;height:${pillH}px;background:${dayColor};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <span style="font-size:${isFocused ? '16px' : '13px'};font-weight:900;color:#fff;line-height:1;letter-spacing:-0.5px;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${label}</span>
-            </div>
-            <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '12px' : '10px'};font-weight:900;color:#334155;line-height:${pillH}px;">
-              ${placeName}
+          <div style="border-radius:${radius + 2}px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${dayColor};padding:${pad}px;background:rgba(255,255,255,0.9);">
+            <div style="display:flex;align-items:center;border-radius:${radius}px;overflow:hidden;">
+              <div style="width:${sz}px;height:${pillH}px;background:${dayColor};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <span style="font-size:${isFocused ? '16px' : '13px'};font-weight:900;color:#fff;line-height:1;letter-spacing:-0.5px;text-shadow:0 1px 3px rgba(0,0,0,0.25);">${label}</span>
+              </div>
+              <div style="padding:0 6px;max-width:${nameMaxW}px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:${isFocused ? '12px' : '10px'};font-weight:900;color:#334155;line-height:${pillH}px;">
+                ${placeName}
+              </div>
             </div>
           </div>
           <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${dayColor};margin-top:-1px;"></div>
         </div>
       `,
       iconSize: [totalW, totalH],
-      iconAnchor: [sz / 2, totalH],
+      iconAnchor: [(sz + pad * 2) / 2, totalH],
     });
   }
 
@@ -411,8 +414,9 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
     const addBtnSz = isFocused ? 20 : 16;
     const addColW = showAddButton ? (addBtnSz + 8) : 0;
     const pillH = sz;
-    const totalH = pillH + tailH;
-    const totalW = sz + nameMaxW + addColW;
+    const pad = 2;
+    const totalH = pillH + pad * 2 + tailH;
+    const totalW = sz + nameMaxW + addColW + pad * 2;
     const addBtnHtml = showAddButton ? `
       <div data-library-add="true" style="width:${addColW}px;height:${pillH}px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">
         <div style="width:${addBtnSz}px;height:${addBtnSz}px;border-radius:${addBtnSz}px;background:rgba(49,130,246,0.12);display:flex;align-items:center;justify-content:center;">
@@ -423,9 +427,9 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
       className: '',
       html: `
         <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
-          <div style="position:relative;border-radius:${radius};border:${borderStyle};box-shadow:0 0 0 1.5px ${categoryColor};overflow:visible;background:#fff;">
+          <div style="position:relative;border-radius:${radius + 2}px;border:${borderStyle};box-shadow:0 0 0 1.5px ${categoryColor};padding:${pad}px;background:rgba(255,255,255,0.9);overflow:visible;">
             ${starBadge}
-            <div style="display:flex;align-items:center;border-radius:calc(${radius} - 2px);overflow:hidden;">
+            <div style="display:flex;align-items:center;border-radius:${radius}px;overflow:hidden;">
               <div style="width:${sz}px;height:${pillH}px;background:${categoryColor};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                 <svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5)) drop-shadow(0 0 2px rgba(0,0,0,0.25));">${svgIcon}</svg>
               </div>
@@ -439,7 +443,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
         </div>
       `,
       iconSize: [totalW, totalH],
-      iconAnchor: [sz / 2, totalH],
+      iconAnchor: [(sz + pad * 2) / 2, totalH],
     });
   }
 

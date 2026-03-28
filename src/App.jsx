@@ -7518,22 +7518,22 @@ const App = () => {
                                     onClick={() => { setActiveDay(d.day); setActiveItemId(p.id); }}
                                     onMouseEnter={() => { setFocusedMapTarget({ kind: 'timeline', id: p.id }); }}
                                     onMouseLeave={() => { setFocusedMapTarget(prev => prev?.id === p.id ? null : prev); }}
-                                    className={`flex items-center gap-1.5 px-2 py-1.5 mb-1 text-left transition-colors cursor-pointer ${navCatStyle.accent} ${isActive ? 'ring-2 ring-[#3182F6]' : 'hover:opacity-90'} ${p._timingConflict ? 'ring-2 ring-red-400' : ''}`}
+                                    className={`grid grid-cols-[2.2rem_1.2rem_1fr_auto] items-center gap-1 px-2 py-2 mb-0.5 text-left transition-colors cursor-pointer ${navCatStyle.accent} ${navBizWarn ? 'ring-1 ring-red-400/60' : ''} ${isActive ? 'ring-2 ring-[#3182F6]' : 'hover:opacity-90'} ${p._timingConflict ? 'ring-2 ring-red-400' : ''}`}
                                   >
-                                    {/* 번호 */}
-                                    <span className="w-5 h-5 flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{getNavItemOrder(p, pIdx, navPlanItems)}</span>
-                                    {/* 카테고리 뱃지 */}
-                                    <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30 scale-[0.85] origin-left">{getCategoryBadge(navPrimaryType)}</div>
+                                    {/* 시간 + 번호 */}
+                                    <div className="flex items-center gap-0.5 shrink-0">
+                                      <span className="text-[10px] font-black text-white/80 tabular-nums leading-none">{p.time || '--:--'}</span>
+                                    </div>
+                                    {/* 카테고리 아이콘 */}
+                                    <span className="w-5 h-5 flex items-center justify-center text-white/90 shrink-0">{getCategoryBadge(navPrimaryType)?.props?.children?.[0] || <MapIcon size={12} />}</span>
                                     {/* 이름 */}
-                                    <span className="text-[11px] font-black text-white truncate flex-1">{p.activity || '이름 없음'}</span>
-                                    {/* 시간 */}
-                                    <span className="text-[9px] font-bold text-white/70 tabular-nums shrink-0">{p.time || '--:--'}</span>
-                                    {/* 소요시간 */}
-                                    {navDisplayDuration > 0 && (
-                                      <span className={`text-[8px] font-black px-1 py-0.5 shrink-0 ${navDisplayDuration >= 120 ? 'bg-orange-500/30 text-white' : 'bg-white/20 text-white/80'}`}>{fmtDur(navDisplayDuration)}</span>
-                                    )}
-                                    {/* 영업 경고 */}
-                                    {navBizWarn && <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" title={navBizWarn} />}
+                                    <span className="text-[12px] font-black text-white truncate">{p.activity || '이름 없음'}</span>
+                                    {/* 우측: 소요시간 */}
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      {navDisplayDuration > 0 && (
+                                        <span className={`text-[9px] font-black px-1 py-0.5 shrink-0 ${navDisplayDuration >= 120 ? 'bg-orange-500/30 text-white' : 'bg-white/20 text-white/80'}`}>{fmtDur(navDisplayDuration)}</span>
+                                      )}
+                                    </div>
                                   </div>
                                   {p._timingConflict && navConflictRecommendation && (
                                     <div className="grid grid-cols-[auto_1fr_auto] items-center gap-1 px-1 py-0.5">

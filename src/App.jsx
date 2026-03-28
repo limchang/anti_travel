@@ -3159,7 +3159,11 @@ const App = () => {
     if (!placeId) return;
     const place = (itinerary.places || []).find((entry) => entry?.id === placeId);
     if (!place) return;
-    const targetId = focusedMapTarget?.kind === 'timeline' ? focusedMapTarget.id : activeItemId;
+    // 퀵뷰가 열려있으면 퀵뷰 아이템을 기준으로
+    const qvItemId = mapQuickViewItem && !mapQuickViewItem.placeId
+      ? itinerary.days?.[mapQuickViewItem.dayIdx]?.plan?.[mapQuickViewItem.pIdx]?.id
+      : null;
+    const targetId = qvItemId || (focusedMapTarget?.kind === 'timeline' ? focusedMapTarget.id : activeItemId);
     if (!targetId) return;
     const found = findPlanItemContextById(targetId);
     if (!found) return;

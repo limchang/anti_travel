@@ -7361,10 +7361,10 @@ const App = () => {
             )}
             {/* ── 스크롤 컨텐츠 ── */}
             <div className={`flex-1 overflow-y-auto overscroll-none no-scrollbar py-4 px-3 flex flex-col ${(mapEditMode || isMobileLayout) && !navFloatingExpanded ? 'hidden' : ''}`}>
-              <nav className="relative -ml-1.5 flex flex-col gap-0">
+              <nav className="relative flex flex-col">
                 {itinerary.days?.map((d, dNavIdx) => (
                   <div key={d.day}>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col">
                       {(() => {
                         const navPlanItems = (d.plan || []).filter(p => p.type !== 'backup');
                         // Day별 순번 (home=0, 나머지는 1부터)

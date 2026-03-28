@@ -6743,7 +6743,7 @@ const App = () => {
               <div className="p-4 flex flex-col gap-3">
                 <button
                   onClick={handleLogin}
-                  className="group relative flex items-center justify-center gap-3 bg-white border border-slate-200 hover:border-[#3182F6] hover:bg-blue-50/50 px-5 py-3.5 rounded-[18px] transition-all duration-300 shadow-sm hover:shadow-[0_16px_30px_-18px_rgba(49,130,246,0.35)]"
+                  className="group relative flex items-center justify-center gap-3 bg-white border border-slate-200 hover:border-[#3182F6] hover:bg-blue-50 px-5 py-3.5 rounded-[18px] transition-all duration-300 shadow-sm hover:shadow-[0_16px_30px_-18px_rgba(49,130,246,0.35)]"
                 >
                   <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
                   <span className="text-[15px] font-black text-slate-700 group-hover:text-[#3182F6]">Google 계정으로 시작하기</span>
@@ -6751,7 +6751,7 @@ const App = () => {
 
                 <button
                   onClick={handleGuestMode}
-                  className="flex items-center justify-between gap-3 rounded-[18px] border border-slate-200 bg-slate-50/80 px-4 py-3 text-left transition-colors hover:bg-slate-100"
+                  className="flex items-center justify-between gap-3 rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-left transition-colors hover:bg-slate-100"
                 >
                   <div className="flex flex-col">
                     <span className="text-[13px] font-black text-slate-700">로그인 없이 둘러보기</span>
@@ -6762,7 +6762,7 @@ const App = () => {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200/80 bg-white/82 shadow-[0_12px_28px_-18px_rgba(15,23,42,0.12)] overflow-hidden">
+            <div className="rounded-2xl border border-slate-200/80 bg-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.12)] overflow-hidden">
               <div className="px-4 py-3 flex items-center gap-2 text-[12px] font-black text-slate-700">
                 <div className="w-7 h-7 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500">
                   <SlidersHorizontal size={14} />
@@ -6925,12 +6925,12 @@ const App = () => {
             }`}
         >
           {/* 왼쪽 셀: DROP 액션 */}
-          <div className={`flex items-center justify-center gap-1.5 px-3 py-2.5 ${isDropHere ? 'bg-current/5' : ''}`}>
-            <span className={`flex h-5 w-5 items-center justify-center rounded-lg ${isDropHere ? 'bg-white/70' : 'bg-slate-100/90'}`}>
+          <div className={`flex items-center justify-center gap-1.5 px-3 py-2.5 ${isDropHere ? 'bg-current' : ''}`}>
+            <span className={`flex h-5 w-5 items-center justify-center rounded-lg ${isDropHere ? 'bg-white' : 'bg-slate-100'}`}>
               <Minus size={10} />
             </span>
             <span className="text-[11px] font-black tracking-tight">{isDropHere ? 'DROP' : 'MOVE'}</span>
-            <span className={`flex h-5 w-5 items-center justify-center rounded-lg ${isDropHere ? 'bg-white/70' : 'bg-slate-100/90'}`}>
+            <span className={`flex h-5 w-5 items-center justify-center rounded-lg ${isDropHere ? 'bg-white' : 'bg-slate-100'}`}>
               <Plus size={10} />
             </span>
           </div>
@@ -6956,7 +6956,7 @@ const App = () => {
       : 'flex w-full items-center justify-center py-2';
     const buttonClass = variant === 'nav'
       ? 'flex min-h-[42px] w-full items-center gap-2 rounded-[14px] border border-[#3182F6]/25 bg-blue-50/75 px-3 py-2 text-left shadow-[0_10px_20px_-18px_rgba(49,130,246,0.35)]'
-      : 'flex w-full max-w-[320px] items-center justify-center gap-2 rounded-[18px] border border-[#3182F6]/20 bg-blue-50/70 px-4 py-2.5 shadow-[0_10px_22px_-18px_rgba(49,130,246,0.35)]';
+      : 'flex w-full max-w-[320px] items-center justify-center gap-2 rounded-[18px] border border-[#3182F6]/20 bg-blue-50 px-4 py-2.5 shadow-[0_10px_22px_-18px_rgba(49,130,246,0.35)]';
     return (
       <div key={key} className={shellClass}>
         <button
@@ -7087,7 +7087,7 @@ const App = () => {
           className="fixed inset-0 z-[400] flex items-center justify-center"
           onClick={() => { setEditingPlaceId(null); setEditPlaceDraft(null); }}
         >
-          <div className="absolute inset-0 bg-black/30 " />
+          <div className="absolute inset-0 bg-black " />
           <div className="relative w-full max-w-[420px] px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceEditorCard
               className="mx-auto"
@@ -7227,7 +7227,7 @@ const App = () => {
           className="fixed inset-0 z-[400] flex items-center justify-center"
           onClick={() => { setEditingPlanTarget(null); setEditPlanDraft(null); }}
         >
-          <div className="absolute inset-0 bg-black/30 " />
+          <div className="absolute inset-0 bg-black " />
           <div className="relative w-full max-w-[420px] px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceEditorCard
               className="mx-auto"
@@ -7360,7 +7360,7 @@ const App = () => {
           className="fixed inset-0 z-[400] flex items-center justify-center"
           onClick={resetNewPlaceDraft}
         >
-          <div className="absolute inset-0 bg-black/30 " />
+          <div className="absolute inset-0 bg-black " />
           <div className="relative w-full max-w-[420px] px-3" onClick={(e) => e.stopPropagation()}>
             <PlaceAddForm
               newPlaceName={newPlaceName}
@@ -7500,8 +7500,8 @@ const App = () => {
                                   setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false);
                                 }}
                                 className={`flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-[14px] border border-dashed px-2 py-1.5 transition-all ${dropTarget?.dayIdx === dNavIdx && dropTarget?.insertAfterPIdx === -1 && !expectedNightSlot
-                                  ? 'border-[#3182F6] bg-blue-50/80 text-[#3182F6]'
-                                  : 'border-slate-200 bg-slate-50/60 text-slate-300'}`}
+                                  ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]'
+                                  : 'border-slate-200 bg-slate-50 text-slate-300'}`}
                               >
                                 <span className="text-[9px] font-black">
                                   {dropTarget?.dayIdx === dNavIdx && dropTarget?.insertAfterPIdx === -1 && !expectedNightSlot ? '여기에 배치' : '일정 없음'}
@@ -7618,13 +7618,13 @@ const App = () => {
                                     {/* 시간 */}
                                     <span className="text-[11px] font-black text-white tabular-nums leading-none text-center">{p.time || '--:--'}</span>
                                     {/* 카테고리 아이콘 */}
-                                    <div className="shrink-0 [&>div]:!bg-white/20 [&>div]:!border-white/30 [&>div]:!text-white">{getCategoryIcon(navPrimaryType)}</div>
+                                    <div className="shrink-0 [&>div]:!bg-white [&>div]:!border-white/30 [&>div]:!text-white">{getCategoryIcon(navPrimaryType)}</div>
                                     {/* 이름 */}
                                     <span className="text-[12px] font-black text-white truncate">{p.activity || '이름 없음'}</span>
                                     {/* 우측: 소요시간 */}
                                     <div className="flex items-center gap-1 shrink-0">
                                       {navDisplayDuration > 0 && (
-                                        <span className={`text-[9px] font-black px-1 py-0.5 shrink-0 ${navDisplayDuration >= 120 ? 'bg-orange-500/30 text-white' : 'bg-white/20 text-white/80'}`}>{fmtDur(navDisplayDuration)}</span>
+                                        <span className={`text-[9px] font-black px-1 py-0.5 shrink-0 ${navDisplayDuration >= 120 ? 'bg-orange-500/30 text-white' : 'bg-white text-white/80'}`}>{fmtDur(navDisplayDuration)}</span>
                                       )}
                                     </div>
                                   </div>
@@ -8359,7 +8359,7 @@ const App = () => {
                     {basePlanRef?.id && (
                       <div
                         onClick={() => { setBasePlanRef(null); setLastAction("거리순 정렬을 해제하고 이름순으로 정렬했습니다."); }}
-                        className="mb-1.5 px-2.5 py-1.5 rounded-[12px] border border-blue-100 bg-blue-50/50 text-[10px] font-black text-[#3182F6] flex items-center gap-1.5 cursor-pointer hover:bg-blue-100 transition-colors"
+                        className="mb-1.5 px-2.5 py-1.5 rounded-[12px] border border-blue-100 bg-blue-50 text-[10px] font-black text-[#3182F6] flex items-center gap-1.5 cursor-pointer hover:bg-blue-100 transition-colors"
                       >
                         <MapPin size={10} className="text-blue-400 shrink-0" />
                         <span className="truncate flex-1"><span className="text-blue-700">{basePlanRef.name}</span> 기준 거리순</span>
@@ -8552,7 +8552,7 @@ const App = () => {
                             }
                           }}
                           extraContent={isLodgeStay(place.types) ? (
-                            <div className="mt-0.5 rounded-2xl border border-indigo-100 bg-indigo-50/45 px-3 py-3" data-no-drag="true" onClick={(e) => e.stopPropagation()}>
+                            <div className="mt-0.5 rounded-2xl border border-indigo-100 bg-indigo-50 px-3 py-3" data-no-drag="true" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center justify-between gap-2">
                                 <div>
                                   <p className="text-[10px] font-black tracking-[0.18em] uppercase text-indigo-400">숙소 세그먼트</p>
@@ -8763,7 +8763,7 @@ const App = () => {
 
           {showEntryChooser && !user?.isGuest && !sharedSource?.ownerId && (
             <>
-              <div className="fixed inset-0 z-[404] bg-black/25 " />
+              <div className="fixed inset-0 z-[404] bg-black " />
               <div className="fixed z-[405] inset-0 flex items-center justify-center p-4">
                 <div className="w-[min(640px,94vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)] p-5">
                   <div className="flex items-center justify-between mb-3">
@@ -8838,7 +8838,7 @@ const App = () => {
 
           {navDayMenu && (
             <>
-              <div className="fixed inset-0 z-[400] bg-black/20" onClick={() => setNavDayMenu(null)} />
+              <div className="fixed inset-0 z-[400] bg-black" onClick={() => setNavDayMenu(null)} />
               <div className="fixed z-[401] top-1/2 left-1/2 w-[min(360px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
                 <div className="mb-3 flex items-center justify-between">
                   <div>
@@ -8867,7 +8867,7 @@ const App = () => {
                   <button
                     type="button"
                     onClick={() => moveDayPlanItemsToLibrary(navDayMenu.dayIdx)}
-                    className="flex w-full items-center justify-between rounded-xl border border-blue-200 bg-blue-50/70 px-4 py-3 text-left transition-colors hover:bg-blue-100/70"
+                    className="flex w-full items-center justify-between rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-left transition-colors hover:bg-blue-100/70"
                   >
                     <span>
                       <span className="block text-[12px] font-black text-[#3182F6]">모든 일정 내장소로 보내기</span>
@@ -8882,7 +8882,7 @@ const App = () => {
 
           {showPlanManager && (
             <>
-              <div className="fixed inset-0 z-[400] bg-black/20" onClick={() => setShowPlanManager(false)} />
+              <div className="fixed inset-0 z-[400] bg-black" onClick={() => setShowPlanManager(false)} />
               <div className="fixed z-[401] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(640px,94vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[14px] font-black text-slate-800">일정 관리 (도시별 예시)</p>
@@ -8941,7 +8941,7 @@ const App = () => {
 
           {showPlaceTrash && (
             <>
-              <div className="fixed inset-0 z-[400] bg-black/20" onClick={() => setShowPlaceTrash(false)} />
+              <div className="fixed inset-0 z-[400] bg-black" onClick={() => setShowPlaceTrash(false)} />
               <div className="fixed z-[401] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
@@ -8957,7 +8957,7 @@ const App = () => {
                     </div>
                   ) : (
                     (itinerary.placeTrash || []).map((place) => (
-                      <div key={`trash-${place.id}`} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-3">
+                      <div key={`trash-${place.id}`} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="truncate text-[12px] font-black text-slate-800">{place.name || '이름 없는 장소'}</p>
@@ -8995,7 +8995,7 @@ const App = () => {
 
           {showPlanOptions && (
             <>
-              <div className="fixed inset-0 z-[400] bg-black/20" onClick={() => setShowPlanOptions(false)} />
+              <div className="fixed inset-0 z-[400] bg-black" onClick={() => setShowPlanOptions(false)} />
               <div className="fixed z-[401] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[14px] font-black text-slate-800">일정 옵션</p>
@@ -9187,7 +9187,7 @@ const App = () => {
 
           {showShareManager && (
             <>
-              <div className="fixed inset-0 z-[400] bg-black/20" onClick={() => setShowShareManager(false)} />
+              <div className="fixed inset-0 z-[400] bg-black" onClick={() => setShowShareManager(false)} />
               <div className="fixed z-[401] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[14px] font-black text-slate-800">공유 범위 / 편집 권한</p>
@@ -9227,7 +9227,7 @@ const App = () => {
 
           {/* 업데이트 알림 모달 */}
           {showUpdateModal && (
-            <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/40 p-4 transition-all" onClick={() => setShowUpdateModal(false)}>
+            <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black p-4 transition-all" onClick={() => setShowUpdateModal(false)}>
               <div
                 className="relative w-full max-w-[340px] rounded-2xl bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
                 onClick={(e) => e.stopPropagation()}
@@ -9269,7 +9269,7 @@ const App = () => {
 
           {showAiSettings && (
             <>
-              <div className="fixed inset-0 z-[400] bg-black/20" onClick={() => setShowAiSettings(false)} />
+              <div className="fixed inset-0 z-[400] bg-black" onClick={() => setShowAiSettings(false)} />
               <div className="fixed z-[401] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(480px,92vw)] max-h-[88vh] overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
@@ -9374,7 +9374,7 @@ const App = () => {
           )}
 
           {showOverviewMapModal && (
-            <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/42 px-4 py-6 " onClick={() => setShowOverviewMapModal(false)}>
+            <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950 px-4 py-6 " onClick={() => setShowOverviewMapModal(false)}>
               <div
                 className="w-full max-w-[980px] rounded-[28px] border border-white/70 bg-white p-4 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)]"
                 onClick={(event) => event.stopPropagation()}
@@ -9427,7 +9427,7 @@ const App = () => {
             </div>
           )}
           {showPlaceMapModal && (
-            <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/42 px-4 py-6 " onClick={() => setShowPlaceMapModal(false)}>
+            <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950 px-4 py-6 " onClick={() => setShowPlaceMapModal(false)}>
               <div
                 className="w-full max-w-[840px] rounded-[28px] border border-white/70 bg-white p-4 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)]"
                 onClick={(event) => event.stopPropagation()}
@@ -9483,7 +9483,7 @@ const App = () => {
             const totalCount = checklistGroups.reduce((s, g) => s + g.items.length, 0);
             const checkedCount = checklistGroups.reduce((s, g) => s + g.items.filter(i => i.checked).length, 0);
             return (
-              <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-950/50 px-4 py-8 " style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }} onClick={() => setShowChecklistModal(false)}>
+              <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-950 px-4 py-8 " style={{ paddingLeft: isMobileLayout ? 0 : leftSidebarWidth, paddingRight: isMobileLayout ? 0 : rightSidebarWidth }} onClick={() => setShowChecklistModal(false)}>
                 <div className="relative w-full max-h-[80vh] flex flex-col rounded-[28px] border border-white/70 bg-white shadow-[0_30px_80px_-20px_rgba(15,23,42,0.4)]" style={{ width: Math.min(rightSidebarWidth, window.innerWidth - 24) }} onClick={e => e.stopPropagation()}>
                   {/* 헤더 */}
                   <div className="flex items-center gap-3 px-5 pt-5 pb-3 border-b border-slate-100">
@@ -9505,9 +9505,9 @@ const App = () => {
                         <p className="mt-1 text-[10px] font-medium text-slate-200">메모에 <code className="bg-slate-100 px-1 rounded text-slate-400">- [ ] 항목명</code> 형식으로 추가하세요.</p>
                       </div>
                     ) : checklistGroups.map((group) => (
-                      <div key={`${group.dIdx}-${group.pIdx}`} className="rounded-[16px] border border-slate-100 bg-slate-50/60 px-3.5 py-3">
+                      <div key={`${group.dIdx}-${group.pIdx}`} className="rounded-[16px] border border-slate-100 bg-slate-50 px-3.5 py-3">
                         <div className="flex items-center gap-1.5 mb-2">
-                          <span className="text-[9px] font-black text-slate-400 bg-slate-200/60 px-1.5 py-0.5 rounded-md">Day {group.day}</span>
+                          <span className="text-[9px] font-black text-slate-400 bg-slate-200 px-1.5 py-0.5 rounded-md">Day {group.day}</span>
                           <span className="text-[12px] font-black text-slate-700 truncate">{group.activity}</span>
                           <span className="ml-auto text-[9px] font-bold text-slate-300">{group.items.filter(i=>i.checked).length}/{group.items.length}</span>
                         </div>
@@ -9563,7 +9563,7 @@ const App = () => {
           {perplexityNearbyModal.open && (
             <>
               <div
-                className="fixed inset-0 z-[402] bg-black/20"
+                className="fixed inset-0 z-[402] bg-black"
                 onClick={() => setPerplexityNearbyModal({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' })}
               />
               <div className="fixed z-[403] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)] overflow-hidden">
@@ -9719,7 +9719,7 @@ const App = () => {
                           style={{ background: 'linear-gradient(to bottom, rgba(15,23,42,0.26) 0%, rgba(15,23,42,0.12) 60%, rgba(15,23,42,0) 100%)' }}
                         />
                         <div
-                          className={`pointer-events-none absolute inset-x-0 bottom-0 z-[11] h-[4px] bg-slate-200/90 transition-opacity duration-200 ease-out ${heroCompactBudgetBarVisible ? 'opacity-100' : 'opacity-0'}`}
+                          className={`pointer-events-none absolute inset-x-0 bottom-0 z-[11] h-[4px] bg-slate-200 transition-opacity duration-200 ease-out ${heroCompactBudgetBarVisible ? 'opacity-100' : 'opacity-0'}`}
                         >
                           <div
                             className="h-full rounded-r-full bg-[linear-gradient(90deg,#ef4444_0%,#f97316_24%,#f59e0b_48%,#3b82f6_78%,#2563eb_100%)] shadow-[0_0_12px_rgba(59,130,246,0.35)]"
@@ -9813,7 +9813,7 @@ const App = () => {
                   setDropTarget(null);
                   setIsDragCopy(false);
                 }}
-                className={`w-full rounded-2xl border bg-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.2)] p-5 flex flex-col items-center gap-3 transition-all ${draggingFromLibrary ? 'cursor-copy border-[#3182F6]/40' : 'border-slate-200'} ${dropTarget?.dayIdx === 0 && dropTarget?.insertAfterPIdx === -1 ? 'ring-2 ring-[#3182F6] bg-blue-50/40' : ''}`}
+                className={`w-full rounded-2xl border bg-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.2)] p-5 flex flex-col items-center gap-3 transition-all ${draggingFromLibrary ? 'cursor-copy border-[#3182F6]/40' : 'border-slate-200'} ${dropTarget?.dayIdx === 0 && dropTarget?.insertAfterPIdx === -1 ? 'ring-2 ring-[#3182F6] bg-blue-50' : ''}`}
               >
                 <p className="text-[12px] font-black text-slate-500">아직 등록된 일정이 없습니다.</p>
                 <button
@@ -10097,10 +10097,10 @@ const App = () => {
                           return (
                           <div className={`flex items-center gap-2 px-3 py-2 ${_tlCatStyle.accent}`}>
                             <span className="w-6 h-6 rounded-[7px] flex items-center justify-center text-[11px] font-black text-white leading-none shrink-0" style={{ background: _dayColor, border: '2px solid rgba(255,255,255,0.9)', boxShadow: `0 0 0 1px ${_dayColor}` }}>{_orderNum}</span>
-                            <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30">{getCategoryBadge(getPreferredNavCategory(p.types))}</div>
+                            <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white [&>div]:!border-white/30">{getCategoryBadge(getPreferredNavCategory(p.types))}</div>
                             <span className="text-[13px] font-black text-white truncate flex-1">{p.activity || '이름 없음'}</span>
-                            <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(getPlaceSearchName(p), tripRegion); if (result?.address) { updateAddress(dIdx, pIdx, result.address, true); showInfoToast(`'${p.activity}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors" title="주소 자동 채우기"><Sparkles size={12} /></button>
-                            <button type="button" onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors" title="일정 수정"><Pencil size={12} /></button>
+                            <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(getPlaceSearchName(p), tripRegion); if (result?.address) { updateAddress(dIdx, pIdx, result.address, true); showInfoToast(`'${p.activity}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white text-white hover:bg-white transition-colors" title="주소 자동 채우기"><Sparkles size={12} /></button>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white text-white hover:bg-white transition-colors" title="일정 수정"><Pencil size={12} /></button>
                           </div>
                           );
                         })()}
@@ -10329,7 +10329,7 @@ const App = () => {
                                         return (
                                           <div className="flex gap-2 select-none">
                                             {/* 선적 셀 */}
-                                            <div className="flex-1 flex flex-col items-center gap-1 bg-blue-50/80 border border-blue-100 rounded-xl px-2 py-2.5">
+                                            <div className="flex-1 flex flex-col items-center gap-1 bg-blue-50 border border-blue-100 rounded-xl px-2 py-2.5">
                                               <span className="text-[8px] text-blue-400 font-black tracking-widest uppercase">선적</span>
                                               <div className="flex items-center gap-1 text-[13px] font-black text-blue-800 tabular-nums">
                                                 {timeInput('load', shipTimeline.loadStartLabel)}
@@ -10549,7 +10549,7 @@ const App = () => {
                                   <input
                                     value={p.memo || ''}
                                     onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
-                                    className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
                                     placeholder="메모를 입력하세요..."
                                   />
                                 ) : null}
@@ -10616,7 +10616,7 @@ const App = () => {
                                       {/* 시간 정보 행 */}
                                       <div
                                         data-time-trigger="true"
-                                        className="flex items-center justify-between gap-3 px-4 py-2.5 bg-slate-50/80 rounded-xl select-none"
+                                        className="flex items-center justify-between gap-3 px-4 py-2.5 bg-slate-50 rounded-xl select-none"
                                       >
                                         <div className="flex flex-col items-center gap-0.5 flex-1">
                                           <span className="text-[8px] font-bold tracking-widest uppercase text-slate-400">Start</span>
@@ -10681,7 +10681,7 @@ const App = () => {
                                         <input
                                           value={p.memo || ''}
                                           onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
-                                          className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
+                                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
                                           placeholder="메모를 입력하세요..."
                                         />
                                       ) : null}
@@ -10926,7 +10926,7 @@ const App = () => {
                                     insertMobileSelectedPlaceAt(dIdx, pIdx);
                                     setMobileSelectedLibraryPlace(null);
                                   }}
-                                  className="flex w-full items-center justify-center gap-2 rounded-[18px] border-2 border-dashed border-[#3182F6]/40 bg-blue-50/70 px-4 py-2.5 transition-colors active:bg-blue-100"
+                                  className="flex w-full items-center justify-center gap-2 rounded-[18px] border-2 border-dashed border-[#3182F6]/40 bg-blue-50 px-4 py-2.5 transition-colors active:bg-blue-100"
                                 >
                                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#3182F6] text-white shadow-sm shrink-0">
                                     <Plus size={11} />
@@ -10968,9 +10968,9 @@ const App = () => {
                                   }}
                                 >
                                   <div className="relative">
-                                    <div className="pointer-events-none absolute inset-y-2 left-1/2 z-10 w-px -translate-x-1/2 bg-slate-200/80" />
-                                    <div className={`pointer-events-none absolute inset-y-2 left-0 w-1/2 rounded-l-[18px] transition-colors ${isDropHere && activeAnchor === 'prev' ? (dropWarn ? 'bg-orange-100/60' : 'bg-blue-100/60') : 'bg-transparent'}`} />
-                                    <div className={`pointer-events-none absolute inset-y-2 right-0 w-1/2 rounded-r-[18px] transition-colors ${isDropHere && activeAnchor === 'next' ? (dropWarn ? 'bg-orange-100/60' : 'bg-blue-100/60') : 'bg-transparent'}`} />
+                                    <div className="pointer-events-none absolute inset-y-2 left-1/2 z-10 w-px -translate-x-1/2 bg-slate-200" />
+                                    <div className={`pointer-events-none absolute inset-y-2 left-0 w-1/2 rounded-l-[18px] transition-colors ${isDropHere && activeAnchor === 'prev' ? (dropWarn ? 'bg-orange-100' : 'bg-blue-100') : 'bg-transparent'}`} />
+                                    <div className={`pointer-events-none absolute inset-y-2 right-0 w-1/2 rounded-r-[18px] transition-colors ${isDropHere && activeAnchor === 'next' ? (dropWarn ? 'bg-orange-100' : 'bg-blue-100') : 'bg-transparent'}`} />
                                     {renderTimelineInsertGuide(isDropHere, dropWarn, activeAnchor)}
                                   </div>
                                 </div>
@@ -11261,19 +11261,19 @@ const App = () => {
                 }}
               >
                 {!isPlaceQuickView && <span className="w-6 h-6 rounded-[7px] flex items-center justify-center text-[11px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[(qvDIdx ?? 0) % ROUTE_PREVIEW_COLORS.length], border: '2px solid rgba(255,255,255,0.9)', boxShadow: `0 0 0 1px ${ROUTE_PREVIEW_COLORS[(qvDIdx ?? 0) % ROUTE_PREVIEW_COLORS.length]}` }}>{qvOrderNum}</span>}
-                <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30">{getCategoryBadge(qvPrimaryType)}</div>
+                <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white [&>div]:!border-white/30">{getCategoryBadge(qvPrimaryType)}</div>
                 <span className="text-[13px] font-black text-white truncate flex-1">{qvItem.activity || qvItem.name || '이름 없음'}</span>
                 {isPlaceQuickView && (
-                  <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(qvItem.name || '', tripRegion); if (result?.address) { setItinerary(prev => { const next = JSON.parse(JSON.stringify(prev)); const target = (next.places || []).find(pl => pl.id === qvItem.id); if (target) { target.address = result.address; if (!target.receipt) target.receipt = {}; target.receipt.address = result.address; } return next; }); showInfoToast(`'${qvItem.name}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors" title="주소 자동 채우기"><Sparkles size={12} /></button>
+                  <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(qvItem.name || '', tripRegion); if (result?.address) { setItinerary(prev => { const next = JSON.parse(JSON.stringify(prev)); const target = (next.places || []).find(pl => pl.id === qvItem.id); if (target) { target.address = result.address; if (!target.receipt) target.receipt = {}; target.receipt.address = result.address; } return next; }); showInfoToast(`'${qvItem.name}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white text-white hover:bg-white transition-colors" title="주소 자동 채우기"><Sparkles size={12} /></button>
                 )}
                 {isPlaceQuickView && (
-                  <button type="button" onClick={() => { setMapQuickViewItem(null); const place = (itinerary.places || []).find(pl => pl.id === qvItem.id); if (place) { setEditingPlaceId(place.id); setEditPlaceDraft(createPlaceEditorDraft(place)); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors" title="장소 수정"><Pencil size={12} /></button>
+                  <button type="button" onClick={() => { setMapQuickViewItem(null); const place = (itinerary.places || []).find(pl => pl.id === qvItem.id); if (place) { setEditingPlaceId(place.id); setEditPlaceDraft(createPlaceEditorDraft(place)); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white text-white hover:bg-white transition-colors" title="장소 수정"><Pencil size={12} /></button>
                 )}
                 {!isPlaceQuickView && (
-                  <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(getPlaceSearchName(qvItem), tripRegion); if (result?.address) { updateAddress(qvDIdx, qvPIdx, result.address, true); showInfoToast(`'${qvItem.activity}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors" title="주소 자동 채우기"><Sparkles size={12} /></button>
+                  <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(getPlaceSearchName(qvItem), tripRegion); if (result?.address) { updateAddress(qvDIdx, qvPIdx, result.address, true); showInfoToast(`'${qvItem.activity}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white text-white hover:bg-white transition-colors" title="주소 자동 채우기"><Sparkles size={12} /></button>
                 )}
                 {!isPlaceQuickView && (
-                  <button type="button" onClick={() => { setMapQuickViewItem(null); openPlanEditModal(qvDIdx, qvPIdx); }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors" title="일정 수정"><Pencil size={12} /></button>
+                  <button type="button" onClick={() => { setMapQuickViewItem(null); openPlanEditModal(qvDIdx, qvPIdx); }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white text-white hover:bg-white transition-colors" title="일정 수정"><Pencil size={12} /></button>
                 )}
               </div>
               {/* 시간 바 — 내장소에서는 숨김 */}

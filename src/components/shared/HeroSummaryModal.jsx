@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 const HeroSummaryModal = ({ show, onClose, newPct, newCount, revisitPct, revisitCount, categorySpendRows }) => {
   if (!show) return null;
   return (
-    <div className="fixed inset-0 z-[297] flex items-center justify-center bg-slate-950/36 px-4 py-6 m" onClick={onClose}>
+    <div className="fixed inset-0 z-[297] flex items-center justify-center bg-slate-950 px-4 py-6 m" onClick={onClose}>
       <div className="w-full max-w-[560px] rounded-[28px] border border-white/70 bg-white/96 p-4 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.4)]" onClick={(event) => event.stopPropagation()}>
         <div className="flex items-center justify-between gap-3">
           <div>

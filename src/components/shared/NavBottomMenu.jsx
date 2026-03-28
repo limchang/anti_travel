@@ -188,7 +188,7 @@ const NavBottomMenu = ({
             </button>
             <div className="h-px bg-slate-100 mx-4" />
             {user ? (
-              <div className="px-4 py-3 flex items-center gap-3 bg-slate-50/70">
+              <div className="px-4 py-3 flex items-center gap-3 bg-slate-50">
                 <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border-2 border-white shadow-sm bg-[#c2410c] text-white flex items-center justify-center font-black text-[12px]">
                   {user.photoURL ? <img src={user.photoURL} alt="User" /> : (String(user.displayName || user.email || 'U').trim().charAt(0) || 'U').toUpperCase()}
                 </div>
@@ -215,7 +215,7 @@ const NavBottomMenu = ({
                 )}
               </div>
             ) : (
-              <div className="px-4 py-3 flex items-center justify-between gap-2 bg-slate-50/70">
+              <div className="px-4 py-3 flex items-center justify-between gap-2 bg-slate-50">
                 <div className="flex flex-col">
                   <span className="text-[12px] font-black text-slate-700">공유 보기 모드</span>
                   <span className="text-[10px] font-bold text-slate-400">로그인하면 개인 일정으로 저장됩니다</span>

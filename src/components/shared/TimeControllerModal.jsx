@@ -293,9 +293,9 @@ export const InlineTimeController = ({
             <div className="flex flex-1 flex-col items-center gap-0.5">
               <span className="text-[9px] font-bold tracking-widest uppercase text-slate-400">Duration</span>
               <div className={`relative z-10 flex w-full h-[40px] items-center justify-center rounded-[12px] border shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all overflow-hidden ${isAutoLocked ? 'border-red-400 bg-red-500 text-white' : isDurationLocked ? 'border-[#ff8a1a] bg-[#ff8a1a] text-white' : 'border-slate-200 bg-white text-slate-700'}`}>
-                <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, -1); }} className="flex items-center justify-center px-1.5 h-full hover:bg-black/10 active:bg-black/20 transition-colors"><ChevronLeft size={10} /></button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, -1); }} className="flex items-center justify-center px-1.5 h-full hover:bg-black/10 active:bg-black transition-colors"><ChevronLeft size={10} /></button>
                 <button type="button" onClick={toggleInline} className="flex-1 flex items-center justify-center h-full"><span className="font-black tabular-nums text-[11px] tracking-[0.04em] whitespace-nowrap">{fmtDurCompact(p.duration)}</span></button>
-                <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, 1); }} className="flex items-center justify-center px-1.5 h-full hover:bg-black/10 active:bg-black/20 transition-colors"><ChevronRight size={10} /></button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, 1); }} className="flex items-center justify-center px-1.5 h-full hover:bg-black/10 active:bg-black transition-colors"><ChevronRight size={10} /></button>
               </div>
             </div>
             <div className="flex flex-1 flex-col items-center gap-0.5">

@@ -89,10 +89,10 @@ export const SmartFillGuideModal = ({ onClose }) => {
 
   return (
     <>
-      <div className="fixed inset-0 z-[291] bg-black/20" onClick={isEditing ? undefined : onClose} />
+      <div className="fixed inset-0 z-[291] bg-black" onClick={isEditing ? undefined : onClose} />
       <div className="fixed inset-x-4 top-[5vh] bottom-[5vh] z-[292] max-w-lg mx-auto bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden">
         {/* 헤더 */}
-        <div className="px-5 pt-4 pb-1 border-b border-slate-100 bg-slate-50/70 shrink-0">
+        <div className="px-5 pt-4 pb-1 border-b border-slate-100 bg-slate-50 shrink-0">
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-[13px] font-black text-slate-700">AI 입력 학습 관리</p>
@@ -131,7 +131,7 @@ export const SmartFillGuideModal = ({ onClose }) => {
         </div>
 
         {/* 본문 */}
-        <div className="flex-1 overflow-hidden flex flex-col bg-slate-50/30">
+        <div className="flex-1 overflow-hidden flex flex-col bg-slate-50">
           {activeTab === 'guide' ? (
             guideLoading ? (
               <div className="flex items-center justify-center flex-1 text-[12px] text-slate-400 font-bold">지침 불러오는 중...</div>

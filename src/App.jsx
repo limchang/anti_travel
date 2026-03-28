@@ -7531,8 +7531,8 @@ const App = () => {
                                   >
                                     {isLastLodge ? (
                                       <div className="grid w-full min-w-0 grid-cols-[4.2rem_1fr_auto] items-center gap-1.5">
-                                        <div className="flex items-center gap-0.5 bg-white rounded-lg px-0.5 py-px border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
-                                          <span className="w-[18px] h-[18px] rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{getNavItemOrder(p, pIdx, navPlanItems)}</span>
+                                        <div className="flex items-center gap-0.5 bg-white rounded-[3px] px-0.5 py-px border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
+                                          <span className="w-[18px] h-[18px] rounded-[2px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{getNavItemOrder(p, pIdx, navPlanItems)}</span>
                                           <span
                                             className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-800' : 'font-bold text-slate-400'}`}
                                             onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}
@@ -7576,8 +7576,8 @@ const App = () => {
                                       </div>
                                     ) : (
                                       <>
-                                        <div className="flex items-center gap-0.5 bg-white rounded-lg px-0.5 py-px border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
-                                          <span className="w-[18px] h-[18px] rounded-[5px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{getNavItemOrder(p, pIdx, navPlanItems)}</span>
+                                        <div className="flex items-center gap-0.5 bg-white rounded-[3px] px-0.5 py-px border-[2px]" style={{ borderColor: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>
+                                          <span className="w-[18px] h-[18px] rounded-[2px] flex items-center justify-center text-[9px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[dNavIdx % ROUTE_PREVIEW_COLORS.length] }}>{getNavItemOrder(p, pIdx, navPlanItems)}</span>
                                           <span
                                             className={`text-[11px] tabular-nums leading-none ${p._timingConflict ? 'font-black text-red-500' : isFixedTimeNav ? 'font-black text-[#3182F6] cursor-pointer hover:opacity-70' : isActive ? 'font-black text-slate-800' : 'font-bold text-slate-400'}`}
                                             onClick={isFixedTimeNav && !p.types?.includes('ship') ? (e) => { e.stopPropagation(); const realPIdx = (d.plan || []).findIndex(item => item?.id === p.id); if (realPIdx >= 0) toggleTimeFix(dNavIdx, realPIdx); } : undefined}

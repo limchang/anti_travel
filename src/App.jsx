@@ -8180,7 +8180,7 @@ const App = () => {
                     {(() => {
                       const mapContent = (
                     <div id="right-panel-map-overview" className={(mapEditMode && !isMobileLayout) || isMobileLayout
-                      ? 'fixed inset-0 top-12 z-[1] rounded-none'
+                      ? 'fixed inset-0 top-0 z-[1] rounded-none'
                       : 'shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-hidden shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2 max-h-[40vh]'
                     } style={(mapEditMode && !isMobileLayout) || isMobileLayout ? { isolation: 'isolate' } : { isolation: 'isolate', aspectRatio: '16 / 9' }}>
                       {/* 지도 본체 + 오버레이 버튼 */}

@@ -193,9 +193,11 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = fals
     const hasAnyAdd = showAddButton && items.some(it => it._isOverlay);
     const addColW = hasAnyAdd ? (addBtnSz + 8) : 0;
     const rowH = sz; // 아이콘 정사각형 유지
-    const totalCardH = n * rowH;
+    const rowGap = 2;
+    const pad = 2;
+    const totalCardH = n * rowH + (n - 1) * rowGap + pad * 2;
     const totalH = totalCardH + tailH;
-    const totalW = sz + nameMaxW + addColW;
+    const totalW = sz + nameMaxW + addColW + pad * 2;
     const tailColor = items[items.length - 1]?.color || items[0].color;
 
     const rows = items.map((item, i) => {
@@ -212,7 +214,7 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = fals
           </div>
         </div>` : (hasAnyAdd ? `<div style="width:${addColW}px;height:${rowH}px;flex-shrink:0;"></div>` : '');
       return `
-        <div data-group-idx="${i}" style="display:flex;align-items:center;height:${rowH}px;${!isLast ? `border-bottom:1px solid rgba(0,0,0,0.06);` : ''}">
+        <div data-group-idx="${i}" style="display:flex;align-items:center;height:${rowH}px;border-radius:${radius}px;overflow:hidden;${!isLast ? `margin-bottom:${rowGap}px;` : ''}">
           <div style="width:${sz}px;height:${rowH}px;background:${item.color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             ${iconContent}
           </div>
@@ -227,7 +229,7 @@ export const buildGroupedTimelineMarkerIcon = (items, isFocused, showName = fals
       className: '',
       html: `
         <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
-          <div style="border-radius:${radius}px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};overflow:hidden;background:#fff;">
+          <div style="border-radius:${radius + 2}px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};padding:${pad}px;background:rgba(255,255,255,0.9);">
             ${rows}
           </div>
           <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${tailColor};margin-top:-1px;"></div>
@@ -302,9 +304,12 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
       const hasOverflow = clusterCount > 5;
       const addBtnSzC = isFocused ? 20 : 16;
       const addColWC = showAddButton ? (addBtnSzC + 8) : 0;
-      const totalCardH = (visibleN + (hasOverflow ? 1 : 0)) * rowH;
+      const rowGapC = 2;
+      const padC = 2;
+      const totalRows = visibleN + (hasOverflow ? 1 : 0);
+      const totalCardH = totalRows * rowH + (totalRows - 1) * rowGapC + padC * 2;
       const totalH = totalCardH + tailH;
-      const totalW = sz + nameMaxW + addColWC;
+      const totalW = sz + nameMaxW + addColWC + padC * 2;
       const rows = Array.from({ length: visibleN }, (_, i) => {
         const color = colors[i] || colors[colors.length - 1] || categoryColor;
         const type = types[i] || categoryType || categoryLabel;
@@ -318,7 +323,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
             </div>
           </div>` : '';
         return `
-          <div data-cluster-idx="${i}" style="display:flex;align-items:center;height:${rowH}px;cursor:pointer;${!isLast ? `border-bottom:1px solid rgba(0,0,0,0.06);` : ''}">
+          <div data-cluster-idx="${i}" style="display:flex;align-items:center;height:${rowH}px;cursor:pointer;border-radius:${cRadius}px;overflow:hidden;${!isLast ? `margin-bottom:${rowGapC}px;` : ''}">
             <div style="width:${sz}px;height:${rowH}px;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
               <svg width="${clusterIconSz}" height="${clusterIconSz}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5));">${svgIcon}</svg>
             </div>
@@ -330,7 +335,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
       }).join('');
 
       const overflowRow = hasOverflow ? `
-        <div style="display:flex;align-items:center;height:${rowH}px;cursor:pointer;">
+        <div style="display:flex;align-items:center;height:${rowH}px;cursor:pointer;border-radius:${cRadius}px;overflow:hidden;margin-top:${rowGapC}px;">
           <div style="width:${sz}px;height:${rowH}px;background:#475569;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <span style="font-size:${isFocused ? '11px' : '9px'};font-weight:900;color:#fff;">+${clusterCount - visibleN}</span>
           </div>
@@ -343,7 +348,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
         className: '',
         html: `
           <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
-            <div style="border-radius:${cRadius}px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};overflow:hidden;background:#fff;">
+            <div style="border-radius:${cRadius + 2}px;border:${isFocused ? '2.5px' : '2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};padding:${padC}px;background:rgba(255,255,255,0.9);">
               ${rows}${overflowRow}
             </div>
             <div style="width:0;height:0;border-left:${tailW}px solid transparent;border-right:${tailW}px solid transparent;border-top:${tailH}px solid ${tailColor};margin-top:-1px;"></div>

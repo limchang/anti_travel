@@ -364,21 +364,18 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
     const visibleN = showAll ? clusterCount : 3;
     const cellW = isFocused ? 32 : 26;
     const h = isFocused ? 36 : 28;
-    const dividerW = 1;
-    const totalW = cellW * visibleN + dividerW * (visibleN - 1);
-    const totalH = h + tailH;
+    const gapW = 3;
+    const totalW = cellW * visibleN + gapW * (visibleN - 1) + 6;
+    const totalH = h + tailH + 4;
     const clusterIconSz = isFocused ? 16 : 13;
     const cells = Array.from({ length: visibleN }, (_, i) => {
-      const isFirst = i === 0;
-      const isLast = i === visibleN - 1;
-      const isOverflow = !showAll && isLast;
+      const isOverflow = !showAll && i === visibleN - 1;
       const color = isOverflow ? '#475569' : (colors[i] || colors[colors.length - 1] || categoryColor);
       const cellSvg = isOverflow ? '' : getMapCategoryEmoji(types[i] || categoryType || categoryLabel);
       const cellContent = isOverflow
         ? `<span style="font-size:${isFocused?'11px':'9px'};font-weight:900;color:#fff;line-height:1;">+${clusterCount - 2}</span>`
         : `<svg width="${clusterIconSz}" height="${clusterIconSz}" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5)) drop-shadow(0 0 2px rgba(0,0,0,0.25));">${cellSvg}</svg>`;
-      const br = `border-radius:${isFirst ? `${cRadius}px 0 0 ${cRadius}px` : isLast ? `0 ${cRadius}px ${cRadius}px 0` : '0'};`;
-      return `<div data-cluster-idx="${i}" data-cluster-overflow="${isOverflow}" style="width:${cellW}px;height:${h}px;${br}background:${color};display:flex;align-items:center;justify-content:center;cursor:pointer;${i > 0 ? `border-left:${dividerW}px solid rgba(255,255,255,0.5);` : ''}">
+      return `<div data-cluster-idx="${i}" data-cluster-overflow="${isOverflow}" style="width:${cellW}px;height:${h}px;border-radius:${cRadius}px;background:${color};display:flex;align-items:center;justify-content:center;cursor:pointer;${i > 0 ? `margin-left:${gapW}px;` : ''}">
         ${cellContent}
       </div>`;
     }).join('');
@@ -386,7 +383,7 @@ export const buildLibraryMarkerIcon = (categoryColor, categoryLabel, isFocused, 
       className: '',
       html: `
         <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:${shadow};">
-          <div style="display:flex;border-radius:${cRadius}px;border:${isFocused?'2.5px':'2px'} solid rgba(255,255,255,0.9);overflow:hidden;box-shadow:0 0 0 1.5px ${tailColor};">
+          <div style="display:flex;align-items:center;border-radius:${cRadius + 2}px;border:${isFocused?'2.5px':'2px'} solid rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px ${tailColor};padding:2px;background:rgba(255,255,255,0.9);">
             ${cells}
           </div>
           <div style="width:0;height:0;border-left:${isFocused?6:5}px solid transparent;border-right:${isFocused?6:5}px solid transparent;border-top:${tailH}px solid ${tailColor};margin-top:-1px;"></div>

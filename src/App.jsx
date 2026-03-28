@@ -7618,7 +7618,7 @@ const App = () => {
                                     {/* 시간 */}
                                     <span className="text-[11px] font-black text-white tabular-nums leading-none text-center">{p.time || '--:--'}</span>
                                     {/* 카테고리 아이콘 */}
-                                    <div className="shrink-0 [&>div]:!bg-white [&>div]:!border-white/30 [&>div]:!text-white">{getCategoryIcon(navPrimaryType)}</div>
+                                    <div className="shrink-0 [&>div]:!bg-white/20 [&>div]:!border-white/30 [&>div]:!text-white">{getCategoryIcon(navPrimaryType)}</div>
                                     {/* 이름 */}
                                     <span className="text-[12px] font-black text-white truncate">{p.activity || '이름 없음'}</span>
                                     {/* 우측: 소요시간 */}
@@ -10097,7 +10097,7 @@ const App = () => {
                           return (
                           <div className={`flex items-center gap-2 px-3 py-2 ${_tlCatStyle.accent}`}>
                             <span className="w-6 h-6 rounded-[7px] flex items-center justify-center text-[11px] font-black text-white leading-none shrink-0" style={{ background: _dayColor, border: '2px solid rgba(255,255,255,0.9)', boxShadow: `0 0 0 1px ${_dayColor}` }}>{_orderNum}</span>
-                            <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white [&>div]:!border-white/30">{getCategoryBadge(getPreferredNavCategory(p.types))}</div>
+                            <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30">{getCategoryBadge(getPreferredNavCategory(p.types))}</div>
                             <span className="text-[13px] font-black text-white truncate flex-1">{p.activity || '이름 없음'}</span>
                             <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(getPlaceSearchName(p), tripRegion); if (result?.address) { updateAddress(dIdx, pIdx, result.address, true); showInfoToast(`'${p.activity}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white text-white hover:bg-white transition-colors" title="주소 자동 채우기"><Sparkles size={12} /></button>
                             <button type="button" onClick={(e) => { e.stopPropagation(); openPlanEditModal(dIdx, pIdx); }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white text-white hover:bg-white transition-colors" title="일정 수정"><Pencil size={12} /></button>
@@ -11261,7 +11261,7 @@ const App = () => {
                 }}
               >
                 {!isPlaceQuickView && <span className="w-6 h-6 rounded-[7px] flex items-center justify-center text-[11px] font-black text-white leading-none shrink-0" style={{ background: ROUTE_PREVIEW_COLORS[(qvDIdx ?? 0) % ROUTE_PREVIEW_COLORS.length], border: '2px solid rgba(255,255,255,0.9)', boxShadow: `0 0 0 1px ${ROUTE_PREVIEW_COLORS[(qvDIdx ?? 0) % ROUTE_PREVIEW_COLORS.length]}` }}>{qvOrderNum}</span>}
-                <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white [&>div]:!border-white/30">{getCategoryBadge(qvPrimaryType)}</div>
+                <div className="shrink-0 [&>div]:!text-white [&>div]:!bg-white/20 [&>div]:!border-white/30">{getCategoryBadge(qvPrimaryType)}</div>
                 <span className="text-[13px] font-black text-white truncate flex-1">{qvItem.activity || qvItem.name || '이름 없음'}</span>
                 {isPlaceQuickView && (
                   <button type="button" onClick={async (e) => { e.stopPropagation(); const result = await searchAddressFromPlaceName(qvItem.name || '', tripRegion); if (result?.address) { setItinerary(prev => { const next = JSON.parse(JSON.stringify(prev)); const target = (next.places || []).find(pl => pl.id === qvItem.id); if (target) { target.address = result.address; if (!target.receipt) target.receipt = {}; target.receipt.address = result.address; } return next; }); showInfoToast(`'${qvItem.name}' 주소 자동 채움`); } else { showInfoToast('주소를 찾지 못했습니다.'); } }} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-white text-white hover:bg-white transition-colors" title="주소 자동 채우기"><Sparkles size={12} /></button>

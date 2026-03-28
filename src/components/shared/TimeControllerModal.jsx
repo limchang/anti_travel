@@ -286,13 +286,13 @@ export const InlineTimeController = ({
           <div className="flex w-full items-stretch gap-1.5 px-1 py-1.5">
             <div className="flex flex-1 flex-col items-center gap-0.5">
               <span className="text-[9px] font-bold tracking-widest uppercase text-slate-400">Start</span>
-              <button type="button" onClick={toggleInline} className={`flex w-full h-[40px] items-center justify-center rounded-[12px] border px-2 transition-all ${p.isTimeFixed ? 'border-[#3182F6]/60 bg-blue-50 shadow-[0_0_0_2px_rgba(49,130,246,0.12)]' : 'border-slate-200 bg-white/92 hover:border-slate-300'}`}>
+              <button type="button" onClick={toggleInline} className={`flex w-full h-[40px] items-center justify-center rounded-[12px] border px-2 transition-colors ${p.isTimeFixed ? 'border-[#3182F6]/60 bg-blue-50 shadow-[0_0_0_2px_rgba(49,130,246,0.12)]' : 'border-slate-200 bg-white/92 hover:border-slate-300'}`}>
                 <span className={`text-[22px] font-black tabular-nums tracking-[-0.06em] leading-none ${p.isTimeFixed ? 'text-[#3182F6]' : 'text-slate-900'}`}>{hh}<span className="mx-[1px] opacity-70">:</span>{mm}</span>
               </button>
             </div>
             <div className="flex flex-1 flex-col items-center gap-0.5">
               <span className="text-[9px] font-bold tracking-widest uppercase text-slate-400">Duration</span>
-              <div className={`relative z-10 flex w-full h-[40px] items-center justify-center rounded-[12px] border shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-all overflow-hidden ${isAutoLocked ? 'border-red-400 bg-red-500 text-white' : isDurationLocked ? 'border-[#ff8a1a] bg-[#ff8a1a] text-white' : 'border-slate-200 bg-white text-slate-700'}`}>
+              <div className={`relative z-10 flex w-full h-[40px] items-center justify-center rounded-[12px] border shadow-[0_10px_24px_-14px_rgba(15,23,42,0.25)] transition-colors overflow-hidden ${isAutoLocked ? 'border-red-400 bg-red-500 text-white' : isDurationLocked ? 'border-[#ff8a1a] bg-[#ff8a1a] text-white' : 'border-slate-200 bg-white text-slate-700'}`}>
                 <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, -1); }} className="flex items-center justify-center px-1.5 h-full hover:bg-black/10 active:bg-black transition-colors"><ChevronLeft size={10} /></button>
                 <button type="button" onClick={toggleInline} className="flex-1 flex items-center justify-center h-full"><span className="font-black tabular-nums text-[11px] tracking-[0.04em] whitespace-nowrap">{fmtDurCompact(p.duration)}</span></button>
                 <button type="button" onClick={(e) => { e.stopPropagation(); updateDuration(dIdx, pIdx, 1); }} className="flex items-center justify-center px-1.5 h-full hover:bg-black/10 active:bg-black transition-colors"><ChevronRight size={10} /></button>
@@ -300,7 +300,7 @@ export const InlineTimeController = ({
             </div>
             <div className="flex flex-1 flex-col items-center gap-0.5">
               <span className="text-[9px] font-bold tracking-widest uppercase text-slate-400">End</span>
-              <button type="button" onClick={toggleInline} className={`flex w-full h-[40px] items-center justify-center rounded-[12px] border px-2 transition-all ${isEndTimeFixed ? 'border-violet-400/60 bg-violet-50 shadow-[0_0_0_2px_rgba(139,92,246,0.12)]' : 'border-slate-200 bg-slate-50/95 hover:border-slate-300'}`}>
+              <button type="button" onClick={toggleInline} className={`flex w-full h-[40px] items-center justify-center rounded-[12px] border px-2 transition-colors ${isEndTimeFixed ? 'border-violet-400/60 bg-violet-50 shadow-[0_0_0_2px_rgba(139,92,246,0.12)]' : 'border-slate-200 bg-slate-50/95 hover:border-slate-300'}`}>
                 <span className={`text-[22px] font-black tabular-nums tracking-[-0.06em] leading-none ${isEndTimeFixed ? 'text-violet-500' : 'text-slate-400'}`}>{ehh}<span className="mx-[1px] opacity-65">:</span>{emm}</span>
               </button>
             </div>

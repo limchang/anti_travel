@@ -69,7 +69,7 @@ const TagPickerModal = ({ show, types, tagOptions, onTypesChange, onConfirm, onC
                   const next = active ? (removed.length ? removed : cur) : [...cur.filter(v => v !== 'place'), t.value];
                   onTypesChange(next);
                 }}
-                className={`px-2.5 py-1 text-[10px] font-black border transition-all ${active ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
+                className={`px-2.5 py-1 text-[10px] font-black border transition-colors ${active ? 'bg-[#3182F6] text-white border-[#3182F6]' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
               >{t.label}</button>
             );
           })}

@@ -74,7 +74,7 @@ const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', class
           <button
             type="button"
             onClick={() => setIsAddingCustom(true)}
-            className="w-6 h-6 flex items-center justify-center rounded-lg border border-dashed border-slate-300 text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] hover:bg-blue-50 transition-all"
+            className="w-6 h-6 flex items-center justify-center rounded-lg border border-dashed border-slate-300 text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] hover:bg-blue-50 transition-colors"
             title="커스텀 태그 추가"
           >
             <Plus size={12} />
@@ -293,7 +293,7 @@ export const PlaceEditorCard = ({
               type="button"
               onClick={wrapSmartPaste(onSuperSmartPaste)}
               disabled={smartPasteLoading}
-              className="flex-1 py-2.5 bg-gradient-to-r from-[#3182F6] to-indigo-500 rounded-xl text-white text-[12px] font-black flex items-center justify-center gap-2 shadow-[0_8px_16px_-6px_rgba(49,130,246,0.25)] hover:shadow-[0_12px_20px_-8px_rgba(49,130,246,0.35)] active:scale-[0.98] transition-all disabled:opacity-50"
+              className="flex-1 py-2.5 bg-gradient-to-r from-[#3182F6] to-indigo-500 rounded-xl text-white text-[12px] font-black flex items-center justify-center gap-2 shadow-[0_8px_16px_-6px_rgba(49,130,246,0.25)] hover:shadow-[0_12px_20px_-8px_rgba(49,130,246,0.35)] active:scale-[0.98] transition-colors disabled:opacity-50"
             >
               {smartPasteLoading ? (
                 <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
@@ -498,7 +498,7 @@ export const PlaceEditorCard = ({
                 setPendingMenuFocusIdx(safeDraft.receipt.items.length);
                 updateDraft((current) => ({ ...current, receipt: { ...current.receipt, items: [...current.receipt.items, { name: '', price: 0, qty: 1, selected: true }] } }));
               }}
-              className="w-full py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-[#3182F6] hover:bg-white transition-all"
+              className="w-full py-2 border border-dashed border-slate-300 rounded-xl text-[10px] font-bold text-slate-400 hover:text-[#3182F6] hover:bg-white transition-colors"
             >
               + 메뉴 추가
             </button>
@@ -510,14 +510,14 @@ export const PlaceEditorCard = ({
 
       <div className="px-4 pb-4 flex gap-2 shrink-0">
         {onDelete && (
-          <button onClick={onDelete} className="px-4 py-3 bg-white border border-red-200 text-red-500 text-[13px] font-black rounded-xl hover:bg-red-50 transition-all">
+          <button onClick={onDelete} className="px-4 py-3 bg-white border border-red-200 text-red-500 text-[13px] font-black rounded-xl hover:bg-red-50 transition-colors">
             삭제
           </button>
         )}
-        <button onClick={() => onSubmit(createDraft({ ...safeDraft, price: total }))} className="flex-1 py-3 bg-[#3182F6] text-white text-[13px] font-black rounded-xl shadow-[0_8px_16px_-6px_rgba(49,130,246,0.35)] hover:bg-blue-600 transition-all active:scale-[0.98]">
+        <button onClick={() => onSubmit(createDraft({ ...safeDraft, price: total }))} className="flex-1 py-3 bg-[#3182F6] text-white text-[13px] font-black rounded-xl shadow-[0_8px_16px_-6px_rgba(49,130,246,0.35)] hover:bg-blue-600 transition-colors active:scale-[0.98]">
           {submitLabel}
         </button>
-        <button onClick={onCancel} className="px-4 py-3 bg-white border border-slate-200 text-slate-500 text-[13px] font-black rounded-xl hover:bg-slate-50 transition-all">
+        <button onClick={onCancel} className="px-4 py-3 bg-white border border-slate-200 text-slate-500 text-[13px] font-black rounded-xl hover:bg-slate-50 transition-colors">
           {cancelLabel}
         </button>
       </div>

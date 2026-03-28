@@ -39,7 +39,7 @@ export const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그'
           const baseColor = colorMap[t.value] || 'text-slate-500 bg-slate-100 border-slate-200';
           return (
             <button key={t.value} type="button" onClick={() => onChange(toggleTagSelection(selected, t.value))}
-              className={`flex items-center gap-1 px-1.5 py-1 text-[10px] font-bold border transition-all ${active ? baseColor + ' ring-2 ring-inset ring-current' : 'text-slate-300 bg-slate-50 border-slate-100 hover:opacity-80'}`}>
+              className={`flex items-center gap-1 px-1.5 py-1 text-[10px] font-bold border transition-colors ${active ? baseColor + ' ring-2 ring-inset ring-current' : 'text-slate-300 bg-slate-50 border-slate-100 hover:opacity-80'}`}>
               {iconMap[t.value] || <MapIcon size={10} />}
               {t.label}
             </button>
@@ -47,7 +47,7 @@ export const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그'
         })}
         {customTags.map(t => (
           <button key={t} type="button" onClick={() => onChange(normalizeTagOrder(selected.filter(v => v !== t)))}
-            className="flex items-center gap-1 px-1.5 py-1 text-[10px] font-bold border transition-all text-slate-600 bg-slate-100 border-slate-200 ring-2 ring-inset ring-slate-400 hover:bg-slate-200">
+            className="flex items-center gap-1 px-1.5 py-1 text-[10px] font-bold border transition-colors text-slate-600 bg-slate-100 border-slate-200 ring-2 ring-inset ring-slate-400 hover:bg-slate-200">
             <MapIcon size={10} />
             {t}
           </button>
@@ -57,7 +57,7 @@ export const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그'
           <button
             type="button"
             onClick={() => setIsAddingCustom(true)}
-            className="w-6 h-6 flex items-center justify-center rounded-lg border border-dashed border-slate-300 text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] hover:bg-blue-50 transition-all"
+            className="w-6 h-6 flex items-center justify-center rounded-lg border border-dashed border-slate-300 text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6] hover:bg-blue-50 transition-colors"
             title="커스텀 태그 추가"
           >
             <Plus size={12} />
@@ -106,7 +106,7 @@ export const SharedNameRow = ({
   onContainerClick,
   prefixContent = null,
 }) => (
-  <div className="w-full flex items-center gap-2 text-slate-500 px-1 py-0.5 transition-all" onClick={onContainerClick}>
+  <div className="w-full flex items-center gap-2 text-slate-500 px-1 py-0.5 transition-colors" onClick={onContainerClick}>
     {prefixContent}
     <input
       value={value}
@@ -268,7 +268,7 @@ export const SharedMemoRow = ({ value, onChange, placeholder = '메모를 입력
         readOnly={readOnly}
         autoFocus={editing}
         onBlur={() => setEditing(false)}
-        className="flex-1 min-w-0 bg-transparent text-[11px] font-medium text-slate-500 outline-none placeholder:text-slate-400 focus:outline-none transition-all"
+        className="flex-1 min-w-0 bg-transparent text-[11px] font-medium text-slate-500 outline-none placeholder:text-slate-400 focus:outline-none transition-colors"
         placeholder={placeholder}
       />
     </div>
@@ -319,7 +319,7 @@ export const MenuPriceInput = ({ value = 0, onCommit, className = '', onClick = 
 export const SharedTotalFooter = ({ expanded, onToggle, total }) => (
   <div
     onClick={onToggle}
-    className="mt-auto px-5 py-3 flex items-center justify-between cursor-pointer transition-all bg-slate-50/50 hover:bg-slate-50"
+    className="mt-auto px-5 py-3 flex items-center justify-between cursor-pointer transition-colors bg-slate-50/50 hover:bg-slate-50"
   >
     <span className="text-[10px] text-slate-400 font-black tracking-[0.15em] uppercase flex items-center gap-1.5">
       Total <ChevronDown size={10} className={`transition-transform duration-300 ${expanded ? 'rotate-180 text-[#3182F6]' : ''}`} />

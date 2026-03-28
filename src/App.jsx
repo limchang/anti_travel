@@ -6743,7 +6743,7 @@ const App = () => {
               <div className="p-4 flex flex-col gap-3">
                 <button
                   onClick={handleLogin}
-                  className="group relative flex items-center justify-center gap-3 bg-white border border-slate-200 hover:border-[#3182F6] hover:bg-blue-50 px-5 py-3.5 rounded-[18px] transition-all duration-300 shadow-sm hover:shadow-[0_16px_30px_-18px_rgba(49,130,246,0.35)]"
+                  className="group relative flex items-center justify-center gap-3 bg-white border border-slate-200 hover:border-[#3182F6] hover:bg-blue-50 px-5 py-3.5 rounded-[18px] transition-colors duration-300 shadow-sm hover:shadow-[0_16px_30px_-18px_rgba(49,130,246,0.35)]"
                 >
                   <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
                   <span className="text-[15px] font-black text-slate-700 group-hover:text-[#3182F6]">Google 계정으로 시작하기</span>
@@ -6874,7 +6874,7 @@ const App = () => {
     return (
       <div
         key={key}
-        className={`px-1.5 transition-all duration-200 ${isDropHere ? 'py-2.5' : 'py-0.5'}`}
+        className={`px-1.5 transition-colors duration-200 ${isDropHere ? 'py-2.5' : 'py-0.5'}`}
         data-droptarget={`${dayIdx}|${insertAfterPIdx}`}
         onDragOver={(e) => {
           e.preventDefault();
@@ -6902,7 +6902,7 @@ const App = () => {
         }}
       >
         <div
-          className={`w-full rounded-[14px] transition-all duration-200 ${isDropHere ? (warnText ? 'h-8 bg-orange-50/90 border border-orange-200/70' : 'h-8 bg-blue-50/85 border border-blue-200/60') : 'h-0.5 bg-transparent border border-transparent'}`}
+          className={`w-full rounded-[14px] transition-colors duration-200 ${isDropHere ? (warnText ? 'h-8 bg-orange-50/90 border border-orange-200/70' : 'h-8 bg-blue-50/85 border border-blue-200/60') : 'h-0.5 bg-transparent border border-transparent'}`}
           title={isDropHere ? (warnText || '여기에 배치됩니다.') : undefined}
         />
       </div>
@@ -6917,7 +6917,7 @@ const App = () => {
     return (
       <div className="z-10 flex w-full items-center justify-center">
         <div
-          className={`grid grid-cols-2 w-full rounded-[18px] border overflow-hidden shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] transition-all duration-200 ${isDropHere
+          className={`grid grid-cols-2 w-full rounded-[18px] border overflow-hidden shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] transition-colors duration-200 ${isDropHere
             ? warnText
               ? 'border-orange-300 bg-orange-50/95 text-orange-600 ring-2 ring-orange-200/70 shadow-[0_18px_30px_-16px_rgba(251,146,60,0.5)] scale-[1.01]'
               : 'border-[#3182F6]/30 bg-blue-50/95 text-[#3182F6] ring-2 ring-blue-200/70 shadow-[0_18px_30px_-16px_rgba(49,130,246,0.4)] scale-[1.01]'
@@ -6999,7 +6999,7 @@ const App = () => {
           <button
             key={step}
             onClick={(e) => { e.stopPropagation(); onSelect(step); }}
-            className={`w-full rounded-lg text-center font-black transition-all ${compact ? 'py-1.5 text-[10px]' : 'py-1 text-[9px]'} ${selectedStep === step ? activeClassMap[activeTone] || activeClassMap.slate : inactiveClass}`}
+            className={`w-full rounded-lg text-center font-black transition-colors ${compact ? 'py-1.5 text-[10px]' : 'py-1 text-[9px]'} ${selectedStep === step ? activeClassMap[activeTone] || activeClassMap.slate : inactiveClass}`}
           >
             {step}
           </button>
@@ -7034,7 +7034,7 @@ const App = () => {
         <button
           type="button"
           onClick={() => setIsEditMode(prev => !prev)}
-          className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all shrink-0 ${isEditMode ? 'border-amber-300 bg-amber-50 text-amber-600' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+          className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-colors shrink-0 ${isEditMode ? 'border-amber-300 bg-amber-50 text-amber-600' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
           title={isEditMode ? '편집 잠금' : '드래그 편집 활성화'}
         >
           {isEditMode ? <Unlock size={14} /> : <Lock size={14} />}
@@ -7043,7 +7043,7 @@ const App = () => {
           <button
             type="button"
             onClick={() => saveItineraryManually()}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all shrink-0 ${isDirty ? 'border-amber-300 bg-amber-50 text-amber-600 hover:bg-amber-100' : 'border-slate-200 bg-white text-slate-400'}`}
+            className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-colors shrink-0 ${isDirty ? 'border-amber-300 bg-amber-50 text-amber-600 hover:bg-amber-100' : 'border-slate-200 bg-white text-slate-400'}`}
             title={isDirty ? '저장' : '저장됨'}
           >
             {isDirty ? <span className="text-[10px] font-black">저장</span> : <span className="text-[10px]">✓</span>}
@@ -7499,7 +7499,7 @@ const App = () => {
                                   if (changed) triggerUndoToast();
                                   setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropTarget(null); setDropOnItem(null); setIsDragCopy(false);
                                 }}
-                                className={`flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-[14px] border border-dashed px-2 py-1.5 transition-all ${dropTarget?.dayIdx === dNavIdx && dropTarget?.insertAfterPIdx === -1 && !expectedNightSlot
+                                className={`flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-[14px] border border-dashed px-2 py-1.5 transition-colors ${dropTarget?.dayIdx === dNavIdx && dropTarget?.insertAfterPIdx === -1 && !expectedNightSlot
                                   ? 'border-[#3182F6] bg-blue-50 text-[#3182F6]'
                                   : 'border-slate-200 bg-slate-50 text-slate-300'}`}
                               >
@@ -7652,7 +7652,7 @@ const App = () => {
                                           e.stopPropagation();
                                           handleNavClick(d.day, nextNavItem.id, `travel-chip-${dNavIdx}-${pIdx}`);
                                         }}
-                                        className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-1 rounded-[14px] border border-orange-300 bg-orange-400 px-2 py-1.5 text-left transition-all hover:bg-orange-500"
+                                        className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-1 rounded-[14px] border border-orange-300 bg-orange-400 px-2 py-1.5 text-left transition-colors hover:bg-orange-500"
                                         title={`${nextNavItem.activity || '다음 일정'} 진입 전 이동칩 위치로 이동`}
                                       >
                                         <span className="text-[11px] tabular-nums leading-none opacity-0 select-none">
@@ -7839,7 +7839,7 @@ const App = () => {
                   const _fto = [...TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit'), ...customPlaceCategories.map(t => ({ value: t, label: getCustomTagLabel(t) }))];
                   return (
                     <div className="relative">
-                      <button type="button" onClick={() => setShowPlaceCategoryManager(prev => !prev)} className={`flex items-center gap-1 h-8 px-2.5 border text-[11px] font-black transition-all shrink-0 ${placeFilterTags.length === 0 ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-[#3182F6]'}`}>
+                      <button type="button" onClick={() => setShowPlaceCategoryManager(prev => !prev)} className={`flex items-center gap-1 h-8 px-2.5 border text-[11px] font-black transition-colors shrink-0 ${placeFilterTags.length === 0 ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-[#3182F6]'}`}>
                         {placeFilterTags.length === 0 ? '전체' : (() => { const allKnown = _fto.map(t => t.value); const active = allKnown.filter(v => !placeFilterTags.includes(v) && (_cc[v] || 0) > 0); return active.length === 1 ? (_fto.find(t => t.value === active[0])?.label || active[0]) : `${active.length}개`; })()}
                         <ChevronDown size={9} />
                       </button>
@@ -7891,7 +7891,7 @@ const App = () => {
                   <button
                     type="button"
                     onClick={() => setMapEditMode(prev => !prev)}
-                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black transition-all ${mapEditMode ? 'border-[#3182F6] bg-[#3182F6] text-white shadow-[0_2px_8px_rgba(49,130,246,0.3)]' : 'border-slate-200 bg-white text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-black transition-colors ${mapEditMode ? 'border-[#3182F6] bg-[#3182F6] text-white shadow-[0_2px_8px_rgba(49,130,246,0.3)]' : 'border-slate-200 bg-white text-slate-500 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
                     title={mapEditMode ? '일정 편집 모드로 돌아가기' : '지도 편집 모드 — 일정 영역을 닫고 지도+내장소 확장'}
                   >
                     <MapIcon size={13} />
@@ -8173,7 +8173,7 @@ const App = () => {
                       : 'shrink-0 rounded-[16px] border border-slate-200 bg-white overflow-hidden shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] mb-2 max-h-[40vh]'
                     } style={(mapEditMode && !isMobileLayout) || isMobileLayout ? { isolation: 'isolate' } : { isolation: 'isolate', aspectRatio: '16 / 9' }}>
                       {/* 지도 본체 + 오버레이 버튼 */}
-                      <div className="relative overflow-visible transition-all duration-300 w-full h-full">
+                      <div className="relative overflow-visible transition-colors duration-300 w-full h-full">
                         <RoutePreviewCanvas
                           routePreviewMap={overviewFilteredRoutePreviewMap}
                           libraryPoints={libraryMapPoints}
@@ -8240,7 +8240,7 @@ const App = () => {
                           <button
                             type="button"
                             onClick={() => setShowTimelineOverlay(prev => !prev)}
-                            className={`flex items-center gap-1 h-8 px-2.5 border text-[11px] font-black transition-all shrink-0 ${showTimelineOverlay ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
+                            className={`flex items-center gap-1 h-8 px-2.5 border text-[11px] font-black transition-colors shrink-0 ${showTimelineOverlay ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-[#3182F6] hover:text-[#3182F6]'}`}
                           >
                             <Pencil size={11} />
                             <span className="hidden sm:inline">{showTimelineOverlay ? '닫기' : '일정'}</span>
@@ -8290,7 +8290,7 @@ const App = () => {
                             <button
                               type="button"
                               onClick={() => setShowOverviewLibraryPoints((v) => !v)}
-                              className={`flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-all ${showOverviewLibraryPoints ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
+                              className={`flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-colors ${showOverviewLibraryPoints ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
                               title="내장소"
                             >
                               <Package size={10} />
@@ -8298,7 +8298,7 @@ const App = () => {
                             <button
                               type="button"
                               onClick={() => setHideLongRouteSegments((v) => !v)}
-                              className={`flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-all ${hideLongRouteSegments ? 'border-orange-400 bg-orange-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
+                              className={`flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-colors ${hideLongRouteSegments ? 'border-orange-400 bg-orange-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
                               title={hideLongRouteSegments ? '장거리 숨김' : '장거리 표시'}
                             >
                               <Eye size={10} />
@@ -8308,7 +8308,7 @@ const App = () => {
                                 key={action.id}
                                 type="button"
                                 onClick={() => setHiddenRoutePreviewEndpoints((prev) => ({ ...prev, [action.id]: !prev[action.id] }))}
-                                className={`flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-all ${action.hidden ? 'border-orange-400 bg-orange-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
+                                className={`flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-colors ${action.hidden ? 'border-orange-400 bg-orange-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
                                 title={action.id.endsWith('ship-start') ? '출발' : '도착'}
                               >
                                 <Anchor size={10} />
@@ -8317,7 +8317,7 @@ const App = () => {
                             <button
                               type="button"
                               onClick={() => setMapTileStyle(prev => (prev + 1) % 3)}
-                              className="flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-all border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]"
+                              className="flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-colors border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]"
                               title="지도 스타일 변경"
                             >
                               <MapIcon size={10} />
@@ -8326,7 +8326,7 @@ const App = () => {
                               type="button"
                               onClick={refreshRoutePreviewMap}
                               disabled={routePreviewManualRefreshing}
-                              className={`flex items-center justify-center h-8 w-8 border text-[11px] font-black transition-all ${routePreviewManualRefreshing ? 'border-blue-400 bg-blue-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
+                              className={`flex items-center justify-center h-8 w-8 border text-[11px] font-black transition-colors ${routePreviewManualRefreshing ? 'border-blue-400 bg-blue-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`}
                               title="새로고침"
                             >
                               <RotateCcw size={10} className={routePreviewManualRefreshing ? 'animate-spin' : ''} />
@@ -8371,7 +8371,7 @@ const App = () => {
                     <div id="place-library-scroll" className="flex-1 overflow-y-auto overscroll-none no-scrollbar px-2 pt-2 pb-4 flex flex-col gap-2">
                     {draggingFromTimeline && (
                       <div
-                        className={`w-full mb-2 rounded-[20px] border-2 border-dashed px-4 py-4 flex items-center justify-center gap-3 text-center transition-all ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6] shadow-[0_12px_26px_-18px_rgba(49,130,246,0.45)]' : 'border-slate-200 bg-white text-slate-500'}`}
+                        className={`w-full mb-2 rounded-[20px] border-2 border-dashed px-4 py-4 flex items-center justify-center gap-3 text-center transition-colors ${dragBottomTarget === 'move_to_library' ? 'border-[#3182F6] bg-blue-50 text-[#3182F6] shadow-[0_12px_26px_-18px_rgba(49,130,246,0.45)]' : 'border-slate-200 bg-white text-slate-500'}`}
                         data-drag-action="move_to_library"
                         onDragOver={(e) => { e.preventDefault(); setDragBottomTarget('move_to_library'); }}
                         onDragLeave={() => setDragBottomTarget(prev => (prev === 'move_to_library' ? '' : prev))}
@@ -8639,7 +8639,7 @@ const App = () => {
                                       customSegments: [...existing, { key, label: label.trim(), duration: 60 }],
                                     });
                                   }}
-                                  className="inline-flex items-center justify-center w-6 h-6 rounded-xl border border-dashed border-slate-300 text-slate-400 hover:text-emerald-500 hover:border-emerald-400 hover:bg-emerald-50 transition-all"
+                                  className="inline-flex items-center justify-center w-6 h-6 rounded-xl border border-dashed border-slate-300 text-slate-400 hover:text-emerald-500 hover:border-emerald-400 hover:bg-emerald-50 transition-colors"
                                   title="커스텀 세그먼트 추가"
                                 >
                                   <Plus size={11} />
@@ -8808,7 +8808,7 @@ const App = () => {
                                 setShowEntryChooser(false);
                                 setLastAction(`'${meta.title}' 일정을 열었습니다.`);
                               }}
-                              className={`relative overflow-hidden rounded-2xl border text-left min-h-[130px] transition-all hover:-translate-y-0.5 ${currentPlanId === plan.id ? 'border-[#3182F6] ring-2 ring-[#3182F6]/20' : 'border-slate-200 hover:border-slate-300'}`}
+                              className={`relative overflow-hidden rounded-2xl border text-left min-h-[130px] transition-colors hover:-translate-y-0.5 ${currentPlanId === plan.id ? 'border-[#3182F6] ring-2 ring-[#3182F6]/20' : 'border-slate-200 hover:border-slate-300'}`}
                             >
                               <img
                                 src={getRegionCoverImage(meta.region)}
@@ -8912,7 +8912,7 @@ const App = () => {
                               setShowPlanManager(false);
                               setLastAction(`'${meta.title}' 일정으로 전환했습니다.`);
                             }}
-                            className={`relative overflow-hidden rounded-2xl border text-left min-h-[170px] transition-all hover:-translate-y-0.5 ${currentPlanId === plan.id ? 'border-[#3182F6] ring-2 ring-[#3182F6]/20' : 'border-slate-200 hover:border-slate-300'}`}
+                            className={`relative overflow-hidden rounded-2xl border text-left min-h-[170px] transition-colors hover:-translate-y-0.5 ${currentPlanId === plan.id ? 'border-[#3182F6] ring-2 ring-[#3182F6]/20' : 'border-slate-200 hover:border-slate-300'}`}
                           >
                             <img
                               src={getRegionCoverImage(meta.region)}
@@ -9227,7 +9227,7 @@ const App = () => {
 
           {/* 업데이트 알림 모달 */}
           {showUpdateModal && (
-            <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black p-4 transition-all" onClick={() => setShowUpdateModal(false)}>
+            <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black p-4 transition-colors" onClick={() => setShowUpdateModal(false)}>
               <div
                 className="relative w-full max-w-[340px] rounded-2xl bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
                 onClick={(e) => e.stopPropagation()}
@@ -9493,7 +9493,7 @@ const App = () => {
                     </div>
                     {/* 진행바 */}
                     <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-[#3182F6] rounded-full transition-all" style={{ width: totalCount ? `${(checkedCount/totalCount)*100}%` : '0%' }} />
+                      <div className="h-full bg-[#3182F6] rounded-full transition-colors" style={{ width: totalCount ? `${(checkedCount/totalCount)*100}%` : '0%' }} />
                     </div>
                     <button onClick={() => setShowChecklistModal(false)} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-slate-600 transition-colors"><X size={14} /></button>
                   </div>
@@ -9704,11 +9704,11 @@ const App = () => {
                 >
                   <section
                     ref={dashboardRef}
-                    className={`${heroCompactActive ? 'mb-0.5' : 'mb-2 sm:mb-3'} transition-all duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overflow-x-visible overscroll-contain pb-5 pr-1 sm:pb-6' : ''}`}
+                    className={`${heroCompactActive ? 'mb-0.5' : 'mb-2 sm:mb-3'} transition-colors duration-300 ${heroSummaryExpanded ? 'max-h-[calc(100vh-10px)] overflow-y-auto overflow-x-visible overscroll-contain pb-5 pr-1 sm:pb-6' : ''}`}
                   >
                     <div className="w-full relative overflow-visible bg-transparent">
                       {/* 🖼️ 배경 이미지 (고정 높이, 요약 확장과 무관) */}
-                      <div className={`absolute left-0 right-0 top-0 overflow-hidden pointer-events-none transition-all duration-300 ${heroCompactActive ? 'h-[124px] sm:h-[138px]' : 'h-[220px] sm:h-[236px]'}`}>
+                      <div className={`absolute left-0 right-0 top-0 overflow-hidden pointer-events-none transition-colors duration-300 ${heroCompactActive ? 'h-[124px] sm:h-[138px]' : 'h-[220px] sm:h-[236px]'}`}>
                         <img
                           src={getRegionCoverImage(tripRegion)}
                           className="w-full h-full object-cover opacity-95 scale-105"
@@ -9740,14 +9740,14 @@ const App = () => {
                         )}
                       </div>
 
-                      <div className={`relative z-10 flex w-full mx-auto flex-col transition-all duration-300 ${timelineMaxClass} ${heroCompactActive ? 'gap-2' : 'gap-3'}`}>
+                      <div className={`relative z-10 flex w-full mx-auto flex-col transition-colors duration-300 ${timelineMaxClass} ${heroCompactActive ? 'gap-2' : 'gap-3'}`}>
                         {/* 🌟 1. 타이틀 & 일정 */}
-                        <div className={`flex flex-col transition-all duration-300 ${heroCompactActive ? 'gap-2 px-4 pt-3 sm:px-6 sm:pt-4' : 'items-center gap-3 px-6 pt-8 text-center sm:px-8 sm:pt-10'}`}>
+                        <div className={`flex flex-col transition-colors duration-300 ${heroCompactActive ? 'gap-2 px-4 pt-3 sm:px-6 sm:pt-4' : 'items-center gap-3 px-6 pt-8 text-center sm:px-8 sm:pt-10'}`}>
                           <input
                             value={tripRegion}
                             onChange={(e) => setTripRegion(e.target.value)}
                             placeholder="어디로 떠나시나요?"
-                            className={`bg-transparent border-none outline-none font-extrabold text-white drop-shadow-md placeholder:text-white/50 tracking-tight leading-none transition-all duration-300 ${heroCompactActive ? 'w-full text-center text-[26px] sm:text-[30px] whitespace-nowrap overflow-hidden text-ellipsis' : 'w-full max-w-[440px] text-center text-[36px] sm:text-[44px]'}`}
+                            className={`bg-transparent border-none outline-none font-extrabold text-white drop-shadow-md placeholder:text-white/50 tracking-tight leading-none transition-colors duration-300 ${heroCompactActive ? 'w-full text-center text-[26px] sm:text-[30px] whitespace-nowrap overflow-hidden text-ellipsis' : 'w-full max-w-[440px] text-center text-[36px] sm:text-[44px]'}`}
                           />
                           {showDatePicker && createPortal(
                             <>
@@ -9813,7 +9813,7 @@ const App = () => {
                   setDropTarget(null);
                   setIsDragCopy(false);
                 }}
-                className={`w-full rounded-2xl border bg-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.2)] p-5 flex flex-col items-center gap-3 transition-all ${draggingFromLibrary ? 'cursor-copy border-[#3182F6]/40' : 'border-slate-200'} ${dropTarget?.dayIdx === 0 && dropTarget?.insertAfterPIdx === -1 ? 'ring-2 ring-[#3182F6] bg-blue-50' : ''}`}
+                className={`w-full rounded-2xl border bg-white shadow-[0_12px_28px_-18px_rgba(15,23,42,0.2)] p-5 flex flex-col items-center gap-3 transition-colors ${draggingFromLibrary ? 'cursor-copy border-[#3182F6]/40' : 'border-slate-200'} ${dropTarget?.dayIdx === 0 && dropTarget?.insertAfterPIdx === -1 ? 'ring-2 ring-[#3182F6] bg-blue-50' : ''}`}
               >
                 <p className="text-[12px] font-black text-slate-500">아직 등록된 일정이 없습니다.</p>
                 <button
@@ -10068,7 +10068,7 @@ const App = () => {
                           setDraggingFromLibrary(null); setDraggingFromTimeline(null); setDropOnItem(null); setIsDragCopy(false);
                         }
                       }}
-                      className={`relative z-10 w-full flex flex-col transition-all group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${isTimelineDragActive ? 'scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${isMapFocusedTimeline ? 'scale-[1.015]' : ''}`}
+                      className={`relative z-10 w-full flex flex-col transition-colors group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${isTimelineDragActive ? 'scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${isMapFocusedTimeline ? 'scale-[1.015]' : ''}`}
                       style={isMapFocusedTimeline ? { outline: `3px solid ${focusedDayColor}`, outlineOffset: '2px', borderRadius: '26px', boxShadow: `0 0 0 6px ${focusedDayColor}28, 0 16px 40px -12px ${focusedDayColor}60` } : undefined}
                     >
 
@@ -10435,10 +10435,10 @@ const App = () => {
                                       <>
                                         {(checkinTarget || checkoutTarget) && (
                                           <div className="w-full grid grid-cols-2 gap-2 mb-2">
-                                            <button onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${lodgeButtonTone}`}>
+                                            <button onClick={(e) => { e.stopPropagation(); toggleTimeFix(dIdx, pIdx); }} className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black transition-colors ${lodgeButtonTone}`}>
                                               {p.isTimeFixed ? <Lock size={10} /> : <Unlock size={10} />} 체크인 {p.isTimeFixed ? '고정' : '해제'}
                                             </button>
-                                            <button onClick={(e) => { e.stopPropagation(); if (!nextItem || !isOvernightLodgeItem) return; toggleLodgeCheckoutFix(dIdx, pIdx); }} disabled={!nextItem || !isOvernightLodgeItem} className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black transition-all disabled:opacity-40 ${lodgeCheckoutButtonTone}`}>
+                                            <button onClick={(e) => { e.stopPropagation(); if (!nextItem || !isOvernightLodgeItem) return; toggleLodgeCheckoutFix(dIdx, pIdx); }} disabled={!nextItem || !isOvernightLodgeItem} className={`flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black transition-colors disabled:opacity-40 ${lodgeCheckoutButtonTone}`}>
                                               {p.lodgeCheckoutFixed ? <Lock size={10} /> : <Unlock size={10} />} 체크아웃 {p.lodgeCheckoutFixed ? '고정' : '해제'}
                                             </button>
                                           </div>
@@ -10549,7 +10549,7 @@ const App = () => {
                                   <input
                                     value={p.memo || ''}
                                     onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-colors"
                                     placeholder="메모를 입력하세요..."
                                   />
                                 ) : null}
@@ -10681,7 +10681,7 @@ const App = () => {
                                         <input
                                           value={p.memo || ''}
                                           onChange={(e) => updateMemo(dIdx, pIdx, e.target.value)}
-                                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
+                                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-medium text-slate-600 outline-none placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-colors"
                                           placeholder="메모를 입력하세요..."
                                         />
                                       ) : null}

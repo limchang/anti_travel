@@ -2677,7 +2677,8 @@ const App = () => {
   useEffect(() => {
     if (!ROUTE_PREVIEW_ENABLED) return undefined;
     if (routePreviewLoading || routePreviewManualRefreshing) return undefined;
-    if (routePreviewMap.length > 0) {
+    const hasRouteSegments = routePreviewMap.some(day => (day.segments || []).length > 0);
+    if (routePreviewMap.length > 0 && hasRouteSegments) {
       routePreviewAutoRetryKeyRef.current = routePreviewBuildSignature;
       return undefined;
     }

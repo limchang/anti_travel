@@ -7792,7 +7792,7 @@ const App = () => {
                 {/* 카테고리 필터 */}
                 <div className="relative">
                   <button type="button" onClick={() => setShowPlaceCategoryManager(prev => !prev)} className={`flex items-center gap-1 px-2 py-1 border text-[10px] font-black transition-all shrink-0 ${placeFilterTags.length === 0 ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-[#3182F6]'}`}>
-                    {placeFilterTags.length === 0 ? '전체' : (() => { const allKnown = filterTagOptions.map(t => t.value); const active = allKnown.filter(v => !placeFilterTags.includes(v) && (categoryCounts[v] || 0) > 0); return active.length === 1 ? (filterTagOptions.find(t => t.value === active[0])?.label || active[0]) : `${active.length}개`; })()}
+                    {placeFilterTags.length === 0 ? '전체' : (() => { const _fto = [...TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit'), ...customPlaceCategories.map(t => ({ value: t, label: getCustomTagLabel(t) }))]; const allKnown = _fto.map(t => t.value); const active = allKnown.filter(v => !placeFilterTags.includes(v) && (categoryCounts[v] || 0) > 0); return active.length === 1 ? (_fto.find(t => t.value === active[0])?.label || active[0]) : `${active.length}개`; })()}
                     <ChevronDown size={9} />
                   </button>
                   {showPlaceCategoryManager && (
@@ -7800,8 +7800,8 @@ const App = () => {
                       <div className="fixed inset-0 z-[9980]" onClick={() => setShowPlaceCategoryManager(false)} />
                       <div className="absolute left-0 top-8 z-[9990] w-[200px] border border-slate-200 bg-white p-1.5 shadow-[0_16px_32px_-16px_rgba(15,23,42,0.35)]">
                         <button type="button" onClick={() => { setPlaceFilterTags([]); setShowPlaceCategoryManager(false); }} className={`w-full flex items-center gap-2 px-2.5 py-2 text-left text-[11px] font-black transition-colors ${placeFilterTags.length === 0 ? 'bg-blue-50 text-[#3182F6]' : 'text-slate-700 hover:bg-slate-50'}`}>전체</button>
-                        {filterTagOptions.filter(t => (categoryCounts[t.value] || 0) > 0 && t.value !== 'stay').map(t => {
-                          const allKnown = filterTagOptions.map(x => x.value).filter(v => v !== 'stay');
+                        {[...TAG_OPTIONS.filter(t => t.value !== 'place' && t.value !== 'new' && t.value !== 'revisit'), ...customPlaceCategories.map(t => ({ value: t, label: getCustomTagLabel(t) }))].filter(t => (categoryCounts[t.value] || 0) > 0 && t.value !== 'stay').map(t => {
+                          const allKnown = [...TAG_OPTIONS.filter(x => x.value !== 'place' && x.value !== 'new' && x.value !== 'revisit'), ...customPlaceCategories.map(x => ({ value: x, label: getCustomTagLabel(x) }))].map(x => x.value).filter(v => v !== 'stay');
                           const activeFilters = allKnown.filter(v => !placeFilterTags.includes(v) && (categoryCounts[v] || 0) > 0);
                           const isSelected = activeFilters.length === 1 && activeFilters[0] === t.value;
                           return (

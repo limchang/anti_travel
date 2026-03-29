@@ -2545,16 +2545,7 @@ const App = () => {
     }
   }, [attachRoutePreviewSegments, resolveRoutePreviewDays, routePreviewSourceSignature]);
 
-  // 초기 로딩 시 경로 빌드 (1회) — geo 동기화를 기다리지 않고 캐시/기존 좌표로 즉시 시도
-  const routeInitDoneRef = useRef(false);
-  useEffect(() => {
-    if (routeInitDoneRef.current) return;
-    if (!itinerary.days?.length) return;
-    routeInitDoneRef.current = true;
-    // 기존 빌드 키를 초기화하여 자동 빌드 effect가 다시 실행되도록 유도
-    routePreviewBuildKeyRef.current = '';
-    refreshRoutePreviewMap();
-  }, [itinerary.days]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 초기 로딩 시 경로 빌드는 아래 자동 빌드 effect에서 처리
 
   // 장소 추가/삭제 시 지도 자동 새로고침 + 추가된 장소 포커스
   const prevPlacesLenRef = React.useRef((itinerary.places || []).length);
@@ -2700,35 +2691,24 @@ const App = () => {
       routePreviewAutoRetryKeyRef.current = '';
       return undefined;
     }
-    let cancelled = false;
     if (routePreviewBuildKeyRef.current === routePreviewBuildSignature) {
       return undefined;
     }
     routePreviewBuildKeyRef.current = routePreviewBuildSignature;
-    // 이전 결과 초기화 → routePreviewStoredDays(geo 기반 즉시 계산)로 즉시 표시
-    setRoutePreviewDays([]);
+    // 캐시된 segment가 있으면 즉시 표시
+    if (routePreviewStoredDays.some(d => (d.segments || []).length > 0)) {
+      setRoutePreviewDays(routePreviewStoredDays);
+    }
 
-    const buildRoutePreview = async () => {
-      if (!routePreviewPointSource.length) {
-        if (!cancelled) setRoutePreviewDays([]);
-        return;
-      }
-      setRoutePreviewLoading(true);
-      try {
-        const baseDays = await resolveRoutePreviewDays();
-        if (!cancelled) setRoutePreviewDays(baseDays);
-        const routeDays = await attachRoutePreviewSegments(baseDays);
-        if (!cancelled) setRoutePreviewDays(routeDays);
-      } finally {
-        if (!cancelled) setRoutePreviewLoading(false);
-      }
-    };
+    if (!routePreviewPointSource.length) {
+      setRoutePreviewDays([]);
+      return undefined;
+    }
 
-    void buildRoutePreview();
-    return () => {
-      cancelled = true;
-    };
-  }, [attachRoutePreviewSegments, routePreviewBuildSignature, routePreviewPointSource, resolveRoutePreviewDays]);
+    // 비동기 빌드 — refreshRoutePreviewMap 재사용 (cancelled 없이 독립 실행)
+    refreshRoutePreviewMap();
+    return undefined;
+  }, [routePreviewBuildSignature]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!ROUTE_PREVIEW_ENABLED) return undefined;

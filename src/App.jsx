@@ -1298,7 +1298,7 @@ const App = () => {
           ? ['lodge', 'rest']
           : ['lodge', 'experience'];
     return normalizeLibraryPlace({
-      id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      id: `place_${Date.now()}_${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}`,
       name: `${place.name || place.activity || '숙소'} · ${segment.label || '내부 일정'}`,
       types: baseTypes,
       address: sourceAddress,
@@ -5665,7 +5665,7 @@ const App = () => {
       selected: unselectedMenus ? false : menu?.selected !== false,
     }));
     const nextPlace = normalizeLibraryPlace({
-      id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      id: `place_${Date.now()}_${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}`,
       name: resolvedName,
       types: normalizeTagOrder(types),
       revisit: !!revisit,
@@ -5707,7 +5707,7 @@ const App = () => {
       recommendation?.priceNote ? `비용 메모: ${recommendation.priceNote}` : '',
     ].filter(Boolean).join(' / ');
     const nextPlace = normalizeLibraryPlace({
-      id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      id: `place_${Date.now()}_${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}`,
       name,
       types: inferPlaceTypesFromRecommendation(recommendation?.category),
       business: EMPTY_BUSINESS,
@@ -5891,7 +5891,7 @@ const App = () => {
     const resolvedAddress = item.receipt?.address || item.address || getRouteAddress(item, 'to') || '';
     receipt.address = receipt.address || resolvedAddress;
     return normalizeLibraryPlace({
-      id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      id: `place_${Date.now()}_${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}`,
       name: item.activity || item.name || '장소',
       types: normalizeTagOrder(item.types || ['place']),
       revisit: typeof item.revisit === 'boolean' ? item.revisit : isRevisitCourse(item),

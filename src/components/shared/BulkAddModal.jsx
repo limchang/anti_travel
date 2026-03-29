@@ -456,7 +456,7 @@ const BulkAddModal = ({
                             if (existingNames.has(normalizedName)) {
                               // 중복 → 휴지통으로
                               const trashPlace = normalizeLibraryPlace({
-                                id: `place_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+                                id: `place_${Date.now()}_${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}`,
                                 name: item.name, types: normalizeTagOrder(item.types),
                                 address: (item.address || '').trim(),
                                 receipt: { address: (item.address || '').trim(), items: [] },

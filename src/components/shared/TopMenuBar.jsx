@@ -1,7 +1,7 @@
 import React from 'react';
 import { Map as MapIcon, ChevronDown, Calendar, SlidersHorizontal, Lock, Unlock } from 'lucide-react';
-import useUIStore from '../../stores/useUIStore.js';
-import useItineraryStore from '../../stores/useItineraryStore.js';
+import useUIStore from '../../stores/useUIStore';
+import useItineraryStore from '../../stores/useItineraryStore';
 
 const TopMenuBar = ({
   user, tripNights, saveItineraryManually, handleLogin, handleLogout,

@@ -1,6 +1,37 @@
 import { create } from 'zustand';
 
-const useItineraryStore = create((set, get) => ({
+interface Itinerary {
+  days: any[];
+  places: any[];
+  placeTrash: any[];
+  maxBudget?: number;
+  planTitle?: string;
+  planCode?: string;
+  share?: any;
+  [key: string]: any;
+}
+
+interface ItineraryState {
+  itinerary: Itinerary;
+  activeDay: number;
+  activeItemId: string | null;
+  isEditMode: boolean;
+  isDirty: boolean;
+  tripRegion: string;
+  tripStartDate: string;
+  tripEndDate: string;
+
+  setItinerary: (v: Itinerary | ((prev: Itinerary) => Itinerary)) => void;
+  setActiveDay: (v: number) => void;
+  setActiveItemId: (v: string | null) => void;
+  setIsEditMode: (v: boolean | ((prev: boolean) => boolean)) => void;
+  setIsDirty: (v: boolean) => void;
+  setTripRegion: (v: string) => void;
+  setTripStartDate: (v: string) => void;
+  setTripEndDate: (v: string) => void;
+}
+
+const useItineraryStore = create<ItineraryState>((set) => ({
   itinerary: { days: [], places: [], placeTrash: [] },
   activeDay: 1,
   activeItemId: null,

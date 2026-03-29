@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import useUIStore from '../../stores/useUIStore.js';
-import useModalKeyboard from '../../utils/useModalKeyboard.js';
+import useUIStore from '../../stores/useUIStore';
+import useModalKeyboard from '../../utils/useModalKeyboard';
 import { DEFAULT_AI_SMART_FILL_CONFIG, normalizeAiSmartFillConfig } from '../../utils/ai.js';
 
 const AiSettingsModal = ({ aiSmartFillConfig, setAiSmartFillConfig, serverAiKeyStatus, saveServerAiKey, deleteServerAiKey, fetchServerAiKeyStatus, auth }) => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import useModalKeyboard from '../../utils/useModalKeyboard.js';
+import useModalKeyboard from '../../utils/useModalKeyboard';
 
 const HeroSummaryModal = ({ show, onClose, newPct, newCount, revisitPct, revisitCount, categorySpendRows }) => {
   useModalKeyboard(onClose, show);

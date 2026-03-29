@@ -13,7 +13,7 @@ import {
   Wand2,
   X,
 } from 'lucide-react';
-import { TAG_OPTIONS, normalizeTagOrder, toggleTagSelection, getTagButtonClass } from '../../utils/constants.js';
+import { TAG_OPTIONS, normalizeTagOrder, toggleTagSelection, getTagButtonClass } from '../../utils/constants';
 import { SharedNameRow, SharedAddressRow, SharedBusinessRow, SharedMemoRow, SharedTotalFooter } from '../shared/SharedComponents.jsx';
 import PlanItemCard from './PlanItemCard.jsx';
 

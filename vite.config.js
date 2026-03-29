@@ -90,6 +90,7 @@ export default defineConfig({
           'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
           'vendor-icons': ['lucide-react'],
           'vendor-state': ['zustand'],
+          'vendor-sentry': ['@sentry/react'],
         },
       },
     },

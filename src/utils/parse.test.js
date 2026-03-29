@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseBusinessHoursText, isLikelyParsedAddress, isLikelyMenuPriceLine, parseBulkPlaceText } from './parse.js';
+import { parseBusinessHoursText, isLikelyParsedAddress, isLikelyMenuPriceLine, parseBulkPlaceText } from './parse';
 
 describe('parseBusinessHoursText', () => {
   it('parses basic open/close times', () => {

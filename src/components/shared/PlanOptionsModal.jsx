@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import useUIStore from '../../stores/useUIStore.js';
-import useModalKeyboard from '../../utils/useModalKeyboard.js';
+import useUIStore from '../../stores/useUIStore';
+import useModalKeyboard from '../../utils/useModalKeyboard';
 
 export default function PlanOptionsModal({
   planOptionRegion, setPlanOptionRegion,

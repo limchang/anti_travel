@@ -1,6 +1,6 @@
-import { extractTimesFromText, normalizeTimeToken } from './time.js';
-import { NAVER_PARSE_STOP_WORDS, WEEKDAY_OPTIONS, bulkKwToType, ADDRESS_REGEX } from './constants.js';
-import { safeLocalStorageGet } from './storage.js';
+import { extractTimesFromText, normalizeTimeToken } from './time';
+import { NAVER_PARSE_STOP_WORDS, WEEKDAY_OPTIONS, bulkKwToType, ADDRESS_REGEX } from './constants';
+import { safeLocalStorageGet } from './storage';
 
 // 영업시간 텍스트 파싱
 export const parseBusinessHoursText = (text = '') => {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, X, MapPin, Pencil, Star, ChevronDown, ChevronUp, Clock, StickyNote, Utensils, Coffee, Camera, Bed, MoonStar, Hourglass, Anchor, Timer, Eye, Gift, Soup, Package, Home, Zap, RotateCcw, Map as MapIcon } from 'lucide-react';
-import { TAG_OPTIONS, TAG_VALUES, MODIFIER_TAGS, normalizeTagOrder, toggleTagSelection, getTagButtonClass, WEEKDAY_OPTIONS, formatClosedDaysSummary, EMPTY_BUSINESS } from '../../utils/constants.js';
-import { normalizeBusiness } from '../../utils/time.js';
+import { TAG_OPTIONS, TAG_VALUES, MODIFIER_TAGS, normalizeTagOrder, toggleTagSelection, getTagButtonClass, WEEKDAY_OPTIONS, formatClosedDaysSummary, EMPTY_BUSINESS } from '../../utils/constants';
+import { normalizeBusiness } from '../../utils/time';
 
 export const OrderedTagPicker = ({ value = ['place'], onChange, title = '태그', className = '' }) => {
   const selected = normalizeTagOrder(value);

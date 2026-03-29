@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Sparkles, CheckSquare } from 'lucide-react';
-import useUIStore from '../../stores/useUIStore.js';
-import useModalKeyboard from '../../utils/useModalKeyboard.js';
+import useUIStore from '../../stores/useUIStore';
+import useModalKeyboard from '../../utils/useModalKeyboard';
 
 export const ShareManagerModal = ({ shareSettings, updateShareConfig, copyShareLink, shareCopied }) => {
   const { setShowShareManager } = useUIStore();

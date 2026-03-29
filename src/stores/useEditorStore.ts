@@ -1,7 +1,56 @@
 import { create } from 'zustand';
 
-const useEditorStore = create((set, get) => ({
-  // Place editor
+interface EditorState {
+  editingPlaceId: string | null;
+  editPlaceDraft: any;
+  editingPlanTarget: any;
+  editPlanDraft: any;
+  isAddingPlace: boolean;
+  isAddingPlaceAutoFill: boolean;
+  newPlaceName: string;
+  newPlaceTypes: string[];
+
+  tagEditorTarget: any;
+  businessEditorTarget: any;
+  viewingPlanIdx: Record<string, any>;
+  ferryEditField: any;
+  expandedId: string | null;
+  expandedPlaceId: string | null;
+  pendingPlanMenuFocus: any;
+  timeControllerTarget: any;
+  timeControlStep: number;
+  timelineEndTimeDraft: any;
+  lodgeCheckoutDraft: any;
+  isTimeWheelDragging: boolean;
+  planVariantPicker: any;
+  libraryTypeModal: any;
+
+  setEditingPlaceId: (v: string | null) => void;
+  setEditPlaceDraft: (v: any) => void;
+  setEditingPlanTarget: (v: any) => void;
+  setEditPlanDraft: (v: any) => void;
+  setIsAddingPlace: (v: boolean) => void;
+  setIsAddingPlaceAutoFill: (v: boolean) => void;
+  setNewPlaceName: (v: string) => void;
+  setNewPlaceTypes: (v: string[]) => void;
+  setTagEditorTarget: (v: any) => void;
+  setBusinessEditorTarget: (v: any) => void;
+  setViewingPlanIdx: (v: Record<string, any>) => void;
+  setFerryEditField: (v: any) => void;
+  setExpandedId: (v: string | null) => void;
+  setExpandedPlaceId: (v: string | null) => void;
+  setPendingPlanMenuFocus: (v: any) => void;
+  setTimeControllerTarget: (v: any) => void;
+  setTimeControlStep: (v: number) => void;
+  setTimelineEndTimeDraft: (v: any) => void;
+  setLodgeCheckoutDraft: (v: any) => void;
+  setIsTimeWheelDragging: (v: boolean) => void;
+  setPlanVariantPicker: (v: any) => void;
+  setLibraryTypeModal: (v: any) => void;
+  resetNewPlaceDraft: () => void;
+}
+
+const useEditorStore = create<EditorState>((set, get) => ({
   editingPlaceId: null,
   editPlaceDraft: null,
   editingPlanTarget: null,
@@ -11,7 +60,6 @@ const useEditorStore = create((set, get) => ({
   newPlaceName: '',
   newPlaceTypes: ['food'],
 
-  // Editor targets
   tagEditorTarget: null,
   businessEditorTarget: null,
   viewingPlanIdx: {},

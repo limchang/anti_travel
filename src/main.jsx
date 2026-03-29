@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import 'leaflet/dist/leaflet.css'
 import { Agentation } from 'agentation'
+import { initSentry, captureError } from './utils/sentry'
+
+initSentry()
 
 const rootEl = document.getElementById('root')
 
@@ -19,10 +22,10 @@ const showBootError = (title, errorLike) => {
 }
 
 window.addEventListener('error', (e) => {
-  console.error('window error:', e.error || e.message || e)
+  captureError(e.error || e.message || e, { source: 'window.onerror' })
 })
 window.addEventListener('unhandledrejection', (e) => {
-  console.error('unhandled rejection:', e.reason || e)
+  captureError(e.reason || e, { source: 'unhandledrejection' })
 })
 
 const boot = async () => {

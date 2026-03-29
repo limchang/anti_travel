@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import L from 'leaflet';
 import { MapContainer, Marker, Pane, Polyline, Popup, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import { db, auth, messaging } from './firebase';
+import { captureError, captureWarning } from './utils/sentry';
 import { PlaceAddForm } from './components/place/PlaceAddForm';
 import { PlaceEditorCard, PlaceLibraryCard } from './components/place/PlaceCards';
 import PlanItemCard from './components/place/PlanItemCard';
@@ -11,14 +12,14 @@ import updateLog from './update-log.json';
 import { collection, doc, getDoc, getDocs, setDoc, query, limit } from 'firebase/firestore';
 
 import { onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { safeLocalStorageGet, safeLocalStorageSet } from './utils/storage.js';
-import { normalizeGeoPoint, hasGeoCoords, isGeoStaleForAddress, makePushTokenDocId, getTimeOfDayOverlay } from './utils/geo.js';
-import { timeToMinutes, minutesToTime, getNextDayClockMinutes, fmtMinutesLabel, fmtDur, fmtDurCompact, normalizeBusiness, normalizeTimeToken, extractTimesFromText, getShipLoadingRange, getShipBoardTimeValue, getShipLoadEndTimeValue, getShipLoadStartTimeValue, resolveShipAbsoluteMinutes, getShipTimeline } from './utils/time.js';
-import { PLACE_TYPES, TAG_OPTIONS, TAG_VALUES, MODIFIER_TAGS, getPreferredMapCategory, normalizeTagOrder, toggleTagSelection, getTagButtonClass, WEEKDAY_OPTIONS, formatClosedDaysSummary, EMPTY_BUSINESS, BUSINESS_PRESETS, DEFAULT_BUSINESS, KAKAO_API_KEY, ADDRESS_REGEX, NAVER_PARSE_STOP_WORDS, bulkKwToType } from './utils/constants.js';
-import { parseBusinessHoursText, isLikelyParsedAddress, isLikelyMenuPriceLine, isLikelyMenuNameLine } from './utils/parse.js';
+import { safeLocalStorageGet, safeLocalStorageSet } from './utils/storage';
+import { normalizeGeoPoint, hasGeoCoords, isGeoStaleForAddress, makePushTokenDocId, getTimeOfDayOverlay } from './utils/geo';
+import { timeToMinutes, minutesToTime, getNextDayClockMinutes, fmtMinutesLabel, fmtDur, fmtDurCompact, normalizeBusiness, normalizeTimeToken, extractTimesFromText, getShipLoadingRange, getShipBoardTimeValue, getShipLoadEndTimeValue, getShipLoadStartTimeValue, resolveShipAbsoluteMinutes, getShipTimeline } from './utils/time';
+import { PLACE_TYPES, TAG_OPTIONS, TAG_VALUES, MODIFIER_TAGS, getPreferredMapCategory, normalizeTagOrder, toggleTagSelection, getTagButtonClass, WEEKDAY_OPTIONS, formatClosedDaysSummary, EMPTY_BUSINESS, BUSINESS_PRESETS, DEFAULT_BUSINESS, KAKAO_API_KEY, ADDRESS_REGEX, NAVER_PARSE_STOP_WORDS, bulkKwToType } from './utils/constants';
+import { parseBusinessHoursText, isLikelyParsedAddress, isLikelyMenuPriceLine, isLikelyMenuNameLine } from './utils/parse';
 import { extractPlaceNameFromLines, extractMenusFromNaverLines, parseNaverMapText, normalizeSmartFillResult, DEFAULT_AI_SMART_FILL_CONFIG, GEMINI_LINK_MODEL, GEMINI_LINK_SYSTEM_PROMPT, normalizeAiSmartFillConfig, sanitizeAiSmartFillConfigForStorage, isLocalNetworkHost, getAiKeyEndpoint, getAiKeyEndpointCandidates, getPerplexityNearbyEndpoint, getRouteVerifyEndpointCandidates, getSmartFillErrorMessage, isAiSmartFillSource, shouldUseReasoningEffort, extractNaverMapLink, normalizeClosedDaysInput, normalizeGeminiLinkResult, fetchGeminiPlaceInfoFromMapLink, scrapePlaceFromMapLinkUrl, extractJsonPayload, blobToDataUrl, readClipboardPayload, getCurrentUserBearerToken, runGroqSmartFill, analyzeClipboardSmartFill, searchAddressFromPlaceName, runJinaSmartFill } from './utils/ai.js';
-import { ensureShipItemDefaults, normalizeLibraryPlace, formatBusinessSummary, runSchedulePass, runSchedulePassAcrossDays, createTimelineItem, deepClone, getMenuQty, getMenuLineTotal, ensureBaseDuration, syncBaseDuration, parseMinsLabel, DEFAULT_TRAVEL_MINS, DEFAULT_BUFFER_MINS, hasRestTag, isLodgeStay, isStandaloneLodgeSegmentItem, isFullLodgeStayItem, isOvernightLodgeTimelineItem, primeTimelineDurationFromBase, isAutoStretchEligible, applyGeoFieldsToRecord, cloneGeoForRecord, getOpenCloseWarningText, ensureLodgeStaySegments, normalizeLodgeSegmentTime, getPlanItemPrimaryAddress, getShipStartAddress, getShipEndAddress, isOvernightBusinessWindow, isMinuteWithinBusinessWindow, compressBeforeFixedItems } from './utils/helpers.js';
-import { parseBulkPlaceText } from './utils/parse.js';
+import { ensureShipItemDefaults, normalizeLibraryPlace, formatBusinessSummary, runSchedulePass, runSchedulePassAcrossDays, createTimelineItem, deepClone, getMenuQty, getMenuLineTotal, ensureBaseDuration, syncBaseDuration, parseMinsLabel, DEFAULT_TRAVEL_MINS, DEFAULT_BUFFER_MINS, hasRestTag, isLodgeStay, isStandaloneLodgeSegmentItem, isFullLodgeStayItem, isOvernightLodgeTimelineItem, primeTimelineDurationFromBase, isAutoStretchEligible, applyGeoFieldsToRecord, cloneGeoForRecord, getOpenCloseWarningText, ensureLodgeStaySegments, normalizeLodgeSegmentTime, getPlanItemPrimaryAddress, getShipStartAddress, getShipEndAddress, isOvernightBusinessWindow, isMinuteWithinBusinessWindow, compressBeforeFixedItems } from './utils/helpers';
+import { parseBulkPlaceText } from './utils/parse';
 import BulkAddModal from './components/shared/BulkAddModal.jsx';
 import TimeControllerModal, { InlineTimeController } from './components/shared/TimeControllerModal.jsx';
 import LibraryTypeModal, { TagPickerModal } from './components/shared/LibraryTypeModal.jsx';
@@ -40,12 +41,12 @@ import { ShareManagerModal, UpdateModal } from './components/shared/ShareAndUpda
 import PerplexityNearbyModal from './components/shared/PerplexityNearbyModal.jsx';
 import { PlanManagerModal, PlaceTrashModal } from './components/shared/PlanAndTrashModals.jsx';
 import PlanOptionsModal from './components/shared/PlanOptionsModal.jsx';
-import useUIStore from './stores/useUIStore.js';
-import useToastStore from './stores/useToastStore.js';
-import useMapStore from './stores/useMapStore.js';
-import useDragStore from './stores/useDragStore.js';
-import useEditorStore from './stores/useEditorStore.js';
-import useItineraryStore from './stores/useItineraryStore.js';
+import useUIStore from './stores/useUIStore';
+import useToastStore from './stores/useToastStore';
+import useMapStore from './stores/useMapStore';
+import useDragStore from './stores/useDragStore';
+import useEditorStore from './stores/useEditorStore';
+import useItineraryStore from './stores/useItineraryStore';
 import {
   Hourglass, ArrowRight,
   CheckSquare,
@@ -64,7 +65,7 @@ class AppErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Runtime render error:', error, errorInfo);
+    captureError(error, { source: 'AppErrorBoundary', errorInfo });
   }
 
   render() {
@@ -306,7 +307,7 @@ const App = () => {
     // 인증 확인이 예상보다 오래 걸릴 때 화면 고정 방지
     const failsafe = setTimeout(() => {
       if (isMounted && !hasResolvedAuth) {
-        console.warn('Auth initialization timeout fallback');
+        captureWarning('Auth initialization timeout fallback');
         setAuthLoading(false);
       }
     }, 12000);
@@ -315,14 +316,14 @@ const App = () => {
       try {
         await setPersistence(auth, browserLocalPersistence);
       } catch (e) {
-        console.warn('Auth persistence setup failed:', e?.code || e?.message);
+        captureWarning('Auth persistence setup failed', { code: e?.code, message: e?.message });
       }
 
       try {
         await getRedirectResult(auth);
       } catch (e) {
         if (isMounted && e.code !== 'auth/redirect-cancelled-by-user') {
-          console.warn('Redirect Login Note:', e?.code || e?.message);
+          captureWarning('Redirect Login Note', { code: e?.code, message: e?.message });
           setAuthError(`로그인 처리 중 오류: ${e?.code || e?.message || 'unknown'}`);
         }
       }
@@ -353,7 +354,7 @@ const App = () => {
       provider.setCustomParameters({ prompt: 'select_account' });
       await signInWithPopup(auth, provider);
     } catch (e) {
-      console.error('로그인 에러 상세:', e?.code, e?.message);
+      captureError(e, { source: '로그인', code: e?.code });
       let errorMsg = '로그인 과정을 시작할 수 없습니다.';
 
       if (e.code === 'auth/configuration-not-found') {
@@ -392,7 +393,7 @@ const App = () => {
       setBasePlanRef(null);
       setLoading(true);
     } catch (e) {
-      console.error('로그아웃 실패:', e);
+      captureError(e, { source: '로그아웃' });
     }
   };
 
@@ -1366,7 +1367,7 @@ const App = () => {
       }).sort((a, b) => b.updatedAt - a.updatedAt);
       setPlanList(list);
     } catch (e) {
-      console.error('일정 목록 로드 실패:', e);
+      captureError(e, { source: '일정 목록 로드' });
     }
   }, []);
 
@@ -1506,7 +1507,7 @@ const App = () => {
         setCurrentPlanId(sharedSource.planId || 'main');
         setIsSharedReadOnly(sharedConfig.permission !== 'editor');
       } catch (e) {
-        console.error('공유 일정 로드 실패:', e);
+        captureError(e, { source: '공유 일정 로드' });
       } finally {
         setLoading(false);
       }
@@ -1742,7 +1743,7 @@ const App = () => {
       ...recovered,
       days: calculatedDays,
       updatedAt: Date.now(),
-    }).catch((e) => console.error('빈 일정 자동 복구 저장 실패:', e));
+    }).catch((e) => captureError(e, { source: '빈 일정 자동 복구 저장' }));
   }, [loading, user, isSharedReadOnly, itinerary.days, itinerary.places, tripRegion, tripStartDate, tripEndDate, currentPlanId]);
 
   useEffect(() => {
@@ -2503,7 +2504,7 @@ const App = () => {
                 routePreviewSegmentCacheRef.current[cacheKey] = segment;
               }
             } catch (error) {
-              console.warn('route preview segment failed:', fromPoint.address, toPoint.address, error);
+              captureWarning('route preview segment failed', { from: fromPoint.address, to: toPoint.address, error });
               segment = {
                 id: cacheKey,
                 fromId: fromPoint.id,
@@ -6267,7 +6268,7 @@ const App = () => {
       applyRoute(dayIdx, targetIdx, kakaoRoute);
       if (!silent) setLastAction(`카카오 경로 확인: ${kakaoRoute.distance}km, ${kakaoRoute.durationMins}분`);
     } catch (e) {
-      console.error(e);
+      captureError(e, { source: '카카오 경로 검증' });
       const failedReason = summarizeRouteFailureReason(e?.message || e);
       setRouteCache(prev => ({ ...prev, [key]: { failed: true, failedAt: Date.now(), failedReason } }));
       if (!silent) setLastAction(`자동차 경로 계산 실패: ${failedReason}`);
@@ -6389,7 +6390,7 @@ const App = () => {
         await setDoc(doc(db, 'users', user.uid, 'itinerary', job.planId), job.payload);
       }
     } catch (e) {
-      console.error('Firestore 저장 실패:', e);
+      captureError(e, { source: 'Firestore 저장' });
     } finally {
       queue.inFlight = false;
     }
@@ -6485,7 +6486,7 @@ const App = () => {
             return;
           }
         } catch (e) {
-          console.warn('게스트 로컬 데이터 로드 실패:', e);
+          captureWarning('게스트 로컬 데이터 로드 실패', { error: e });
         }
       }
       try {
@@ -6616,7 +6617,7 @@ const App = () => {
           setLoading(false);
           return;
         }
-      } catch (e) { console.error('Firestore 로드/마이그레이션 실패:', e); }
+      } catch (e) { captureError(e, { source: 'Firestore 로드/마이그레이션' }); }
 
       // 초기 데이터
       const initialData = createDefaultJejuPlanData();

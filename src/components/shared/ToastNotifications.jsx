@@ -1,6 +1,6 @@
 import React from 'react';
 import { Unlock } from 'lucide-react';
-import useToastStore from '../../stores/useToastStore.js';
+import useToastStore from '../../stores/useToastStore';
 
 const ToastNotifications = ({ handleUndo, handleInfoToastAction, clearInfoToast }) => {
   const { undoToast, setUndoToast, undoMessage, infoToast, infoToastAction } = useToastStore();

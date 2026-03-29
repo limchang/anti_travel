@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pencil, Clock, Package, Eye, Anchor, RotateCcw, Map as MapIcon } from 'lucide-react';
-import useUIStore from '../../stores/useUIStore.js';
-import useMapStore from '../../stores/useMapStore.js';
+import useUIStore from '../../stores/useUIStore';
+import useMapStore from '../../stores/useMapStore';
 const MapOverlayBar = ({ mapDayOptions, routePreviewEndpointActions, routePreviewManualRefreshing, refreshRoutePreviewMap, getActiveRefContext, tripStartDate, itinerary, activeDay }) => {
   const { showTimelineOverlay, setShowTimelineOverlay } = useUIStore();
   const {

@@ -1,9 +1,9 @@
-import { db, auth } from '../firebase.js';
-import { normalizeGeoPoint, hasGeoCoords } from './geo.js';
-import { normalizeBusiness, extractTimesFromText } from './time.js';
-import { NAVER_PARSE_STOP_WORDS, KAKAO_API_KEY, ADDRESS_REGEX } from './constants.js';
-import { parseBusinessHoursText, isLikelyParsedAddress, isLikelyMenuPriceLine, isLikelyMenuNameLine } from './parse.js';
-import { safeLocalStorageGet } from './storage.js';
+import { db, auth } from '../firebase';
+import { normalizeGeoPoint, hasGeoCoords } from './geo';
+import { normalizeBusiness, extractTimesFromText } from './time';
+import { NAVER_PARSE_STOP_WORDS, KAKAO_API_KEY, ADDRESS_REGEX } from './constants';
+import { parseBusinessHoursText, isLikelyParsedAddress, isLikelyMenuPriceLine, isLikelyMenuNameLine } from './parse';
+import { safeLocalStorageGet } from './storage';
 
 export const extractPlaceNameFromLines = (lines = []) => {
   for (const raw of lines) {
@@ -608,7 +608,7 @@ export const analyzeClipboardSmartFill = async ({ mode = 'all', aiEnabled = fals
       ]);
       instructions = instrSnap.data()?.content || '';
       learningContext = casesSnap.docs.map(d => d.data());
-    } catch (e) { console.warn("AI context fetch failed", e); }
+    } catch (e) { import('./sentry').then(m => m.captureWarning('AI context fetch failed', { error: e })).catch(() => console.warn('AI context fetch failed', e)); }
   }
 
   const normalizedSettings = normalizeAiSmartFillConfig(aiSettings);
@@ -909,7 +909,7 @@ export const runJinaSmartFill = async ({ placeName, regionHint = '', runGroqPost
     searchText = await fetchJinaReader(searchUrl, jinaApiKey);
     console.log('[Jina v2] 검색 결과 길이:', searchText.length);
   } catch (fetchErr) {
-    console.error('[Jina v2] fetch 실패:', fetchErr);
+    import('./sentry').then(m => m.captureError(fetchErr, { source: 'Jina v2 fetch' })).catch(() => console.error('[Jina v2] fetch 실패:', fetchErr));
     throw new Error(`Jina 검색 실패: ${fetchErr.message}`);
   }
   const places = extractPlaceIdFromSearch(searchText);

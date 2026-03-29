@@ -1,6 +1,58 @@
 import { create } from 'zustand';
 
-const useUIStore = create((set) => ({
+type BoolUpdater = boolean | ((prev: boolean) => boolean);
+
+interface UIState {
+  showPlanManager: boolean;
+  showAiSettings: boolean;
+  showChecklistModal: boolean;
+  showSmartFillGuide: boolean;
+  showUpdateModal: boolean;
+  showDatePicker: boolean;
+  showNavMenu: boolean;
+  showTimelineOverlay: boolean;
+  showPlanOptions: boolean;
+  showBulkAddModal: boolean;
+  showAddPlaceMenu: boolean;
+  showPlaceMenu: boolean;
+  showPlaceCategoryManager: boolean;
+  navFloatingExpanded: boolean;
+  bottomPanelExpanded: boolean;
+  highlightedPlaceId: string | null;
+  showShareManager: boolean;
+  showPlaceTrash: boolean;
+  showEntryChooser: boolean;
+  showSaveHistoryPanel: boolean;
+  navAiExpanded: boolean;
+  showOverviewMapModal: boolean;
+  showPlaceMapModal: boolean;
+
+  setShowPlanManager: (v: BoolUpdater) => void;
+  setShowAiSettings: (v: BoolUpdater) => void;
+  setShowChecklistModal: (v: BoolUpdater) => void;
+  setShowSmartFillGuide: (v: BoolUpdater) => void;
+  setShowUpdateModal: (v: BoolUpdater) => void;
+  setShowDatePicker: (v: BoolUpdater) => void;
+  setShowNavMenu: (v: BoolUpdater) => void;
+  setShowTimelineOverlay: (v: BoolUpdater) => void;
+  setShowPlanOptions: (v: BoolUpdater) => void;
+  setShowBulkAddModal: (v: BoolUpdater) => void;
+  setShowAddPlaceMenu: (v: BoolUpdater) => void;
+  setShowPlaceMenu: (v: BoolUpdater) => void;
+  setShowPlaceCategoryManager: (v: BoolUpdater) => void;
+  setNavFloatingExpanded: (v: BoolUpdater) => void;
+  setBottomPanelExpanded: (v: BoolUpdater) => void;
+  setHighlightedPlaceId: (v: string | null) => void;
+  setShowShareManager: (v: BoolUpdater) => void;
+  setShowPlaceTrash: (v: BoolUpdater) => void;
+  setShowEntryChooser: (v: BoolUpdater) => void;
+  setShowSaveHistoryPanel: (v: BoolUpdater) => void;
+  setNavAiExpanded: (v: BoolUpdater) => void;
+  setShowOverviewMapModal: (v: BoolUpdater) => void;
+  setShowPlaceMapModal: (v: BoolUpdater) => void;
+}
+
+const useUIStore = create<UIState>((set) => ({
   // 모달 상태
   showPlanManager: false,
   showAiSettings: false,

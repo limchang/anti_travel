@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, Plus, Map as MapIcon } from 'lucide-react';
-import useModalKeyboard from '../../utils/useModalKeyboard.js';
+import useModalKeyboard from '../../utils/useModalKeyboard';
 
 const PerplexityNearbyModal = ({ perplexityNearbyModal, setPerplexityNearbyModal, focusedMapTarget, focusRecommendationOnMap, openNaverPlaceSearch, addRecommendedPlaceToLibrary, buildRecommendationMapId }) => {
   const close = () => setPerplexityNearbyModal({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' });

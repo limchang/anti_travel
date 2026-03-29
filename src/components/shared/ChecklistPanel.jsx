@@ -1,8 +1,8 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { parseChecklistLines, toggleChecklistLine, hasChecklistItems } from './SharedComponents.jsx';
-import useUIStore from '../../stores/useUIStore.js';
-import useModalKeyboard from '../../utils/useModalKeyboard.js';
+import useUIStore from '../../stores/useUIStore';
+import useModalKeyboard from '../../utils/useModalKeyboard';
 const ChecklistPanel = ({ itinerary, updateMemo }) => {
   const { setShowChecklistModal } = useUIStore();
   useModalKeyboard(() => setShowChecklistModal(false));

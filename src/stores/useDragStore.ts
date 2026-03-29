@@ -1,6 +1,29 @@
 import { create } from 'zustand';
 
-const useDragStore = create((set, get) => ({
+interface DragState {
+  draggingFromLibrary: any;
+  draggingFromTimeline: any;
+  isDroppingOnDeleteZone: boolean;
+  dragBottomTarget: string;
+  dropTarget: any;
+  dropOnItem: any;
+  isDragCopy: boolean;
+  dragCoord: { x: number; y: number };
+  touchDragLock: boolean;
+
+  setDraggingFromLibrary: (v: any) => void;
+  setDraggingFromTimeline: (v: any) => void;
+  setIsDroppingOnDeleteZone: (v: boolean) => void;
+  setDragBottomTarget: (v: string) => void;
+  setDropTarget: (v: any) => void;
+  setDropOnItem: (v: any) => void;
+  setIsDragCopy: (v: boolean) => void;
+  setDragCoord: (v: { x: number; y: number }) => void;
+  setTouchDragLock: (v: boolean) => void;
+  resetDrag: () => void;
+}
+
+const useDragStore = create<DragState>((set) => ({
   draggingFromLibrary: null,
   draggingFromTimeline: null,
   isDroppingOnDeleteZone: false,

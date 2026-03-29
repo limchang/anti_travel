@@ -1,6 +1,42 @@
 import { create } from 'zustand';
 
-const useMapStore = create((set, get) => ({
+type Updater<T> = T | ((prev: T) => T);
+
+interface MapState {
+  mapEditMode: boolean;
+  mapTileStyle: number;
+  overviewMapScope: string;
+  overviewMapDayFilter: number | null;
+  overviewMapRouteVisible: boolean;
+  showOverviewLibraryPoints: boolean;
+  hideLongRouteSegments: boolean;
+  hiddenRoutePreviewEndpoints: Record<string, boolean>;
+  focusedMapTarget: any;
+  focusedLibraryMarkerId: string | null;
+  mapQuickViewItem: any;
+  qvDragOffset: { x: number; y: number };
+  panelMapScope: string;
+  panelMapDayFilter: number | null;
+  mapExpanded: boolean;
+
+  setMapEditMode: (v: Updater<boolean>) => void;
+  setMapTileStyle: (v: Updater<number>) => void;
+  setOverviewMapScope: (v: string) => void;
+  setOverviewMapDayFilter: (v: number | null) => void;
+  setOverviewMapRouteVisible: (v: Updater<boolean>) => void;
+  setShowOverviewLibraryPoints: (v: Updater<boolean>) => void;
+  setHideLongRouteSegments: (v: Updater<boolean>) => void;
+  setHiddenRoutePreviewEndpoints: (v: Updater<Record<string, boolean>>) => void;
+  setFocusedMapTarget: (v: Updater<any>) => void;
+  setFocusedLibraryMarkerId: (v: string | null) => void;
+  setMapQuickViewItem: (v: any) => void;
+  setQvDragOffset: (v: { x: number; y: number }) => void;
+  setPanelMapScope: (v: string) => void;
+  setPanelMapDayFilter: (v: number | null) => void;
+  setMapExpanded: (v: Updater<boolean>) => void;
+}
+
+const useMapStore = create<MapState>((set, get) => ({
   mapEditMode: true,
   mapTileStyle: 0,
   overviewMapScope: 'all',

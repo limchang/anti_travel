@@ -1,10 +1,10 @@
 import React from 'react';
 import { X, Plus, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
-import { TAG_OPTIONS, ADDRESS_REGEX, normalizeTagOrder, bulkKwToType } from '../../utils/constants.js';
-import { normalizeLibraryPlace } from '../../utils/helpers.js';
-import { parseBulkPlaceText } from '../../utils/parse.js';
-import { safeLocalStorageGet, safeLocalStorageSet } from '../../utils/storage.js';
-import useModalKeyboard from '../../utils/useModalKeyboard.js';
+import { TAG_OPTIONS, ADDRESS_REGEX, normalizeTagOrder, bulkKwToType } from '../../utils/constants';
+import { normalizeLibraryPlace } from '../../utils/helpers';
+import { parseBulkPlaceText } from '../../utils/parse';
+import { safeLocalStorageGet, safeLocalStorageSet } from '../../utils/storage';
+import useModalKeyboard from '../../utils/useModalKeyboard';
 
 // 이름 뒤에 붙는 카테고리 키워드 목록
 const CATEGORY_KEYWORDS = [

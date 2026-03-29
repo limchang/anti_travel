@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { timeToMinutes, minutesToTime, fmtDurCompact } from '../../utils/time.js';
-import { isLodgeStay, isOvernightLodgeTimelineItem } from '../../utils/helpers.js';
+import { timeToMinutes, minutesToTime, fmtDurCompact } from '../../utils/time';
+import { isLodgeStay, isOvernightLodgeTimelineItem } from '../../utils/helpers';
 import { TimeWheelColumn } from './BusinessComponents.jsx';
 
 const TimeControllerModal = ({

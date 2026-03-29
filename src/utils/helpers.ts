@@ -1,6 +1,6 @@
-import { normalizeTagOrder, EMPTY_BUSINESS, WEEKDAY_OPTIONS, formatClosedDaysSummary } from './constants.js';
-import { timeToMinutes, minutesToTime, normalizeBusiness, getShipTimeline, getShipBoardTimeValue } from './time.js';
-import { normalizeGeoPoint, hasGeoCoords, isGeoStaleForAddress } from './geo.js';
+import { normalizeTagOrder, EMPTY_BUSINESS, WEEKDAY_OPTIONS, formatClosedDaysSummary } from './constants';
+import { timeToMinutes, minutesToTime, normalizeBusiness, getShipTimeline, getShipBoardTimeValue } from './time';
+import { normalizeGeoPoint, hasGeoCoords, isGeoStaleForAddress } from './geo';
 
 // ── 순수 유틸 ──
 

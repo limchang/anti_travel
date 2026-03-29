@@ -1,6 +1,20 @@
 import { create } from 'zustand';
 
-const useToastStore = create((set) => ({
+interface ToastState {
+  undoToast: boolean;
+  undoMessage: string;
+  infoToast: string;
+  infoToastAction: (() => void) | null;
+
+  setUndoToast: (v: boolean) => void;
+  setUndoMessage: (v: string) => void;
+  setInfoToast: (v: string) => void;
+  setInfoToastAction: (v: (() => void) | null) => void;
+  showInfoToast: (msg: string, action?: (() => void) | null) => void;
+  triggerUndoToast: (msg?: string) => void;
+}
+
+const useToastStore = create<ToastState>((set) => ({
   undoToast: false,
   undoMessage: '',
   infoToast: '',

@@ -1,8 +1,9 @@
 import React from 'react';
-import { db } from '../../firebase.js';
+import { db } from '../../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { X, Pencil } from 'lucide-react';
-import useModalKeyboard from '../../utils/useModalKeyboard.js';
+import useModalKeyboard from '../../utils/useModalKeyboard';
+import { captureError } from '../../utils/sentry';
 
 export const GUIDE_DOC_PATH = 'meta/smartFillGuide';
 export const isLegacySmartFillGuideContent = (content = '') => {
@@ -60,7 +61,7 @@ export const SmartFillGuideModal = ({ onClose }) => {
           const cases = q.docs.map(d => ({ id: d.id, ...d.data() }))
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
           setHistoryCases(cases);
-        } catch (e) { console.error(e); }
+        } catch (e) { captureError(e, { source: 'SmartFillGuide history fetch' }); }
         setHistoryLoading(false);
       };
       fetchHistory();

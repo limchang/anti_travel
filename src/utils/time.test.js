@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { timeToMinutes, minutesToTime, normalizeBusiness, normalizeTimeToken, extractTimesFromText } from './time.js';
+import { timeToMinutes, minutesToTime, normalizeBusiness, normalizeTimeToken, extractTimesFromText } from './time';
 
 describe('timeToMinutes', () => {
   it('converts HH:MM to minutes', () => {

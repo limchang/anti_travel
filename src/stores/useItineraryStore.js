@@ -12,7 +12,6 @@ const useItineraryStore = create((set, get) => ({
 
   setItinerary: (v) => set((state) => ({
     itinerary: typeof v === 'function' ? v(state.itinerary) : v,
-    isDirty: true,
   })),
   setActiveDay: (v) => set({ activeDay: v }),
   setActiveItemId: (v) => set({ activeItemId: v }),

@@ -975,6 +975,27 @@ const App = () => {
     };
   }, []);
 
+  // 글로벌 Escape 키 — 열린 모달/패널 닫기
+  useEffect(() => {
+    const onEsc = (e) => {
+      if (e.key !== 'Escape') return;
+      if (mapQuickViewItem) { setMapQuickViewItem(null); return; }
+      if (showPlanOptions) { setShowPlanOptions(false); return; }
+      if (showPlanManager) { setShowPlanManager(false); return; }
+      if (showAiSettings) { setShowAiSettings(false); return; }
+      if (showChecklistModal) { setShowChecklistModal(false); return; }
+      if (showTimelineOverlay) { setShowTimelineOverlay(false); return; }
+      if (showBulkAddModal) { setShowBulkAddModal(false); return; }
+      if (showDatePicker) { setShowDatePicker(false); return; }
+      if (showNavMenu) { setShowNavMenu(false); return; }
+      if (editingPlaceId) { setEditingPlaceId(null); setEditPlaceDraft(null); return; }
+      if (editingPlanTarget) { setEditingPlanTarget(null); setEditPlanDraft(null); return; }
+      if (isAddingPlace) { setIsAddingPlace(false); return; }
+    };
+    document.addEventListener('keydown', onEsc);
+    return () => document.removeEventListener('keydown', onEsc);
+  });
+
   useEffect(() => {
     if (isMobileLayout && !mobileSwitchRef.current) {
       setCol1Collapsed(true);
@@ -7243,7 +7264,7 @@ const App = () => {
             type="button"
             onClick={(e) => { e.stopPropagation(); setNavFloatingExpanded(false); }}
             className="absolute top-2 -right-8 w-7 h-7 flex items-center justify-center bg-white border border-slate-200 shadow-sm text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors z-10"
-            title="접기"
+            title="접기" aria-label="패널 접기"
           >
             <ChevronLeft size={14} />
           </button>
@@ -7523,7 +7544,7 @@ const App = () => {
             type="button"
             onClick={(e) => { e.stopPropagation(); setBottomPanelExpanded(false); }}
             className="absolute top-2 -left-8 w-7 h-7 flex items-center justify-center bg-white border border-slate-200 shadow-sm text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors z-10"
-            title="접기"
+            title="접기" aria-label="패널 접기"
           >
             <ChevronRight size={14} />
           </button>
@@ -7588,7 +7609,7 @@ const App = () => {
                   );
                 })()}
                 <span className="flex-1" />
-                <button type="button" onClick={(e) => { e.stopPropagation(); setShowPlaceMenu(prev => !prev); }} className={`shrink-0 w-6 h-6 flex items-center justify-center transition-colors ${showPlaceMenu ? 'bg-blue-50 text-[#3182F6]' : 'hover:bg-slate-100 text-slate-400'}`} title="옵션">
+                <button type="button" onClick={(e) => { e.stopPropagation(); setShowPlaceMenu(prev => !prev); }} className={`shrink-0 w-6 h-6 flex items-center justify-center transition-colors ${showPlaceMenu ? 'bg-blue-50 text-[#3182F6]' : 'hover:bg-slate-100 text-slate-400'}`} title="옵션" aria-label="옵션 메뉴">
                   <SlidersHorizontal size={12} />
                 </button>
               </div>

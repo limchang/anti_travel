@@ -32,7 +32,7 @@ const TopMenuBar = ({
               <span className="hidden sm:inline">{tripStartDate} ·</span> {tripNights}박
             </button>
           )}
-          <button type="button" onClick={() => setShowPlanOptions(true)} className="w-8 h-8 flex items-center justify-center border border-slate-200 bg-white text-slate-500 hover:border-slate-300 transition-colors shrink-0" title="일정 옵션">
+          <button type="button" onClick={() => setShowPlanOptions(true)} className="w-8 h-8 flex items-center justify-center border border-slate-200 bg-white text-slate-500 hover:border-slate-300 transition-colors shrink-0" title="일정 옵션" aria-label="일정 옵션">
             <SlidersHorizontal size={14} />
           </button>
         </div>

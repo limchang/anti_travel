@@ -74,7 +74,7 @@ const MapOverlayBar = ({ mapDayOptions, routePreviewEndpointActions, routePrevie
         );
       })}
       {/* 토글 버튼들 */}
-      <button type="button" onClick={() => setShowOverviewLibraryPoints((v) => !v)} className={`flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-colors ${showOverviewLibraryPoints ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`} title="내장소">
+      <button type="button" onClick={() => setShowOverviewLibraryPoints((v) => !v)} className={`flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-colors ${showOverviewLibraryPoints ? 'border-[#3182F6] bg-[#3182F6] text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`} title="내장소" aria-label="내장소 표시 토글">
         <Package size={10} />
       </button>
       <button type="button" onClick={() => setHideLongRouteSegments((v) => !v)} className={`flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-colors ${hideLongRouteSegments ? 'border-orange-400 bg-orange-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`} title={hideLongRouteSegments ? '장거리 숨김' : '장거리 표시'}>
@@ -85,10 +85,10 @@ const MapOverlayBar = ({ mapDayOptions, routePreviewEndpointActions, routePrevie
           <Anchor size={10} />
         </button>
       ))}
-      <button type="button" onClick={() => setMapTileStyle(prev => (prev + 1) % 3)} className="flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-colors border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]" title="지도 스타일 변경">
+      <button type="button" onClick={() => setMapTileStyle(prev => (prev + 1) % 3)} className="flex items-center gap-0.5 h-8 px-2 border text-[11px] font-black transition-colors border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]" title="지도 스타일 변경" aria-label="지도 스타일 변경">
         <MapIcon size={10} />
       </button>
-      <button type="button" onClick={refreshRoutePreviewMap} disabled={routePreviewManualRefreshing} className={`flex items-center justify-center h-8 w-8 border text-[11px] font-black transition-colors ${routePreviewManualRefreshing ? 'border-blue-400 bg-blue-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`} title="새로고침">
+      <button type="button" onClick={refreshRoutePreviewMap} disabled={routePreviewManualRefreshing} className={`flex items-center justify-center h-8 w-8 border text-[11px] font-black transition-colors ${routePreviewManualRefreshing ? 'border-blue-400 bg-blue-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-[#3182F6]'}`} title="새로고침" aria-label="경로 새로고침">
         <RotateCcw size={10} className={routePreviewManualRefreshing ? 'animate-spin' : ''} />
       </button>
     </div>

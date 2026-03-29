@@ -85,6 +85,8 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom'],
           'vendor-leaflet': ['leaflet', 'react-leaflet'],
           'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+          'vendor-icons': ['lucide-react'],
+          'vendor-state': ['zustand'],
         },
       },
     },

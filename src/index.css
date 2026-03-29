@@ -25,6 +25,11 @@ html, body, input, textarea, button, select {
   letter-spacing: -0.02em;
 }
 
+/* arbitrary rounded 값도 직각 강제 */
+[class*="rounded-["] {
+  border-radius: 0 !important;
+}
+
 /* 가로 스크롤 방지 */
 html, body {
   overflow-x: hidden;

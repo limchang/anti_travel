@@ -81,10 +81,6 @@ class AppErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
-
-
-
-
 const latestUpdate = updateLog.lastUpdates[0] || { version: '0.0.0', timestamp: new Date().toISOString() };
 const APP_VERSION = latestUpdate.version;
 const LAST_PUSH_TIME = latestUpdate.timestamp;
@@ -179,8 +175,6 @@ const getFerryRouteWaypoints = (fromAddress, toAddress) => {
   return null;
 };
 const TIME_WHEEL_ITEM_HEIGHT = 28;
-
-
 
 // 24시간 형식 시간 입력 컴포넌트 (오전/오후 없음, 24:00 지원)
 // ── AI 자동입력 학습 지침 모달 ───────────────────────────────────────────────
@@ -568,16 +562,12 @@ const App = () => {
   }, [aiSmartFillConfig]);
 
   // Web Push (FCM) 비활성화 (사용량 최소화)
-
-
   const conflictAlertKeyRef = useRef('');
   const [lastAction, setLastAction] = useState("3일차 시작 일정이 수정되었습니다.");
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [aiLearningCapture, setAiLearningCapture] = useState(null); // { itemId, rawSource, aiResult, inputType }
 
   // AI 학습 피드백 자동 제출 비활성화 (사용량 및 프라이버시 보호)
-
-
   const submitAiLearningCase = async () => { /* disabled to minimize firebase usage */ };
 
   const isNavScrolling = React.useRef(false);
@@ -1256,8 +1246,6 @@ const App = () => {
       calculatedDays,
     };
   };
-
-
   const getLodgeSegmentDragItems = (place = {}) => {
     if (!isLodgeStay(place?.types)) return [];
     const defaultStayDuration = (() => {
@@ -1361,10 +1349,6 @@ const App = () => {
     sourceSegmentId: String(segmentItem?.id || '').trim(),
     sourceSegmentType: String(segmentItem?.segmentType || '').trim(),
   });
-
-
-
-
   const refreshPlanList = useCallback(async (uid) => {
     if (!uid) return;
     try {
@@ -1655,8 +1639,6 @@ const App = () => {
   }, [startAutoScroll, stopAutoScroll]); // refs + stable setters only
 
   const endTouchDragLock = () => { };
-
-
   useEffect(() => {
     if (user && !user.isGuest) return;
     safeLocalStorageSet('trip_region_hint', tripRegion);
@@ -1889,8 +1871,6 @@ const App = () => {
     });
     return () => clearTimeout(timer);
   }, [calculatingRouteTarget]);
-
-
   useEffect(() => {
     if (!planVariantPicker) return;
     const close = () => setPlanVariantPicker(null);
@@ -1909,8 +1889,6 @@ const App = () => {
       window.removeEventListener('resize', close);
     };
   }, [planVariantPicker]);
-
-
   const MAX_BUDGET = itinerary.maxBudget || 1500000;
   const [editingBudget, setEditingBudget] = useState(false);
   const totalTimelineItems = useMemo(
@@ -1964,8 +1942,6 @@ const App = () => {
     }, 12000);
     return () => clearInterval(timer);
   }, []);
-
-
 
   const formatDistanceText = (distance) => {
     const num = Number(distance);
@@ -2460,8 +2436,6 @@ const App = () => {
     }
     return nextDays;
   }, [buildRoutePreviewSegmentKey, geocodeAddress, routePreviewFallbackGeoByAddress, routePreviewPointSource]);
-
-
   const attachRoutePreviewSegments = useCallback(async (days = [], { forceRefresh = false } = {}) => {
     if (!Array.isArray(days) || !days.length) return [];
     const nextDays = [];
@@ -2645,8 +2619,6 @@ const App = () => {
 
     geoSyncRequestKeyRef.current = requestKey;
     geoSyncLastRunRef.current = now;
-
-
     const syncGeo = async () => {
       const uniqueAddresses = [...new Set(jobs.map((job) => job.address))];
       const resolvedMap = {};
@@ -3355,8 +3327,6 @@ const App = () => {
 
   const getTimingConflictRecommendation = (dayIdx, pIdx) => null;
   const applyTimingConflictRecommendation = (dayIdx, pIdx) => { };
-
-
   const getWeekdayForDayIndex = (dayIdx) => {
     if (!tripStartDate) return null;
     const date = new Date(tripStartDate);
@@ -4130,8 +4100,6 @@ const App = () => {
     item._manualBufferTimeOverride = bufferState.label;
     item._isBufferCoordinated = bufferState.isCoordinated;
   };
-
-
 
   const applyAutoStretchAcrossTimeline = (days = []) => {
     let changed = false;
@@ -4919,8 +4887,6 @@ const App = () => {
       return nextData;
     });
   };
-
-
   const updateActivityName = (dayIdx, pIdx, value) => {
     setItinerary(prev => {
       const nextData = structuredClone(prev);
@@ -5247,8 +5213,6 @@ const App = () => {
     });
     setFerryEditField(null);
   };
-
-
   const addPlaceAsPlanB = (dayIdx, pIdx, place) => {
     const alt = place?.activity
       ? normalizeAlternative(place)
@@ -5607,8 +5571,6 @@ const App = () => {
       }
     }
   };
-
-
   const getCategoryBadge = (type) => {
     const style = "flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0";
     const ic = 10;
@@ -5871,8 +5833,6 @@ const App = () => {
     }));
     setLastAction(`'${targetPlace.name || '내 장소'}'을(를) 휴지통에서 복원했습니다.`);
   };
-
-
   // 여러 장소 텍스트 파싱 (카카오맵 공유 텍스트 등)
 
   const deletePlacePermanently = (placeId) => {
@@ -6396,8 +6356,6 @@ const App = () => {
     });
   };
 
-
-
   const addBackupItem = (dayIdx, insertIndex) => {
     saveHistory();
     setItinerary(prev => {
@@ -6510,11 +6468,7 @@ const App = () => {
     setLastAction('복원 완료 ✓');
     setShowSaveHistoryPanel(false);
   };
-
-
   // 페이지 이탈 시 자동 플러시 비활성화 (사용자 명시적 저장만 허용)
-
-
   // Firestore 로드 (사용자 UID 기준 + 마이그레이션 로직)
   useEffect(() => {
     if (!user) return;
@@ -7231,8 +7185,6 @@ const App = () => {
           </div>
         </div>
       )}
-
-
       {/* ── Col1: 예산 + 일정 네비게이션 ── */}
       <div
         data-nav-dropzone="true"
@@ -7506,15 +7458,12 @@ const App = () => {
               </nav>
             </div>
 
-            {/* NavBottomMenu 제거됨 (mapEditMode 항상 true) */}
         {/* 버전 뱃지 — 비활성화 */}
         {/* ── 일정 개요 위젯 (네비 바로 아래) ── */}
         {(mapEditMode || isMobileLayout) && navFloatingExpanded && (
           <OverviewWidget heroStats={heroStats} itinerary={itinerary} />
         )}
       </div>
-
-
       <div
         className={(mapEditMode || isMobileLayout)
           ? `flex flex-col fixed z-[220] bg-white rounded-2xl border border-slate-200 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.25)] overflow-visible`
@@ -8618,7 +8567,6 @@ const App = () => {
 
           {perplexityNearbyModal.open && <PerplexityNearbyModal perplexityNearbyModal={perplexityNearbyModal} setPerplexityNearbyModal={setPerplexityNearbyModal} focusedMapTarget={focusedMapTarget} focusRecommendationOnMap={focusRecommendationOnMap} openNaverPlaceSearch={openNaverPlaceSearch} addRecommendedPlaceToLibrary={addRecommendedPlaceToLibrary} buildRecommendationMapId={buildRecommendationMapId} />}
 
-          {/* 플로팅 버튼 — 메뉴바로 이동됨 */}
           <LibraryCategoryModal
             showLibraryCategoryModal={showLibraryCategoryModal}
             setShowLibraryCategoryModal={setShowLibraryCategoryModal}
@@ -8908,8 +8856,6 @@ const App = () => {
                       className={`relative z-10 w-full flex flex-col transition-colors group ${draggingFromTimeline?.dayIdx === dIdx && draggingFromTimeline?.pIdx === pIdx ? 'opacity-50 pointer-events-none scale-[0.99]' : ''} ${isTimelineDragActive ? 'scale-[0.99]' : ''} ${dropOnItem?.dayIdx === dIdx && dropOnItem?.pIdx === pIdx ? 'ring-2 ring-[#3182F6] ring-offset-2 ring-offset-[#F2F4F6]' : ''} ${isMapFocusedTimeline ? 'scale-[1.015]' : ''}`}
                       style={isMapFocusedTimeline ? { outline: `3px solid ${focusedDayColor}`, outlineOffset: '2px', borderRadius: '26px', boxShadow: `0 0 0 6px ${focusedDayColor}28, 0 16px 40px -12px ${focusedDayColor}60` } : undefined}
                     >
-
-
                       {/* 🟢 카드 본체 (내부 라운드 셀) */}
                       <div className={`relative w-full flex flex-col border overflow-hidden rounded-2xl transition-[border-color,box-shadow] duration-200 ${stateStyles}`}>
                         {/* 카테고리 색 헤더 */}
@@ -9913,8 +9859,6 @@ const App = () => {
           )}
 
           <ToastNotifications handleUndo={handleUndo} handleInfoToastAction={handleInfoToastAction} clearInfoToast={clearInfoToast} />
-
-
 
           {/* DragActionBar 제거 — 네비 밖 드롭 = 삭제, 내장소 드롭 = 이동 */}
           <DragGhost

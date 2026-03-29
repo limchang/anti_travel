@@ -41,6 +41,7 @@ import useToastStore from './stores/useToastStore.js';
 import useMapStore from './stores/useMapStore.js';
 import useDragStore from './stores/useDragStore.js';
 import useEditorStore from './stores/useEditorStore.js';
+import useItineraryStore from './stores/useItineraryStore.js';
 import {
   Navigation, MessageSquare, LogOut, User as UserIcon,
   Hourglass, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
@@ -263,6 +264,17 @@ const App = () => {
     libraryTypeModal, setLibraryTypeModal,
   } = useEditorStore();
 
+  const {
+    itinerary, setItinerary,
+    activeDay, setActiveDay,
+    activeItemId, setActiveItemId,
+    isEditMode, setIsEditMode,
+    isDirty, setIsDirty,
+    tripRegion, setTripRegion,
+    tripStartDate, setTripStartDate,
+    tripEndDate, setTripEndDate,
+  } = useItineraryStore();
+
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState('');
@@ -415,7 +427,7 @@ const App = () => {
   const [collaboratorLoading, setCollaboratorLoading] = useState(false);
   const [manualSaveHistory, setManualSaveHistory] = useState([]); // [{ savedAt, label, snapshot }]
   const [showSaveHistoryPanel, setShowSaveHistoryPanel] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
+  // isDirty → useItineraryStore
 
   const entryChooserShownRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -468,16 +480,16 @@ const App = () => {
     }
   });
   const [serverAiKeyStatus, setServerAiKeyStatus] = useState({ hasStoredKey: false, hasStoredGroqKey: false, hasStoredGeminiKey: false, hasStoredPerplexityKey: false, updatedAt: null, loading: false });
-  const [tripRegion, setTripRegion] = useState(() => safeLocalStorageGet('trip_region_hint', '제주시'));
-  const [tripStartDate, setTripStartDate] = useState(() => safeLocalStorageGet('trip_start_date', ''));
-  const [tripEndDate, setTripEndDate] = useState(() => safeLocalStorageGet('trip_end_date', ''));
+  // tripRegion → useItineraryStore
+  // tripStartDate → useItineraryStore
+  // tripEndDate → useItineraryStore
   const [planOptionRegion, setPlanOptionRegion] = useState('');
   const [planOptionStartDate, setPlanOptionStartDate] = useState('');
   const [planOptionEndDate, setPlanOptionEndDate] = useState('');
   const [planOptionBudget, setPlanOptionBudget] = useState('0');
   // 초기 상태 안전하게 설정
   const itineraryRef = useRef(null); // 항상 최신 itinerary를 참조 (선언 순서 중요)
-  const [itinerary, setItinerary] = useState({ days: [], places: [], placeTrash: [] });
+  // itinerary → useItineraryStore
   itineraryRef.current = itinerary; // 매 렌더마다 최신 itinerary 동기 반영
   const customPlaceCategories = useMemo(() => {
     const collected = new Set();
@@ -603,9 +615,9 @@ const App = () => {
   const [lastAction, setLastAction] = useState("3일차 시작 일정이 수정되었습니다.");
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [aiLearningCapture, setAiLearningCapture] = useState(null); // { itemId, rawSource, aiResult, inputType }
-  const [isEditMode, setIsEditMode] = useState(true);
-  const [activeDay, setActiveDay] = useState(1);
-  const [activeItemId, setActiveItemId] = useState(null);
+  // isEditMode → useItineraryStore
+  // activeDay → useItineraryStore
+  // activeItemId → useItineraryStore
 
   // AI 학습 피드백 자동 제출 비활성화 (사용량 및 프라이버시 보호)
 

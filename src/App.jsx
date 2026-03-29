@@ -9357,12 +9357,10 @@ const App = () => {
             </>
           )}
 
-          {/* ── 여행 헤더 카드 ── */}
-          {(() => {
-            const { usedPct, timingConflictCount, budgetExceeded, compactHeroAlert, revisitCount, newCount, revisitPct, newPct, categorySpendRows, visitPlanCount, visitPerHour, travelIntensity, averageSpanHours, averageTravelHoursLabel, lodgingConstraintCount } = heroStats;
-            const heroCompactActive = heroPinnedCompact && !heroSummaryExpanded;
+          {/* ── 여행 헤더 카드 (mapEditMode 항상 true → hidden, dead code) ── */}
+          {false && (() => {
             return (
-              <div ref={heroSpacerRef} className={`mb-1.5 relative ${showTimelineOverlay || mapEditMode || isMobileLayout ? 'hidden' : ''}`} style={{ minHeight: heroCompactActive ? 122 : '20rem' }}>
+              <div className="hidden">
                 {/* 풀 카드 (최상단) */}
                 <div
                   className="fixed top-0 z-[120]"

@@ -37,6 +37,8 @@ import ToastNotifications from './components/shared/ToastNotifications.jsx';
 import { LoadingScreen, LoginScreen } from './components/shared/AuthScreen.jsx';
 import ChecklistPanel from './components/shared/ChecklistPanel.jsx';
 import AiSettingsModal from './components/shared/AiSettingsModal.jsx';
+import { ShareManagerModal, UpdateModal } from './components/shared/ShareAndUpdateModals.jsx';
+import PerplexityNearbyModal from './components/shared/PerplexityNearbyModal.jsx';
 import useUIStore from './stores/useUIStore.js';
 import useToastStore from './stores/useToastStore.js';
 import useMapStore from './stores/useMapStore.js';
@@ -8601,87 +8603,8 @@ const App = () => {
             </>
           )}
 
-          {showShareManager && (
-            <>
-              <div className="fixed inset-0 z-[400] bg-black" onClick={() => setShowShareManager(false)} />
-              <div className="fixed z-[401] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(460px,92vw)] bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[14px] font-black text-slate-800">공유 범위 / 편집 권한</p>
-                  <button className="text-slate-400 hover:text-slate-600" onClick={() => setShowShareManager(false)}><X size={16} /></button>
-                </div>
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  <select
-                    value={shareSettings.visibility}
-                    onChange={(e) => updateShareConfig({ ...shareSettings, visibility: e.target.value })}
-                    className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
-                  >
-                    <option value="private">비공개</option>
-                    <option value="link">링크 소지자 공개</option>
-                    <option value="public">공개</option>
-                  </select>
-                  <select
-                    value={shareSettings.permission}
-                    onChange={(e) => updateShareConfig({ ...shareSettings, permission: e.target.value })}
-                    className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#3182F6]"
-                  >
-                    <option value="viewer">보기만</option>
-                    <option value="editor">편집 가능</option>
-                  </select>
-                </div>
-                <button
-                  onClick={() => { void copyShareLink(); }}
-                  className="w-full py-2 rounded-xl border border-blue-200 bg-blue-50 text-[#3182F6] text-[11px] font-black hover:bg-blue-100 transition-colors"
-                >
-                  {shareCopied ? '복사됨' : '공유 링크 복사'}
-                </button>
-                <p className="text-[10px] text-slate-400 font-bold mt-2">
-                  링크에는 현재 플랜 ID가 포함됩니다. (예: 다른 도시 일정 분리 공유)
-                </p>
-              </div>
-            </>
-          )}
-
-          {/* 업데이트 알림 모달 */}
-          {showUpdateModal && (
-            <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black p-4 transition-colors" onClick={() => setShowUpdateModal(false)}>
-              <div
-                className="relative w-full max-w-[340px] rounded-2xl bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  onClick={() => setShowUpdateModal(false)}
-                  className="absolute right-3.5 top-3.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus:outline-none transition-colors"
-                >
-                  <X size={14} strokeWidth={2.5} />
-                </button>
-                <div className="mb-4">
-                  <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2 py-0.5 text-blue-600">
-                    <Sparkles size={10} className="fill-blue-600" />
-                    <span className="text-[9px] font-black uppercase tracking-wider">업데이트 완료</span>
-                  </div>
-                  <h3 className="mt-1 text-base font-black text-slate-800">새로운 기능이 변경되었습니다!</h3>
-                  <p className="mt-1 text-[11.5px] font-bold leading-relaxed text-slate-500">
-                    버전 <span className="font-black text-[#3182F6]">{APP_VERSION}</span> 패치가 성공적으로 적용되었습니다.
-                  </p>
-                </div>
-                <div className="mb-5 rounded-xl bg-slate-50 p-3.5">
-                  <div className="flex items-center gap-1.5 mb-2.5 border-b border-slate-200 pb-2">
-                    <CheckSquare size={13} className="text-[#3182F6]" />
-                    <span className="text-[11.5px] font-black text-slate-700">이번 업데이트 내용</span>
-                  </div>
-                  <div className="text-[11.5px] font-bold text-slate-600 leading-[1.6] whitespace-pre-wrap whitespace-pre-line pl-1 border-l-2 border-slate-200">
-                    {latestUpdate.message}
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowUpdateModal(false)}
-                  className="w-full rounded-xl bg-[#3182F6] py-3 text-[13px] font-black tracking-wide text-white transition-colors hover:bg-blue-600 focus:outline-none"
-                >
-                  확인하고 시작하기
-                </button>
-              </div>
-            </div>
-          )}
+          {showShareManager && <ShareManagerModal shareSettings={shareSettings} updateShareConfig={updateShareConfig} copyShareLink={copyShareLink} shareCopied={shareCopied} />}
+          {showUpdateModal && <UpdateModal latestUpdate={latestUpdate} APP_VERSION={APP_VERSION} />}
 
           {showAiSettings && <AiSettingsModal aiSmartFillConfig={aiSmartFillConfig} setAiSmartFillConfig={setAiSmartFillConfig} serverAiKeyStatus={serverAiKeyStatus} saveServerAiKey={saveServerAiKey} deleteServerAiKey={deleteServerAiKey} fetchServerAiKeyStatus={fetchServerAiKeyStatus} auth={auth} />}
 
@@ -8781,133 +8704,7 @@ const App = () => {
           {/* 체크리스트 일괄 확인 모달 */}
           {showChecklistModal && <ChecklistPanel itinerary={itinerary} updateMemo={updateMemo} />}
 
-          {perplexityNearbyModal.open && (
-            <>
-              <div
-                className="fixed inset-0 z-[402] bg-black"
-                onClick={() => setPerplexityNearbyModal({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' })}
-              />
-              <div className="fixed z-[403] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,94vw)] bg-white border border-slate-200 rounded-3xl shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)] overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-100 bg-[linear-gradient(135deg,#faf5ff,#ffffff)] flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[14px] font-black text-slate-800">AI 근처 추천</p>
-                    <p className="mt-1 text-[10px] font-bold text-slate-400 truncate">{perplexityNearbyModal.itemName || '현재 일정'} 기준 주변 추천</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="text-slate-400 hover:text-slate-600"
-                    onClick={() => setPerplexityNearbyModal({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' })}
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-                <div className="px-5 py-4 max-h-[68vh] overflow-y-auto no-scrollbar">
-
-                  {perplexityNearbyModal.loading ? (
-                    <div className="rounded-2xl border border-violet-100 bg-violet-50/60 px-4 py-6 text-center">
-                      <p className="text-[13px] font-black text-violet-700">AI가 주변 장소를 찾는 중입니다.</p>
-                      <p className="mt-1 text-[10px] font-bold text-violet-400">현재 장소, 주소, 다음 일정 시간까지 고려해서 추천합니다.</p>
-                    </div>
-                  ) : perplexityNearbyModal.error ? (
-                    <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-5 text-center">
-                      <p className="text-[12px] font-black text-red-600">추천을 불러오지 못했습니다.</p>
-                      <p className="mt-1 text-[10px] font-bold text-red-400 break-words">{perplexityNearbyModal.error}</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {perplexityNearbyModal.summary && (
-                        <div className="rounded-2xl border border-violet-100 bg-violet-50/60 px-4 py-3 text-[11px] font-bold text-violet-700 leading-relaxed">
-                          {perplexityNearbyModal.provider && <div className="mb-1 text-[9px] uppercase tracking-[0.12em] text-violet-400">{perplexityNearbyModal.provider === 'perplexity' ? 'Perplexity' : 'Gemini'}</div>}
-                          {perplexityNearbyModal.summary}
-                        </div>
-                      )}
-                      {perplexityNearbyModal.recommendations.map((recommendation, index) => {
-                        const recommendationId = buildRecommendationMapId(recommendation, index);
-                        const isFocusedRecommendation = focusedMapTarget?.kind === 'recommendation' && focusedMapTarget.id === recommendationId;
-                        return (
-                          <div
-                            key={`${recommendation.name}-${index}`}
-                            id={`recommendation-card-${recommendationId}`}
-                            onClick={() => focusRecommendationOnMap(recommendationId)}
-                            className={`rounded-2xl border bg-white px-4 py-4 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.2)] transition-colors ${isFocusedRecommendation ? 'border-[#3182F6]/45 ring-2 ring-[#3182F6]/15' : 'border-slate-200'}`}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-[9px] font-black text-violet-600 border border-violet-100">추천 {index + 1}</span>
-                                  {recommendation.category && <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-[9px] font-black text-slate-500 border border-slate-200">{recommendation.category}</span>}
-                                </div>
-                                <p className="mt-2 text-[15px] font-black text-slate-800 break-words">{recommendation.name}</p>
-                                <p className="mt-1 text-[11px] font-bold text-slate-400 break-words">{recommendation.address || '주소 정보 없음'}</p>
-                              </div>
-                              <div className="shrink-0 flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => openNaverPlaceSearch(recommendation.name, recommendation.address)}
-                                  className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-[#3182F6] hover:border-[#3182F6]/30 hover:bg-blue-50 transition-colors"
-                                  title="네이버 지도에서 보기"
-                                >
-                                  <MapIcon size={12} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => addRecommendedPlaceToLibrary(recommendation)}
-                                  className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-violet-600 hover:border-violet-200 hover:bg-violet-50 transition-colors"
-                                  title="내 장소에 추가"
-                                >
-                                  <Plus size={12} />
-                                </button>
-                              </div>
-                            </div>
-                            <div className="mt-3 grid grid-cols-2 gap-2">
-                              <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.12em]">추천 시간</p>
-                                <p className="mt-1 text-[12px] font-black text-slate-700">{recommendation.suggestedTime || '정보 없음'}</p>
-                              </div>
-                              <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.12em]">예상 이동</p>
-                                <p className="mt-1 text-[12px] font-black text-slate-700">{recommendation.estimatedTravelMinutes ? `${recommendation.estimatedTravelMinutes}분` : '정보 없음'}</p>
-                              </div>
-                            </div>
-                            {(recommendation.hoursSummary || recommendation.why || recommendation.priceNote) && (
-                              <div className="mt-3 space-y-1.5 text-[11px] font-bold text-slate-600 leading-relaxed">
-                                {recommendation.hoursSummary && <p><span className="text-slate-400">운영시간:</span> {recommendation.hoursSummary}</p>}
-                                {recommendation.why && <p><span className="text-slate-400">추천 이유:</span> {recommendation.why}</p>}
-                                {recommendation.priceNote && <p><span className="text-slate-400">비용 메모:</span> {recommendation.priceNote}</p>}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                      {!perplexityNearbyModal.recommendations.length && (
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-center text-[11px] font-bold text-slate-500">
-                          추천 결과가 없습니다. 주소를 더 정확히 입력하거나 Gemini/Perplexity 키 상태를 확인해 주세요.
-                        </div>
-                      )}
-                      {!!perplexityNearbyModal.citations.length && (
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                          <p className="text-[10px] font-black text-slate-500 mb-2">참고 링크</p>
-                          <div className="flex flex-col gap-1.5">
-                            {perplexityNearbyModal.citations.slice(0, 5).map((url) => (
-                              <a
-                                key={url}
-                                href={url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-[10px] font-bold text-[#3182F6] truncate hover:underline"
-                              >
-                                {url}
-                              </a>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
+          {perplexityNearbyModal.open && <PerplexityNearbyModal perplexityNearbyModal={perplexityNearbyModal} setPerplexityNearbyModal={setPerplexityNearbyModal} focusedMapTarget={focusedMapTarget} focusRecommendationOnMap={focusRecommendationOnMap} openNaverPlaceSearch={openNaverPlaceSearch} addRecommendedPlaceToLibrary={addRecommendedPlaceToLibrary} buildRecommendationMapId={buildRecommendationMapId} />}
 
           {/* 플로팅 버튼 — 메뉴바로 이동됨 */}
           <LibraryCategoryModal

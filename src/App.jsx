@@ -6943,8 +6943,7 @@ const App = () => {
   return (
     <div className="min-h-screen bg-[#F2F4F6] text-[#191F28] font-sans flex overflow-x-hidden font-bold flex-col relative">
       <TopMenuBar
-        tripRegion={tripRegion} tripStartDate={tripStartDate} tripNights={tripNights}
-        user={user} isDirty={isDirty} isEditMode={isEditMode} setIsEditMode={setIsEditMode}
+        user={user} tripNights={tripNights}
         saveItineraryManually={saveItineraryManually}
         handleLogin={handleLogin} handleLogout={handleLogout}
         autoCalculateAllRoutes={autoCalculateAllRoutes}
@@ -7806,9 +7805,6 @@ const App = () => {
                           routePreviewManualRefreshing={routePreviewManualRefreshing}
                           refreshRoutePreviewMap={refreshRoutePreviewMap}
                           getActiveRefContext={getActiveRefContext}
-                          tripStartDate={tripStartDate}
-                          itinerary={itinerary}
-                          activeDay={activeDay}
                         />
                       </div>
                     </div>
@@ -8942,7 +8938,7 @@ const App = () => {
           {showSmartFillGuide && <SmartFillGuideModal onClose={() => setShowSmartFillGuide(false)} />}
 
           {/* 체크리스트 일괄 확인 모달 */}
-          {showChecklistModal && <ChecklistPanel itinerary={itinerary} updateMemo={updateMemo} />}
+          {showChecklistModal && <ChecklistPanel updateMemo={updateMemo} />}
 
           {perplexityNearbyModal.open && (
             <>

@@ -2,8 +2,10 @@ import React from 'react';
 import { Pencil, Clock, Package, Eye, Anchor, RotateCcw, Map as MapIcon } from 'lucide-react';
 import useUIStore from '../../stores/useUIStore.js';
 import useMapStore from '../../stores/useMapStore.js';
+import useItineraryStore from '../../stores/useItineraryStore.js';
 
-const MapOverlayBar = ({ mapDayOptions, routePreviewEndpointActions, routePreviewManualRefreshing, refreshRoutePreviewMap, getActiveRefContext, tripStartDate, itinerary, activeDay }) => {
+const MapOverlayBar = ({ mapDayOptions, routePreviewEndpointActions, routePreviewManualRefreshing, refreshRoutePreviewMap, getActiveRefContext }) => {
+  const { tripStartDate, itinerary, activeDay } = useItineraryStore();
   const { showTimelineOverlay, setShowTimelineOverlay } = useUIStore();
   const {
     overviewMapScope, setOverviewMapScope,

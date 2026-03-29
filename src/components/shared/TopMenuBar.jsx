@@ -1,13 +1,14 @@
 import React from 'react';
 import { Map as MapIcon, ChevronDown, Calendar, SlidersHorizontal, Lock, Unlock } from 'lucide-react';
 import useUIStore from '../../stores/useUIStore.js';
+import useItineraryStore from '../../stores/useItineraryStore.js';
 
 const TopMenuBar = ({
-  tripRegion, tripStartDate, tripNights, user, isDirty, isEditMode,
-  setIsEditMode, saveItineraryManually, handleLogin, handleLogout,
+  user, tripNights, saveItineraryManually, handleLogin, handleLogout,
   autoCalculateAllRoutes, isCalculatingAllRoutes, routeCalcProgress,
   setShowShareManager,
 }) => {
+  const { tripRegion, tripStartDate, isDirty, isEditMode, setIsEditMode } = useItineraryStore();
   const {
     setShowPlanManager, setShowDatePicker, setShowPlanOptions,
     showNavMenu, setShowNavMenu,

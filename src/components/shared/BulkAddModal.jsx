@@ -4,6 +4,7 @@ import { TAG_OPTIONS, ADDRESS_REGEX, normalizeTagOrder, bulkKwToType } from '../
 import { normalizeLibraryPlace } from '../../utils/helpers.js';
 import { parseBulkPlaceText } from '../../utils/parse.js';
 import { safeLocalStorageGet, safeLocalStorageSet } from '../../utils/storage.js';
+import useModalKeyboard from '../../utils/useModalKeyboard.js';
 
 // 이름 뒤에 붙는 카테고리 키워드 목록
 const CATEGORY_KEYWORDS = [
@@ -41,6 +42,7 @@ const BulkAddModal = ({
   searchAddressFromPlaceName,
   tripRegion = '',
 }) => {
+  useModalKeyboard(() => setShowBulkAddModal(false), showBulkAddModal);
   if (!showBulkAddModal) return null;
   return (
             <>

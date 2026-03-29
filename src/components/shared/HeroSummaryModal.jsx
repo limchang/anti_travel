@@ -1,7 +1,9 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import useModalKeyboard from '../../utils/useModalKeyboard.js';
 
 const HeroSummaryModal = ({ show, onClose, newPct, newCount, revisitPct, revisitCount, categorySpendRows }) => {
+  useModalKeyboard(onClose, show);
   if (!show) return null;
   return (
     <div className="fixed inset-0 z-[297] flex items-center justify-center bg-slate-950 px-4 py-6 m" onClick={onClose}>

@@ -1,9 +1,11 @@
 import React from 'react';
 import { X, Sparkles, CheckSquare } from 'lucide-react';
 import useUIStore from '../../stores/useUIStore.js';
+import useModalKeyboard from '../../utils/useModalKeyboard.js';
 
 export const ShareManagerModal = ({ shareSettings, updateShareConfig, copyShareLink, shareCopied }) => {
   const { setShowShareManager } = useUIStore();
+  useModalKeyboard(() => setShowShareManager(false));
   return (
     <>
       <div className="fixed inset-0 z-[400] bg-black" onClick={() => setShowShareManager(false)} />
@@ -34,6 +36,7 @@ export const ShareManagerModal = ({ shareSettings, updateShareConfig, copyShareL
 
 export const UpdateModal = ({ latestUpdate, APP_VERSION }) => {
   const { setShowUpdateModal } = useUIStore();
+  useModalKeyboard(() => setShowUpdateModal(false));
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black p-4 transition-colors" onClick={() => setShowUpdateModal(false)}>
       <div className="relative w-full max-w-[340px] bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.12)]" onClick={(e) => e.stopPropagation()}>

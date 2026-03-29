@@ -2,8 +2,10 @@ import React from 'react';
 import { X } from 'lucide-react';
 import { parseChecklistLines, toggleChecklistLine, hasChecklistItems } from './SharedComponents.jsx';
 import useUIStore from '../../stores/useUIStore.js';
+import useModalKeyboard from '../../utils/useModalKeyboard.js';
 const ChecklistPanel = ({ itinerary, updateMemo }) => {
   const { setShowChecklistModal } = useUIStore();
+  useModalKeyboard(() => setShowChecklistModal(false));
 
   const checklistGroups = [];
   (itinerary.days || []).forEach((day, dI) => {

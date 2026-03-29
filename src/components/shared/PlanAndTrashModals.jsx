@@ -1,9 +1,11 @@
 import React from 'react';
 import { X, RotateCcw, Trash2 } from 'lucide-react';
 import useUIStore from '../../stores/useUIStore.js';
+import useModalKeyboard from '../../utils/useModalKeyboard.js';
 
 export const PlanManagerModal = ({ planList, currentPlanId, setCurrentPlanId, createNewPlan, resolvePlanMetaForCard, getRegionCoverImage, setLastAction }) => {
   const { setShowPlanManager } = useUIStore();
+  useModalKeyboard(() => setShowPlanManager(false));
   return (
     <>
       <div className="fixed inset-0 z-[400] bg-black" onClick={() => setShowPlanManager(false)} />
@@ -42,6 +44,7 @@ export const PlanManagerModal = ({ planList, currentPlanId, setCurrentPlanId, cr
 
 export const PlaceTrashModal = ({ itinerary, restorePlaceFromTrash, deletePlacePermanently }) => {
   const { setShowPlaceTrash } = useUIStore();
+  useModalKeyboard(() => setShowPlaceTrash(false));
   return (
     <>
       <div className="fixed inset-0 z-[400] bg-black" onClick={() => setShowPlaceTrash(false)} />

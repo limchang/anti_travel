@@ -2,6 +2,7 @@ import React from 'react';
 import { db } from '../../firebase.js';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { X, Pencil } from 'lucide-react';
+import useModalKeyboard from '../../utils/useModalKeyboard.js';
 
 export const GUIDE_DOC_PATH = 'meta/smartFillGuide';
 export const isLegacySmartFillGuideContent = (content = '') => {
@@ -14,6 +15,7 @@ export const isLegacySmartFillGuideContent = (content = '') => {
   );
 };
 export const SmartFillGuideModal = ({ onClose }) => {
+  useModalKeyboard(onClose);
   const [guideContent, setGuideContent] = React.useState('');
   const [editContent, setEditContent] = React.useState('');
   const [guideLoading, setGuideLoading] = React.useState(true);

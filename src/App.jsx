@@ -402,23 +402,13 @@ const App = () => {
   const [currentPlanId, setCurrentPlanId] = useState(() => safeLocalStorageGet('last_plan_id', 'main'));
   const [planList, setPlanList] = useState([]);
   const emptyPlanRecoveryKeyRef = useRef('');
-  // showPlanManager → useUIStore
   const [showEntryChooser, setShowEntryChooser] = useState(false);
   const [newPlanRegion, setNewPlanRegion] = useState('');
   const [newPlanTitle, setNewPlanTitle] = useState('');
   const [showShareManager, setShowShareManager] = useState(false);
   const [navDayMenu, setNavDayMenu] = useState(null); // { dayIdx, day }
   const [perplexityNearbyModal, setPerplexityNearbyModal] = useState({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' });
-  // showAiSettings → useUIStore
   const [navAiExpanded, setNavAiExpanded] = useState(false);
-  // navFloatingExpanded → useUIStore
-  // showTimelineOverlay → useUIStore
-  // bottomPanelExpanded → useUIStore
-  // showPlanOptions → useUIStore
-  // showNavMenu → useUIStore
-  // highlightedPlaceId → useUIStore
-  // showSmartFillGuide → useUIStore
-  // showUpdateModal → useUIStore
   const [shareCopied, setShareCopied] = useState(false);
   const [shareSettings, setShareSettings] = useState({ visibility: 'private', permission: 'viewer' });
   const [isSharedReadOnly, setIsSharedReadOnly] = useState(false);
@@ -428,48 +418,27 @@ const App = () => {
   const [collaboratorLoading, setCollaboratorLoading] = useState(false);
   const [manualSaveHistory, setManualSaveHistory] = useState([]); // [{ savedAt, label, snapshot }]
   const [showSaveHistoryPanel, setShowSaveHistoryPanel] = useState(false);
-  // isDirty → useItineraryStore
 
   const entryChooserShownRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
-  // draggingFromLibrary → useDragStore
   const [mobileSelectedLibraryPlace, setMobileSelectedLibraryPlace] = useState(null);
   const [placeFilterTags, setPlaceFilterTags] = useState([]); // 내 장소 필터링 태그
   const filterLongPressTimerRef = useRef(null);
   const filterLongPressFiredRef = useRef(false);
-  // showPlaceCategoryManager → useUIStore
-  // showPlaceMenu → useUIStore
   const [showPlaceTrash, setShowPlaceTrash] = useState(false);
-  // draggingFromTimeline → useDragStore
-  // isDroppingOnDeleteZone → useDragStore
-  // dragBottomTarget → useDragStore
-  // dropTarget → useDragStore
-  // dropOnItem → useDragStore
-  // isDragCopy → useDragStore
-  // dragCoord → useDragStore
   const desktopDragRef = useRef(null);
   const ctrlHeldRef = useRef(false);
   const saveItineraryRef = useRef(null);
-  // isAddingPlace → useEditorStore
-  // isAddingPlaceAutoFill → useEditorStore
   const addPlaceLongPressTimerRef = React.useRef(null);
-  // showAddPlaceMenu → useUIStore
-  // showBulkAddModal → useUIStore
   const [bulkAddText, setBulkAddText] = useState('');
   const [bulkAddParsed, setBulkAddParsed] = useState([]); // [{ name, address, types, selected }]
   const [bulkAddLoading, setBulkAddLoading] = useState(false);
-  // newPlaceName → useEditorStore
-  // newPlaceTypes → useEditorStore
   const resetNewPlaceDraft = useCallback(() => {
     setNewPlaceName('');
     setNewPlaceTypes(['food']);
     setIsAddingPlace(false);
     setIsAddingPlaceAutoFill(false);
   }, []);
-  // editingPlaceId → useEditorStore
-  // editPlaceDraft → useEditorStore
-  // editingPlanTarget → useEditorStore
-  // editPlanDraft → useEditorStore
   const [useAiSmartFill, setUseAiSmartFill] = useState(() => safeLocalStorageGet('use_ai_smart_fill', 'true') === 'true');
   const [aiSmartFillConfig, setAiSmartFillConfig] = useState(() => {
     const raw = safeLocalStorageGet('ai_smart_fill_config', '');
@@ -481,16 +450,12 @@ const App = () => {
     }
   });
   const [serverAiKeyStatus, setServerAiKeyStatus] = useState({ hasStoredKey: false, hasStoredGroqKey: false, hasStoredGeminiKey: false, hasStoredPerplexityKey: false, updatedAt: null, loading: false });
-  // tripRegion → useItineraryStore
-  // tripStartDate → useItineraryStore
-  // tripEndDate → useItineraryStore
   const [planOptionRegion, setPlanOptionRegion] = useState('');
   const [planOptionStartDate, setPlanOptionStartDate] = useState('');
   const [planOptionEndDate, setPlanOptionEndDate] = useState('');
   const [planOptionBudget, setPlanOptionBudget] = useState('0');
   // 초기 상태 안전하게 설정
   const itineraryRef = useRef(null); // 항상 최신 itinerary를 참조 (선언 순서 중요)
-  // itinerary → useItineraryStore
   itineraryRef.current = itinerary; // 매 렌더마다 최신 itinerary 동기 반영
   const customPlaceCategories = useMemo(() => {
     const collected = new Set();
@@ -505,19 +470,10 @@ const App = () => {
   }, [itinerary.places]);
   const [history, setHistory] = useState([]);
   const [pendingAutoRouteJobs, setPendingAutoRouteJobs] = useState([]);
-  // toast states → useToastStore
   const undoToastTimerRef = React.useRef(null);
   const infoToastTimerRef = React.useRef(null);
   const dragEditHintToastRef = React.useRef(0);
   const mobileLibraryLongPressRef = useRef({ timer: null, startX: 0, startY: 0, placeId: '', triggered: false });
-  // expandedId → useEditorStore
-  // expandedPlaceId → useEditorStore
-  // pendingPlanMenuFocus → useEditorStore
-  // timeControllerTarget → useEditorStore
-  // timeControlStep → useEditorStore
-  // timelineEndTimeDraft → useEditorStore
-  // lodgeCheckoutDraft → useEditorStore
-  // isTimeWheelDragging → useEditorStore
   const [isManualPlanSaving, setIsManualPlanSaving] = useState(false);
   const timeControllerAutoCloseTimerRef = useRef(null);
   const saveQueueRef = useRef({ inFlight: false, pending: null });
@@ -611,14 +567,10 @@ const App = () => {
   // Web Push (FCM) 비활성화 (사용량 최소화)
 
 
-  // planVariantPicker → useEditorStore
   const conflictAlertKeyRef = useRef('');
   const [lastAction, setLastAction] = useState("3일차 시작 일정이 수정되었습니다.");
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [aiLearningCapture, setAiLearningCapture] = useState(null); // { itemId, rawSource, aiResult, inputType }
-  // isEditMode → useItineraryStore
-  // activeDay → useItineraryStore
-  // activeItemId → useItineraryStore
 
   // AI 학습 피드백 자동 제출 비활성화 (사용량 및 프라이버시 보호)
 
@@ -637,7 +589,6 @@ const App = () => {
     emptyDragImgRef.current = new Image();
     emptyDragImgRef.current.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
   }
-  // touchDragLock → useDragStore
   const touchLockStateRef = useRef({ overflow: '', touchAction: '' });
   const touchDragSourceRef = useRef(null); // { kind, place?, payload?, startX, startY }
   const executeTouchDropRef = useRef(null);
@@ -836,17 +787,12 @@ const App = () => {
   const [placeDistanceSync, setPlaceDistanceSync] = useState({ active: false, total: 0, done: 0, percent: 0, baseName: '' });
   const [col1Collapsed, setCol1Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
   const [col2Collapsed, setCol2Collapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1100);
-  // mapEditMode, mapQuickViewItem, qvDragOffset → useMapStore
   const qvDragRef = useRef(null); // { startX, startY, origOffX, origOffY }
   const lastClickPosRef = useRef({ x: 0, y: 0 });
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280));
   const [leftPanelW, setLeftPanelW] = useState(() => { try { return Number(localStorage.getItem('leftPanelW')) || 280; } catch { return 280; } });
   const [rightPanelW, setRightPanelW] = useState(() => { try { return Number(localStorage.getItem('rightPanelW')) || 440; } catch { return 440; } });
   const panelResizingRef = React.useRef(null); // { side: 'left'|'right', startX, startW }
-  // tagEditorTarget → useEditorStore
-  // businessEditorTarget → useEditorStore
-  // viewingPlanIdx → useEditorStore
-  // ferryEditField → useEditorStore
   const [routeCache, setRouteCache] = useState(() => {
     try {
       const saved = localStorage.getItem('anti_planer_route_cache');
@@ -866,10 +812,7 @@ const App = () => {
   const [routePreviewDays, setRoutePreviewDays] = useState([]);
   const [routePreviewLoading, setRoutePreviewLoading] = useState(false);
   const [routePreviewManualRefreshing, setRoutePreviewManualRefreshing] = useState(false);
-  // showOverviewLibraryPoints → useMapStore
   const [showLibraryCategoryModal, setShowLibraryCategoryModal] = useState(false);
-  // focusedLibraryMarkerId → useMapStore
-  // libraryTypeModal → useEditorStore
   const [libraryCategoryModalPos, setLibraryCategoryModalPos] = useState({ top: 200, right: 16 });
   const routePreviewSegmentCacheRef = useRef({});
   useEffect(() => {
@@ -886,10 +829,8 @@ const App = () => {
   const routePreviewBuildKeyRef = useRef('');
   const routePreviewAutoRetryKeyRef = useRef('');
 
-  // map states → useMapStore
   const [showOverviewMapModal, setShowOverviewMapModal] = useState(false);
   const [showPlaceMapModal, setShowPlaceMapModal] = useState(false);
-  // showChecklistModal → useUIStore
   const [placeLibraryViewMode, setPlaceLibraryViewMode] = useState(() => safeLocalStorageGet('placeLibraryViewMode', 'single') || 'single');
   const [showPlacePrice, setShowPlacePrice] = useState(() => safeLocalStorageGet('showPlacePrice', 'true') === 'true');
   const [libraryGeoMap, setLibraryGeoMap] = useState({});
@@ -1950,7 +1891,6 @@ const App = () => {
 
   const MAX_BUDGET = itinerary.maxBudget || 1500000;
   const [editingBudget, setEditingBudget] = useState(false);
-  // showDatePicker → useUIStore
   const totalTimelineItems = useMemo(
     () => (itinerary.days || []).reduce((sum, d) => sum + ((d?.plan || []).filter(p => p.type !== 'backup').length), 0),
     [itinerary.days]

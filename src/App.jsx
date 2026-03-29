@@ -209,6 +209,13 @@ const App = () => {
     navFloatingExpanded, setNavFloatingExpanded,
     bottomPanelExpanded, setBottomPanelExpanded,
     highlightedPlaceId, setHighlightedPlaceId,
+    showShareManager, setShowShareManager,
+    showPlaceTrash, setShowPlaceTrash,
+    showEntryChooser, setShowEntryChooser,
+    showSaveHistoryPanel, setShowSaveHistoryPanel,
+    navAiExpanded, setNavAiExpanded,
+    showOverviewMapModal, setShowOverviewMapModal,
+    showPlaceMapModal, setShowPlaceMapModal,
   } = useUIStore();
 
   const {
@@ -406,13 +413,10 @@ const App = () => {
   const [currentPlanId, setCurrentPlanId] = useState(() => safeLocalStorageGet('last_plan_id', 'main'));
   const [planList, setPlanList] = useState([]);
   const emptyPlanRecoveryKeyRef = useRef('');
-  const [showEntryChooser, setShowEntryChooser] = useState(false);
   const [newPlanRegion, setNewPlanRegion] = useState('');
   const [newPlanTitle, setNewPlanTitle] = useState('');
-  const [showShareManager, setShowShareManager] = useState(false);
   const [navDayMenu, setNavDayMenu] = useState(null); // { dayIdx, day }
   const [perplexityNearbyModal, setPerplexityNearbyModal] = useState({ open: false, loading: false, provider: '', itemName: '', summary: '', recommendations: [], citations: [], error: '' });
-  const [navAiExpanded, setNavAiExpanded] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [shareSettings, setShareSettings] = useState({ visibility: 'private', permission: 'viewer' });
   const [isSharedReadOnly, setIsSharedReadOnly] = useState(false);
@@ -421,7 +425,6 @@ const App = () => {
   const [collaboratorInput, setCollaboratorInput] = useState('');
   const [collaboratorLoading, setCollaboratorLoading] = useState(false);
   const [manualSaveHistory, setManualSaveHistory] = useState([]); // [{ savedAt, label, snapshot }]
-  const [showSaveHistoryPanel, setShowSaveHistoryPanel] = useState(false);
 
   const entryChooserShownRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -429,7 +432,6 @@ const App = () => {
   const [placeFilterTags, setPlaceFilterTags] = useState([]); // 내 장소 필터링 태그
   const filterLongPressTimerRef = useRef(null);
   const filterLongPressFiredRef = useRef(false);
-  const [showPlaceTrash, setShowPlaceTrash] = useState(false);
   const desktopDragRef = useRef(null);
   const ctrlHeldRef = useRef(false);
   const saveItineraryRef = useRef(null);
@@ -833,8 +835,6 @@ const App = () => {
   const routePreviewBuildKeyRef = useRef('');
   const routePreviewAutoRetryKeyRef = useRef('');
 
-  const [showOverviewMapModal, setShowOverviewMapModal] = useState(false);
-  const [showPlaceMapModal, setShowPlaceMapModal] = useState(false);
   const [placeLibraryViewMode, setPlaceLibraryViewMode] = useState(() => safeLocalStorageGet('placeLibraryViewMode', 'single') || 'single');
   const [showPlacePrice, setShowPlacePrice] = useState(() => safeLocalStorageGet('showPlacePrice', 'true') === 'true');
   const [libraryGeoMap, setLibraryGeoMap] = useState({});

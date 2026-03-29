@@ -23,6 +23,15 @@ const useUIStore = create((set) => ({
   // UI 강조
   highlightedPlaceId: null,
 
+  // 추가 모달/패널
+  showShareManager: false,
+  showPlaceTrash: false,
+  showEntryChooser: false,
+  showSaveHistoryPanel: false,
+  navAiExpanded: false,
+  showOverviewMapModal: false,
+  showPlaceMapModal: false,
+
   // 토글 헬퍼
   setShowPlanManager: (v) => set({ showPlanManager: typeof v === 'function' ? v(useUIStore.getState().showPlanManager) : v }),
   setShowAiSettings: (v) => set({ showAiSettings: typeof v === 'function' ? v(useUIStore.getState().showAiSettings) : v }),
@@ -40,6 +49,13 @@ const useUIStore = create((set) => ({
   setNavFloatingExpanded: (v) => set({ navFloatingExpanded: typeof v === 'function' ? v(useUIStore.getState().navFloatingExpanded) : v }),
   setBottomPanelExpanded: (v) => set({ bottomPanelExpanded: typeof v === 'function' ? v(useUIStore.getState().bottomPanelExpanded) : v }),
   setHighlightedPlaceId: (v) => set({ highlightedPlaceId: v }),
+  setShowShareManager: (v) => set({ showShareManager: typeof v === 'function' ? v(useUIStore.getState().showShareManager) : v }),
+  setShowPlaceTrash: (v) => set({ showPlaceTrash: typeof v === 'function' ? v(useUIStore.getState().showPlaceTrash) : v }),
+  setShowEntryChooser: (v) => set({ showEntryChooser: typeof v === 'function' ? v(useUIStore.getState().showEntryChooser) : v }),
+  setShowSaveHistoryPanel: (v) => set({ showSaveHistoryPanel: typeof v === 'function' ? v(useUIStore.getState().showSaveHistoryPanel) : v }),
+  setNavAiExpanded: (v) => set({ navAiExpanded: typeof v === 'function' ? v(useUIStore.getState().navAiExpanded) : v }),
+  setShowOverviewMapModal: (v) => set({ showOverviewMapModal: typeof v === 'function' ? v(useUIStore.getState().showOverviewMapModal) : v }),
+  setShowPlaceMapModal: (v) => set({ showPlaceMapModal: typeof v === 'function' ? v(useUIStore.getState().showPlaceMapModal) : v }),
 }));
 
 export default useUIStore;

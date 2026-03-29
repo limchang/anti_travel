@@ -78,6 +78,17 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-leaflet': ['leaflet', 'react-leaflet'],
+          'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+        },
+      },
+    },
+  },
   base: '/anti_travel/',
   server: {
     proxy: {

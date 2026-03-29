@@ -2545,20 +2545,16 @@ const App = () => {
     }
   }, [attachRoutePreviewSegments, resolveRoutePreviewDays, routePreviewSourceSignature]);
 
-  // geo 동기화 완료 후 경로 강제 새로고침 (1회)
+  // 초기 로딩 시 경로 빌드 (1회) — geo 동기화를 기다리지 않고 캐시/기존 좌표로 즉시 시도
   const routeInitDoneRef = useRef(false);
   useEffect(() => {
     if (routeInitDoneRef.current) return;
     if (!itinerary.days?.length) return;
-    // geo가 필요한 아이템이 있는지 확인
-    const needsGeo = itinerary.days.some(d => (d.plan || []).some(p => {
-      const addr = p.receipt?.address || p.address || '';
-      return addr && (!p.geo?.lat || !p.geo?.lng);
-    }));
-    if (needsGeo) return; // geo 동기화 아직 진행 중 → 다음 itinerary 변경 때 재시도
     routeInitDoneRef.current = true;
+    // 기존 빌드 키를 초기화하여 자동 빌드 effect가 다시 실행되도록 유도
+    routePreviewBuildKeyRef.current = '';
     refreshRoutePreviewMap();
-  }, [itinerary]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [itinerary.days]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 장소 추가/삭제 시 지도 자동 새로고침 + 추가된 장소 포커스
   const prevPlacesLenRef = React.useRef((itinerary.places || []).length);

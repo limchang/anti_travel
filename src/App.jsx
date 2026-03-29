@@ -266,9 +266,6 @@ const App = () => {
   } = useEditorStore();
 
   const {
-    itinerary, setItinerary,
-    activeDay, setActiveDay,
-    activeItemId, setActiveItemId,
     isEditMode, setIsEditMode,
     isDirty, setIsDirty,
     tripRegion, setTripRegion,
@@ -397,6 +394,10 @@ const App = () => {
       console.error('로그아웃 실패:', e);
     }
   };
+
+  const [itinerary, setItinerary] = useState({ days: [], places: [], placeTrash: [] });
+  const [activeDay, setActiveDay] = useState(1);
+  const [activeItemId, setActiveItemId] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [currentPlanId, setCurrentPlanId] = useState(() => safeLocalStorageGet('last_plan_id', 'main'));
@@ -7746,6 +7747,9 @@ const App = () => {
                           routePreviewManualRefreshing={routePreviewManualRefreshing}
                           refreshRoutePreviewMap={refreshRoutePreviewMap}
                           getActiveRefContext={getActiveRefContext}
+                          tripStartDate={tripStartDate}
+                          itinerary={itinerary}
+                          activeDay={activeDay}
                         />
                       </div>
                     </div>
@@ -8775,7 +8779,7 @@ const App = () => {
           {showSmartFillGuide && <SmartFillGuideModal onClose={() => setShowSmartFillGuide(false)} />}
 
           {/* 체크리스트 일괄 확인 모달 */}
-          {showChecklistModal && <ChecklistPanel updateMemo={updateMemo} />}
+          {showChecklistModal && <ChecklistPanel itinerary={itinerary} updateMemo={updateMemo} />}
 
           {perplexityNearbyModal.open && (
             <>

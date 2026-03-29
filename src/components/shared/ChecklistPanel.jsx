@@ -2,11 +2,8 @@ import React from 'react';
 import { X } from 'lucide-react';
 import { parseChecklistLines, toggleChecklistLine, hasChecklistItems } from './SharedComponents.jsx';
 import useUIStore from '../../stores/useUIStore.js';
-import useItineraryStore from '../../stores/useItineraryStore.js';
-
-const ChecklistPanel = ({ updateMemo }) => {
+const ChecklistPanel = ({ itinerary, updateMemo }) => {
   const { setShowChecklistModal } = useUIStore();
-  const { itinerary } = useItineraryStore();
 
   const checklistGroups = [];
   (itinerary.days || []).forEach((day, dI) => {

@@ -1,127 +1,95 @@
 # Anti Planer — 인수인계 & 개선 체크리스트
 
 > 최종 업데이트: 2026-03-29
-> App.jsx: 11,347줄 / useState: 83개 (52개 Zustand 이전) / 번들: 1.2MB
-> 총 커밋: 994개 (이번 세션 84개)
+> App.jsx: 10,445줄 / useState: 78개 / Zustand 6 스토어 / 분리 컴포넌트 8개
+> 시작 대비: -902줄 (-7.9%) / 번들: 1.18MB
 
 ---
 
-## 이번 세션 완료 작업 요약
+## 완료된 작업
 
-### 레이아웃 (10개)
+### 레이아웃 대개편
 - [x] 지도 중심 전체화면 레이아웃 (PC/모바일 통일)
-- [x] 네비게이션 → 좌측 플로팅 패널 (접기/펼치기)
-- [x] 내장소 → 우측 플로팅 패널 (접기/펼치기)
+- [x] 네비게이션 → 좌측 플로팅 패널
+- [x] 내장소 → 우측 플로팅 패널
 - [x] 타임라인 → 오버레이 바 아래 드롭다운 패널
-- [x] 상단 메뉴바 통합 (일정옵션, 날짜, 저장 등)
-- [x] 하단 MobileTabBar / NavBottomMenu 제거
-- [x] 히어로 영역 숨김 처리
-- [x] 일정 개요 위젯 (네비 패널 아래 플로팅)
-- [x] 접기 버튼 패널 외부 배치 (←/→)
-- [x] 모달 페이지 가운데 정렬 (장소추가/수정/일정수정)
+- [x] 상단 메뉴바 통합
+- [x] MobileTabBar / NavBottomMenu 제거
+- [x] 히어로 영역 삭제
+- [x] 일정 개요 위젯
+- [x] 접기 버튼 패널 외부 배치
+- [x] 모달 페이지 가운데 정렬
 
-### 지도 마커 (7개)
-- [x] pill 디자인 통일 (단일/클러스터/그룹 동일 스타일)
-- [x] border-radius 0 (완전 직각)
-- [x] 행간 2px 여백 + 개별 pill 컨테이너
-- [x] hover → zIndexOffset 최상위 (pane 내)
-- [x] 이동시간 라벨 디자인 개선 (흰 배경 + 시계 아이콘)
-- [x] 클러스터 반경 확대 (아이콘 70px, 이름 140px)
+### 지도 마커 디자인
+- [x] pill 디자인 통일 (직각, 행간 여백, pill 컨테이너)
+- [x] hover → zIndexOffset 최상위
+- [x] 이동시간 라벨 개선
+- [x] 클러스터 반경 확대 (70px/140px)
 - [x] START/END 뱃지 제거
 
-### 기능 (10개)
-- [x] 일정 선택 시 15분 거리(10km) 점선 원 오버레이
-- [x] 내장소 마커 + 버튼 (일정 다음으로 바로 등록)
-- [x] 퀵뷰 모달 드래그 이동
-- [x] 퀵뷰 열린 상태에서 + 클릭 가능
-- [x] 네비 드래그 → 밖으로 드롭=삭제, 내장소=이동
-- [x] 카테고리 필터 드롭다운 (단일 선택)
+### 기능
+- [x] 15분 거리 점선 원 오버레이
+- [x] 내장소 마커 + 버튼
+- [x] 퀵뷰 드래그 이동 + 배경 차단 제거
+- [x] 카테고리 드롭다운 (단일 선택)
 - [x] 태그 피커 카테고리 뱃지 스타일
-- [x] v2 지도검색 제거 → 슈퍼 자동채우기 통일
-- [x] 네비 아이템 퀵뷰 헤더 스타일 (accent 배경 + 아이콘)
-- [x] 지도 빈자리 클릭 시 일정 선택/퀵뷰 해제
+- [x] v2 지도검색 → 슈퍼 자동채우기
+- [x] 네비 아이템 퀵뷰 헤더 스타일
+- [x] 네비 드래그 → 밖=삭제, 내장소=이동
 
-### 성능 최적화 (14개)
-- [x] Zustand 5개 스토어 도입 (67개 useState 이전)
-- [x] PWA Service Worker (타일 30일, API 24시간 캐시)
-- [x] backdrop-blur 전체 제거 (32곳 → 0)
-- [x] 반투명 배경 불투명화 (50곳+ → 4곳만 유지)
-- [x] transition-all → transition-colors (35곳+ → 0 남음)
-- [x] 마커 drop-shadow 간소화 (12 → 7)
-- [x] 마커 아이콘 이중 drop-shadow 제거
-- [x] 지도 타일 opacity 0.6 → 1
-- [x] dragCoord useState → useRef (드래그 중 리렌더 제거)
+### 성능 최적화
+- [x] Zustand 6개 스토어 도입
+- [x] PWA Service Worker
+- [x] backdrop-blur 전체 제거 (32곳)
+- [x] 반투명 배경 불투명화 (50곳+)
+- [x] transition-all → transition-colors (35곳+)
+- [x] 마커 drop-shadow 간소화
+- [x] 지도 타일 opacity 1.0
+- [x] dragCoord useState → useRef
 - [x] 드래그 중 dropTarget 변경 시에만 setState
-- [x] 드래그 잔상 제거 (setDragImage 빈 이미지)
-- [x] 줌 레벨 조건부 렌더링 (경로 라벨 zoom 10+)
-- [x] 지도 초기 뷰 출발지(집) 제외
-- [x] resize 핸들러 rAF 디바운스
+- [x] 줌 레벨 조건부 렌더링
+- [x] resize rAF 디바운스
+- [x] JSON.parse/stringify 86곳 → structuredClone
+- [x] 드래그 잔상 제거 (setDragImage)
 
-### 코드 정리 (5개)
-- [x] dead code 제거 ({false && ...} 2곳)
+### 코드 정리
+- [x] dead code 대량 삭제 (~500줄)
 - [x] App_utf8.jsx 삭제 (-4,266줄)
-- [x] CSS rounded !important → tailwind.config.js borderRadius: 0
+- [x] CSS rounded → tailwind.config.js
 - [x] z-index CSS 변수 레이어 시스템 정의
-- [x] NOMAD 분석 + 벤치마크 비교
+- [x] 스토어 마이그레이션 주석 60줄 정리
+
+### 컴포넌트 분리 (8개)
+- [x] MapOverlayBar.jsx (React.memo, useMapStore+useUIStore)
+- [x] TopMenuBar.jsx (React.memo, useUIStore+useItineraryStore)
+- [x] OverviewWidget.jsx (React.memo)
+- [x] ToastNotifications.jsx (React.memo, useToastStore)
+- [x] AuthScreen.jsx (LoadingScreen + LoginScreen)
+- [x] ChecklistPanel.jsx (React.memo, useUIStore)
+- [x] AiSettingsModal.jsx (React.memo, useUIStore)
+- [x] OverviewWidget.jsx (React.memo)
 
 ---
 
-## 현재 코드 지표
+## 남은 작업
 
-```
-App.jsx          11,347줄
-useState 남은 것   31개 (auth, trip, itinerary, route, plan, layout)
-Zustand 이전       52개 → 5개 스토어
-번들 크기          1.2MB (단일 청크)
-backdrop-blur     0개 ✅
-transition-all    0개 ✅
-반투명 bg-white/   4개 (네비 accent 위 아이콘 전용)
-drop-shadow       7개 (마커 컨테이너)
-stopPropagation   116개 ⚠️
-z-index 종류      25개 ⚠️
-structuredClone    86개 ✅ (JSON.parse/stringify에서 교체)
-```
+### P1 (높은 우선순위)
+- [ ] **z-index CSS 변수 실제 적용** — 현재 :root에 정의만, 코드에서 z-[310] 등 하드코딩 유지
+- [ ] **Zustand destructure 패턴** — App에서 전부 꺼내써서 실질적 리렌더 감소 제한적
+- [ ] **itinerary Zustand 이전** — useEffect 의존성 무한루프 문제로 롤백됨. immer middleware 도입 후 재시도 필요
+- [ ] **남은 모달 분리** — PlanOptions(192줄), ShareManager(82줄), PerplexityNearby(126줄), PlanManager(59줄), PlaceTrash(54줄)
 
----
-
-## 미해결 — P0 (CRITICAL)
-
-- [x] **경로 초기 로드** — 2초 딜레이 → geo 동기화 완료 감지 방식으로 변경 완료
-
-## 미해결 — P1 (HIGH)
-
-- [ ] **Zustand destructure 패턴** — App에서 전부 꺼내써서 리렌더 감소 없음. 하위 컴포넌트에서 직접 구독해야 효과
-- [x] **JSON.parse(JSON.stringify) 86곳** → structuredClone 교체 완료
-- [ ] **z-index 25종 → CSS 변수로 실제 적용** — 현재 변수만 정의, 코드에서 아직 미사용
-- [ ] **App.jsx 컴포넌트 분리** — 최소 5개 추출:
-  - NavPanel.jsx / PlacesPanel.jsx / MapOverlayBar.jsx / QuickViewModal.jsx / TimelineOverlay.jsx
-
-## 미해결 — P2 (MEDIUM)
-
-### 코드 품질
-- [ ] Zustand 나머지 31개 useState 이전
+### P2 (중기)
+- [ ] Zustand 나머지 useState 이전 (현재 78개 중 ~20개 추가 가능)
 - [ ] TypeScript 도입
 - [ ] 에러 추적 서비스 (Sentry)
 - [ ] stopPropagation 116곳 정리
-- [ ] console.error/warn 12곳 → 에러 서비스 연동
-
-### 접근성
-- [ ] ARIA 라벨 (현재 2개 → 전체 interactive 요소)
-- [ ] 키보드 내비게이션 (Tab, Enter, Escape)
-- [ ] 포커스 관리 (모달 열릴 때/닫힐 때)
-- [ ] 스크린 리더 지원
-
-### 반응형
-- [ ] Tailwind 브레이크포인트 활용 (현재 `hidden sm:` 2곳만)
-- [ ] 폰트 크기 체계화 (text-[9px]~[30px] → 표준 스케일)
-- [ ] 하드코딩 px 93곳+ 정리
-
-### 보안
+- [ ] ARIA 라벨 + 키보드 내비게이션 + 포커스 관리
+- [ ] Tailwind 브레이크포인트 활용 (hidden sm: 2곳만)
+- [ ] 폰트 크기 체계화 (text-[9px]~[30px])
 - [ ] Math.random() → crypto.getRandomValues() (4곳)
-- [ ] MapComponents HTML template literal → DOM API
 
-## 미해결 — P3 (LOW)
-
+### P3 (장기)
 - [ ] react-leaflet-cluster 도입
 - [ ] 코드 스플리팅 (React.lazy + Suspense)
 - [ ] 에러 바운더리 세분화
@@ -131,74 +99,28 @@ structuredClone    86개 ✅ (JSON.parse/stringify에서 교체)
 
 ## 아키텍처
 
-### Zustand 스토어
+### Zustand 스토어 6개
 ```
 src/stores/
-├── useUIStore.js      16개 (모달, 패널)
-├── useToastStore.js    4개 (알림)
-├── useMapStore.js     16개 (지도)
-├── useDragStore.js     9개 (드래그&드롭)
-└── useEditorStore.js  22개 (편집)
-합계: 67개 이전 완료
+├── useUIStore.js        16개 (모달, 패널)
+├── useToastStore.js      4개 (알림)
+├── useMapStore.js       16개 (지도)
+├── useDragStore.js       9개 (드래그&드롭)
+├── useEditorStore.js    22개 (편집)
+└── useItineraryStore.js  5개 (isEditMode, isDirty, tripRegion, dates)
+합계: 72개 이전 / useState 78개 남음
 ```
 
-### App.jsx 남은 useState (31개)
-```
-auth(4): user, authLoading, authError, pushTimeLabel
-trip(4): tripRegion, tripStartDate, tripEndDate, planOptionBudget
-itinerary(5): itinerary, history, pendingAutoRouteJobs, activeDay, activeItemId
-plan(14): loading, currentPlanId, planList, showEntryChooser, ...
-route(8): calculatingRouteId, routePreviewDays, routePreviewLoading, ...
-layout(7): col1Collapsed, col2Collapsed, viewportWidth, leftPanelW, ...
-기타: isEditMode, isDirty, mobileSelectedLibraryPlace, ...
-```
-
-### z-index 레이어 (CSS 변수 정의됨, 코드 적용 필요)
-```
---z-map: 1              지도
---z-panel-right: 220    내장소 패널
---z-timeline: 250       타임라인 오버레이
---z-overview-widget: 270 개요 위젯
---z-panel-left: 280     네비 패널
---z-menubar: 310        상단 메뉴바
---z-toast: 320          토스트
---z-modal-backdrop: 400 모달 배경
---z-modal: 401          모달
---z-map-overlay: 500    지도 오버레이 바
---z-dropdown-backdrop: 9980 드롭다운 배경
---z-dropdown: 9990      드롭다운 메뉴
---z-quickview: 10000    퀵뷰 모달 (현재 99999로 되어있음)
-```
-
-### 성능 최적화 히스토리
-```
-1. backdrop-blur 32곳 제거         → GPU 블러 연산 제거
-2. 반투명 배경 50곳+ 불투명화       → GPU 합성 레이어 감소
-3. transition-all 35곳 → colors    → 불필요 애니메이션 제거
-4. dragCoord useState → useRef     → 드래그 중 리렌더 0
-5. 마커 drop-shadow 간소화/제거     → GPU 필터 부하 감소
-6. 지도 타일 opacity 1.0           → GPU 합성 제거
-7. PWA 캐싱 도입                   → 재방문 시 즉시 로드
-8. Zustand 67개 상태 이전           → 효과 제한적 (패턴 개선 필요)
-9. resize rAF 디바운스             → resize 리렌더 감소
-10. dead code 4,266줄 삭제          → 번들 크기 감소
-```
+### 주의사항
+- itinerary, activeDay, activeItemId는 useState 유지 (Zustand 이전 시 무한루프)
+- accent 배경 위 아이콘 버튼은 bg-white/20 유지 (불투명이면 안 보임)
+- * { border-radius: 0 !important } CSS 규칙 유지
 
 ### NOMAD 벤치마크 비교
 | 항목 | NOMAD | Anti Planer | 격차 |
 |------|-------|-------------|------|
-| 상태관리 | Zustand (컴포넌트별 구독) | Zustand (App에서 전부 꺼내씀) | 🔴 큼 |
-| 번들 | 코드 스플리팅 | 단일 1.2MB | 🔴 큼 |
-| DB | SQLite + 인덱스 | Firebase Firestore | 🟡 구조차이 |
-| 캐싱 | PWA 4단계 | PWA 도입 완료 | 🟢 동등 |
-| 지도 | react-leaflet-cluster | 수동 클러스터링 | 🟡 중간 |
-| GPU | 최소화 | backdrop-blur 제거 완료 | 🟢 개선됨 |
-| 파일 | 모듈화 | App.jsx 11,347줄 | 🔴 큼 |
-
----
-
-## 참고
-- `CLAUDE.md` — Claude 전용 규칙
-- `README.md` — 프로젝트 규칙/구조
-- `.claude/plans/staged-hatching-brooks.md` — Zustand 마이그레이션 계획
-- `.claude/projects/.../memory/` — 프로젝트 메모리
+| 상태관리 | Zustand (컴포넌트별) | Zustand 6개 + useState 78개 | 🟡 개선중 |
+| 번들 | 코드 스플리팅 | 단일 1.18MB | 🔴 |
+| GPU | 최소화 | backdrop-blur 제거 완료 | 🟢 |
+| 캐싱 | PWA 4단계 | PWA 도입 완료 | 🟢 |
+| 파일 | 모듈화 | 10,445줄 + 8개 분리 | 🟡 개선중 |

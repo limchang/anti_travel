@@ -22,9 +22,8 @@ import { parseBulkPlaceText } from './utils/parse.js';
 import BulkAddModal from './components/shared/BulkAddModal.jsx';
 import TimeControllerModal, { InlineTimeController } from './components/shared/TimeControllerModal.jsx';
 import LibraryTypeModal, { TagPickerModal } from './components/shared/LibraryTypeModal.jsx';
-import { MobileTabBar, DragActionBar, DragGhost } from './components/shared/DragOverlays.jsx';
+import { DragGhost } from './components/shared/DragOverlays.jsx';
 import HeroSummaryModal from './components/shared/HeroSummaryModal.jsx';
-import NavBottomMenu from './components/shared/NavBottomMenu.jsx';
 import LibraryCategoryModal from './components/shared/LibraryCategoryModal.jsx';
 import { OrderedTagPicker, SharedNameRow, SharedAddressRow, SharedBusinessRow, SharedMemoRow, MenuPriceInput, SharedTotalFooter, parseChecklistLines, toggleChecklistLine, hasChecklistItems, createPlaceEditorDraft, buildSmartFillMenuItems, getCustomTagLabel, ACTION_SLOT_CLASS } from './components/shared/SharedComponents.jsx';
 import { TimeInput, buildBusinessQuickEditSegments, BusinessHoursEditor, DateRangePicker, TimeWheelColumn } from './components/shared/BusinessComponents.jsx';
@@ -47,12 +46,10 @@ import useDragStore from './stores/useDragStore.js';
 import useEditorStore from './stores/useEditorStore.js';
 import useItineraryStore from './stores/useItineraryStore.js';
 import {
-  Navigation, MessageSquare, LogOut, User as UserIcon,
-  Hourglass, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
-  ArrowUpRight, ArrowUpLeft, ArrowDownRight, ArrowDownLeft,
-  PlusCircle, Waves, QrCode, CheckSquare, Square,
+  Hourglass, ArrowRight,
+  CheckSquare,
   Plus, Minus, MapPin, Trash2, Map as MapIcon,
-  ChevronsRight, Sparkles, Wand2, CornerDownRight, GitBranch, Umbrella, ArrowLeftRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Edit3, Calendar, CalendarDays, GripVertical, Gift, X, Share2, SlidersHorizontal, Move, LoaderCircle, Info, RotateCcw, AlignLeft, Zap, Home, Clock, Soup
+  ChevronsRight, Sparkles, Wand2, CornerDownRight, Store, Lock, Unlock, ChevronLeft, ChevronRight, Timer, Anchor, Utensils, Coffee, Camera, Bed, MoonStar, ChevronDown, ChevronUp, Package, Eye, Star, Pencil, Calendar, CalendarDays, Gift, X, Share2, SlidersHorizontal, LoaderCircle, Info, RotateCcw, Zap, Home, Clock, Soup
 } from 'lucide-react';
 
 class AppErrorBoundary extends React.Component {

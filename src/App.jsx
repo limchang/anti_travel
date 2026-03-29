@@ -841,53 +841,52 @@ const App = () => {
   const prevDashboardHeightRef = useRef(0);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
   useEffect(() => {
-    const places = itinerary.places || [];
-    if (!places.length) return;
+    setItinerary((prev) => {
+      const places = prev.places || [];
+      if (!places.length) return prev;
 
-    const derivedItemsByLodgeId = {};
-    for (const day of itinerary.days || []) {
-      for (const item of day.plan || []) {
-        if (!isStandaloneLodgeSegmentItem(item)) continue;
-        const sourceId = String(item.sourceLodgeId || '').trim();
-        if (!sourceId) continue;
-        const receiptItems = normalizeReceiptItems(item.receipt?.items || []);
-        if (!receiptItems.length) continue;
-        if (!derivedItemsByLodgeId[sourceId]) derivedItemsByLodgeId[sourceId] = [];
-        receiptItems.forEach((receiptItem) => {
-          derivedItemsByLodgeId[sourceId].push(buildDerivedLodgeReceiptItem(item, receiptItem));
-        });
+      const derivedItemsByLodgeId = {};
+      for (const day of prev.days || []) {
+        for (const item of day.plan || []) {
+          if (!isStandaloneLodgeSegmentItem(item)) continue;
+          const sourceId = String(item.sourceLodgeId || '').trim();
+          if (!sourceId) continue;
+          const receiptItems = normalizeReceiptItems(item.receipt?.items || []);
+          if (!receiptItems.length) continue;
+          if (!derivedItemsByLodgeId[sourceId]) derivedItemsByLodgeId[sourceId] = [];
+          receiptItems.forEach((receiptItem) => {
+            derivedItemsByLodgeId[sourceId].push(buildDerivedLodgeReceiptItem(item, receiptItem));
+          });
+        }
       }
-    }
 
-    let changed = false;
-    const nextPlaces = places.map((place) => {
-      if (!isLodgeStay(place?.types)) return place;
-      const sourceId = String(place?.id || '').trim();
-      const manualItems = stripDerivedLodgeReceiptItems(place?.receipt?.items || []);
-      const derivedItems = derivedItemsByLodgeId[sourceId] || [];
-      const nextItems = [...manualItems, ...derivedItems];
-      const nextPrice = nextItems.reduce((sum, item) => sum + (item.selected === false ? 0 : (Number(item.price) || 0) * Math.max(1, Number(item.qty) || 1)), 0);
-      const currentItems = normalizeReceiptItems(place?.receipt?.items || []);
-      const sameItems = JSON.stringify(currentItems) === JSON.stringify(nextItems);
-      const samePrice = Number(place?.price || 0) === nextPrice;
-      if (sameItems && samePrice) return place;
-      changed = true;
-      return normalizeLibraryPlace({
-        ...place,
-        receipt: {
-          ...(place?.receipt || {}),
-          address: place?.receipt?.address || place?.address || '',
-          items: nextItems,
-        },
-        price: nextPrice,
+      let changed = false;
+      const nextPlaces = places.map((place) => {
+        if (!isLodgeStay(place?.types)) return place;
+        const sourceId = String(place?.id || '').trim();
+        const manualItems = stripDerivedLodgeReceiptItems(place?.receipt?.items || []);
+        const derivedItems = derivedItemsByLodgeId[sourceId] || [];
+        const nextItems = [...manualItems, ...derivedItems];
+        const nextPrice = nextItems.reduce((sum, item) => sum + (item.selected === false ? 0 : (Number(item.price) || 0) * Math.max(1, Number(item.qty) || 1)), 0);
+        const currentItems = normalizeReceiptItems(place?.receipt?.items || []);
+        const sameItems = JSON.stringify(currentItems) === JSON.stringify(nextItems);
+        const samePrice = Number(place?.price || 0) === nextPrice;
+        if (sameItems && samePrice) return place;
+        changed = true;
+        return normalizeLibraryPlace({
+          ...place,
+          receipt: {
+            ...(place?.receipt || {}),
+            address: place?.receipt?.address || place?.address || '',
+            items: nextItems,
+          },
+          price: nextPrice,
+        });
       });
-    });
 
-    if (!changed) return;
-    setItinerary((prev) => ({
-      ...prev,
-      places: nextPlaces,
-    }));
+      if (!changed) return prev;
+      return { ...prev, places: nextPlaces };
+    });
   }, [itinerary.days, itinerary.places]);
   const isMobileLayout = viewportWidth < 1100;
   const TIMELINE_FIXED_WIDTH = 500;
@@ -2183,6 +2182,7 @@ const App = () => {
 
   const geoSyncRequestKeyRef = useRef('');
   const geoSyncLastRunRef = useRef(0);
+  const lodgeNormKeyRef = useRef('');
 
   const routePreviewEndpointActions = useMemo(() => {
     const allShips = (itinerary.days || []).flatMap((day, dayIdx) => (
@@ -4174,6 +4174,9 @@ const App = () => {
       if (!Array.isArray(nextData.days)) return prev;
       const before = JSON.stringify(nextData.days);
 
+      // 이전과 같은 입력이면 재계산 스킵 (불필요한 2번째 트리거 방지)
+      if (lodgeNormKeyRef.current === before) return prev;
+
       // 연쇄적으로 뒤 Day로 이동할 수 있어 고정점까지 반복
       while (normalizeDaySplitByLodge(nextData.days)) {
         // no-op
@@ -4182,6 +4185,7 @@ const App = () => {
       recalculateScheduleAcrossDays(nextData.days);
       recalculateLodgeDurations(nextData.days);
       const after = JSON.stringify(nextData.days);
+      lodgeNormKeyRef.current = after;
       if (before === after) return prev;
       return { ...nextData };
     });

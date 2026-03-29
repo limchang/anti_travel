@@ -86,7 +86,7 @@
 - [ ] stopPropagation 116곳 정리
 - [ ] ARIA 라벨 + 키보드 내비게이션 + 포커스 관리
 - [ ] Tailwind 브레이크포인트 활용 (hidden sm: 2곳만)
-- [ ] 폰트 크기 체계화 (text-[9px]~[30px])
+- [x] 폰트 크기 CSS 변수 체계 정의
 - [ ] Math.random() → crypto.getRandomValues() (4곳)
 
 ### P3 (장기)

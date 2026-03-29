@@ -490,9 +490,10 @@ export const buildOverlayMarkerIcon = (fillColor, glyph, isFocused) => L.divIcon
   iconAnchor: [isFocused ? 11 : 9, isFocused ? 11 : 9],
 });
 
-export const buildSegmentLabelIcon = (color, label, isFocused) => {
-  const w = isFocused ? 64 : 50;
-  const h = isFocused ? 22 : 18;
+export const buildSegmentLabelIcon = (color, label, isFocused, distKm) => {
+  const h = isFocused ? 26 : 22;
+  const fontSize = isFocused ? '10px' : '9px';
+  const distLabel = distKm ? (distKm >= 10 ? `${Math.round(distKm)}km` : `${distKm.toFixed(1)}km`) : '';
   return L.divIcon({
     className: '',
     html: `
@@ -500,25 +501,25 @@ export const buildSegmentLabelIcon = (color, label, isFocused) => {
         display:inline-flex;
         align-items:center;
         justify-content:center;
-        gap:3px;
+        gap:4px;
         height:${h}px;
-        padding:0 6px;
-        background:rgba(255,255,255,0.92);
-        color:${color};
-        font-size:${isFocused ? '10px' : '9px'};
+        padding:0 10px;
+        background:${color};
+        color:#fff;
+        font-size:${fontSize};
         font-weight:900;
         white-space:nowrap;
-        box-shadow:0 2px 8px -3px rgba(15,23,42,0.25);
-        border:1.5px solid ${color};
+        border-radius:${h / 2}px;
+        box-shadow:0 2px 12px -2px rgba(0,0,0,0.35), 0 0 0 2.5px rgba(255,255,255,0.9);
         pointer-events:none;
         letter-spacing:-0.2px;
       ">
-        <svg width="${isFocused ? 10 : 8}" height="${isFocused ? 10 : 8}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        ${label}
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        ${label}${distLabel ? `<span style="opacity:0.7;font-weight:700;margin-left:1px">· ${distLabel}</span>` : ''}
       </div>
     `,
-    iconSize: [w, h],
-    iconAnchor: [w / 2, h / 2],
+    iconSize: [0, 0],
+    iconAnchor: [0, h / 2],
   });
 };
 
@@ -532,7 +533,7 @@ export const calcBearingDeg = (p1, p2) => {
 };
 
 export const buildArrowIcon = (color, bearingDeg, isFocused) => {
-  const sz = isFocused ? 8 : 6;
+  const sz = isFocused ? 10 : 8;
   return L.divIcon({
     className: '',
     html: `<div style="
@@ -543,10 +544,10 @@ export const buildArrowIcon = (color, bearingDeg, isFocused) => {
       justify-content:center;
       pointer-events:none;
       transform:rotate(${Math.round(bearingDeg)}deg);
-      filter:drop-shadow(0 1px 2px rgba(15,23,42,0.35));
+      filter:drop-shadow(0 1px 3px rgba(0,0,0,0.4));
     ">
       <svg width="${sz}" height="${sz}" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="6,0 12,10 6,7 0,10" fill="white"/>
+        <polygon points="6,0 12,10 6,6.5 0,10" fill="white" stroke="${color}" stroke-width="0.5"/>
       </svg>
     </div>`,
     iconSize: [sz, sz],
@@ -1183,17 +1184,44 @@ export const RoutePreviewCanvas = ({
           };
           return <ZoomTracker />;
         })()}
+        {/* 경로 테두리 (흰색 아웃라인) */}
+        <Pane name="route-border" style={{ zIndex: 419 }}>
+          {(() => {
+            const hasFocus = focusedTarget?.kind === 'timeline' && focusedTimelinePointIds.length > 0;
+            return visibleSegmentEntries.filter(s => !s.isFallbackLine && !s.isShipRoute).map((segment) => {
+              let weight;
+              if (segment.isFocused) weight = 14;
+              else if (hasFocus) weight = 8;
+              else weight = 11;
+              return (
+                <Polyline
+                  key={`border-${segment.id}`}
+                  positions={segment.positions}
+                  bubblingMouseEvents={false}
+                  pathOptions={{
+                    color: '#ffffff',
+                    weight,
+                    opacity: segment.isFocused ? 1 : hasFocus ? 0.4 : 0.85,
+                    lineCap: 'round',
+                    lineJoin: 'round',
+                  }}
+                />
+              );
+            });
+          })()}
+        </Pane>
+        {/* 경로 메인 라인 */}
         <Pane name="route-lines" style={{ zIndex: 420 }}>
           {(() => {
             const hasFocus = focusedTarget?.kind === 'timeline' && focusedTimelinePointIds.length > 0;
             return visibleSegmentEntries.map((segment) => {
               let weight, opacity;
               if (segment.isFocused) {
-                weight = 11; opacity = 1;
+                weight = 10; opacity = 1;
               } else if (hasFocus) {
-                weight = segment.isFallbackLine ? 3 : 5; opacity = segment.isFallbackLine ? 0.25 : 0.5;
+                weight = segment.isFallbackLine ? 3 : 5; opacity = segment.isFallbackLine ? 0.25 : 0.55;
               } else {
-                weight = segment.isFallbackLine ? 4 : 8; opacity = segment.isFallbackLine ? 0.45 : 0.9;
+                weight = segment.isFallbackLine ? 4 : 7; opacity = segment.isFallbackLine ? 0.45 : 0.95;
               }
               return (
                 <Polyline
@@ -1243,7 +1271,7 @@ export const RoutePreviewCanvas = ({
                 key={`segment-label-${segment.id}`}
                 position={segment.midPos}
                 bubblingMouseEvents={false}
-                icon={buildSegmentLabelIcon(segment.color, label, segment.isFocused)}
+                icon={buildSegmentLabelIcon(segment.color, label, segment.isFocused, segment.distance)}
                 eventHandlers={interactive && onSegmentLabelClick && segment.toItemId ? {
                   click: () => onSegmentLabelClick(segment.toItemId),
                 } : undefined}

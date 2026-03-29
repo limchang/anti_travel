@@ -7531,63 +7531,7 @@ const App = () => {
               </nav>
             </div>
 
-            {!(mapEditMode || isMobileLayout) && <NavBottomMenu
-              showNavMenu={showNavMenu} setShowNavMenu={setShowNavMenu}
-              canManagePlan={canManagePlan}
-              leftSidebarWidth={leftSidebarWidth}
-              user={user} isDirty={isDirty}
-              saveItineraryManually={saveItineraryManually}
-              setShowPlanManager={setShowPlanManager}
-              navAiExpanded={navAiExpanded} setNavAiExpanded={setNavAiExpanded}
-              aiSmartFillConfig={aiSmartFillConfig} setAiSmartFillConfig={setAiSmartFillConfig}
-              serverAiKeyStatus={serverAiKeyStatus}
-              saveServerAiKey={saveServerAiKey} deleteServerAiKey={deleteServerAiKey}
-              setShowAiSettings={setShowAiSettings}
-              useAiSmartFill={useAiSmartFill} setUseAiSmartFill={setUseAiSmartFill}
-              setShowChecklistModal={setShowChecklistModal}
-              setShowSmartFillGuide={setShowSmartFillGuide}
-              onMoveAllToLibrary={() => {
-                const allItems = [];
-                (itinerary.days || []).forEach(d => {
-                  (d.plan || []).forEach(p => {
-                    if (p.type === 'backup' || p.types?.includes('home')) return;
-                    allItems.push(p);
-                  });
-                });
-                if (!allItems.length) { showInfoToast('이동할 일정이 없습니다.'); return; }
-                if (!window.confirm(`${allItems.length}개 일정을 모두 내장소로 보내시겠습니까?\n(중복은 휴지통, 세그먼트는 삭제)`)) return;
-                saveHistory();
-                setItinerary(prev => {
-                  const next = structuredClone(prev);
-                  const existingIds = new Set((next.places || []).map(p => p.name?.toLowerCase()));
-                  const newPlaces = [];
-                  const dupTrash = [];
-                  (next.days || []).forEach(d => {
-                    const kept = [];
-                    (d.plan || []).forEach(p => {
-                      if (p.type === 'backup' || p.types?.includes('home')) { kept.push(p); return; }
-                      // 세그먼트(숙소 분신)는 완전 삭제
-                      if (p.renderAsSegmentCard || p.sourceLodgeId) return;
-                      const nameKey = (p.activity || p.name || '').toLowerCase();
-                      if (existingIds.has(nameKey)) {
-                        // 중복 → 휴지통
-                        dupTrash.push({ id: p.id, name: p.activity || p.name || '', types: p.types || ['place'], address: p.receipt?.address || p.address || '', receipt: p.receipt || {}, memo: p.memo || '', business: p.business || {}, price: p.price || 0 });
-                      } else {
-                        existingIds.add(nameKey);
-                        newPlaces.push({ id: p.id, name: p.activity || p.name || '', types: p.types || ['place'], address: p.receipt?.address || p.address || '', receipt: p.receipt || {}, memo: p.memo || '', business: p.business || {}, price: p.price || 0 });
-                      }
-                    });
-                    d.plan = kept;
-                  });
-                  next.places = [...(next.places || []), ...newPlaces];
-                  if (dupTrash.length) next.placeTrash = [...(next.placeTrash || []), ...dupTrash];
-                  return next;
-                });
-                showInfoToast(`${allItems.length}개 일정을 내장소로 이동했습니다.`);
-              }}
-              handleLogin={handleLogin} handleLogout={handleLogout}
-              auth={auth}
-            />}
+            {/* NavBottomMenu 제거됨 (mapEditMode 항상 true) */}
         {/* 버전 뱃지 — 비활성화 */}
         {/* ── 일정 개요 위젯 (네비 바로 아래) ── */}
         {(mapEditMode || isMobileLayout) && navFloatingExpanded && (
@@ -7696,9 +7640,8 @@ const App = () => {
             )}
           </div>
         )}
-            {/* ── 고정 헤더 (플로팅 모드에서는 위 핸들이 대체) ── */}
-            {!(mapEditMode || isMobileLayout) && (
-            <div className="px-2 pt-5 pb-2.5 border-b border-slate-100/60 shrink-0 bg-white">
+            {/* ── 구 고정 헤더 제거됨 (mapEditMode 항상 true) ── */}
+            {false && (<div>
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
                   <Package size={14} className="text-[#3182F6]" />

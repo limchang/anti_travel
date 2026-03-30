@@ -1340,16 +1340,22 @@ export const RoutePreviewCanvas = ({
           })()}
         </Pane>
         <Pane name="route-time-markers" style={{ zIndex: 465 }}>
-          {mapZoom >= 11 && visibleSegmentEntries.flatMap((segment) =>
-            (segment.timeMarkers || []).map((tm, i) => (
-              <Marker
-                key={`time-${segment.id}-${i}`}
-                position={tm.pos}
-                bubblingMouseEvents={false}
-                icon={buildTimeMarkerIcon(tm.mins, segment.color)}
-              />
-            ))
-          )}
+          {mapZoom >= 10 && (() => {
+            // 줌 레벨에 따라 표시 간격 조절: 축소 시 듬성듬성, 확대 시 촘촘하게
+            const stepMins = mapZoom >= 13 ? 10 : mapZoom >= 12 ? 20 : mapZoom >= 11 ? 30 : 60;
+            return visibleSegmentEntries.flatMap((segment) =>
+              (segment.timeMarkers || [])
+                .filter((tm) => tm.mins % stepMins === 0)
+                .map((tm, i) => (
+                  <Marker
+                    key={`time-${segment.id}-${tm.mins}`}
+                    position={tm.pos}
+                    bubblingMouseEvents={false}
+                    icon={buildTimeMarkerIcon(tm.mins, segment.color)}
+                  />
+                ))
+            );
+          })()}
         </Pane>
         <Pane name="route-labels" style={{ zIndex: 470 }}>
           {mapZoom >= 10 && visibleSegmentEntries.map((segment) => {

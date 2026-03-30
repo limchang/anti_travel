@@ -555,6 +555,82 @@ export const buildArrowIcon = (color, bearingDeg, isFocused) => {
   });
 };
 
+// 경로 좌표 배열을 시간 기반으로 샘플링 (10분 간격 마커용)
+export const sampleRouteTimeMarkers = (positions, durationMins, intervalMins = 10) => {
+  if (!positions || positions.length < 2 || !durationMins || durationMins < intervalMins) return [];
+  const R = 6371000;
+  const toRad = (d) => d * Math.PI / 180;
+  const dist = (a, b) => {
+    const dLat = toRad(b[0] - a[0]);
+    const dLon = toRad(b[1] - a[1]);
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+  };
+  // 총 거리 계산
+  let totalDist = 0;
+  for (let i = 1; i < positions.length; i++) totalDist += dist(positions[i - 1], positions[i]);
+  if (totalDist < 100) return [];
+
+  const markers = [];
+  const numMarkers = Math.floor(durationMins / intervalMins);
+  let accumulated = 0;
+
+  for (let m = 1; m <= numMarkers; m++) {
+    const targetDist = (m / numMarkers) * totalDist * (numMarkers * intervalMins / durationMins);
+    // 경로를 따라 targetDist 위치 찾기
+    let runDist = 0;
+    for (let i = 1; i < positions.length; i++) {
+      const segDist = dist(positions[i - 1], positions[i]);
+      if (runDist + segDist >= targetDist) {
+        const ratio = segDist > 0 ? (targetDist - runDist) / segDist : 0;
+        const lat = positions[i - 1][0] + ratio * (positions[i][0] - positions[i - 1][0]);
+        const lon = positions[i - 1][1] + ratio * (positions[i][1] - positions[i - 1][1]);
+        markers.push({ pos: [lat, lon], mins: m * intervalMins });
+        break;
+      }
+      runDist += segDist;
+    }
+  }
+  // 마지막 마커 제거 (도착지와 겹침 방지)
+  if (markers.length > 0) markers.pop();
+  return markers;
+};
+
+export const buildTimeMarkerIcon = (mins, color) => {
+  const label = mins >= 60
+    ? `${Math.floor(mins / 60)}h${mins % 60 > 0 ? mins % 60 : ''}`
+    : `${mins}분`;
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      pointer-events:none;
+    ">
+      <span style="
+        font-size:8px;
+        font-weight:800;
+        color:${color};
+        white-space:nowrap;
+        text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 4px #fff;
+        line-height:1;
+        margin-bottom:2px;
+      ">${label}</span>
+      <div style="
+        width:8px;
+        height:8px;
+        border-radius:50%;
+        background:#fff;
+        border:2.5px solid ${color};
+        box-shadow:0 1px 4px rgba(0,0,0,0.35);
+      "></div>
+    </div>`,
+    iconSize: [30, 22],
+    iconAnchor: [15, 22],
+  });
+};
+
 // 경로 좌표 배열을 픽셀 간격(m 기준)으로 샘플링해서 화살표 배치 위치+각도 반환
 export const sampleRouteArrows = (positions, intervalMeters = 120) => {
   if (!positions || positions.length < 2) return [];
@@ -803,6 +879,10 @@ export const RoutePreviewCanvas = ({
           const midIdx = Math.floor(positions.length / 2);
           const midPos = positions[midIdx] || positions[0];
           const arrowPoints = isFallbackLine ? [] : sampleRouteArrows(positions, 150);
+          const durationMins = Number.isFinite(Number(segment.durationMins)) ? Number(segment.durationMins) : null;
+          const timeMarkers = (!isFallbackLine && !segment.isShipRoute && durationMins >= 10)
+            ? sampleRouteTimeMarkers(positions, durationMins, 10)
+            : [];
           return {
             id: segment.id || `segment-${day.day}-${index}`,
             fromId: segment.fromId,
@@ -814,7 +894,8 @@ export const RoutePreviewCanvas = ({
             isFocused,
             midPos,
             arrowPoints: segment.isShipRoute ? [] : arrowPoints,
-            durationMins: Number.isFinite(Number(segment.durationMins)) ? Number(segment.durationMins) : null,
+            timeMarkers,
+            durationMins,
             distance: Number.isFinite(Number(segment.distance)) ? Number(segment.distance) : null,
             toItemId: segment.toPoint?.itemId || segment.toId,
           };
@@ -1257,6 +1338,18 @@ export const RoutePreviewCanvas = ({
                 ))
             );
           })()}
+        </Pane>
+        <Pane name="route-time-markers" style={{ zIndex: 465 }}>
+          {mapZoom >= 11 && visibleSegmentEntries.flatMap((segment) =>
+            (segment.timeMarkers || []).map((tm, i) => (
+              <Marker
+                key={`time-${segment.id}-${i}`}
+                position={tm.pos}
+                bubblingMouseEvents={false}
+                icon={buildTimeMarkerIcon(tm.mins, segment.color)}
+              />
+            ))
+          )}
         </Pane>
         <Pane name="route-labels" style={{ zIndex: 470 }}>
           {mapZoom >= 10 && visibleSegmentEntries.map((segment) => {
